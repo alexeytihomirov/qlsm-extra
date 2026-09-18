@@ -1,0 +1,2257 @@
+{
+  "map_name": "realmofsteelrats",
+  "source": "d:\\QuakeLiveData\\pak00\\maps\\realmofsteelrats.bsp",
+  "entity_count": 201,
+  "entities": [
+    {
+      "id": 2,
+      "classname": "item_health",
+      "x": 864.0,
+      "y": -736.0,
+      "z": -208.0,
+      "alias": "hp25_tunnel",
+      "alias_source": "auto"
+    },
+    {
+      "id": 3,
+      "classname": "weapon_grenadelauncher",
+      "x": -56.0,
+      "y": -832.0,
+      "z": -232.0,
+      "alias": "gl_rl_tele",
+      "alias_source": "auto"
+    },
+    {
+      "id": 4,
+      "classname": "ammo_rockets",
+      "x": 504.0,
+      "y": -936.0,
+      "z": -240.0,
+      "alias": "rocket_ammo_pg_jump",
+      "alias_source": "auto"
+    },
+    {
+      "id": 5,
+      "classname": "item_health",
+      "x": -232.0,
+      "y": -1376.0,
+      "z": -112.0,
+      "alias": "hp25_rl_tele",
+      "alias_source": "auto"
+    },
+    {
+      "id": 6,
+      "classname": "info_notnull",
+      "x": -356.0,
+      "y": -676.0,
+      "z": 28.0,
+      "attrs": {
+        "targetname": "info1"
+      }
+    },
+    {
+      "id": 7,
+      "classname": "info_player_intermission",
+      "x": -112.0,
+      "y": -400.0,
+      "z": 160.0,
+      "attrs": {
+        "target": "info1"
+      }
+    },
+    {
+      "id": 8,
+      "classname": "ammo_cells",
+      "x": 552.0,
+      "y": -272.0,
+      "z": 16.0,
+      "alias": "plasma_ammo_across_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 9,
+      "classname": "target_location",
+      "x": -152.0,
+      "y": 8.0,
+      "z": 72.0,
+      "attrs": {
+        "message": "Quad"
+      }
+    },
+    {
+      "id": 10,
+      "classname": "ammo_shells",
+      "x": 1904.0,
+      "y": -272.0,
+      "z": -112.0,
+      "alias": "sg_ammo_quad_tele",
+      "alias_source": "auto"
+    },
+    {
+      "id": 11,
+      "classname": "weapon_shotgun",
+      "x": 1824.0,
+      "y": -224.0,
+      "z": 16.0,
+      "alias": "sg_quad_tele",
+      "alias_source": "auto"
+    },
+    {
+      "id": 12,
+      "classname": "item_health",
+      "x": 552.0,
+      "y": -320.0,
+      "z": 16.0,
+      "alias": "hp25_across_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 13,
+      "classname": "ammo_shells",
+      "x": 552.0,
+      "y": -936.0,
+      "z": -240.0,
+      "alias": "sg_ammo_pg_jump",
+      "alias_source": "auto"
+    },
+    {
+      "id": 14,
+      "classname": "ammo_grenades",
+      "x": 1648.0,
+      "y": 792.0,
+      "z": -344.0,
+      "alias": "gl_ammo_gl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 15,
+      "classname": "weapon_grenadelauncher",
+      "x": 1648.0,
+      "y": 744.0,
+      "z": -344.0,
+      "alias": "gl_gl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 16,
+      "classname": "target_push",
+      "x": 312.0,
+      "y": -1136.0,
+      "z": -128.0,
+      "attrs": {
+        "targetname": "jump2"
+      }
+    },
+    {
+      "id": 18,
+      "classname": "ammo_lightning",
+      "x": -296.0,
+      "y": -1152.0,
+      "z": -112.0,
+      "alias": "lg_ammo_rl_tele",
+      "alias_source": "auto"
+    },
+    {
+      "id": 19,
+      "classname": "item_health",
+      "x": -304.0,
+      "y": -408.0,
+      "z": -360.0,
+      "alias": "hp25_upper_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 20,
+      "classname": "ammo_rockets",
+      "x": -352.0,
+      "y": -512.0,
+      "z": -360.0,
+      "alias": "rocket_ammo_upper_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 21,
+      "classname": "ammo_shells",
+      "x": -296.0,
+      "y": -1192.0,
+      "z": -112.0,
+      "alias": "sg_ammo_rl_tele",
+      "alias_source": "auto"
+    },
+    {
+      "id": 22,
+      "classname": "ammo_cells",
+      "x": 1568.0,
+      "y": -864.0,
+      "z": 16.0,
+      "alias": "plasma_ammo_tunnel",
+      "alias_source": "auto"
+    },
+    {
+      "id": 23,
+      "classname": "ammo_cells",
+      "x": 288.0,
+      "y": 672.0,
+      "z": -280.0,
+      "alias": "plasma_ammo_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 24,
+      "classname": "ammo_rockets",
+      "x": -384.0,
+      "y": -272.0,
+      "z": -112.0,
+      "alias": "rocket_ammo_upper_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 25,
+      "classname": "item_armor_combat",
+      "x": 616.0,
+      "y": -1368.0,
+      "z": 80.0,
+      "alias": "ya_tunnel",
+      "alias_source": "auto"
+    },
+    {
+      "id": 26,
+      "classname": "weapon_plasmagun",
+      "x": 1240.0,
+      "y": -1304.0,
+      "z": 16.0,
+      "alias": "pg_pg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 27,
+      "classname": "weapon_lightning",
+      "x": 960.0,
+      "y": 256.0,
+      "z": -360.0,
+      "alias": "lg_lg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 28,
+      "classname": "weapon_shotgun",
+      "x": -160.0,
+      "y": 800.0,
+      "z": 16.0,
+      "alias": "sg_ssg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 29,
+      "classname": "weapon_rocketlauncher",
+      "x": 2240.0,
+      "y": 64.0,
+      "z": -232.0,
+      "alias": "rl_lower_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 30,
+      "classname": "item_health",
+      "x": -680.0,
+      "y": -80.0,
+      "z": 16.0,
+      "alias": "hp25_upper_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 31,
+      "classname": "item_armor_combat",
+      "x": 224.0,
+      "y": 672.0,
+      "z": -280.0,
+      "alias": "ya_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 32,
+      "classname": "target_teleporter",
+      "x": 512.0,
+      "y": 456.0,
+      "z": 72.0,
+      "attrs": {
+        "targetname": "tele2",
+        "angle": "270"
+      }
+    },
+    {
+      "id": 34,
+      "classname": "target_teleporter",
+      "x": -664.0,
+      "y": -776.0,
+      "z": 104.0,
+      "attrs": {
+        "targetname": "tele1",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 36,
+      "classname": "weapon_rocketlauncher",
+      "x": -384.0,
+      "y": -768.0,
+      "z": 80.0,
+      "alias": "rl_upper_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 37,
+      "classname": "item_quad",
+      "x": 0.0,
+      "y": 0.0,
+      "z": 16.0
+    },
+    {
+      "id": 38,
+      "classname": "item_armor_body",
+      "x": 960.0,
+      "y": 448.0,
+      "z": 80.0,
+      "alias": "ra_ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 39,
+      "classname": "item_health",
+      "x": -40.0,
+      "y": 320.0,
+      "z": 16.0,
+      "alias": "hp25_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 40,
+      "classname": "item_health",
+      "x": 968.0,
+      "y": -1200.0,
+      "z": -360.0,
+      "alias": "hp25_pg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 41,
+      "classname": "item_health",
+      "x": 1008.0,
+      "y": -1200.0,
+      "z": -360.0,
+      "alias": "hp25_pg_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 42,
+      "classname": "item_health",
+      "x": 1768.0,
+      "y": -480.0,
+      "z": -360.0,
+      "alias": "hp25_quad_tele",
+      "alias_source": "auto"
+    },
+    {
+      "id": 43,
+      "classname": "item_health",
+      "x": 1768.0,
+      "y": -440.0,
+      "z": -360.0,
+      "alias": "hp25_quad_tele_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 44,
+      "classname": "item_health",
+      "x": 1424.0,
+      "y": -360.0,
+      "z": -112.0,
+      "alias": "hp25_loser_s_hall",
+      "alias_source": "auto"
+    },
+    {
+      "id": 45,
+      "classname": "item_health",
+      "x": 1384.0,
+      "y": -360.0,
+      "z": -112.0,
+      "alias": "hp25_loser_s_hall_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 46,
+      "classname": "item_health",
+      "x": 1512.0,
+      "y": 344.0,
+      "z": -176.0,
+      "alias": "hp25_above_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 47,
+      "classname": "item_health",
+      "x": 1512.0,
+      "y": 384.0,
+      "z": -176.0,
+      "alias": "hp25_above_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 48,
+      "classname": "ammo_rockets",
+      "x": -384.0,
+      "y": -312.0,
+      "z": -112.0,
+      "alias": "rocket_ammo_upper_rl_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 49,
+      "classname": "ammo_lightning",
+      "x": 160.0,
+      "y": 672.0,
+      "z": -280.0,
+      "alias": "lg_ammo_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 50,
+      "classname": "info_player_deathmatch",
+      "x": -160.0,
+      "y": 544.0,
+      "z": 32.0,
+      "attrs": {
+        "angle": "360",
+        "targetname": "t223"
+      }
+    },
+    {
+      "id": 51,
+      "classname": "info_player_deathmatch",
+      "x": 352.0,
+      "y": -360.0,
+      "z": -292.0,
+      "attrs": {
+        "angle": "180",
+        "targetname": "t223"
+      }
+    },
+    {
+      "id": 52,
+      "classname": "info_player_deathmatch",
+      "x": 1520.0,
+      "y": -224.0,
+      "z": 32.0,
+      "attrs": {
+        "angle": "270",
+        "targetname": "t224"
+      }
+    },
+    {
+      "id": 53,
+      "classname": "info_player_deathmatch",
+      "x": 688.0,
+      "y": 776.0,
+      "z": -336.0,
+      "attrs": {
+        "angle": "315",
+        "targetname": "t222"
+      }
+    },
+    {
+      "id": 54,
+      "classname": "info_player_deathmatch",
+      "x": 1704.0,
+      "y": -552.0,
+      "z": -352.0,
+      "attrs": {
+        "angle": "135",
+        "targetname": "t222"
+      }
+    },
+    {
+      "id": 55,
+      "classname": "info_player_deathmatch",
+      "x": 1456.0,
+      "y": 784.0,
+      "z": -160.0,
+      "attrs": {
+        "angle": "315"
+      }
+    },
+    {
+      "id": 56,
+      "classname": "info_player_deathmatch",
+      "x": 928.0,
+      "y": -1088.0,
+      "z": 48.0,
+      "attrs": {
+        "angle": "270",
+        "not_gametype": "dom"
+      }
+    },
+    {
+      "id": 57,
+      "classname": "ammo_lightning",
+      "x": 1432.0,
+      "y": 360.0,
+      "z": -360.0,
+      "alias": "lg_ammo_above_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 58,
+      "classname": "ammo_shells",
+      "x": 1848.0,
+      "y": 792.0,
+      "z": -176.0,
+      "alias": "sg_ammo_above_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 59,
+      "classname": "ammo_rockets",
+      "x": 1896.0,
+      "y": 792.0,
+      "z": -176.0,
+      "alias": "rocket_ammo_above_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 60,
+      "classname": "info_player_deathmatch",
+      "x": -664.0,
+      "y": -672.0,
+      "z": -96.0,
+      "attrs": {
+        "angle": "25",
+        "targetname": "t223"
+      }
+    },
+    {
+      "id": 61,
+      "classname": "ammo_grenades",
+      "x": 2336.0,
+      "y": 864.0,
+      "z": 16.0,
+      "alias": "gl_ammo_above_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 62,
+      "classname": "target_location",
+      "x": -448.0,
+      "y": -544.0,
+      "z": 8.0,
+      "attrs": {
+        "message": "Upper RL"
+      }
+    },
+    {
+      "id": 63,
+      "classname": "target_location",
+      "x": 224.0,
+      "y": 672.0,
+      "z": -256.0,
+      "attrs": {
+        "message": "YA"
+      }
+    },
+    {
+      "id": 64,
+      "classname": "target_location",
+      "x": -256.0,
+      "y": -992.0,
+      "z": -256.0,
+      "attrs": {
+        "message": "RL-Tele"
+      }
+    },
+    {
+      "id": 65,
+      "classname": "target_location",
+      "x": 344.0,
+      "y": -1152.0,
+      "z": -256.0,
+      "attrs": {
+        "message": "PG-Jump"
+      }
+    },
+    {
+      "id": 66,
+      "classname": "target_location",
+      "x": 1056.0,
+      "y": -1224.0,
+      "z": 40.0,
+      "attrs": {
+        "message": "PG"
+      }
+    },
+    {
+      "id": 67,
+      "classname": "target_location",
+      "x": 1296.0,
+      "y": -512.0,
+      "z": 40.0,
+      "attrs": {
+        "message": "Loser's Hall"
+      }
+    },
+    {
+      "id": 68,
+      "classname": "target_location",
+      "x": 2024.0,
+      "y": -416.0,
+      "z": 40.0,
+      "attrs": {
+        "message": "Quad-Tele"
+      }
+    },
+    {
+      "id": 69,
+      "classname": "target_location",
+      "x": 2240.0,
+      "y": 120.0,
+      "z": -200.0,
+      "attrs": {
+        "message": "Lower RL"
+      }
+    },
+    {
+      "id": 70,
+      "classname": "target_location",
+      "x": 1792.0,
+      "y": 640.0,
+      "z": 80.0,
+      "attrs": {
+        "message": "Above RL"
+      }
+    },
+    {
+      "id": 71,
+      "classname": "target_location",
+      "x": 1648.0,
+      "y": 792.0,
+      "z": -312.0,
+      "attrs": {
+        "message": "GL"
+      }
+    },
+    {
+      "id": 72,
+      "classname": "target_location",
+      "x": 1520.0,
+      "y": -784.0,
+      "z": -320.0,
+      "attrs": {
+        "message": "Tunnel"
+      }
+    },
+    {
+      "id": 73,
+      "classname": "target_location",
+      "x": 1096.0,
+      "y": -808.0,
+      "z": -320.0,
+      "attrs": {
+        "message": "Tunnel"
+      }
+    },
+    {
+      "id": 74,
+      "classname": "target_location",
+      "x": 848.0,
+      "y": -1152.0,
+      "z": -320.0,
+      "attrs": {
+        "message": "Tunnel"
+      }
+    },
+    {
+      "id": 75,
+      "classname": "target_location",
+      "x": -96.0,
+      "y": 752.0,
+      "z": 72.0,
+      "attrs": {
+        "message": "SSG"
+      }
+    },
+    {
+      "id": 76,
+      "classname": "target_location",
+      "x": 512.0,
+      "y": 8.0,
+      "z": 72.0,
+      "attrs": {
+        "message": "Across Quad"
+      }
+    },
+    {
+      "id": 77,
+      "classname": "target_location",
+      "x": 960.0,
+      "y": 256.0,
+      "z": -312.0,
+      "attrs": {
+        "message": "LG"
+      }
+    },
+    {
+      "id": 78,
+      "classname": "target_location",
+      "x": 960.0,
+      "y": 448.0,
+      "z": 112.0,
+      "attrs": {
+        "message": "RA"
+      }
+    },
+    {
+      "id": 79,
+      "classname": "item_health",
+      "x": 680.0,
+      "y": 48.0,
+      "z": -176.0,
+      "alias": "hp25_across_quad_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 81,
+      "classname": "target_position",
+      "x": 2288.0,
+      "y": 632.0,
+      "z": 32.0,
+      "attrs": {
+        "targetname": "t4"
+      }
+    },
+    {
+      "id": 85,
+      "classname": "target_position",
+      "x": 2320.0,
+      "y": 576.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t134"
+      }
+    },
+    {
+      "id": 86,
+      "classname": "target_position",
+      "x": 1984.0,
+      "y": 848.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t135"
+      }
+    },
+    {
+      "id": 87,
+      "classname": "target_position",
+      "x": 2264.0,
+      "y": 792.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t136"
+      }
+    },
+    {
+      "id": 88,
+      "classname": "target_position",
+      "x": 1944.0,
+      "y": 16.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t137"
+      }
+    },
+    {
+      "id": 89,
+      "classname": "target_position",
+      "x": 1704.0,
+      "y": 72.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t138"
+      }
+    },
+    {
+      "id": 90,
+      "classname": "target_position",
+      "x": 1704.0,
+      "y": 792.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t139"
+      }
+    },
+    {
+      "id": 91,
+      "classname": "target_position",
+      "x": 1648.0,
+      "y": 576.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t140"
+      }
+    },
+    {
+      "id": 92,
+      "classname": "target_position",
+      "x": 1648.0,
+      "y": 384.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t141"
+      }
+    },
+    {
+      "id": 93,
+      "classname": "target_position",
+      "x": 1240.0,
+      "y": 728.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t142"
+      }
+    },
+    {
+      "id": 94,
+      "classname": "target_position",
+      "x": 872.0,
+      "y": 728.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t143"
+      }
+    },
+    {
+      "id": 95,
+      "classname": "target_position",
+      "x": 872.0,
+      "y": -24.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t144"
+      }
+    },
+    {
+      "id": 96,
+      "classname": "target_position",
+      "x": 1296.0,
+      "y": 512.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t145"
+      }
+    },
+    {
+      "id": 97,
+      "classname": "target_position",
+      "x": 1296.0,
+      "y": 288.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t146"
+      }
+    },
+    {
+      "id": 98,
+      "classname": "target_position",
+      "x": 1296.0,
+      "y": 64.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t147"
+      }
+    },
+    {
+      "id": 99,
+      "classname": "target_position",
+      "x": 1088.0,
+      "y": -80.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t148"
+      }
+    },
+    {
+      "id": 100,
+      "classname": "target_position",
+      "x": 816.0,
+      "y": 512.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t149"
+      }
+    },
+    {
+      "id": 101,
+      "classname": "target_position",
+      "x": 816.0,
+      "y": 288.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t150"
+      }
+    },
+    {
+      "id": 102,
+      "classname": "target_position",
+      "x": 416.0,
+      "y": 128.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t151"
+      }
+    },
+    {
+      "id": 103,
+      "classname": "target_position",
+      "x": 416.0,
+      "y": -128.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t152"
+      }
+    },
+    {
+      "id": 104,
+      "classname": "target_position",
+      "x": 416.0,
+      "y": 0.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t153"
+      }
+    },
+    {
+      "id": 105,
+      "classname": "target_position",
+      "x": 32.0,
+      "y": 128.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t154"
+      }
+    },
+    {
+      "id": 106,
+      "classname": "target_position",
+      "x": 32.0,
+      "y": -128.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t155"
+      }
+    },
+    {
+      "id": 107,
+      "classname": "target_position",
+      "x": 32.0,
+      "y": 0.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t156"
+      }
+    },
+    {
+      "id": 108,
+      "classname": "target_position",
+      "x": 512.0,
+      "y": 456.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "t157"
+      }
+    },
+    {
+      "id": 109,
+      "classname": "target_position",
+      "x": 640.0,
+      "y": -992.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t159"
+      }
+    },
+    {
+      "id": 110,
+      "classname": "target_position",
+      "x": 896.0,
+      "y": -992.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t160"
+      }
+    },
+    {
+      "id": 111,
+      "classname": "target_position",
+      "x": 768.0,
+      "y": -992.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t161"
+      }
+    },
+    {
+      "id": 112,
+      "classname": "target_position",
+      "x": 1328.0,
+      "y": -944.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t162"
+      }
+    },
+    {
+      "id": 113,
+      "classname": "target_position",
+      "x": 1328.0,
+      "y": -720.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t163"
+      }
+    },
+    {
+      "id": 114,
+      "classname": "target_position",
+      "x": 464.0,
+      "y": -944.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t164"
+      }
+    },
+    {
+      "id": 115,
+      "classname": "target_position",
+      "x": 464.0,
+      "y": -720.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t165"
+      }
+    },
+    {
+      "id": 116,
+      "classname": "target_position",
+      "x": 32.0,
+      "y": 256.0,
+      "z": -296.0,
+      "attrs": {
+        "targetname": "t167"
+      }
+    },
+    {
+      "id": 117,
+      "classname": "target_position",
+      "x": 32.0,
+      "y": 448.0,
+      "z": -296.0,
+      "attrs": {
+        "targetname": "t168"
+      }
+    },
+    {
+      "id": 118,
+      "classname": "target_position",
+      "x": -192.0,
+      "y": -1360.0,
+      "z": 8.0,
+      "attrs": {
+        "targetname": "t170"
+      }
+    },
+    {
+      "id": 119,
+      "classname": "target_position",
+      "x": 64.0,
+      "y": -1360.0,
+      "z": 8.0,
+      "attrs": {
+        "targetname": "t171"
+      }
+    },
+    {
+      "id": 120,
+      "classname": "target_position",
+      "x": 320.0,
+      "y": -1360.0,
+      "z": 8.0,
+      "attrs": {
+        "targetname": "t172"
+      }
+    },
+    {
+      "id": 121,
+      "classname": "target_position",
+      "x": 576.0,
+      "y": -1360.0,
+      "z": 88.0,
+      "attrs": {
+        "targetname": "t173"
+      }
+    },
+    {
+      "id": 122,
+      "classname": "target_position",
+      "x": 832.0,
+      "y": -1360.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t174"
+      }
+    },
+    {
+      "id": 123,
+      "classname": "target_position",
+      "x": 1088.0,
+      "y": -1072.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t176"
+      }
+    },
+    {
+      "id": 124,
+      "classname": "target_position",
+      "x": 64.0,
+      "y": -1072.0,
+      "z": 8.0,
+      "attrs": {
+        "targetname": "t178"
+      }
+    },
+    {
+      "id": 125,
+      "classname": "target_position",
+      "x": 320.0,
+      "y": -1072.0,
+      "z": 8.0,
+      "attrs": {
+        "targetname": "t179"
+      }
+    },
+    {
+      "id": 126,
+      "classname": "target_position",
+      "x": 576.0,
+      "y": -1072.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t180"
+      }
+    },
+    {
+      "id": 127,
+      "classname": "target_position",
+      "x": 832.0,
+      "y": -1072.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t181"
+      }
+    },
+    {
+      "id": 128,
+      "classname": "target_position",
+      "x": 1824.0,
+      "y": -224.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t182"
+      }
+    },
+    {
+      "id": 129,
+      "classname": "target_position",
+      "x": 1280.0,
+      "y": 480.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t183"
+      }
+    },
+    {
+      "id": 130,
+      "classname": "target_position",
+      "x": 1280.0,
+      "y": 256.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t184"
+      }
+    },
+    {
+      "id": 131,
+      "classname": "target_position",
+      "x": 1280.0,
+      "y": 32.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t185"
+      }
+    },
+    {
+      "id": 132,
+      "classname": "target_position",
+      "x": 1280.0,
+      "y": -192.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t186"
+      }
+    },
+    {
+      "id": 133,
+      "classname": "target_position",
+      "x": 704.0,
+      "y": 480.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t187"
+      }
+    },
+    {
+      "id": 134,
+      "classname": "target_position",
+      "x": 704.0,
+      "y": 256.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t188"
+      }
+    },
+    {
+      "id": 135,
+      "classname": "target_position",
+      "x": 704.0,
+      "y": 32.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t189"
+      }
+    },
+    {
+      "id": 136,
+      "classname": "target_position",
+      "x": 704.0,
+      "y": -192.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t190"
+      }
+    },
+    {
+      "id": 137,
+      "classname": "target_position",
+      "x": 1280.0,
+      "y": -192.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t191"
+      }
+    },
+    {
+      "id": 138,
+      "classname": "target_position",
+      "x": 1088.0,
+      "y": -192.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t192"
+      }
+    },
+    {
+      "id": 139,
+      "classname": "target_position",
+      "x": 896.0,
+      "y": -192.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t193"
+      }
+    },
+    {
+      "id": 140,
+      "classname": "target_position",
+      "x": 1472.0,
+      "y": 768.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t194"
+      }
+    },
+    {
+      "id": 141,
+      "classname": "target_position",
+      "x": 1744.0,
+      "y": 612.0,
+      "z": -152.0,
+      "attrs": {
+        "targetname": "t195"
+      }
+    },
+    {
+      "id": 142,
+      "classname": "target_position",
+      "x": 2036.0,
+      "y": 768.0,
+      "z": -184.0,
+      "attrs": {
+        "targetname": "t196"
+      }
+    },
+    {
+      "id": 143,
+      "classname": "target_position",
+      "x": 1688.0,
+      "y": 768.0,
+      "z": -184.0,
+      "attrs": {
+        "targetname": "t197"
+      }
+    },
+    {
+      "id": 144,
+      "classname": "target_position",
+      "x": 1120.0,
+      "y": -1304.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t198"
+      }
+    },
+    {
+      "id": 145,
+      "classname": "target_position",
+      "x": 1008.0,
+      "y": -448.0,
+      "z": -96.0,
+      "attrs": {
+        "targetname": "t199"
+      }
+    },
+    {
+      "id": 146,
+      "classname": "target_position",
+      "x": 512.0,
+      "y": -448.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t200"
+      }
+    },
+    {
+      "id": 147,
+      "classname": "target_position",
+      "x": -664.0,
+      "y": -776.0,
+      "z": 88.0,
+      "attrs": {
+        "targetname": "t201"
+      }
+    },
+    {
+      "id": 148,
+      "classname": "target_position",
+      "x": -64.0,
+      "y": 256.0,
+      "z": -296.0,
+      "attrs": {
+        "targetname": "t202"
+      }
+    },
+    {
+      "id": 149,
+      "classname": "target_position",
+      "x": -64.0,
+      "y": 416.0,
+      "z": -296.0,
+      "attrs": {
+        "targetname": "t203"
+      }
+    },
+    {
+      "id": 150,
+      "classname": "target_position",
+      "x": 360.0,
+      "y": 680.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "t204"
+      }
+    },
+    {
+      "id": 151,
+      "classname": "target_position",
+      "x": 88.0,
+      "y": 680.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "t205"
+      }
+    },
+    {
+      "id": 152,
+      "classname": "target_position",
+      "x": 328.0,
+      "y": 320.0,
+      "z": -296.0,
+      "attrs": {
+        "targetname": "t206"
+      }
+    },
+    {
+      "id": 153,
+      "classname": "target_position",
+      "x": 328.0,
+      "y": -8.0,
+      "z": -296.0,
+      "attrs": {
+        "targetname": "t207"
+      }
+    },
+    {
+      "id": 154,
+      "classname": "target_position",
+      "x": 32.0,
+      "y": 496.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t208"
+      }
+    },
+    {
+      "id": 155,
+      "classname": "target_position",
+      "x": 32.0,
+      "y": 368.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t209"
+      }
+    },
+    {
+      "id": 156,
+      "classname": "target_position",
+      "x": 1096.0,
+      "y": -1152.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t210"
+      }
+    },
+    {
+      "id": 157,
+      "classname": "target_position",
+      "x": 928.0,
+      "y": -1152.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t211"
+      }
+    },
+    {
+      "id": 158,
+      "classname": "target_position",
+      "x": 624.0,
+      "y": -1120.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "t212"
+      }
+    },
+    {
+      "id": 159,
+      "classname": "target_position",
+      "x": 264.0,
+      "y": -1088.0,
+      "z": -264.0,
+      "attrs": {
+        "targetname": "t213"
+      }
+    },
+    {
+      "id": 160,
+      "classname": "target_position",
+      "x": 200.0,
+      "y": -1088.0,
+      "z": -264.0,
+      "attrs": {
+        "targetname": "t214"
+      }
+    },
+    {
+      "id": 161,
+      "classname": "target_position",
+      "x": 224.0,
+      "y": 640.0,
+      "z": -208.0,
+      "attrs": {
+        "targetname": "t215"
+      }
+    },
+    {
+      "id": 162,
+      "classname": "target_position",
+      "x": 304.0,
+      "y": -256.0,
+      "z": -296.0,
+      "attrs": {
+        "targetname": "t216"
+      }
+    },
+    {
+      "id": 163,
+      "classname": "target_position",
+      "x": -128.0,
+      "y": -592.0,
+      "z": -296.0,
+      "attrs": {
+        "targetname": "t217"
+      }
+    },
+    {
+      "id": 164,
+      "classname": "target_position",
+      "x": -192.0,
+      "y": -960.0,
+      "z": -296.0,
+      "attrs": {
+        "targetname": "t218"
+      }
+    },
+    {
+      "id": 165,
+      "classname": "target_position",
+      "x": -128.0,
+      "y": -832.0,
+      "z": -232.0,
+      "attrs": {
+        "targetname": "t219"
+      }
+    },
+    {
+      "id": 166,
+      "classname": "target_position",
+      "x": 192.0,
+      "y": -832.0,
+      "z": -232.0,
+      "attrs": {
+        "targetname": "t220"
+      }
+    },
+    {
+      "id": 167,
+      "classname": "target_position",
+      "x": 320.0,
+      "y": -832.0,
+      "z": -232.0,
+      "attrs": {
+        "targetname": "t221"
+      }
+    },
+    {
+      "id": 168,
+      "classname": "team_dom_point",
+      "x": -192.0,
+      "y": 0.0,
+      "z": 24.0,
+      "attrs": {
+        "identifier": "3",
+        "count": "128",
+        "target": "t223"
+      }
+    },
+    {
+      "id": 169,
+      "classname": "team_dom_point",
+      "x": 928.0,
+      "y": -1124.0,
+      "z": 40.0,
+      "attrs": {
+        "identifier": "2",
+        "count": "128",
+        "target": "t224"
+      }
+    },
+    {
+      "id": 170,
+      "classname": "team_dom_point",
+      "x": 1856.0,
+      "y": 704.0,
+      "z": -168.0,
+      "attrs": {
+        "identifier": "1",
+        "count": "128",
+        "target": "t222"
+      }
+    },
+    {
+      "id": 171,
+      "classname": "info_player_deathmatch",
+      "x": -32.0,
+      "y": -1184.0,
+      "z": -360.0,
+      "attrs": {
+        "angle": "360",
+        "gametype": "dom",
+        "targetname": "t224"
+      }
+    },
+    {
+      "id": 172,
+      "classname": "info_player_deathmatch",
+      "x": 1176.0,
+      "y": -1184.0,
+      "z": -352.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "180",
+        "targetname": "t224"
+      }
+    },
+    {
+      "id": 173,
+      "classname": "info_player_deathmatch",
+      "x": -96.0,
+      "y": -928.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "t224",
+        "gametype": "dom",
+        "angle": "270"
+      }
+    },
+    {
+      "id": 174,
+      "classname": "info_player_deathmatch",
+      "x": 1120.0,
+      "y": -352.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "315",
+        "gametype": "dom",
+        "targetname": "t224"
+      }
+    },
+    {
+      "id": 175,
+      "classname": "info_player_deathmatch",
+      "x": -96.0,
+      "y": 416.0,
+      "z": -296.0,
+      "attrs": {
+        "angle": "270",
+        "gametype": "dom",
+        "targetname": "t223"
+      }
+    },
+    {
+      "id": 176,
+      "classname": "info_player_deathmatch",
+      "x": 432.0,
+      "y": -912.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "t223",
+        "gametype": "dom",
+        "angle": "135"
+      }
+    },
+    {
+      "id": 177,
+      "classname": "info_player_deathmatch",
+      "x": 672.0,
+      "y": -224.0,
+      "z": -352.0,
+      "attrs": {
+        "angle": "45",
+        "gametype": "dom",
+        "targetname": "t222"
+      }
+    },
+    {
+      "id": 178,
+      "classname": "info_player_deathmatch",
+      "x": 1888.0,
+      "y": -288.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "t222",
+        "gametype": "dom",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 179,
+      "classname": "info_player_deathmatch",
+      "x": 472.0,
+      "y": 736.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t222",
+        "gametype": "dom",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 180,
+      "classname": "team_CTF_redplayer",
+      "x": 1440.0,
+      "y": 800.0,
+      "z": -168.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 181,
+      "classname": "team_CTF_redplayer",
+      "x": 1440.0,
+      "y": 752.0,
+      "z": -168.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 182,
+      "classname": "team_CTF_redplayer",
+      "x": 1440.0,
+      "y": 704.0,
+      "z": -168.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 183,
+      "classname": "team_CTF_redplayer",
+      "x": 1440.0,
+      "y": 656.0,
+      "z": -168.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 184,
+      "classname": "team_CTF_redplayer",
+      "x": 1440.0,
+      "y": 608.0,
+      "z": -168.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 185,
+      "classname": "team_CTF_redplayer",
+      "x": 1864.0,
+      "y": -32.0,
+      "z": -104.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 186,
+      "classname": "team_CTF_redplayer",
+      "x": 1912.0,
+      "y": -32.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "90",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 187,
+      "classname": "team_CTF_redplayer",
+      "x": 2336.0,
+      "y": 864.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "225"
+      }
+    },
+    {
+      "id": 188,
+      "classname": "team_CTF_blueplayer",
+      "x": -512.0,
+      "y": -128.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 189,
+      "classname": "team_CTF_blueplayer",
+      "x": -576.0,
+      "y": -80.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 190,
+      "classname": "team_CTF_blueplayer",
+      "x": -608.0,
+      "y": -32.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 191,
+      "classname": "team_CTF_blueplayer",
+      "x": -640.0,
+      "y": 16.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 192,
+      "classname": "team_CTF_blueplayer",
+      "x": -608.0,
+      "y": 64.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 193,
+      "classname": "team_CTF_blueplayer",
+      "x": -576.0,
+      "y": 112.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 194,
+      "classname": "team_CTF_blueplayer",
+      "x": -480.0,
+      "y": 160.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 195,
+      "classname": "team_CTF_blueplayer",
+      "x": -432.0,
+      "y": -160.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 196,
+      "classname": "ammo_pack",
+      "x": -296.0,
+      "y": -1172.0,
+      "z": -76.0,
+      "alias": "ammo_pack_rl_tele",
+      "alias_source": "auto"
+    },
+    {
+      "id": 197,
+      "classname": "ammo_pack",
+      "x": 528.0,
+      "y": -936.0,
+      "z": -204.0,
+      "alias": "ammo_pack_pg_jump",
+      "alias_source": "auto"
+    },
+    {
+      "id": 198,
+      "classname": "ammo_pack",
+      "x": 1568.0,
+      "y": -864.0,
+      "z": 52.0,
+      "alias": "ammo_pack_tunnel",
+      "alias_source": "auto"
+    },
+    {
+      "id": 199,
+      "classname": "ammo_pack",
+      "x": -352.0,
+      "y": -512.0,
+      "z": -324.0,
+      "alias": "ammo_pack_upper_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 200,
+      "classname": "ammo_pack",
+      "x": 1904.0,
+      "y": -272.0,
+      "z": -76.0,
+      "alias": "ammo_pack_quad_tele",
+      "alias_source": "auto"
+    },
+    {
+      "id": 201,
+      "classname": "ammo_pack",
+      "x": 552.0,
+      "y": -272.0,
+      "z": 52.0,
+      "alias": "ammo_pack_across_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 202,
+      "classname": "ammo_pack",
+      "x": 1432.0,
+      "y": 360.0,
+      "z": -324.0,
+      "alias": "ammo_pack_above_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 203,
+      "classname": "ammo_pack",
+      "x": 288.0,
+      "y": 672.0,
+      "z": -244.0,
+      "alias": "ammo_pack_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 204,
+      "classname": "ammo_pack",
+      "x": 1648.0,
+      "y": 792.0,
+      "z": -308.0,
+      "alias": "ammo_pack_gl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 205,
+      "classname": "ammo_pack",
+      "x": 1872.0,
+      "y": 792.0,
+      "z": -140.0,
+      "alias": "ammo_pack_above_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 206,
+      "classname": "ammo_pack",
+      "x": 2336.0,
+      "y": 864.0,
+      "z": 52.0,
+      "alias": "ammo_pack_above_rl_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 207,
+      "classname": "ammo_pack",
+      "x": 160.0,
+      "y": 672.0,
+      "z": -244.0,
+      "alias": "ammo_pack_ya_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 208,
+      "classname": "ammo_pack",
+      "x": -384.0,
+      "y": -292.0,
+      "z": -76.0,
+      "alias": "ammo_pack_upper_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 209,
+      "classname": "weapon_hmg",
+      "x": 96.0,
+      "y": -1248.0,
+      "z": -104.0,
+      "attrs": {
+        "not_gametype": "tdm"
+      },
+      "alias": "hmg_pg_jump",
+      "alias_source": "auto"
+    }
+  ],
+  "by_classname": {
+    "item_health": [
+      2,
+      5,
+      12,
+      19,
+      30,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      79
+    ],
+    "weapon_grenadelauncher": [
+      3,
+      15
+    ],
+    "ammo_rockets": [
+      4,
+      20,
+      24,
+      48,
+      59
+    ],
+    "info_notnull": [
+      6
+    ],
+    "info_player_intermission": [
+      7
+    ],
+    "ammo_cells": [
+      8,
+      22,
+      23
+    ],
+    "target_location": [
+      9,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78
+    ],
+    "ammo_shells": [
+      10,
+      13,
+      21,
+      58
+    ],
+    "weapon_shotgun": [
+      11,
+      28
+    ],
+    "ammo_grenades": [
+      14,
+      61
+    ],
+    "target_push": [
+      16
+    ],
+    "ammo_lightning": [
+      18,
+      49,
+      57
+    ],
+    "item_armor_combat": [
+      25,
+      31
+    ],
+    "weapon_plasmagun": [
+      26
+    ],
+    "weapon_lightning": [
+      27
+    ],
+    "weapon_rocketlauncher": [
+      29,
+      36
+    ],
+    "target_teleporter": [
+      32,
+      34
+    ],
+    "item_quad": [
+      37
+    ],
+    "item_armor_body": [
+      38
+    ],
+    "info_player_deathmatch": [
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      60,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179
+    ],
+    "target_position": [
+      81,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      122,
+      123,
+      124,
+      125,
+      126,
+      127,
+      128,
+      129,
+      130,
+      131,
+      132,
+      133,
+      134,
+      135,
+      136,
+      137,
+      138,
+      139,
+      140,
+      141,
+      142,
+      143,
+      144,
+      145,
+      146,
+      147,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167
+    ],
+    "team_dom_point": [
+      168,
+      169,
+      170
+    ],
+    "team_CTF_redplayer": [
+      180,
+      181,
+      182,
+      183,
+      184,
+      185,
+      186,
+      187
+    ],
+    "team_CTF_blueplayer": [
+      188,
+      189,
+      190,
+      191,
+      192,
+      193,
+      194,
+      195
+    ],
+    "ammo_pack": [
+      196,
+      197,
+      198,
+      199,
+      200,
+      201,
+      202,
+      203,
+      204,
+      205,
+      206,
+      207,
+      208
+    ],
+    "weapon_hmg": [
+      209
+    ]
+  },
+  "teleports": {
+    "exit_count": 0,
+    "pair_count": 0,
+    "pairs": [],
+    "exits": []
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "label": "Match Restore",
+  "description": "Checkpoint / restore — saves and restores full match state (player positions, health, armor, items, score, clock) at referee-triggered checkpoints.",
+  "commands": [
+    { "name": "restore", "usage": "export | test [name] | quiet | loud | clear | time | map | player | item | apply | verify | show | players [slot:cid...]", "permission": 5, "description": "Checkpoint draft workflow — build, verify and apply a saved match-state snapshot." },
+    { "name": "restorecheckpoint", "usage": "export | test [name] | quiet | loud | clear | time | map | player | item | apply | verify | show | players [slot:cid...]", "permission": 5, "description": "Alias for !restore." }
+  ],
+  "cvars": [
+    { "cvar": "qlx_matchRestoreLabEnabled", "label": "Enabled", "description": "Turns restore and the underlying clock/pause/item-restore engine on or off. Also gates the optional match_restore_lab plugin's debug commands (shared cvar).", "type": "bool", "default": true },
+    { "cvar": "qlx_matchRestoreNativeClock", "label": "Native Clock", "description": "Use the engine's own match clock instead of the plugin's tracked clock.", "type": "bool", "default": false },
+    { "cvar": "qlx_matchRestoreUnfreezeDelaySec", "label": "Unfreeze Delay (s)", "description": "Seconds to wait after applying a checkpoint before unfreezing play.", "type": "number", "default": 4, "min": 0 }
+  ],
+  "depends_on": ["match_restore_util.py"]
+}

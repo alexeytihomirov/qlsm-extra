@@ -1,0 +1,2186 @@
+{
+  "map_name": "elder",
+  "source": "d:\\QuakeLiveData\\pak00\\maps\\elder.bsp",
+  "entity_count": 191,
+  "entities": [
+    {
+      "id": 2,
+      "classname": "weapon_lightning",
+      "x": -1088.0,
+      "y": 64.0,
+      "z": 208.0,
+      "alias": "lg_7lg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 3,
+      "classname": "info_player_deathmatch",
+      "x": -448.0,
+      "y": -576.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "90"
+      }
+    },
+    {
+      "id": 5,
+      "classname": "misc_teleporter_dest",
+      "x": -1280.0,
+      "y": 384.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "tp_exit_to_lg"
+      }
+    },
+    {
+      "id": 6,
+      "classname": "item_health",
+      "x": -1072.0,
+      "y": -496.0,
+      "z": 80.0,
+      "alias": "hp25_2gl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 8,
+      "classname": "info_notnull",
+      "x": -1696.0,
+      "y": -320.0,
+      "z": 192.0,
+      "attrs": {
+        "targetname": "t1"
+      }
+    },
+    {
+      "id": 10,
+      "classname": "weapon_railgun",
+      "x": -1696.0,
+      "y": -160.0,
+      "z": -296.0,
+      "alias": "rg_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 11,
+      "classname": "item_health_large",
+      "x": -1696.0,
+      "y": -896.0,
+      "z": -272.0,
+      "alias": "hp50_3sg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 12,
+      "classname": "weapon_shotgun",
+      "x": -1696.0,
+      "y": -928.0,
+      "z": 8.0,
+      "alias": "sg_3sg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 13,
+      "classname": "item_health_small",
+      "x": -320.0,
+      "y": 224.0,
+      "z": -48.0,
+      "alias": "hp5_7door_tp",
+      "alias_source": "auto"
+    },
+    {
+      "id": 14,
+      "classname": "item_health_small",
+      "x": -320.0,
+      "y": 160.0,
+      "z": -48.0,
+      "alias": "hp5_7door_tp_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 15,
+      "classname": "item_health_small",
+      "x": -320.0,
+      "y": 96.0,
+      "z": -48.0,
+      "alias": "hp5_7door_tp_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 16,
+      "classname": "item_health_small",
+      "x": -320.0,
+      "y": 32.0,
+      "z": -48.0,
+      "alias": "hp5_7obelisk",
+      "alias_source": "auto"
+    },
+    {
+      "id": 17,
+      "classname": "weapon_grenadelauncher",
+      "x": -816.0,
+      "y": -720.0,
+      "z": -232.0,
+      "alias": "gl_2gl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 18,
+      "classname": "misc_teleporter_dest",
+      "x": -1952.0,
+      "y": -928.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "tp_exit_to_gl"
+      }
+    },
+    {
+      "id": 19,
+      "classname": "item_armor_combat",
+      "x": 0.0,
+      "y": -416.0,
+      "z": -112.0,
+      "alias": "ya_3low_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 21,
+      "classname": "weapon_rocketlauncher",
+      "x": 0.0,
+      "y": -896.0,
+      "z": -112.0,
+      "alias": "rl_1rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 22,
+      "classname": "info_player_deathmatch",
+      "x": -1984.0,
+      "y": 448.0,
+      "z": 216.0,
+      "attrs": {
+        "angle": "315"
+      }
+    },
+    {
+      "id": 23,
+      "classname": "info_player_deathmatch",
+      "x": -1728.0,
+      "y": 128.0,
+      "z": 152.0,
+      "attrs": {
+        "spawnflags": "1",
+        "angle": "225"
+      }
+    },
+    {
+      "id": 24,
+      "classname": "item_health_small",
+      "x": -128.0,
+      "y": -480.0,
+      "z": -112.0,
+      "alias": "hp5_3low_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 25,
+      "classname": "item_health_small",
+      "x": -128.0,
+      "y": -416.0,
+      "z": -112.0,
+      "alias": "hp5_3low_ya_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 26,
+      "classname": "item_health_small",
+      "x": -128.0,
+      "y": -352.0,
+      "z": -112.0,
+      "alias": "hp5_3low_ya_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 27,
+      "classname": "item_health_small",
+      "x": -1664.0,
+      "y": 352.0,
+      "z": 240.0,
+      "attrs": {
+        "spawnflags": "1"
+      },
+      "alias": "hp5_7pit",
+      "alias_source": "auto"
+    },
+    {
+      "id": 28,
+      "classname": "item_health_small",
+      "x": -1600.0,
+      "y": 352.0,
+      "z": 272.0,
+      "attrs": {
+        "spawnflags": "1"
+      },
+      "alias": "hp5_7pit_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 29,
+      "classname": "item_health_small",
+      "x": -1536.0,
+      "y": 352.0,
+      "z": 304.0,
+      "attrs": {
+        "spawnflags": "1"
+      },
+      "alias": "hp5_7pit_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 30,
+      "classname": "info_player_deathmatch",
+      "x": -256.0,
+      "y": 256.0,
+      "z": 344.0,
+      "attrs": {
+        "angle": "45",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 31,
+      "classname": "ammo_grenades",
+      "x": -64.0,
+      "y": 256.0,
+      "z": 336.0,
+      "alias": "gl_ammo_6pg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 32,
+      "classname": "ammo_shells",
+      "x": 64.0,
+      "y": 256.0,
+      "z": 336.0,
+      "alias": "sg_ammo_6pg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 33,
+      "classname": "info_player_deathmatch",
+      "x": -1472.0,
+      "y": -960.0,
+      "z": -232.0,
+      "attrs": {
+        "angle": "135"
+      }
+    },
+    {
+      "id": 34,
+      "classname": "ammo_cells",
+      "x": -320.0,
+      "y": 384.0,
+      "z": -48.0,
+      "alias": "plasma_ammo_7door_tp",
+      "alias_source": "auto"
+    },
+    {
+      "id": 35,
+      "classname": "ammo_pack",
+      "x": 64.0,
+      "y": 256.0,
+      "z": 368.0,
+      "alias": "ammo_pack_6pg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 36,
+      "classname": "info_notnull",
+      "x": 320.0,
+      "y": -352.0,
+      "z": 64.0,
+      "attrs": {
+        "targetname": "t3"
+      }
+    },
+    {
+      "id": 37,
+      "classname": "item_health_mega",
+      "x": 384.0,
+      "y": -176.0,
+      "z": 232.0,
+      "alias": "mh_4mh",
+      "alias_source": "auto"
+    },
+    {
+      "id": 38,
+      "classname": "weapon_plasmagun",
+      "x": 260.0,
+      "y": 388.0,
+      "z": 208.0,
+      "alias": "pg_6pg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 39,
+      "classname": "ammo_slugs",
+      "x": 192.0,
+      "y": -576.0,
+      "z": -112.0,
+      "alias": "rg_ammo_3low_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 40,
+      "classname": "info_player_deathmatch",
+      "x": 192.0,
+      "y": -256.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "225"
+      }
+    },
+    {
+      "id": 41,
+      "classname": "info_null",
+      "x": 0.0,
+      "y": -704.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "info_null30"
+      }
+    },
+    {
+      "id": 42,
+      "classname": "info_null",
+      "x": -704.0,
+      "y": -704.0,
+      "z": 152.0,
+      "attrs": {
+        "targetname": "t4"
+      }
+    },
+    {
+      "id": 43,
+      "classname": "info_null",
+      "x": -1504.0,
+      "y": 32.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "t5"
+      }
+    },
+    {
+      "id": 44,
+      "classname": "info_null",
+      "x": -832.0,
+      "y": 352.0,
+      "z": 600.0,
+      "attrs": {
+        "targetname": "t6"
+      }
+    },
+    {
+      "id": 45,
+      "classname": "info_null",
+      "x": -320.0,
+      "y": -416.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "t8"
+      }
+    },
+    {
+      "id": 46,
+      "classname": "info_null",
+      "x": 384.0,
+      "y": 0.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "t9"
+      }
+    },
+    {
+      "id": 47,
+      "classname": "info_null",
+      "x": -1344.0,
+      "y": -896.0,
+      "z": 216.0,
+      "attrs": {
+        "targetname": "t11"
+      }
+    },
+    {
+      "id": 48,
+      "classname": "info_null",
+      "x": -576.0,
+      "y": 352.0,
+      "z": 600.0,
+      "attrs": {
+        "targetname": "t10"
+      }
+    },
+    {
+      "id": 49,
+      "classname": "ammo_bullets",
+      "x": -1920.0,
+      "y": 128.0,
+      "z": 144.0,
+      "alias": "mg_ammo_3high_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 50,
+      "classname": "ammo_rockets",
+      "x": -1792.0,
+      "y": 128.0,
+      "z": 144.0,
+      "alias": "rocket_ammo_3high_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 51,
+      "classname": "ammo_pack",
+      "x": -1856.0,
+      "y": 128.0,
+      "z": 144.0,
+      "alias": "ammo_pack_3high_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 52,
+      "classname": "item_health_small",
+      "x": -1472.0,
+      "y": 352.0,
+      "z": 336.0,
+      "attrs": {
+        "spawnflags": "1"
+      },
+      "alias": "hp5_7pit_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 53,
+      "classname": "info_null",
+      "x": -1472.0,
+      "y": -896.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "t13"
+      }
+    },
+    {
+      "id": 54,
+      "classname": "info_null",
+      "x": -1920.0,
+      "y": -896.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "t14"
+      }
+    },
+    {
+      "id": 55,
+      "classname": "info_null",
+      "x": -1696.0,
+      "y": -160.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "t15"
+      }
+    },
+    {
+      "id": 56,
+      "classname": "info_null",
+      "x": 352.0,
+      "y": -352.0,
+      "z": 152.0,
+      "attrs": {
+        "targetname": "t16"
+      }
+    },
+    {
+      "id": 57,
+      "classname": "info_notnull",
+      "x": 0.0,
+      "y": 0.0,
+      "z": 416.0,
+      "attrs": {
+        "targetname": "t17"
+      }
+    },
+    {
+      "id": 59,
+      "classname": "info_notnull",
+      "x": -704.0,
+      "y": -1088.0,
+      "z": 96.0,
+      "attrs": {
+        "targetname": "t18"
+      }
+    },
+    {
+      "id": 60,
+      "classname": "item_armor_combat",
+      "x": -1856.0,
+      "y": -64.0,
+      "z": 144.0,
+      "alias": "ya_3high_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 61,
+      "classname": "info_null",
+      "x": -1280.0,
+      "y": -608.0,
+      "z": -168.0,
+      "attrs": {
+        "targetname": "t19"
+      }
+    },
+    {
+      "id": 62,
+      "classname": "info_notnull",
+      "x": 0.0,
+      "y": 128.0,
+      "z": 480.0,
+      "attrs": {
+        "targetname": "t20"
+      }
+    },
+    {
+      "id": 63,
+      "classname": "info_null",
+      "x": 0.0,
+      "y": -128.0,
+      "z": 160.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 64,
+      "classname": "info_null",
+      "x": 64.0,
+      "y": -128.0,
+      "z": 160.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 65,
+      "classname": "info_null",
+      "x": -64.0,
+      "y": -128.0,
+      "z": 160.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 66,
+      "classname": "info_notnull",
+      "x": 64.0,
+      "y": 128.0,
+      "z": 480.0,
+      "attrs": {
+        "targetname": "t20"
+      }
+    },
+    {
+      "id": 67,
+      "classname": "info_notnull",
+      "x": -64.0,
+      "y": 128.0,
+      "z": 480.0,
+      "attrs": {
+        "targetname": "t20"
+      }
+    },
+    {
+      "id": 68,
+      "classname": "info_null",
+      "x": -128.0,
+      "y": 0.0,
+      "z": 160.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 69,
+      "classname": "info_null",
+      "x": -128.0,
+      "y": -64.0,
+      "z": 160.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 70,
+      "classname": "info_null",
+      "x": -128.0,
+      "y": 64.0,
+      "z": 160.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 71,
+      "classname": "info_notnull",
+      "x": 416.0,
+      "y": 544.0,
+      "z": 480.0,
+      "attrs": {
+        "targetname": "t22"
+      }
+    },
+    {
+      "id": 72,
+      "classname": "info_notnull",
+      "x": 352.0,
+      "y": 608.0,
+      "z": 480.0,
+      "attrs": {
+        "targetname": "t22"
+      }
+    },
+    {
+      "id": 73,
+      "classname": "info_notnull",
+      "x": 480.0,
+      "y": 480.0,
+      "z": 480.0,
+      "attrs": {
+        "targetname": "t22"
+      }
+    },
+    {
+      "id": 74,
+      "classname": "info_null",
+      "x": -256.0,
+      "y": -64.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 75,
+      "classname": "info_null",
+      "x": -256.0,
+      "y": 72.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 76,
+      "classname": "info_null",
+      "x": -64.0,
+      "y": -256.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 77,
+      "classname": "info_null",
+      "x": 64.0,
+      "y": -256.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 78,
+      "classname": "info_notnull",
+      "x": -64.0,
+      "y": 256.0,
+      "z": 352.0,
+      "attrs": {
+        "targetname": "t20"
+      }
+    },
+    {
+      "id": 79,
+      "classname": "info_notnull",
+      "x": 64.0,
+      "y": 256.0,
+      "z": 352.0,
+      "attrs": {
+        "targetname": "t20"
+      }
+    },
+    {
+      "id": 80,
+      "classname": "info_notnull",
+      "x": 288.0,
+      "y": 416.0,
+      "z": 256.0,
+      "attrs": {
+        "targetname": "t22"
+      }
+    },
+    {
+      "id": 81,
+      "classname": "info_notnull",
+      "x": 416.0,
+      "y": 288.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "t22"
+      }
+    },
+    {
+      "id": 82,
+      "classname": "info_notnull",
+      "x": 160.0,
+      "y": 544.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "t22"
+      }
+    },
+    {
+      "id": 83,
+      "classname": "info_null",
+      "x": -704.0,
+      "y": -1042.0,
+      "z": 152.0,
+      "attrs": {
+        "targetname": "t23"
+      }
+    },
+    {
+      "id": 84,
+      "classname": "item_armor_shard",
+      "x": -992.0,
+      "y": -608.0,
+      "z": -240.0,
+      "alias": "shard_2gl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 85,
+      "classname": "item_armor_shard",
+      "x": -1056.0,
+      "y": -608.0,
+      "z": -240.0,
+      "alias": "shard_2gl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 86,
+      "classname": "item_armor_shard",
+      "x": -1120.0,
+      "y": -608.0,
+      "z": -240.0,
+      "alias": "shard_2gl_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 87,
+      "classname": "item_armor_shard",
+      "x": -1184.0,
+      "y": -608.0,
+      "z": -240.0,
+      "alias": "shard_2gl_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 88,
+      "classname": "info_notnull",
+      "x": -1568.0,
+      "y": 352.0,
+      "z": 256.0,
+      "attrs": {
+        "targetname": "t24"
+      }
+    },
+    {
+      "id": 89,
+      "classname": "info_notnull",
+      "x": -1568.0,
+      "y": 448.0,
+      "z": 256.0,
+      "attrs": {
+        "targetname": "t24"
+      }
+    },
+    {
+      "id": 90,
+      "classname": "info_notnull",
+      "x": -1568.0,
+      "y": 256.0,
+      "z": 256.0,
+      "attrs": {
+        "targetname": "t24"
+      }
+    },
+    {
+      "id": 91,
+      "classname": "info_notnull",
+      "x": -1568.0,
+      "y": 288.0,
+      "z": 544.0,
+      "attrs": {
+        "targetname": "t24"
+      }
+    },
+    {
+      "id": 92,
+      "classname": "info_notnull",
+      "x": -1568.0,
+      "y": 416.0,
+      "z": 544.0,
+      "attrs": {
+        "targetname": "t24"
+      }
+    },
+    {
+      "id": 93,
+      "classname": "info_notnull",
+      "x": -1472.0,
+      "y": 352.0,
+      "z": 544.0,
+      "attrs": {
+        "targetname": "t24"
+      }
+    },
+    {
+      "id": 94,
+      "classname": "info_null",
+      "x": -1504.0,
+      "y": 352.0,
+      "z": 528.0,
+      "attrs": {
+        "targetname": "t12"
+      }
+    },
+    {
+      "id": 95,
+      "classname": "info_null",
+      "x": -1856.0,
+      "y": 352.0,
+      "z": 256.0,
+      "attrs": {
+        "targetname": "t25"
+      }
+    },
+    {
+      "id": 96,
+      "classname": "info_notnull",
+      "x": -1440.0,
+      "y": -928.0,
+      "z": 192.0,
+      "attrs": {
+        "targetname": "t26"
+      }
+    },
+    {
+      "id": 97,
+      "classname": "info_notnull",
+      "x": -1952.0,
+      "y": -928.0,
+      "z": 184.0,
+      "attrs": {
+        "targetname": "t26"
+      }
+    },
+    {
+      "id": 98,
+      "classname": "info_notnull",
+      "x": -1952.0,
+      "y": -224.0,
+      "z": 192.0,
+      "attrs": {
+        "targetname": "t27"
+      }
+    },
+    {
+      "id": 99,
+      "classname": "info_notnull",
+      "x": -1440.0,
+      "y": -224.0,
+      "z": 184.0,
+      "attrs": {
+        "targetname": "t27"
+      }
+    },
+    {
+      "id": 100,
+      "classname": "info_notnull",
+      "x": -1824.0,
+      "y": -864.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "t28"
+      }
+    },
+    {
+      "id": 101,
+      "classname": "info_notnull",
+      "x": -1696.0,
+      "y": -864.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "t29"
+      }
+    },
+    {
+      "id": 102,
+      "classname": "info_notnull",
+      "x": -1568.0,
+      "y": -864.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "t30"
+      }
+    },
+    {
+      "id": 106,
+      "classname": "target_speaker",
+      "x": -1568.0,
+      "y": 352.0,
+      "z": -256.0,
+      "attrs": {
+        "noise": "sound\\ambient\\breath.wav",
+        "targetname": "t31"
+      }
+    },
+    {
+      "id": 107,
+      "classname": "target_speaker",
+      "x": -1696.0,
+      "y": -960.0,
+      "z": -200.0,
+      "attrs": {
+        "noise": "sound\\ambient\\loop_telehum.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 108,
+      "classname": "target_speaker",
+      "x": -512.0,
+      "y": 376.0,
+      "z": 32.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound\\ambient\\loop_telehum.wav"
+      }
+    },
+    {
+      "id": 109,
+      "classname": "target_speaker",
+      "x": -704.0,
+      "y": 0.0,
+      "z": 0.0,
+      "attrs": {
+        "noise": "sound\\world\\lava_amb_01_quiet.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 110,
+      "classname": "target_speaker",
+      "x": -1696.0,
+      "y": -352.0,
+      "z": -224.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound\\ambient\\loop_bouncepad_03.wav"
+      }
+    },
+    {
+      "id": 111,
+      "classname": "target_speaker",
+      "x": -704.0,
+      "y": -1120.0,
+      "z": -184.0,
+      "attrs": {
+        "noise": "sound\\ambient\\loop_bouncepad_03.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 112,
+      "classname": "target_speaker",
+      "x": 288.0,
+      "y": -352.0,
+      "z": -96.0,
+      "attrs": {
+        "noise": "sound\\ambient\\loop_bouncepad_03.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 113,
+      "classname": "target_speaker",
+      "x": 0.0,
+      "y": 0.0,
+      "z": 512.0,
+      "attrs": {
+        "noise": "sound\\ambient\\1shot_thunder_01.wav",
+        "targetname": "t32"
+      }
+    },
+    {
+      "id": 115,
+      "classname": "target_speaker",
+      "x": 0.0,
+      "y": 0.0,
+      "z": 560.0,
+      "attrs": {
+        "noise": "sound\\ambient\\loop_bgnoise_05.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 116,
+      "classname": "target_speaker",
+      "x": -96.0,
+      "y": -416.0,
+      "z": 112.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound\\ambient\\loop_fire_01.wav"
+      }
+    },
+    {
+      "id": 117,
+      "classname": "target_speaker",
+      "x": -512.0,
+      "y": -544.0,
+      "z": 112.0,
+      "attrs": {
+        "noise": "sound\\ambient\\loop_fire_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 118,
+      "classname": "target_speaker",
+      "x": -1120.0,
+      "y": 64.0,
+      "z": 304.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound\\ambient\\loop_fire_01.wav"
+      }
+    },
+    {
+      "id": 119,
+      "classname": "target_speaker",
+      "x": -1504.0,
+      "y": -192.0,
+      "z": 240.0,
+      "attrs": {
+        "noise": "sound\\ambient\\loop_fire_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 120,
+      "classname": "target_speaker",
+      "x": -1120.0,
+      "y": 416.0,
+      "z": 432.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound\\ambient\\loop_fire_01.wav"
+      }
+    },
+    {
+      "id": 121,
+      "classname": "target_speaker",
+      "x": -704.0,
+      "y": -256.0,
+      "z": 864.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound\\ambient\\loop_bgnoise_05.wav"
+      }
+    },
+    {
+      "id": 122,
+      "classname": "info_notnull",
+      "x": 0.0,
+      "y": -568.0,
+      "z": 448.0,
+      "attrs": {
+        "targetname": "t33"
+      }
+    },
+    {
+      "id": 123,
+      "classname": "info_notnull",
+      "x": 0.0,
+      "y": -512.0,
+      "z": 448.0,
+      "attrs": {
+        "targetname": "t33"
+      }
+    },
+    {
+      "id": 124,
+      "classname": "info_notnull",
+      "x": 0.0,
+      "y": -456.0,
+      "z": 448.0,
+      "attrs": {
+        "targetname": "t33"
+      }
+    },
+    {
+      "id": 125,
+      "classname": "info_notnull",
+      "x": 0.0,
+      "y": -392.0,
+      "z": 448.0,
+      "attrs": {
+        "targetname": "t33"
+      }
+    },
+    {
+      "id": 126,
+      "classname": "info_notnull",
+      "x": 0.0,
+      "y": -328.0,
+      "z": 448.0,
+      "attrs": {
+        "targetname": "t33"
+      }
+    },
+    {
+      "id": 127,
+      "classname": "target_speaker",
+      "x": -1568.0,
+      "y": 352.0,
+      "z": -128.0,
+      "attrs": {
+        "noise": "sound\\ambient\\vd.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 129,
+      "classname": "info_null",
+      "x": -704.0,
+      "y": -896.0,
+      "z": -168.0,
+      "attrs": {
+        "targetname": "t34"
+      }
+    },
+    {
+      "id": 130,
+      "classname": "info_notnull",
+      "x": -160.0,
+      "y": -808.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "t36"
+      }
+    },
+    {
+      "id": 131,
+      "classname": "info_notnull",
+      "x": -224.0,
+      "y": -808.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "t37"
+      }
+    },
+    {
+      "id": 132,
+      "classname": "info_notnull",
+      "x": -288.0,
+      "y": -808.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "t48"
+      }
+    },
+    {
+      "id": 133,
+      "classname": "info_notnull",
+      "x": -352.0,
+      "y": -808.0,
+      "z": -72.0,
+      "attrs": {
+        "targetname": "t47"
+      }
+    },
+    {
+      "id": 134,
+      "classname": "info_notnull",
+      "x": -416.0,
+      "y": -808.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "t46"
+      }
+    },
+    {
+      "id": 135,
+      "classname": "info_notnull",
+      "x": -480.0,
+      "y": -808.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "t45"
+      }
+    },
+    {
+      "id": 136,
+      "classname": "info_notnull",
+      "x": -544.0,
+      "y": -808.0,
+      "z": -24.0,
+      "attrs": {
+        "targetname": "t44"
+      }
+    },
+    {
+      "id": 137,
+      "classname": "info_notnull",
+      "x": -160.0,
+      "y": -984.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "t35"
+      }
+    },
+    {
+      "id": 138,
+      "classname": "info_notnull",
+      "x": -224.0,
+      "y": -984.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "t38"
+      }
+    },
+    {
+      "id": 139,
+      "classname": "info_notnull",
+      "x": -288.0,
+      "y": -984.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "t39"
+      }
+    },
+    {
+      "id": 140,
+      "classname": "info_notnull",
+      "x": -352.0,
+      "y": -984.0,
+      "z": -72.0,
+      "attrs": {
+        "targetname": "t40"
+      }
+    },
+    {
+      "id": 141,
+      "classname": "info_notnull",
+      "x": -416.0,
+      "y": -984.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "t41"
+      }
+    },
+    {
+      "id": 142,
+      "classname": "info_notnull",
+      "x": -480.0,
+      "y": -984.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "t42"
+      }
+    },
+    {
+      "id": 143,
+      "classname": "info_notnull",
+      "x": -544.0,
+      "y": -984.0,
+      "z": -24.0,
+      "attrs": {
+        "targetname": "t43"
+      }
+    },
+    {
+      "id": 144,
+      "classname": "info_notnull",
+      "x": -604.0,
+      "y": -808.0,
+      "z": -8.0,
+      "attrs": {
+        "targetname": "t49"
+      }
+    },
+    {
+      "id": 145,
+      "classname": "info_notnull",
+      "x": -604.0,
+      "y": -984.0,
+      "z": -8.0,
+      "attrs": {
+        "targetname": "t50"
+      }
+    },
+    {
+      "id": 146,
+      "classname": "item_health",
+      "x": -1496.0,
+      "y": -320.0,
+      "z": 144.0,
+      "alias": "hp25_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 147,
+      "classname": "info_notnull",
+      "x": -1992.0,
+      "y": -376.0,
+      "z": -280.0,
+      "attrs": {
+        "targetname": "t51"
+      }
+    },
+    {
+      "id": 148,
+      "classname": "info_notnull",
+      "x": -1400.0,
+      "y": -376.0,
+      "z": -280.0,
+      "attrs": {
+        "targetname": "t52"
+      }
+    },
+    {
+      "id": 152,
+      "classname": "trigger_always",
+      "x": -1776.0,
+      "y": -824.0,
+      "z": 24.0
+    },
+    {
+      "id": 157,
+      "classname": "item_armor_body",
+      "x": -336.0,
+      "y": -416.0,
+      "z": 272.0,
+      "alias": "ra_1ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 160,
+      "classname": "item_key_silver",
+      "x": -704.0,
+      "y": -896.0,
+      "z": 16.0,
+      "alias": "key_silver_3key",
+      "alias_source": "auto"
+    },
+    {
+      "id": 161,
+      "classname": "ammo_pack",
+      "x": -64.0,
+      "y": 256.0,
+      "z": 368.0,
+      "alias": "ammo_pack_6pg_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 162,
+      "classname": "target_speaker",
+      "x": -1696.0,
+      "y": -416.0,
+      "z": -128.0,
+      "attrs": {
+        "spawnflags": "4",
+        "noise": "sound\\ambient\\1shot_eerie_01.wav",
+        "targetname": "t55"
+      }
+    },
+    {
+      "id": 163,
+      "classname": "trigger_always",
+      "x": -1696.0,
+      "y": -544.0,
+      "z": -128.0,
+      "attrs": {
+        "target": "t53"
+      }
+    },
+    {
+      "id": 164,
+      "classname": "target_delay",
+      "x": -1696.0,
+      "y": -544.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "t53",
+        "wait": "120",
+        "target": "t55"
+      }
+    },
+    {
+      "id": 165,
+      "classname": "target_delay",
+      "x": -1696.0,
+      "y": -480.0,
+      "z": 0.0,
+      "attrs": {
+        "wait": "2",
+        "target": "rg_doors",
+        "targetname": "t55"
+      }
+    },
+    {
+      "id": 166,
+      "classname": "item_health",
+      "x": -704.0,
+      "y": -896.0,
+      "z": -240.0,
+      "alias": "hp25_3key",
+      "alias_source": "auto"
+    },
+    {
+      "id": 178,
+      "classname": "info_notnull",
+      "x": -160.0,
+      "y": -808.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "t36"
+      }
+    },
+    {
+      "id": 179,
+      "classname": "info_notnull",
+      "x": -224.0,
+      "y": -808.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "t37"
+      }
+    },
+    {
+      "id": 180,
+      "classname": "info_notnull",
+      "x": -288.0,
+      "y": -808.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "t48"
+      }
+    },
+    {
+      "id": 181,
+      "classname": "info_notnull",
+      "x": -352.0,
+      "y": -808.0,
+      "z": -72.0,
+      "attrs": {
+        "targetname": "t47"
+      }
+    },
+    {
+      "id": 182,
+      "classname": "info_notnull",
+      "x": -416.0,
+      "y": -808.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "t46"
+      }
+    },
+    {
+      "id": 183,
+      "classname": "info_notnull",
+      "x": -480.0,
+      "y": -808.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "t45"
+      }
+    },
+    {
+      "id": 184,
+      "classname": "info_notnull",
+      "x": -544.0,
+      "y": -808.0,
+      "z": -24.0,
+      "attrs": {
+        "targetname": "t44"
+      }
+    },
+    {
+      "id": 185,
+      "classname": "info_notnull",
+      "x": -160.0,
+      "y": -984.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "t35"
+      }
+    },
+    {
+      "id": 186,
+      "classname": "info_notnull",
+      "x": -224.0,
+      "y": -984.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "t38"
+      }
+    },
+    {
+      "id": 187,
+      "classname": "info_notnull",
+      "x": -288.0,
+      "y": -984.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "t39"
+      }
+    },
+    {
+      "id": 188,
+      "classname": "info_notnull",
+      "x": -352.0,
+      "y": -984.0,
+      "z": -72.0,
+      "attrs": {
+        "targetname": "t40"
+      }
+    },
+    {
+      "id": 189,
+      "classname": "info_notnull",
+      "x": -416.0,
+      "y": -984.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "t41"
+      }
+    },
+    {
+      "id": 190,
+      "classname": "info_notnull",
+      "x": -480.0,
+      "y": -984.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "t42"
+      }
+    },
+    {
+      "id": 191,
+      "classname": "info_notnull",
+      "x": -544.0,
+      "y": -984.0,
+      "z": -24.0,
+      "attrs": {
+        "targetname": "t43"
+      }
+    },
+    {
+      "id": 192,
+      "classname": "info_notnull",
+      "x": -320.0,
+      "y": 384.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "t58"
+      }
+    },
+    {
+      "id": 207,
+      "classname": "ammo_pack",
+      "x": 192.0,
+      "y": -576.0,
+      "z": -80.0,
+      "alias": "ammo_pack_3low_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 208,
+      "classname": "ammo_pack",
+      "x": -320.0,
+      "y": 384.0,
+      "z": -16.0,
+      "alias": "ammo_pack_7door_tp",
+      "alias_source": "auto"
+    },
+    {
+      "id": 209,
+      "classname": "item_quad",
+      "x": -1856.0,
+      "y": 352.0,
+      "z": 208.0,
+      "attrs": {
+        "not_gametype": "duel"
+      }
+    },
+    {
+      "id": 211,
+      "classname": "target_speaker",
+      "x": -704.0,
+      "y": 0.0,
+      "z": 48.0,
+      "attrs": {
+        "noise": "sound\\ambient\\breath.wav",
+        "targetname": "t59"
+      }
+    },
+    {
+      "id": 213,
+      "classname": "target_location",
+      "x": -1856.0,
+      "y": 352.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "^5Quad"
+      }
+    },
+    {
+      "id": 214,
+      "classname": "target_location",
+      "x": -1696.0,
+      "y": -800.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "^450HP"
+      }
+    },
+    {
+      "id": 215,
+      "classname": "target_location",
+      "x": -1696.0,
+      "y": -160.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "^2RG"
+      }
+    },
+    {
+      "id": 216,
+      "classname": "target_location",
+      "x": -1856.0,
+      "y": -64.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "^3High YA"
+      }
+    },
+    {
+      "id": 217,
+      "classname": "target_location",
+      "x": -1088.0,
+      "y": 64.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "^7LG"
+      }
+    },
+    {
+      "id": 218,
+      "classname": "target_location",
+      "x": -432.0,
+      "y": -416.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "^1RA"
+      }
+    },
+    {
+      "id": 219,
+      "classname": "target_location",
+      "x": 0.0,
+      "y": -416.0,
+      "z": 0.0,
+      "attrs": {
+        "message": "^3Low YA"
+      }
+    },
+    {
+      "id": 220,
+      "classname": "target_location",
+      "x": 384.0,
+      "y": -96.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "^4MH"
+      }
+    },
+    {
+      "id": 221,
+      "classname": "target_location",
+      "x": -32.0,
+      "y": 480.0,
+      "z": 408.0,
+      "attrs": {
+        "message": "^6PG"
+      }
+    },
+    {
+      "id": 222,
+      "classname": "target_location",
+      "x": -320.0,
+      "y": 384.0,
+      "z": 48.0,
+      "attrs": {
+        "message": "^7Door TP"
+      }
+    },
+    {
+      "id": 223,
+      "classname": "target_location",
+      "x": -704.0,
+      "y": -896.0,
+      "z": 80.0,
+      "attrs": {
+        "message": "^3Key"
+      }
+    },
+    {
+      "id": 224,
+      "classname": "target_location",
+      "x": -816.0,
+      "y": -720.0,
+      "z": -184.0,
+      "attrs": {
+        "message": "^2GL"
+      }
+    },
+    {
+      "id": 225,
+      "classname": "target_location",
+      "x": -1568.0,
+      "y": 352.0,
+      "z": -80.0,
+      "attrs": {
+        "message": "^7Pit"
+      }
+    },
+    {
+      "id": 226,
+      "classname": "target_location",
+      "x": 0.0,
+      "y": -896.0,
+      "z": 0.0,
+      "attrs": {
+        "message": "^1RL"
+      }
+    },
+    {
+      "id": 227,
+      "classname": "target_location",
+      "x": -1696.0,
+      "y": -944.0,
+      "z": 64.0,
+      "attrs": {
+        "message": "^3SG"
+      }
+    },
+    {
+      "id": 228,
+      "classname": "target_location",
+      "x": -80.0,
+      "y": -80.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "^7Obelisk"
+      }
+    },
+    {
+      "id": 229,
+      "classname": "target_location",
+      "x": -656.0,
+      "y": 384.0,
+      "z": 408.0,
+      "attrs": {
+        "message": "^3Gold Door"
+      }
+    },
+    {
+      "id": 230,
+      "classname": "target_location",
+      "x": -752.0,
+      "y": 384.0,
+      "z": 408.0,
+      "attrs": {
+        "message": "^3Gold Door"
+      }
+    },
+    {
+      "id": 231,
+      "classname": "info_player_intermission",
+      "x": -1049.0,
+      "y": 112.0,
+      "z": 294.0,
+      "attrs": {
+        "target": "t60"
+      }
+    },
+    {
+      "id": 232,
+      "classname": "info_notnull",
+      "x": -360.0,
+      "y": -416.0,
+      "z": 320.0,
+      "attrs": {
+        "targetname": "t60"
+      }
+    },
+    {
+      "id": 233,
+      "classname": "info_player_deathmatch",
+      "x": -832.0,
+      "y": 416.0,
+      "z": 344.0,
+      "attrs": {
+        "angle": "270",
+        "not_gametype": "duel"
+      }
+    },
+    {
+      "id": 234,
+      "classname": "info_player_deathmatch",
+      "x": -984.0,
+      "y": -408.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "45",
+        "not_gametype": "duel"
+      }
+    },
+    {
+      "id": 235,
+      "classname": "info_player_deathmatch",
+      "x": 424.0,
+      "y": 216.0,
+      "z": 216.0,
+      "attrs": {
+        "angle": "135",
+        "not_gametype": "duel"
+      }
+    },
+    {
+      "id": 236,
+      "classname": "item_key_gold",
+      "x": -1568.0,
+      "y": 176.0,
+      "z": -240.0,
+      "attrs": {
+        "not_gametype": "duel"
+      },
+      "alias": "key_gold_7pit",
+      "alias_source": "auto"
+    },
+    {
+      "id": 240,
+      "classname": "item_health_mega",
+      "x": -2112.0,
+      "y": -576.0,
+      "z": -240.0,
+      "attrs": {
+        "not_gametype": "duel",
+        "spawnflags": "256",
+        "wait": "210"
+      },
+      "alias": "mh_450hp",
+      "alias_source": "auto"
+    },
+    {
+      "id": 245,
+      "classname": "item_armor_body",
+      "x": -2112.0,
+      "y": -640.0,
+      "z": -240.0,
+      "attrs": {
+        "not_gametype": "duel",
+        "spawnflags": "256",
+        "wait": "150"
+      },
+      "alias": "ra_450hp",
+      "alias_source": "auto"
+    }
+  ],
+  "by_classname": {
+    "weapon_lightning": [
+      2
+    ],
+    "info_player_deathmatch": [
+      3,
+      22,
+      23,
+      30,
+      33,
+      40,
+      233,
+      234,
+      235
+    ],
+    "misc_teleporter_dest": [
+      5,
+      18
+    ],
+    "item_health": [
+      6,
+      146,
+      166
+    ],
+    "info_notnull": [
+      8,
+      36,
+      57,
+      59,
+      62,
+      66,
+      67,
+      71,
+      72,
+      73,
+      78,
+      79,
+      80,
+      81,
+      82,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      122,
+      123,
+      124,
+      125,
+      126,
+      130,
+      131,
+      132,
+      133,
+      134,
+      135,
+      136,
+      137,
+      138,
+      139,
+      140,
+      141,
+      142,
+      143,
+      144,
+      145,
+      147,
+      148,
+      178,
+      179,
+      180,
+      181,
+      182,
+      183,
+      184,
+      185,
+      186,
+      187,
+      188,
+      189,
+      190,
+      191,
+      192,
+      232
+    ],
+    "weapon_railgun": [
+      10
+    ],
+    "item_health_large": [
+      11
+    ],
+    "weapon_shotgun": [
+      12
+    ],
+    "item_health_small": [
+      13,
+      14,
+      15,
+      16,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      52
+    ],
+    "weapon_grenadelauncher": [
+      17
+    ],
+    "item_armor_combat": [
+      19,
+      60
+    ],
+    "weapon_rocketlauncher": [
+      21
+    ],
+    "ammo_grenades": [
+      31
+    ],
+    "ammo_shells": [
+      32
+    ],
+    "ammo_cells": [
+      34
+    ],
+    "ammo_pack": [
+      35,
+      51,
+      161,
+      207,
+      208
+    ],
+    "item_health_mega": [
+      37,
+      240
+    ],
+    "weapon_plasmagun": [
+      38
+    ],
+    "ammo_slugs": [
+      39
+    ],
+    "info_null": [
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      53,
+      54,
+      55,
+      56,
+      61,
+      63,
+      64,
+      65,
+      68,
+      69,
+      70,
+      74,
+      75,
+      76,
+      77,
+      83,
+      94,
+      95,
+      129
+    ],
+    "ammo_bullets": [
+      49
+    ],
+    "ammo_rockets": [
+      50
+    ],
+    "item_armor_shard": [
+      84,
+      85,
+      86,
+      87
+    ],
+    "target_speaker": [
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      127,
+      162,
+      211
+    ],
+    "trigger_always": [
+      152,
+      163
+    ],
+    "item_armor_body": [
+      157,
+      245
+    ],
+    "item_key_silver": [
+      160
+    ],
+    "target_delay": [
+      164,
+      165
+    ],
+    "item_quad": [
+      209
+    ],
+    "target_location": [
+      213,
+      214,
+      215,
+      216,
+      217,
+      218,
+      219,
+      220,
+      221,
+      222,
+      223,
+      224,
+      225,
+      226,
+      227,
+      228,
+      229,
+      230
+    ],
+    "info_player_intermission": [
+      231
+    ],
+    "item_key_gold": [
+      236
+    ]
+  },
+  "teleports": {
+    "exit_count": 0,
+    "pair_count": 0,
+    "pairs": [],
+    "exits": []
+  }
+}

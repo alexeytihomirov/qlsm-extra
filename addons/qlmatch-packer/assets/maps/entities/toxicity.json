@@ -1,0 +1,1504 @@
+{
+  "map_name": "toxicity",
+  "source": "d:\\QuakeLiveData\\pak00\\maps\\toxicity.bsp",
+  "entity_count": 134,
+  "entities": [
+    {
+      "id": 2,
+      "classname": "item_armor_combat",
+      "x": -136.0,
+      "y": 2256.0,
+      "z": 1208.0,
+      "alias": "ya_e2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 3,
+      "classname": "weapon_rocketlauncher",
+      "x": -288.0,
+      "y": 1832.0,
+      "z": 1040.0,
+      "alias": "rl_e3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 5,
+      "classname": "misc_teleporter_dest",
+      "x": -1176.0,
+      "y": 1144.0,
+      "z": 1176.0,
+      "attrs": {
+        "angle": "360",
+        "targetname": "t2"
+      }
+    },
+    {
+      "id": 6,
+      "classname": "item_health",
+      "x": 96.0,
+      "y": 1952.0,
+      "z": 1104.0,
+      "alias": "hp25_e6",
+      "alias_source": "auto"
+    },
+    {
+      "id": 7,
+      "classname": "item_health",
+      "x": 96.0,
+      "y": 2000.0,
+      "z": 1104.0,
+      "alias": "hp25_e7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 8,
+      "classname": "weapon_lightning",
+      "x": -616.0,
+      "y": 2200.0,
+      "z": 1124.0,
+      "alias": "lg_e8",
+      "alias_source": "auto"
+    },
+    {
+      "id": 9,
+      "classname": "info_player_deathmatch",
+      "x": -184.0,
+      "y": 1488.0,
+      "z": 1240.0,
+      "attrs": {
+        "angle": "90"
+      }
+    },
+    {
+      "id": 10,
+      "classname": "info_player_deathmatch",
+      "x": 80.0,
+      "y": 2256.0,
+      "z": 1208.0,
+      "attrs": {
+        "angle": "180"
+      }
+    },
+    {
+      "id": 11,
+      "classname": "weapon_rocketlauncher",
+      "x": -624.0,
+      "y": 1136.0,
+      "z": 1176.0,
+      "alias": "rl_e11",
+      "alias_source": "auto"
+    },
+    {
+      "id": 13,
+      "classname": "misc_teleporter_dest",
+      "x": 64.0,
+      "y": 1136.0,
+      "z": 1208.0,
+      "attrs": {
+        "targetname": "t3",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 14,
+      "classname": "item_armor_body",
+      "x": -1232.0,
+      "y": 2232.0,
+      "z": 1000.0,
+      "alias": "ra_e14",
+      "alias_source": "auto"
+    },
+    {
+      "id": 15,
+      "classname": "item_health_mega",
+      "x": -376.0,
+      "y": 1344.0,
+      "z": 1232.0,
+      "attrs": {
+        "spawnflags": "1"
+      },
+      "alias": "mh_e15",
+      "alias_source": "auto"
+    },
+    {
+      "id": 16,
+      "classname": "item_armor_combat",
+      "x": -720.0,
+      "y": 912.0,
+      "z": 996.0,
+      "alias": "ya_e16",
+      "alias_source": "auto"
+    },
+    {
+      "id": 17,
+      "classname": "weapon_railgun",
+      "x": -1416.0,
+      "y": 1968.0,
+      "z": 1200.0,
+      "alias": "rg_e17",
+      "alias_source": "auto"
+    },
+    {
+      "id": 18,
+      "classname": "weapon_plasmagun",
+      "x": -1080.0,
+      "y": 2040.0,
+      "z": 1000.0,
+      "alias": "pg_e18",
+      "alias_source": "auto"
+    },
+    {
+      "id": 19,
+      "classname": "ammo_cells",
+      "x": -472.0,
+      "y": 1712.0,
+      "z": 1232.0,
+      "alias": "plasma_ammo_e19",
+      "alias_source": "auto"
+    },
+    {
+      "id": 20,
+      "classname": "ammo_lightning",
+      "x": -520.0,
+      "y": 1712.0,
+      "z": 1232.0,
+      "alias": "lg_ammo_e20",
+      "alias_source": "auto"
+    },
+    {
+      "id": 21,
+      "classname": "ammo_rockets",
+      "x": 96.0,
+      "y": 2048.0,
+      "z": 1104.0,
+      "alias": "rocket_ammo_e21",
+      "alias_source": "auto"
+    },
+    {
+      "id": 22,
+      "classname": "ammo_rockets",
+      "x": -344.0,
+      "y": 976.0,
+      "z": 992.0,
+      "alias": "rocket_ammo_e22",
+      "alias_source": "auto"
+    },
+    {
+      "id": 23,
+      "classname": "info_player_deathmatch",
+      "x": -1344.0,
+      "y": 1408.0,
+      "z": 1112.0,
+      "attrs": {
+        "angle": "90"
+      }
+    },
+    {
+      "id": 24,
+      "classname": "info_player_deathmatch",
+      "x": -192.0,
+      "y": 928.0,
+      "z": 1208.0,
+      "attrs": {
+        "angle": "180"
+      }
+    },
+    {
+      "id": 25,
+      "classname": "info_player_deathmatch",
+      "x": -512.0,
+      "y": 1240.0,
+      "z": 1032.0,
+      "attrs": {
+        "angle": "270"
+      }
+    },
+    {
+      "id": 26,
+      "classname": "info_player_deathmatch",
+      "x": 96.0,
+      "y": 1904.0,
+      "z": 1112.0,
+      "attrs": {
+        "angle": "180"
+      }
+    },
+    {
+      "id": 27,
+      "classname": "info_player_deathmatch",
+      "x": -1312.0,
+      "y": 2072.0,
+      "z": 1000.0
+    },
+    {
+      "id": 28,
+      "classname": "info_player_deathmatch",
+      "x": -976.0,
+      "y": 1776.0,
+      "z": 1240.0,
+      "attrs": {
+        "angle": "90"
+      }
+    },
+    {
+      "id": 29,
+      "classname": "item_armor_shard",
+      "x": -688.0,
+      "y": 1680.0,
+      "z": 1232.0,
+      "alias": "shard_e29",
+      "alias_source": "auto"
+    },
+    {
+      "id": 30,
+      "classname": "item_armor_shard",
+      "x": -688.0,
+      "y": 1632.0,
+      "z": 1232.0,
+      "alias": "shard_e30",
+      "alias_source": "auto"
+    },
+    {
+      "id": 31,
+      "classname": "item_armor_shard",
+      "x": -688.0,
+      "y": 1584.0,
+      "z": 1232.0,
+      "alias": "shard_e31",
+      "alias_source": "auto"
+    },
+    {
+      "id": 32,
+      "classname": "target_position",
+      "x": 136.0,
+      "y": 1808.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t4"
+      }
+    },
+    {
+      "id": 33,
+      "classname": "target_position",
+      "x": 136.0,
+      "y": 2256.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t25"
+      }
+    },
+    {
+      "id": 34,
+      "classname": "target_position",
+      "x": 32.0,
+      "y": 2360.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t26"
+      }
+    },
+    {
+      "id": 35,
+      "classname": "target_position",
+      "x": -384.0,
+      "y": 2360.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t27"
+      }
+    },
+    {
+      "id": 36,
+      "classname": "target_position",
+      "x": -512.0,
+      "y": 2360.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t28"
+      }
+    },
+    {
+      "id": 37,
+      "classname": "target_position",
+      "x": -408.0,
+      "y": 1960.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t34"
+      }
+    },
+    {
+      "id": 38,
+      "classname": "target_position",
+      "x": -584.0,
+      "y": 1888.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t35"
+      }
+    },
+    {
+      "id": 39,
+      "classname": "target_position",
+      "x": -584.0,
+      "y": 2016.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t36"
+      }
+    },
+    {
+      "id": 40,
+      "classname": "target_position",
+      "x": -556.0,
+      "y": 2136.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t37"
+      }
+    },
+    {
+      "id": 41,
+      "classname": "weapon_grenadelauncher",
+      "x": 64.0,
+      "y": 1664.0,
+      "z": 1272.0,
+      "alias": "gl_e41",
+      "alias_source": "auto"
+    },
+    {
+      "id": 42,
+      "classname": "target_position",
+      "x": -400.0,
+      "y": 1952.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t39"
+      }
+    },
+    {
+      "id": 43,
+      "classname": "target_position",
+      "x": -636.0,
+      "y": 2320.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t43"
+      }
+    },
+    {
+      "id": 44,
+      "classname": "target_position",
+      "x": -740.0,
+      "y": 2216.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t44"
+      }
+    },
+    {
+      "id": 45,
+      "classname": "target_position",
+      "x": -792.0,
+      "y": 2072.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t45"
+      }
+    },
+    {
+      "id": 46,
+      "classname": "target_position",
+      "x": 112.0,
+      "y": 1840.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t53"
+      }
+    },
+    {
+      "id": 47,
+      "classname": "target_position",
+      "x": 112.0,
+      "y": 1728.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t54"
+      }
+    },
+    {
+      "id": 48,
+      "classname": "target_position",
+      "x": 24.0,
+      "y": 1648.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t55"
+      }
+    },
+    {
+      "id": 49,
+      "classname": "target_position",
+      "x": -88.0,
+      "y": 1648.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t56"
+      }
+    },
+    {
+      "id": 50,
+      "classname": "target_position",
+      "x": -384.0,
+      "y": 1824.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t57"
+      }
+    },
+    {
+      "id": 51,
+      "classname": "target_position",
+      "x": -384.0,
+      "y": 1712.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t58"
+      }
+    },
+    {
+      "id": 52,
+      "classname": "target_position",
+      "x": -256.0,
+      "y": 1480.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t59"
+      }
+    },
+    {
+      "id": 53,
+      "classname": "target_position",
+      "x": -256.0,
+      "y": 1368.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t60"
+      }
+    },
+    {
+      "id": 54,
+      "classname": "target_position",
+      "x": -224.0,
+      "y": 1616.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t61"
+      }
+    },
+    {
+      "id": 55,
+      "classname": "target_position",
+      "x": -400.0,
+      "y": 1560.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t62"
+      }
+    },
+    {
+      "id": 56,
+      "classname": "target_position",
+      "x": -400.0,
+      "y": 1544.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t63"
+      }
+    },
+    {
+      "id": 57,
+      "classname": "target_position",
+      "x": -584.0,
+      "y": 1408.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t66"
+      }
+    },
+    {
+      "id": 58,
+      "classname": "target_position",
+      "x": -563.0,
+      "y": 2147.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t76"
+      }
+    },
+    {
+      "id": 59,
+      "classname": "target_position",
+      "x": -192.0,
+      "y": 1272.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t77"
+      }
+    },
+    {
+      "id": 60,
+      "classname": "item_health_large",
+      "x": -976.0,
+      "y": 1776.0,
+      "z": 1240.0,
+      "alias": "hp50_e60",
+      "alias_source": "auto"
+    },
+    {
+      "id": 61,
+      "classname": "target_position",
+      "x": -792.0,
+      "y": 1408.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t80"
+      }
+    },
+    {
+      "id": 62,
+      "classname": "target_position",
+      "x": -1336.0,
+      "y": 1872.0,
+      "z": 1052.0,
+      "attrs": {
+        "targetname": "t83"
+      }
+    },
+    {
+      "id": 63,
+      "classname": "target_position",
+      "x": -1336.0,
+      "y": 2000.0,
+      "z": 1052.0,
+      "attrs": {
+        "targetname": "t84"
+      }
+    },
+    {
+      "id": 64,
+      "classname": "ammo_rockets",
+      "x": -1104.0,
+      "y": 1576.0,
+      "z": 992.0,
+      "alias": "rocket_ammo_e64",
+      "alias_source": "auto"
+    },
+    {
+      "id": 65,
+      "classname": "item_health",
+      "x": -1056.0,
+      "y": 1576.0,
+      "z": 992.0,
+      "alias": "hp25_e65",
+      "alias_source": "auto"
+    },
+    {
+      "id": 66,
+      "classname": "ammo_lightning",
+      "x": -384.0,
+      "y": 936.0,
+      "z": 992.0,
+      "alias": "lg_ammo_e66",
+      "alias_source": "auto"
+    },
+    {
+      "id": 67,
+      "classname": "item_health",
+      "x": -840.0,
+      "y": 1232.0,
+      "z": 1168.0,
+      "alias": "hp25_e67",
+      "alias_source": "auto"
+    },
+    {
+      "id": 68,
+      "classname": "target_position",
+      "x": -376.0,
+      "y": 1416.0,
+      "z": 1360.0,
+      "attrs": {
+        "targetname": "t85"
+      }
+    },
+    {
+      "id": 69,
+      "classname": "target_position",
+      "x": -280.0,
+      "y": 1368.0,
+      "z": 1336.0,
+      "attrs": {
+        "targetname": "t86"
+      }
+    },
+    {
+      "id": 70,
+      "classname": "target_position",
+      "x": -472.0,
+      "y": 1368.0,
+      "z": 1336.0,
+      "attrs": {
+        "targetname": "t87"
+      }
+    },
+    {
+      "id": 71,
+      "classname": "target_position",
+      "x": -340.0,
+      "y": 932.0,
+      "z": 1064.0,
+      "attrs": {
+        "targetname": "t88"
+      }
+    },
+    {
+      "id": 72,
+      "classname": "target_position",
+      "x": -304.0,
+      "y": 1088.0,
+      "z": 1064.0,
+      "attrs": {
+        "targetname": "t89"
+      }
+    },
+    {
+      "id": 73,
+      "classname": "target_position",
+      "x": -304.0,
+      "y": 1240.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t90"
+      }
+    },
+    {
+      "id": 74,
+      "classname": "target_position",
+      "x": -508.0,
+      "y": 896.0,
+      "z": 1064.0,
+      "attrs": {
+        "targetname": "t91"
+      }
+    },
+    {
+      "id": 75,
+      "classname": "target_position",
+      "x": -744.0,
+      "y": 832.0,
+      "z": 1064.0,
+      "attrs": {
+        "targetname": "t92"
+      }
+    },
+    {
+      "id": 76,
+      "classname": "target_position",
+      "x": -376.0,
+      "y": 1344.0,
+      "z": 1048.0,
+      "attrs": {
+        "targetname": "t96"
+      }
+    },
+    {
+      "id": 77,
+      "classname": "target_position",
+      "x": -1176.0,
+      "y": 2200.0,
+      "z": 1060.0,
+      "attrs": {
+        "targetname": "t98"
+      }
+    },
+    {
+      "id": 78,
+      "classname": "target_position",
+      "x": -1372.0,
+      "y": 1376.0,
+      "z": 1152.0,
+      "attrs": {
+        "targetname": "t99"
+      }
+    },
+    {
+      "id": 79,
+      "classname": "target_position",
+      "x": -1188.0,
+      "y": 1376.0,
+      "z": 1152.0,
+      "attrs": {
+        "targetname": "t100"
+      }
+    },
+    {
+      "id": 80,
+      "classname": "target_position",
+      "x": -1488.0,
+      "y": 1520.0,
+      "z": 1152.0,
+      "attrs": {
+        "targetname": "t101"
+      }
+    },
+    {
+      "id": 81,
+      "classname": "target_position",
+      "x": -792.0,
+      "y": 1664.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t103"
+      }
+    },
+    {
+      "id": 82,
+      "classname": "target_position",
+      "x": -1472.0,
+      "y": 2016.0,
+      "z": 1240.0,
+      "attrs": {
+        "targetname": "t105"
+      }
+    },
+    {
+      "id": 83,
+      "classname": "target_position",
+      "x": -1472.0,
+      "y": 1888.0,
+      "z": 1240.0,
+      "attrs": {
+        "targetname": "t106"
+      }
+    },
+    {
+      "id": 84,
+      "classname": "target_position",
+      "x": -152.0,
+      "y": 944.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t107"
+      }
+    },
+    {
+      "id": 85,
+      "classname": "target_position",
+      "x": -1176.0,
+      "y": 1392.0,
+      "z": 1256.0,
+      "attrs": {
+        "targetname": "t108"
+      }
+    },
+    {
+      "id": 86,
+      "classname": "target_position",
+      "x": -1416.0,
+      "y": 2080.0,
+      "z": 1240.0,
+      "attrs": {
+        "targetname": "t110"
+      }
+    },
+    {
+      "id": 87,
+      "classname": "target_position",
+      "x": -676.0,
+      "y": 1920.0,
+      "z": 1176.0,
+      "attrs": {
+        "targetname": "t111"
+      }
+    },
+    {
+      "id": 88,
+      "classname": "target_position",
+      "x": -544.0,
+      "y": 1056.0,
+      "z": 1128.0,
+      "attrs": {
+        "targetname": "t112"
+      }
+    },
+    {
+      "id": 89,
+      "classname": "target_position",
+      "x": 24.0,
+      "y": 1080.0,
+      "z": 1312.0,
+      "attrs": {
+        "targetname": "t116"
+      }
+    },
+    {
+      "id": 90,
+      "classname": "item_health_small",
+      "x": -1176.0,
+      "y": 1456.0,
+      "z": 1104.0,
+      "alias": "hp5_e90",
+      "alias_source": "auto"
+    },
+    {
+      "id": 91,
+      "classname": "item_health_small",
+      "x": -1224.0,
+      "y": 1456.0,
+      "z": 1104.0,
+      "alias": "hp5_e91",
+      "alias_source": "auto"
+    },
+    {
+      "id": 92,
+      "classname": "item_health_small",
+      "x": -1128.0,
+      "y": 1456.0,
+      "z": 1104.0,
+      "alias": "hp5_e92",
+      "alias_source": "auto"
+    },
+    {
+      "id": 93,
+      "classname": "target_position",
+      "x": -568.0,
+      "y": 1640.0,
+      "z": 1064.0,
+      "attrs": {
+        "targetname": "t117"
+      }
+    },
+    {
+      "id": 94,
+      "classname": "target_position",
+      "x": -840.0,
+      "y": 832.0,
+      "z": 1064.0,
+      "attrs": {
+        "targetname": "t120"
+      }
+    },
+    {
+      "id": 95,
+      "classname": "target_position",
+      "x": -672.0,
+      "y": 1488.0,
+      "z": 1064.0,
+      "attrs": {
+        "targetname": "t121"
+      }
+    },
+    {
+      "id": 96,
+      "classname": "target_position",
+      "x": -1304.0,
+      "y": 1704.0,
+      "z": 1032.0,
+      "attrs": {
+        "targetname": "t122"
+      }
+    },
+    {
+      "id": 97,
+      "classname": "target_position",
+      "x": -1112.0,
+      "y": 1552.0,
+      "z": 1032.0,
+      "attrs": {
+        "targetname": "t123"
+      }
+    },
+    {
+      "id": 98,
+      "classname": "target_position",
+      "x": -809.0,
+      "y": 1544.0,
+      "z": 1064.0,
+      "attrs": {
+        "targetname": "t124"
+      }
+    },
+    {
+      "id": 99,
+      "classname": "target_position",
+      "x": -968.0,
+      "y": 912.0,
+      "z": 1024.0,
+      "attrs": {
+        "targetname": "t125"
+      }
+    },
+    {
+      "id": 100,
+      "classname": "target_position",
+      "x": -1120.0,
+      "y": 1752.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t127"
+      }
+    },
+    {
+      "id": 101,
+      "classname": "target_position",
+      "x": -1384.0,
+      "y": 1400.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t128"
+      }
+    },
+    {
+      "id": 102,
+      "classname": "target_position",
+      "x": -984.0,
+      "y": 1528.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t129"
+      }
+    },
+    {
+      "id": 103,
+      "classname": "target_position",
+      "x": -512.0,
+      "y": 888.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t130"
+      }
+    },
+    {
+      "id": 104,
+      "classname": "target_position",
+      "x": 24.0,
+      "y": 1096.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t131"
+      }
+    },
+    {
+      "id": 105,
+      "classname": "target_position",
+      "x": -392.0,
+      "y": 1952.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t132"
+      }
+    },
+    {
+      "id": 106,
+      "classname": "target_position",
+      "x": 120.0,
+      "y": 2256.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t133"
+      }
+    },
+    {
+      "id": 107,
+      "classname": "target_position",
+      "x": 120.0,
+      "y": 1808.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t134"
+      }
+    },
+    {
+      "id": 108,
+      "classname": "target_position",
+      "x": 120.0,
+      "y": 1432.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t135"
+      }
+    },
+    {
+      "id": 109,
+      "classname": "target_position",
+      "x": -872.0,
+      "y": 1904.0,
+      "z": 1356.0,
+      "attrs": {
+        "targetname": "t136"
+      }
+    },
+    {
+      "id": 112,
+      "classname": "target_position",
+      "x": -456.0,
+      "y": 2360.0,
+      "z": 1408.0,
+      "attrs": {
+        "targetname": "t137"
+      }
+    },
+    {
+      "id": 113,
+      "classname": "target_position",
+      "x": -488.0,
+      "y": 2360.0,
+      "z": 1408.0,
+      "attrs": {
+        "targetname": "t138"
+      }
+    },
+    {
+      "id": 114,
+      "classname": "target_position",
+      "x": -688.0,
+      "y": 1336.0,
+      "z": 1234.0,
+      "attrs": {
+        "targetname": "t139"
+      }
+    },
+    {
+      "id": 115,
+      "classname": "target_position",
+      "x": -680.0,
+      "y": 1512.0,
+      "z": 1266.0,
+      "attrs": {
+        "targetname": "t140"
+      }
+    },
+    {
+      "id": 116,
+      "classname": "target_position",
+      "x": -568.0,
+      "y": 2168.0,
+      "z": 1408.0,
+      "attrs": {
+        "targetname": "t141"
+      }
+    },
+    {
+      "id": 117,
+      "classname": "target_position",
+      "x": -584.0,
+      "y": 1912.0,
+      "z": 1408.0,
+      "attrs": {
+        "targetname": "t142"
+      }
+    },
+    {
+      "id": 118,
+      "classname": "target_position",
+      "x": -424.0,
+      "y": 1544.0,
+      "z": 1408.0,
+      "attrs": {
+        "targetname": "t143"
+      }
+    },
+    {
+      "id": 119,
+      "classname": "target_position",
+      "x": -792.0,
+      "y": 2056.0,
+      "z": 1408.0,
+      "attrs": {
+        "targetname": "t145"
+      }
+    },
+    {
+      "id": 120,
+      "classname": "target_position",
+      "x": -792.0,
+      "y": 1656.0,
+      "z": 1408.0,
+      "attrs": {
+        "targetname": "t146"
+      }
+    },
+    {
+      "id": 121,
+      "classname": "target_position",
+      "x": -896.0,
+      "y": 1424.0,
+      "z": 1152.0,
+      "attrs": {
+        "targetname": "t147"
+      }
+    },
+    {
+      "id": 123,
+      "classname": "target_position",
+      "x": -560.0,
+      "y": 1074.0,
+      "z": 1064.0,
+      "attrs": {
+        "targetname": "t148"
+      }
+    },
+    {
+      "id": 124,
+      "classname": "target_position",
+      "x": -352.0,
+      "y": 944.0,
+      "z": 920.0,
+      "attrs": {
+        "targetname": "t154"
+      }
+    },
+    {
+      "id": 125,
+      "classname": "target_position",
+      "x": -508.0,
+      "y": 912.0,
+      "z": 920.0,
+      "attrs": {
+        "targetname": "t155"
+      }
+    },
+    {
+      "id": 126,
+      "classname": "target_position",
+      "x": -744.0,
+      "y": 848.0,
+      "z": 920.0,
+      "attrs": {
+        "targetname": "t156"
+      }
+    },
+    {
+      "id": 127,
+      "classname": "target_position",
+      "x": -840.0,
+      "y": 848.0,
+      "z": 920.0,
+      "attrs": {
+        "targetname": "t157"
+      }
+    },
+    {
+      "id": 128,
+      "classname": "target_position",
+      "x": -840.0,
+      "y": 1024.0,
+      "z": 920.0,
+      "attrs": {
+        "targetname": "t158"
+      }
+    },
+    {
+      "id": 129,
+      "classname": "target_position",
+      "x": -744.0,
+      "y": 1024.0,
+      "z": 920.0,
+      "attrs": {
+        "targetname": "t159"
+      }
+    },
+    {
+      "id": 130,
+      "classname": "target_position",
+      "x": -548.0,
+      "y": 1062.0,
+      "z": 920.0,
+      "attrs": {
+        "targetname": "t160"
+      }
+    },
+    {
+      "id": 131,
+      "classname": "target_position",
+      "x": -320.0,
+      "y": 1088.0,
+      "z": 920.0,
+      "attrs": {
+        "targetname": "t161"
+      }
+    },
+    {
+      "id": 133,
+      "classname": "target_speaker",
+      "x": -772.0,
+      "y": 930.0,
+      "z": 1056.0,
+      "attrs": {
+        "noise": "sound/world/drone6.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 134,
+      "classname": "target_speaker",
+      "x": -772.0,
+      "y": 898.0,
+      "z": 1040.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/portal01.wav"
+      }
+    },
+    {
+      "id": 137,
+      "classname": "target_speaker",
+      "x": 28.0,
+      "y": 1760.0,
+      "z": 1096.0,
+      "attrs": {
+        "noise": "sound/world/drone6.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 138,
+      "classname": "target_speaker",
+      "x": 28.0,
+      "y": 1792.0,
+      "z": 1080.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/portal01.wav"
+      }
+    },
+    {
+      "id": 152,
+      "classname": "target_position",
+      "x": -528.0,
+      "y": 1240.0,
+      "z": 1096.0,
+      "attrs": {
+        "targetname": "t300"
+      }
+    },
+    {
+      "id": 153,
+      "classname": "ammo_pack",
+      "x": -368.0,
+      "y": 956.0,
+      "z": 1028.0,
+      "alias": "ammo_pack_e153",
+      "alias_source": "auto"
+    },
+    {
+      "id": 154,
+      "classname": "ammo_pack",
+      "x": -1104.0,
+      "y": 1576.0,
+      "z": 1028.0,
+      "alias": "ammo_pack_e154",
+      "alias_source": "auto"
+    },
+    {
+      "id": 155,
+      "classname": "ammo_pack",
+      "x": 96.0,
+      "y": 2048.0,
+      "z": 1140.0,
+      "alias": "ammo_pack_e155",
+      "alias_source": "auto"
+    },
+    {
+      "id": 156,
+      "classname": "ammo_pack",
+      "x": -496.0,
+      "y": 1712.0,
+      "z": 1268.0,
+      "alias": "ammo_pack_e156",
+      "alias_source": "auto"
+    }
+  ],
+  "by_classname": {
+    "item_armor_combat": [
+      2,
+      16
+    ],
+    "weapon_rocketlauncher": [
+      3,
+      11
+    ],
+    "misc_teleporter_dest": [
+      5,
+      13
+    ],
+    "item_health": [
+      6,
+      7,
+      65,
+      67
+    ],
+    "weapon_lightning": [
+      8
+    ],
+    "info_player_deathmatch": [
+      9,
+      10,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28
+    ],
+    "item_armor_body": [
+      14
+    ],
+    "item_health_mega": [
+      15
+    ],
+    "weapon_railgun": [
+      17
+    ],
+    "weapon_plasmagun": [
+      18
+    ],
+    "ammo_cells": [
+      19
+    ],
+    "ammo_lightning": [
+      20,
+      66
+    ],
+    "ammo_rockets": [
+      21,
+      22,
+      64
+    ],
+    "item_armor_shard": [
+      29,
+      30,
+      31
+    ],
+    "target_position": [
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      61,
+      62,
+      63,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      123,
+      124,
+      125,
+      126,
+      127,
+      128,
+      129,
+      130,
+      131,
+      152
+    ],
+    "weapon_grenadelauncher": [
+      41
+    ],
+    "item_health_large": [
+      60
+    ],
+    "item_health_small": [
+      90,
+      91,
+      92
+    ],
+    "target_speaker": [
+      133,
+      134,
+      137,
+      138
+    ],
+    "ammo_pack": [
+      153,
+      154,
+      155,
+      156
+    ]
+  },
+  "teleports": {
+    "exit_count": 0,
+    "pair_count": 0,
+    "pairs": [],
+    "exits": []
+  }
+}

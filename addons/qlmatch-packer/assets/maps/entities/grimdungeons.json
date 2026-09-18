@@ -1,0 +1,3104 @@
+{
+  "map_name": "grimdungeons",
+  "source": "d:\\QuakeLiveData\\pak00\\maps\\grimdungeons.bsp",
+  "entity_count": 251,
+  "entities": [
+    {
+      "id": 3,
+      "classname": "func_timer",
+      "x": 312.0,
+      "y": 64.0,
+      "z": -264.0,
+      "attrs": {
+        "targetname": "t127",
+        "spawnflags": "0",
+        "target": "t126",
+        "wait": "20",
+        "random": "7"
+      }
+    },
+    {
+      "id": 4,
+      "classname": "target_speaker",
+      "x": 336.0,
+      "y": 32.0,
+      "z": -264.0,
+      "attrs": {
+        "noise": "sound/world/1shot_greg_01.wav",
+        "targetname": "t126"
+      }
+    },
+    {
+      "id": 5,
+      "classname": "func_timer",
+      "x": -616.0,
+      "y": -664.0,
+      "z": -432.0,
+      "attrs": {
+        "spawnflags": "1",
+        "wait": "12",
+        "random": "3",
+        "target": "t125"
+      }
+    },
+    {
+      "id": 6,
+      "classname": "target_speaker",
+      "x": 368.0,
+      "y": -264.0,
+      "z": -152.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/fire1.wav"
+      }
+    },
+    {
+      "id": 7,
+      "classname": "target_location",
+      "x": -120.0,
+      "y": -1312.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "shotgun room"
+      }
+    },
+    {
+      "id": 8,
+      "classname": "target_location",
+      "x": 0.0,
+      "y": -288.0,
+      "z": -208.0,
+      "attrs": {
+        "message": "lighting gun room"
+      }
+    },
+    {
+      "id": 9,
+      "classname": "target_location",
+      "x": 352.0,
+      "y": 56.0,
+      "z": 80.0,
+      "attrs": {
+        "message": "quad courtyard"
+      }
+    },
+    {
+      "id": 14,
+      "classname": "target_position",
+      "x": -992.0,
+      "y": -988.0,
+      "z": 112.0,
+      "attrs": {
+        "targetname": "t123"
+      }
+    },
+    {
+      "id": 15,
+      "classname": "info_player_intermission",
+      "x": -1120.0,
+      "y": -988.0,
+      "z": 104.0,
+      "attrs": {
+        "target": "t123"
+      }
+    },
+    {
+      "id": 16,
+      "classname": "item_quad",
+      "x": 352.0,
+      "y": 32.0,
+      "z": 16.0
+    },
+    {
+      "id": 17,
+      "classname": "ammo_slugs",
+      "x": 64.0,
+      "y": -1680.0,
+      "z": 16.0,
+      "alias": "rg_ammo_shotgun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 18,
+      "classname": "ammo_lightning",
+      "x": 16.0,
+      "y": -1680.0,
+      "z": 16.0,
+      "alias": "lg_ammo_shotgun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 19,
+      "classname": "ammo_bullets",
+      "x": -808.0,
+      "y": -160.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "mg_ammo_railgun_courtyard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 20,
+      "classname": "target_position",
+      "x": -208.0,
+      "y": -1386.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t99"
+      }
+    },
+    {
+      "id": 21,
+      "classname": "info_player_deathmatch",
+      "x": 564.0,
+      "y": -504.0,
+      "z": -160.0,
+      "attrs": {
+        "targetname": "t130",
+        "angle": "270",
+        "spawnflags": "4"
+      }
+    },
+    {
+      "id": 22,
+      "classname": "info_player_deathmatch",
+      "x": 952.0,
+      "y": -316.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "t130",
+        "angle": "270",
+        "spawnflags": "4"
+      }
+    },
+    {
+      "id": 27,
+      "classname": "target_position",
+      "x": 352.0,
+      "y": 192.0,
+      "z": 76.0,
+      "attrs": {
+        "targetname": "t3"
+      }
+    },
+    {
+      "id": 32,
+      "classname": "target_position",
+      "x": -832.0,
+      "y": -948.0,
+      "z": 64.0,
+      "attrs": {
+        "targetname": "t7"
+      }
+    },
+    {
+      "id": 33,
+      "classname": "target_position",
+      "x": 1016.0,
+      "y": -640.0,
+      "z": 48.0,
+      "attrs": {
+        "targetname": "t8"
+      }
+    },
+    {
+      "id": 34,
+      "classname": "info_player_deathmatch",
+      "x": 760.0,
+      "y": -24.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t130",
+        "spawnflags": "4",
+        "angle": "270"
+      }
+    },
+    {
+      "id": 35,
+      "classname": "info_player_deathmatch",
+      "x": 368.0,
+      "y": -848.0,
+      "z": -208.0,
+      "attrs": {
+        "targetname": "t130",
+        "spawnflags": "4",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 36,
+      "classname": "info_player_deathmatch",
+      "x": -384.0,
+      "y": -340.0,
+      "z": -208.0,
+      "attrs": {
+        "angle": "90",
+        "spawnflags": "4"
+      }
+    },
+    {
+      "id": 37,
+      "classname": "info_player_deathmatch",
+      "x": 536.0,
+      "y": -68.0,
+      "z": -488.0,
+      "attrs": {
+        "targetname": "t128",
+        "spawnflags": "4",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 38,
+      "classname": "info_player_deathmatch",
+      "x": 544.0,
+      "y": 44.0,
+      "z": -328.0,
+      "attrs": {
+        "targetname": "t128",
+        "angle": "180",
+        "spawnflags": "4"
+      }
+    },
+    {
+      "id": 39,
+      "classname": "info_player_deathmatch",
+      "x": 396.0,
+      "y": 332.0,
+      "z": -488.0,
+      "attrs": {
+        "targetname": "t128",
+        "spawnflags": "4",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 40,
+      "classname": "info_player_deathmatch",
+      "x": -1004.0,
+      "y": -404.0,
+      "z": -488.0,
+      "attrs": {
+        "targetname": "t128",
+        "angle": "270",
+        "spawnflags": "4"
+      }
+    },
+    {
+      "id": 41,
+      "classname": "info_player_deathmatch",
+      "x": -292.0,
+      "y": -516.0,
+      "z": -488.0,
+      "attrs": {
+        "spawnflags": "4",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 42,
+      "classname": "info_player_deathmatch",
+      "x": 244.0,
+      "y": -684.0,
+      "z": -488.0,
+      "attrs": {
+        "targetname": "t128",
+        "angle": "90",
+        "spawnflags": "4"
+      }
+    },
+    {
+      "id": 43,
+      "classname": "info_player_deathmatch",
+      "x": 492.0,
+      "y": -516.0,
+      "z": -488.0,
+      "attrs": {
+        "spawnflags": "4",
+        "angle": "315"
+      }
+    },
+    {
+      "id": 44,
+      "classname": "info_player_deathmatch",
+      "x": 468.0,
+      "y": -1140.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t130",
+        "spawnflags": "4",
+        "angle": "135"
+      }
+    },
+    {
+      "id": 45,
+      "classname": "info_player_deathmatch",
+      "x": -348.0,
+      "y": -1756.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t129",
+        "spawnflags": "4",
+        "angle": "135"
+      }
+    },
+    {
+      "id": 46,
+      "classname": "info_player_deathmatch",
+      "x": -1572.0,
+      "y": -1368.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t129",
+        "angle": "360",
+        "spawnflags": "4"
+      }
+    },
+    {
+      "id": 47,
+      "classname": "info_player_deathmatch",
+      "x": -1564.0,
+      "y": -676.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t129",
+        "spawnflags": "4",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 48,
+      "classname": "info_player_deathmatch",
+      "x": -992.0,
+      "y": 40.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t129",
+        "angle": "270",
+        "spawnflags": "4"
+      }
+    },
+    {
+      "id": 49,
+      "classname": "info_player_deathmatch",
+      "x": -764.0,
+      "y": -348.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "t129",
+        "spawnflags": "4",
+        "angle": "225"
+      }
+    },
+    {
+      "id": 50,
+      "classname": "info_player_deathmatch",
+      "x": -608.0,
+      "y": 4.0,
+      "z": -208.0,
+      "attrs": {
+        "spawnflags": "4",
+        "angle": "270"
+      }
+    },
+    {
+      "id": 53,
+      "classname": "target_position",
+      "x": -876.0,
+      "y": -64.0,
+      "z": 140.0,
+      "attrs": {
+        "targetname": "t97"
+      }
+    },
+    {
+      "id": 54,
+      "classname": "target_position",
+      "x": -80.0,
+      "y": -1386.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t100"
+      }
+    },
+    {
+      "id": 55,
+      "classname": "target_position",
+      "x": 48.0,
+      "y": -1386.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t101"
+      }
+    },
+    {
+      "id": 56,
+      "classname": "target_position",
+      "x": 176.0,
+      "y": -1386.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t102"
+      }
+    },
+    {
+      "id": 57,
+      "classname": "target_position",
+      "x": -208.0,
+      "y": -1246.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t103"
+      }
+    },
+    {
+      "id": 58,
+      "classname": "target_position",
+      "x": -80.0,
+      "y": -1246.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t104"
+      }
+    },
+    {
+      "id": 59,
+      "classname": "target_position",
+      "x": 48.0,
+      "y": -1246.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t105"
+      }
+    },
+    {
+      "id": 60,
+      "classname": "target_position",
+      "x": 176.0,
+      "y": -1246.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t106"
+      }
+    },
+    {
+      "id": 61,
+      "classname": "target_position",
+      "x": -208.0,
+      "y": -1706.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t107"
+      }
+    },
+    {
+      "id": 62,
+      "classname": "target_position",
+      "x": -80.0,
+      "y": -1706.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t108"
+      }
+    },
+    {
+      "id": 63,
+      "classname": "target_position",
+      "x": 48.0,
+      "y": -1706.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t109"
+      }
+    },
+    {
+      "id": 64,
+      "classname": "target_position",
+      "x": 176.0,
+      "y": -1706.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t110"
+      }
+    },
+    {
+      "id": 65,
+      "classname": "target_position",
+      "x": -208.0,
+      "y": -1566.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t111"
+      }
+    },
+    {
+      "id": 66,
+      "classname": "target_position",
+      "x": -80.0,
+      "y": -1566.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t112"
+      }
+    },
+    {
+      "id": 67,
+      "classname": "target_position",
+      "x": 48.0,
+      "y": -1566.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t113"
+      }
+    },
+    {
+      "id": 68,
+      "classname": "target_position",
+      "x": 176.0,
+      "y": -1566.0,
+      "z": 268.0,
+      "attrs": {
+        "targetname": "t114"
+      }
+    },
+    {
+      "id": 69,
+      "classname": "target_position",
+      "x": 270.0,
+      "y": -800.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t115"
+      }
+    },
+    {
+      "id": 70,
+      "classname": "target_position",
+      "x": 270.0,
+      "y": -672.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t116"
+      }
+    },
+    {
+      "id": 71,
+      "classname": "target_position",
+      "x": 270.0,
+      "y": -544.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t117"
+      }
+    },
+    {
+      "id": 72,
+      "classname": "target_position",
+      "x": 270.0,
+      "y": -416.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t118"
+      }
+    },
+    {
+      "id": 73,
+      "classname": "target_position",
+      "x": 434.0,
+      "y": -800.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t119"
+      }
+    },
+    {
+      "id": 74,
+      "classname": "target_position",
+      "x": 434.0,
+      "y": -672.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t120"
+      }
+    },
+    {
+      "id": 75,
+      "classname": "target_position",
+      "x": 434.0,
+      "y": -544.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t121"
+      }
+    },
+    {
+      "id": 76,
+      "classname": "target_position",
+      "x": 434.0,
+      "y": -416.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t122"
+      }
+    },
+    {
+      "id": 77,
+      "classname": "target_speaker",
+      "x": 368.0,
+      "y": -808.0,
+      "z": -152.0,
+      "attrs": {
+        "noise": "sound/world/fire1.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 78,
+      "classname": "target_speaker",
+      "x": 0.0,
+      "y": -424.0,
+      "z": -240.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/fire1.wav"
+      }
+    },
+    {
+      "id": 79,
+      "classname": "target_speaker",
+      "x": -376.0,
+      "y": -56.0,
+      "z": -176.0,
+      "attrs": {
+        "noise": "sound/world/fire1.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 80,
+      "classname": "target_speaker",
+      "x": -600.0,
+      "y": -408.0,
+      "z": -176.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/fire1.wav"
+      }
+    },
+    {
+      "id": 81,
+      "classname": "target_speaker",
+      "x": -1048.0,
+      "y": 8.0,
+      "z": 96.0,
+      "attrs": {
+        "noise": "sound/world/fire1.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 82,
+      "classname": "target_speaker",
+      "x": -1048.0,
+      "y": -488.0,
+      "z": 96.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/fire1.wav"
+      }
+    },
+    {
+      "id": 83,
+      "classname": "target_speaker",
+      "x": 24.0,
+      "y": -992.0,
+      "z": 96.0,
+      "attrs": {
+        "noise": "sound/world/fire1.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 84,
+      "classname": "target_speaker",
+      "x": 360.0,
+      "y": -1032.0,
+      "z": 96.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/fire1.wav"
+      }
+    },
+    {
+      "id": 85,
+      "classname": "target_speaker",
+      "x": 192.0,
+      "y": -1280.0,
+      "z": 96.0,
+      "attrs": {
+        "noise": "sound/world/fire1.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 86,
+      "classname": "target_speaker",
+      "x": 184.0,
+      "y": -1664.0,
+      "z": 96.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/fire1.wav"
+      }
+    },
+    {
+      "id": 87,
+      "classname": "target_speaker",
+      "x": -224.0,
+      "y": -1472.0,
+      "z": 96.0,
+      "attrs": {
+        "noise": "sound/world/fire1.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 88,
+      "classname": "target_speaker",
+      "x": -568.0,
+      "y": -760.0,
+      "z": -480.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/fire1.wav"
+      }
+    },
+    {
+      "id": 89,
+      "classname": "target_speaker",
+      "x": -216.0,
+      "y": -600.0,
+      "z": -480.0,
+      "attrs": {
+        "noise": "sound/world/fire1.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 90,
+      "classname": "target_speaker",
+      "x": 232.0,
+      "y": -512.0,
+      "z": -480.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/fire1.wav"
+      }
+    },
+    {
+      "id": 91,
+      "classname": "target_speaker",
+      "x": 376.0,
+      "y": -648.0,
+      "z": -480.0,
+      "attrs": {
+        "noise": "sound/world/fire1.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 92,
+      "classname": "target_speaker",
+      "x": 600.0,
+      "y": -632.0,
+      "z": -480.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/fire1.wav"
+      }
+    },
+    {
+      "id": 93,
+      "classname": "target_speaker",
+      "x": -656.0,
+      "y": -664.0,
+      "z": -432.0,
+      "attrs": {
+        "targetname": "t125",
+        "noise": "sound/world/ambient/x_ancientsdrone.wav"
+      }
+    },
+    {
+      "id": 96,
+      "classname": "target_location",
+      "x": -120.0,
+      "y": -1312.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "shotgun room"
+      }
+    },
+    {
+      "id": 97,
+      "classname": "target_location",
+      "x": 0.0,
+      "y": -288.0,
+      "z": -208.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 98,
+      "classname": "target_location",
+      "x": 352.0,
+      "y": 56.0,
+      "z": 80.0,
+      "attrs": {
+        "message": "quad courtyard"
+      }
+    },
+    {
+      "id": 99,
+      "classname": "target_location",
+      "x": 532.0,
+      "y": -146.0,
+      "z": 80.0,
+      "attrs": {
+        "message": "quad courtyard"
+      }
+    },
+    {
+      "id": 100,
+      "classname": "ammo_slugs",
+      "x": 0.0,
+      "y": 76.0,
+      "z": -496.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "rg_ammo_rocket_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 101,
+      "classname": "weapon_railgun",
+      "x": -600.0,
+      "y": -400.0,
+      "z": -216.0,
+      "alias": "rg_railgun_courtyard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 102,
+      "classname": "item_health_large",
+      "x": -32.0,
+      "y": -1680.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "hp50_shotgun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 103,
+      "classname": "ammo_bullets",
+      "x": -864.0,
+      "y": -160.0,
+      "z": 16.0,
+      "alias": "mg_ammo_railgun_courtyard_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 104,
+      "classname": "ammo_rockets",
+      "x": -808.0,
+      "y": -160.0,
+      "z": 16.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "rocket_ammo_railgun_courtyard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 105,
+      "classname": "item_health_large",
+      "x": -640.0,
+      "y": -1408.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "hp50_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 106,
+      "classname": "ammo_shells",
+      "x": 356.0,
+      "y": -684.0,
+      "z": -496.0,
+      "alias": "sg_ammo_grenade_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 107,
+      "classname": "ammo_slugs",
+      "x": 296.0,
+      "y": -684.0,
+      "z": -496.0,
+      "alias": "rg_ammo_grenade_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 108,
+      "classname": "item_health_large",
+      "x": -276.0,
+      "y": -68.0,
+      "z": -496.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp50_railgun_courtyard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 109,
+      "classname": "item_health",
+      "x": -146.0,
+      "y": 176.0,
+      "z": -496.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_rocket_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 110,
+      "classname": "ammo_lightning",
+      "x": -1568.0,
+      "y": -1316.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "lg_ammo_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 111,
+      "classname": "ammo_bfg",
+      "x": -448.0,
+      "y": -1024.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "bfg_ammo_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 112,
+      "classname": "item_health_large",
+      "x": -476.0,
+      "y": 4.0,
+      "z": -216.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "hp50_railgun_courtyard_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 113,
+      "classname": "item_health",
+      "x": -476.0,
+      "y": 4.0,
+      "z": -216.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_railgun_courtyard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 114,
+      "classname": "ammo_rockets",
+      "x": -200.0,
+      "y": -800.0,
+      "z": -496.0,
+      "alias": "rocket_ammo_battle_suit_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 115,
+      "classname": "item_health_large",
+      "x": 0.0,
+      "y": -544.0,
+      "z": -496.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "hp50_rocket_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 116,
+      "classname": "weapon_rocketlauncher",
+      "x": 368.0,
+      "y": 240.0,
+      "z": -496.0,
+      "alias": "rl_rocket_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 117,
+      "classname": "ammo_cells",
+      "x": 280.0,
+      "y": -424.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "plasma_ammo_grenade_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 118,
+      "classname": "item_health_small",
+      "x": 280.0,
+      "y": -424.0,
+      "z": 16.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp5_grenade_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 119,
+      "classname": "item_health_large",
+      "x": -1120.0,
+      "y": -1568.0,
+      "z": -368.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "hp50_battle_suit_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 120,
+      "classname": "item_health",
+      "x": -1120.0,
+      "y": -1568.0,
+      "z": -368.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_battle_suit_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 121,
+      "classname": "item_health",
+      "x": -544.0,
+      "y": -1568.0,
+      "z": -368.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 122,
+      "classname": "item_health_large",
+      "x": 0.0,
+      "y": -288.0,
+      "z": -272.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "hp50_lighting_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 123,
+      "classname": "item_health",
+      "x": 0.0,
+      "y": -288.0,
+      "z": -272.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_lighting_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 124,
+      "classname": "item_health",
+      "x": -288.0,
+      "y": 24.0,
+      "z": -368.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "hp25_railgun_courtyard_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 125,
+      "classname": "ammo_rockets",
+      "x": -960.0,
+      "y": -960.0,
+      "z": -496.0,
+      "alias": "rocket_ammo_battle_suit_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 126,
+      "classname": "item_health",
+      "x": -704.0,
+      "y": -896.0,
+      "z": -496.0,
+      "alias": "hp25_battle_suit_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 127,
+      "classname": "item_armor_combat",
+      "x": -832.0,
+      "y": -736.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "ya_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 128,
+      "classname": "weapon_rocketlauncher",
+      "x": -1392.0,
+      "y": -1024.0,
+      "z": 16.0,
+      "alias": "rl_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 129,
+      "classname": "ammo_shells",
+      "x": 1080.0,
+      "y": -16.0,
+      "z": -48.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "sg_ammo_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 130,
+      "classname": "item_armor_shard",
+      "x": 1080.0,
+      "y": -16.0,
+      "z": -48.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "shard_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 131,
+      "classname": "holdable_teleporter",
+      "x": -920.0,
+      "y": -1616.0,
+      "z": 24.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      }
+    },
+    {
+      "id": 132,
+      "classname": "ammo_shells",
+      "x": -920.0,
+      "y": -1616.0,
+      "z": 16.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "sg_ammo_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 133,
+      "classname": "item_health_large",
+      "x": 368.0,
+      "y": -1032.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "hp50_shotgun_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 134,
+      "classname": "item_health",
+      "x": 368.0,
+      "y": -1032.0,
+      "z": 16.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_shotgun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 135,
+      "classname": "ammo_rockets",
+      "x": 1128.0,
+      "y": -16.0,
+      "z": -48.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "rocket_ammo_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 136,
+      "classname": "item_armor_shard",
+      "x": 1128.0,
+      "y": -16.0,
+      "z": -48.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "shard_lightning_gun_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 137,
+      "classname": "ammo_bullets",
+      "x": 104.0,
+      "y": -264.0,
+      "z": 16.0,
+      "alias": "mg_ammo_lighting_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 138,
+      "classname": "item_armor_body",
+      "x": 800.0,
+      "y": -272.0,
+      "z": 24.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "ra_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 139,
+      "classname": "weapon_lightning",
+      "x": 800.0,
+      "y": -272.0,
+      "z": 24.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "lg_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 140,
+      "classname": "item_armor_combat",
+      "x": -832.0,
+      "y": -1048.0,
+      "z": -496.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "ya_red_armor_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 141,
+      "classname": "ammo_cells",
+      "x": 560.0,
+      "y": -784.0,
+      "z": -496.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "plasma_ammo_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 142,
+      "classname": "ammo_grenades",
+      "x": 560.0,
+      "y": -784.0,
+      "z": -496.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "gl_ammo_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 143,
+      "classname": "weapon_lightning",
+      "x": 352.0,
+      "y": 56.0,
+      "z": -336.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "lg_quad_courtyard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 144,
+      "classname": "ammo_lightning",
+      "x": 352.0,
+      "y": 56.0,
+      "z": -336.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "lg_ammo_quad_courtyard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 145,
+      "classname": "weapon_shotgun",
+      "x": -192.0,
+      "y": -1472.0,
+      "z": 16.0,
+      "alias": "sg_shotgun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 146,
+      "classname": "item_armor_shard",
+      "x": 208.0,
+      "y": -984.0,
+      "z": 16.0,
+      "alias": "shard_shotgun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 147,
+      "classname": "item_health_mega",
+      "x": -264.0,
+      "y": -1024.0,
+      "z": -88.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "mh_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 148,
+      "classname": "weapon_bfg",
+      "x": -832.0,
+      "y": -1568.0,
+      "z": -496.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "bfg_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 149,
+      "classname": "item_enviro",
+      "x": -832.0,
+      "y": -1568.0,
+      "z": -496.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      }
+    },
+    {
+      "id": 150,
+      "classname": "item_armor_shard",
+      "x": 168.0,
+      "y": -984.0,
+      "z": 16.0,
+      "alias": "shard_shotgun_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 151,
+      "classname": "item_armor_shard",
+      "x": 128.0,
+      "y": -984.0,
+      "z": 16.0,
+      "alias": "shard_shotgun_room_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 152,
+      "classname": "item_armor_shard",
+      "x": 88.0,
+      "y": -984.0,
+      "z": 16.0,
+      "alias": "shard_shotgun_room_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 153,
+      "classname": "item_armor_shard",
+      "x": 48.0,
+      "y": -984.0,
+      "z": 16.0,
+      "alias": "shard_shotgun_room_5",
+      "alias_source": "auto"
+    },
+    {
+      "id": 154,
+      "classname": "ammo_cells",
+      "x": 600.0,
+      "y": -784.0,
+      "z": -496.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "plasma_ammo_lightning_gun_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 155,
+      "classname": "ammo_shells",
+      "x": 104.0,
+      "y": -216.0,
+      "z": 16.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "sg_ammo_lighting_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 156,
+      "classname": "item_health_large",
+      "x": 800.0,
+      "y": -416.0,
+      "z": -112.0,
+      "alias": "hp50_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 157,
+      "classname": "item_health_large",
+      "x": -1016.0,
+      "y": -416.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "hp50_railgun_courtyard_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 158,
+      "classname": "ammo_cells",
+      "x": -684.0,
+      "y": -1532.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "plasma_ammo_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 159,
+      "classname": "item_health_large",
+      "x": -684.0,
+      "y": -1532.0,
+      "z": 16.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp50_red_armor_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 160,
+      "classname": "item_health",
+      "x": -704.0,
+      "y": -960.0,
+      "z": -496.0,
+      "alias": "hp25_battle_suit_room_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 161,
+      "classname": "ammo_rockets",
+      "x": -960.0,
+      "y": -896.0,
+      "z": -496.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "rocket_ammo_battle_suit_room_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 162,
+      "classname": "item_health",
+      "x": -288.0,
+      "y": 72.0,
+      "z": -368.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "hp25_railgun_courtyard_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 163,
+      "classname": "ammo_cells",
+      "x": 280.0,
+      "y": -472.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "plasma_ammo_grenade_launcher_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 164,
+      "classname": "item_health_small",
+      "x": 280.0,
+      "y": -472.0,
+      "z": 16.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp5_grenade_launcher_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 165,
+      "classname": "item_armor_body",
+      "x": -272.0,
+      "y": -1024.0,
+      "z": -88.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "ra_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 166,
+      "classname": "target_location",
+      "x": 360.0,
+      "y": -296.0,
+      "z": 80.0,
+      "attrs": {
+        "message": "quad courtyard"
+      }
+    },
+    {
+      "id": 167,
+      "classname": "target_location",
+      "x": 360.0,
+      "y": -760.0,
+      "z": 80.0,
+      "attrs": {
+        "message": "quad courtyard"
+      }
+    },
+    {
+      "id": 168,
+      "classname": "target_location",
+      "x": 784.0,
+      "y": -144.0,
+      "z": 80.0,
+      "attrs": {
+        "message": "lightning gun room"
+      }
+    },
+    {
+      "id": 169,
+      "classname": "target_location",
+      "x": 1104.0,
+      "y": -104.0,
+      "z": 16.0,
+      "attrs": {
+        "message": "lightning gun room"
+      }
+    },
+    {
+      "id": 170,
+      "classname": "target_location",
+      "x": 1112.0,
+      "y": -424.0,
+      "z": 16.0,
+      "attrs": {
+        "message": "lightning gun room"
+      }
+    },
+    {
+      "id": 171,
+      "classname": "target_location",
+      "x": 1112.0,
+      "y": -760.0,
+      "z": 16.0,
+      "attrs": {
+        "message": "lightning gun room"
+      }
+    },
+    {
+      "id": 172,
+      "classname": "target_location",
+      "x": 808.0,
+      "y": -416.0,
+      "z": 16.0,
+      "attrs": {
+        "message": "lightning gun room"
+      }
+    },
+    {
+      "id": 173,
+      "classname": "target_location",
+      "x": 816.0,
+      "y": -744.0,
+      "z": 16.0,
+      "attrs": {
+        "message": "lightning gun room"
+      }
+    },
+    {
+      "id": 174,
+      "classname": "target_location",
+      "x": 560.0,
+      "y": -760.0,
+      "z": -112.0,
+      "attrs": {
+        "message": "lightning gun room"
+      }
+    },
+    {
+      "id": 175,
+      "classname": "target_location",
+      "x": 360.0,
+      "y": -296.0,
+      "z": -160.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 176,
+      "classname": "target_location",
+      "x": 360.0,
+      "y": -760.0,
+      "z": -160.0,
+      "attrs": {
+        "message": "lightning gun room"
+      }
+    },
+    {
+      "id": 177,
+      "classname": "target_location",
+      "x": -400.0,
+      "y": -288.0,
+      "z": -160.0,
+      "attrs": {
+        "message": "railgun courtyard"
+      }
+    },
+    {
+      "id": 178,
+      "classname": "target_location",
+      "x": -424.0,
+      "y": -48.0,
+      "z": -160.0,
+      "attrs": {
+        "message": "railgun courtyard"
+      }
+    },
+    {
+      "id": 179,
+      "classname": "target_location",
+      "x": 0.0,
+      "y": 40.0,
+      "z": -248.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 180,
+      "classname": "target_location",
+      "x": 424.0,
+      "y": 48.0,
+      "z": -248.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 181,
+      "classname": "target_location",
+      "x": -8.0,
+      "y": 296.0,
+      "z": -424.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 182,
+      "classname": "target_location",
+      "x": 344.0,
+      "y": 280.0,
+      "z": -424.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 183,
+      "classname": "target_location",
+      "x": -256.0,
+      "y": 304.0,
+      "z": -344.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 184,
+      "classname": "target_location",
+      "x": 8.0,
+      "y": -96.0,
+      "z": -440.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 185,
+      "classname": "target_location",
+      "x": 0.0,
+      "y": -336.0,
+      "z": -440.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 186,
+      "classname": "target_location",
+      "x": 248.0,
+      "y": -528.0,
+      "z": -440.0,
+      "attrs": {
+        "message": "grenade launcher room"
+      }
+    },
+    {
+      "id": 187,
+      "classname": "target_location",
+      "x": 384.0,
+      "y": -648.0,
+      "z": -440.0,
+      "attrs": {
+        "message": "grenade launcher room"
+      }
+    },
+    {
+      "id": 188,
+      "classname": "target_location",
+      "x": -224.0,
+      "y": -536.0,
+      "z": -440.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 189,
+      "classname": "target_location",
+      "x": -256.0,
+      "y": -776.0,
+      "z": -440.0,
+      "attrs": {
+        "notfree": "1",
+        "message": "battle suit room",
+        "not_gametype": "ffa dm duel"
+      }
+    },
+    {
+      "id": 190,
+      "classname": "target_location",
+      "x": -256.0,
+      "y": -776.0,
+      "z": -440.0,
+      "attrs": {
+        "notteam": "1",
+        "message": "bfg room",
+        "not_gametype": "tdm ctf ca"
+      }
+    },
+    {
+      "id": 191,
+      "classname": "target_location",
+      "x": 584.0,
+      "y": -640.0,
+      "z": -440.0,
+      "attrs": {
+        "message": "grenade launcher room"
+      }
+    },
+    {
+      "id": 192,
+      "classname": "target_location",
+      "x": 968.0,
+      "y": -504.0,
+      "z": -440.0,
+      "attrs": {
+        "message": "grenade launcher room"
+      }
+    },
+    {
+      "id": 193,
+      "classname": "target_location",
+      "x": 968.0,
+      "y": -768.0,
+      "z": -440.0,
+      "attrs": {
+        "message": "grenade launcher room"
+      }
+    },
+    {
+      "id": 194,
+      "classname": "target_location",
+      "x": -616.0,
+      "y": -768.0,
+      "z": -440.0,
+      "attrs": {
+        "notfree": "1",
+        "message": "battle suit room",
+        "not_gametype": "ffa dm duel"
+      }
+    },
+    {
+      "id": 195,
+      "classname": "target_location",
+      "x": -624.0,
+      "y": -1056.0,
+      "z": -440.0,
+      "attrs": {
+        "notfree": "1",
+        "message": "battle suit room",
+        "not_gametype": "ffa dm duel"
+      }
+    },
+    {
+      "id": 196,
+      "classname": "target_location",
+      "x": -832.0,
+      "y": -1232.0,
+      "z": -440.0,
+      "attrs": {
+        "notfree": "1",
+        "message": "battle suit room",
+        "not_gametype": "ffa dm duel"
+      }
+    },
+    {
+      "id": 197,
+      "classname": "target_location",
+      "x": -1032.0,
+      "y": -1008.0,
+      "z": -440.0,
+      "attrs": {
+        "notfree": "1",
+        "message": "battle suit room",
+        "not_gametype": "ffa dm duel"
+      }
+    },
+    {
+      "id": 198,
+      "classname": "target_location",
+      "x": -1016.0,
+      "y": -488.0,
+      "z": -440.0,
+      "attrs": {
+        "notfree": "1",
+        "message": "battle suit room",
+        "not_gametype": "ffa dm duel"
+      }
+    },
+    {
+      "id": 199,
+      "classname": "target_location",
+      "x": -672.0,
+      "y": -1752.0,
+      "z": -312.0,
+      "attrs": {
+        "notfree": "1",
+        "message": "battle suit room",
+        "not_gametype": "ffa dm duel"
+      }
+    },
+    {
+      "id": 200,
+      "classname": "target_location",
+      "x": -1032.0,
+      "y": -1736.0,
+      "z": -312.0,
+      "attrs": {
+        "notfree": "1",
+        "message": "battle suit room",
+        "not_gametype": "ffa dm duel"
+      }
+    },
+    {
+      "id": 201,
+      "classname": "target_location",
+      "x": -616.0,
+      "y": -768.0,
+      "z": -440.0,
+      "attrs": {
+        "notteam": "1",
+        "message": "bfg room",
+        "not_gametype": "tdm ctf ca"
+      }
+    },
+    {
+      "id": 202,
+      "classname": "target_location",
+      "x": -624.0,
+      "y": -1056.0,
+      "z": -440.0,
+      "attrs": {
+        "notteam": "1",
+        "message": "bfg room",
+        "not_gametype": "tdm ctf ca"
+      }
+    },
+    {
+      "id": 203,
+      "classname": "target_location",
+      "x": -1032.0,
+      "y": -1008.0,
+      "z": -440.0,
+      "attrs": {
+        "notteam": "1",
+        "message": "bfg room",
+        "not_gametype": "tdm ctf ca"
+      }
+    },
+    {
+      "id": 204,
+      "classname": "target_location",
+      "x": -1016.0,
+      "y": -488.0,
+      "z": -440.0,
+      "attrs": {
+        "notteam": "1",
+        "message": "bfg room",
+        "not_gametype": "tdm ctf ca"
+      }
+    },
+    {
+      "id": 205,
+      "classname": "target_location",
+      "x": -672.0,
+      "y": -1752.0,
+      "z": -312.0,
+      "attrs": {
+        "notteam": "1",
+        "message": "bfg room",
+        "not_gametype": "tdm ctf ca"
+      }
+    },
+    {
+      "id": 206,
+      "classname": "target_location",
+      "x": -1032.0,
+      "y": -1736.0,
+      "z": -312.0,
+      "attrs": {
+        "notteam": "1",
+        "message": "bfg room",
+        "not_gametype": "tdm ctf ca"
+      }
+    },
+    {
+      "id": 207,
+      "classname": "target_location",
+      "x": -600.0,
+      "y": -400.0,
+      "z": -168.0,
+      "attrs": {
+        "message": "railgun courtyard"
+      }
+    },
+    {
+      "id": 208,
+      "classname": "target_location",
+      "x": -752.0,
+      "y": -64.0,
+      "z": -160.0,
+      "attrs": {
+        "message": "railgun courtyard"
+      }
+    },
+    {
+      "id": 209,
+      "classname": "target_location",
+      "x": -992.0,
+      "y": -64.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "railgun courtyard"
+      }
+    },
+    {
+      "id": 210,
+      "classname": "target_location",
+      "x": -1008.0,
+      "y": -376.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "railgun courtyard"
+      }
+    },
+    {
+      "id": 211,
+      "classname": "target_location",
+      "x": -792.0,
+      "y": -400.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "red armor room"
+      }
+    },
+    {
+      "id": 212,
+      "classname": "target_location",
+      "x": 360.0,
+      "y": -968.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "shotgun room"
+      }
+    },
+    {
+      "id": 213,
+      "classname": "target_location",
+      "x": 56.0,
+      "y": -1048.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "shotgun room"
+      }
+    },
+    {
+      "id": 214,
+      "classname": "target_location",
+      "x": -128.0,
+      "y": -1648.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "shotgun room"
+      }
+    },
+    {
+      "id": 215,
+      "classname": "target_location",
+      "x": 120.0,
+      "y": -1656.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "shotgun room"
+      }
+    },
+    {
+      "id": 216,
+      "classname": "target_location",
+      "x": 96.0,
+      "y": -1336.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "shotgun room"
+      }
+    },
+    {
+      "id": 217,
+      "classname": "target_location",
+      "x": -416.0,
+      "y": -1304.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "red armor room"
+      }
+    },
+    {
+      "id": 218,
+      "classname": "target_location",
+      "x": -424.0,
+      "y": -1648.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "red armor room"
+      }
+    },
+    {
+      "id": 219,
+      "classname": "target_location",
+      "x": -840.0,
+      "y": -1616.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "red armor room"
+      }
+    },
+    {
+      "id": 220,
+      "classname": "target_location",
+      "x": -848.0,
+      "y": -1360.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "red armor room"
+      }
+    },
+    {
+      "id": 221,
+      "classname": "target_location",
+      "x": -1368.0,
+      "y": -1352.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "red armor room"
+      }
+    },
+    {
+      "id": 222,
+      "classname": "target_location",
+      "x": -1384.0,
+      "y": -688.0,
+      "z": 104.0,
+      "attrs": {
+        "message": "red armor room"
+      }
+    },
+    {
+      "id": 223,
+      "classname": "target_location",
+      "x": -840.0,
+      "y": -1040.0,
+      "z": -64.0,
+      "attrs": {
+        "message": "red armor room"
+      }
+    },
+    {
+      "id": 224,
+      "classname": "target_location",
+      "x": -832.0,
+      "y": -664.0,
+      "z": 80.0,
+      "attrs": {
+        "message": "red armor room"
+      }
+    },
+    {
+      "id": 225,
+      "classname": "target_location",
+      "x": -408.0,
+      "y": -1008.0,
+      "z": 80.0,
+      "attrs": {
+        "message": "red armor room"
+      }
+    },
+    {
+      "id": 226,
+      "classname": "target_location",
+      "x": 0.0,
+      "y": -508.0,
+      "z": -440.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 227,
+      "classname": "target_location",
+      "x": 536.0,
+      "y": -68.0,
+      "z": -440.0,
+      "attrs": {
+        "message": "rocket launcher room"
+      }
+    },
+    {
+      "id": 228,
+      "classname": "item_armor_shard",
+      "x": 1032.0,
+      "y": -16.0,
+      "z": -48.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "shard_lightning_gun_room_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 229,
+      "classname": "ammo_slugs",
+      "x": 1032.0,
+      "y": -16.0,
+      "z": -48.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "rg_ammo_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 230,
+      "classname": "item_armor_combat",
+      "x": 1096.0,
+      "y": -640.0,
+      "z": -112.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "ya_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 231,
+      "classname": "weapon_plasmagun",
+      "x": 1096.0,
+      "y": -640.0,
+      "z": -112.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "pg_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 232,
+      "classname": "item_armor_combat",
+      "x": 104.0,
+      "y": 300.0,
+      "z": -496.0,
+      "alias": "ya_rocket_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 233,
+      "classname": "weapon_grenadelauncher",
+      "x": 1088.0,
+      "y": -640.0,
+      "z": -496.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "gl_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 234,
+      "classname": "ammo_bullets",
+      "x": 104.0,
+      "y": -216.0,
+      "z": 16.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "mg_ammo_lighting_gun_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 236,
+      "classname": "team_dom_point",
+      "x": 352.0,
+      "y": 32.0,
+      "z": 16.0,
+      "attrs": {
+        "target": "t130",
+        "identifier": "3",
+        "count": "128"
+      }
+    },
+    {
+      "id": 237,
+      "classname": "team_dom_point",
+      "x": 0.0,
+      "y": -288.0,
+      "z": -488.0,
+      "attrs": {
+        "target": "t128",
+        "identifier": "2",
+        "count": "112"
+      }
+    },
+    {
+      "id": 238,
+      "classname": "team_dom_point",
+      "x": -1088.0,
+      "y": -1008.0,
+      "z": -80.0,
+      "attrs": {
+        "target": "t129",
+        "identifier": "1",
+        "count": "128"
+      }
+    },
+    {
+      "id": 243,
+      "classname": "team_CTF_blueplayer",
+      "x": 128.0,
+      "y": 32.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 244,
+      "classname": "team_CTF_blueplayer",
+      "x": 128.0,
+      "y": 96.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 245,
+      "classname": "team_CTF_blueplayer",
+      "x": 128.0,
+      "y": -32.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 246,
+      "classname": "team_CTF_blueplayer",
+      "x": 576.0,
+      "y": 32.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 247,
+      "classname": "team_CTF_blueplayer",
+      "x": 576.0,
+      "y": -32.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 248,
+      "classname": "team_CTF_blueplayer",
+      "x": 576.0,
+      "y": 96.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 249,
+      "classname": "team_CTF_blueplayer",
+      "x": 320.0,
+      "y": -192.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 250,
+      "classname": "team_CTF_blueplayer",
+      "x": 384.0,
+      "y": -192.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "90",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 251,
+      "classname": "team_CTF_redplayer",
+      "x": -448.0,
+      "y": -992.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 252,
+      "classname": "team_CTF_redplayer",
+      "x": -448.0,
+      "y": -1056.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 253,
+      "classname": "team_CTF_redplayer",
+      "x": -864.0,
+      "y": -752.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "270"
+      }
+    },
+    {
+      "id": 254,
+      "classname": "team_CTF_redplayer",
+      "x": -800.0,
+      "y": -752.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "270",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 255,
+      "classname": "team_CTF_redplayer",
+      "x": -864.0,
+      "y": -1328.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "90",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 256,
+      "classname": "team_CTF_redplayer",
+      "x": -800.0,
+      "y": -1328.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 257,
+      "classname": "team_CTF_redplayer",
+      "x": -832.0,
+      "y": -1024.0,
+      "z": -80.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 258,
+      "classname": "team_CTF_redplayer",
+      "x": -960.0,
+      "y": -1152.0,
+      "z": -80.0,
+      "attrs": {
+        "angle": "135",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 259,
+      "classname": "ammo_pack",
+      "x": -1568.0,
+      "y": -1316.0,
+      "z": 52.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "ammo_pack_red_armor_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 260,
+      "classname": "ammo_pack",
+      "x": -920.0,
+      "y": -1616.0,
+      "z": 52.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "ammo_pack_red_armor_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 261,
+      "classname": "ammo_pack",
+      "x": -684.0,
+      "y": -1532.0,
+      "z": 52.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "ammo_pack_red_armor_room_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 262,
+      "classname": "ammo_pack",
+      "x": -448.0,
+      "y": -1024.0,
+      "z": 52.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "ammo_pack_red_armor_room_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 263,
+      "classname": "ammo_pack",
+      "x": 324.0,
+      "y": -684.0,
+      "z": -460.0,
+      "alias": "ammo_pack_grenade_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 264,
+      "classname": "ammo_pack",
+      "x": -200.0,
+      "y": -800.0,
+      "z": -460.0,
+      "alias": "ammo_pack_battle_suit_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 265,
+      "classname": "ammo_pack",
+      "x": -960.0,
+      "y": -928.0,
+      "z": -460.0,
+      "alias": "ammo_pack_battle_suit_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 266,
+      "classname": "ammo_pack",
+      "x": 0.0,
+      "y": 76.0,
+      "z": -460.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "ammo_pack_rocket_launcher_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 267,
+      "classname": "ammo_pack",
+      "x": 352.0,
+      "y": 56.0,
+      "z": -300.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "ammo_pack_quad_courtyard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 268,
+      "classname": "ammo_pack",
+      "x": -836.0,
+      "y": -160.0,
+      "z": 52.0,
+      "alias": "ammo_pack_railgun_courtyard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 269,
+      "classname": "ammo_pack",
+      "x": 1104.0,
+      "y": -16.0,
+      "z": -12.0,
+      "alias": "ammo_pack_lightning_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 270,
+      "classname": "ammo_pack",
+      "x": 104.0,
+      "y": -240.0,
+      "z": 52.0,
+      "alias": "ammo_pack_lighting_gun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 271,
+      "classname": "ammo_pack",
+      "x": 280.0,
+      "y": -448.0,
+      "z": 52.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "ammo_pack_grenade_launcher_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 272,
+      "classname": "ammo_pack",
+      "x": 40.0,
+      "y": -1680.0,
+      "z": 52.0,
+      "alias": "ammo_pack_shotgun_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 273,
+      "classname": "ammo_pack",
+      "x": 580.0,
+      "y": -784.0,
+      "z": -460.0,
+      "alias": "ammo_pack_lightning_gun_room_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 274,
+      "classname": "ammo_pack",
+      "x": 1056.0,
+      "y": -16.0,
+      "z": -12.0,
+      "alias": "ammo_pack_lightning_gun_room_3",
+      "alias_source": "auto"
+    }
+  ],
+  "by_classname": {
+    "func_timer": [
+      3,
+      5
+    ],
+    "target_speaker": [
+      4,
+      6,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93
+    ],
+    "target_location": [
+      7,
+      8,
+      9,
+      96,
+      97,
+      98,
+      99,
+      166,
+      167,
+      168,
+      169,
+      170,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180,
+      181,
+      182,
+      183,
+      184,
+      185,
+      186,
+      187,
+      188,
+      189,
+      190,
+      191,
+      192,
+      193,
+      194,
+      195,
+      196,
+      197,
+      198,
+      199,
+      200,
+      201,
+      202,
+      203,
+      204,
+      205,
+      206,
+      207,
+      208,
+      209,
+      210,
+      211,
+      212,
+      213,
+      214,
+      215,
+      216,
+      217,
+      218,
+      219,
+      220,
+      221,
+      222,
+      223,
+      224,
+      225,
+      226,
+      227
+    ],
+    "target_position": [
+      14,
+      20,
+      27,
+      32,
+      33,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76
+    ],
+    "info_player_intermission": [
+      15
+    ],
+    "item_quad": [
+      16
+    ],
+    "ammo_slugs": [
+      17,
+      100,
+      107,
+      229
+    ],
+    "ammo_lightning": [
+      18,
+      110,
+      144
+    ],
+    "ammo_bullets": [
+      19,
+      103,
+      137,
+      234
+    ],
+    "info_player_deathmatch": [
+      21,
+      22,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50
+    ],
+    "weapon_railgun": [
+      101
+    ],
+    "item_health_large": [
+      102,
+      105,
+      108,
+      112,
+      115,
+      119,
+      122,
+      133,
+      156,
+      157,
+      159
+    ],
+    "ammo_rockets": [
+      104,
+      114,
+      125,
+      135,
+      161
+    ],
+    "ammo_shells": [
+      106,
+      129,
+      132,
+      155
+    ],
+    "item_health": [
+      109,
+      113,
+      120,
+      121,
+      123,
+      124,
+      126,
+      134,
+      160,
+      162
+    ],
+    "ammo_bfg": [
+      111
+    ],
+    "weapon_rocketlauncher": [
+      116,
+      128
+    ],
+    "ammo_cells": [
+      117,
+      141,
+      154,
+      158,
+      163
+    ],
+    "item_health_small": [
+      118,
+      164
+    ],
+    "item_armor_combat": [
+      127,
+      140,
+      230,
+      232
+    ],
+    "item_armor_shard": [
+      130,
+      136,
+      146,
+      150,
+      151,
+      152,
+      153,
+      228
+    ],
+    "holdable_teleporter": [
+      131
+    ],
+    "item_armor_body": [
+      138,
+      165
+    ],
+    "weapon_lightning": [
+      139,
+      143
+    ],
+    "ammo_grenades": [
+      142
+    ],
+    "weapon_shotgun": [
+      145
+    ],
+    "item_health_mega": [
+      147
+    ],
+    "weapon_bfg": [
+      148
+    ],
+    "item_enviro": [
+      149
+    ],
+    "weapon_plasmagun": [
+      231
+    ],
+    "weapon_grenadelauncher": [
+      233
+    ],
+    "team_dom_point": [
+      236,
+      237,
+      238
+    ],
+    "team_CTF_blueplayer": [
+      243,
+      244,
+      245,
+      246,
+      247,
+      248,
+      249,
+      250
+    ],
+    "team_CTF_redplayer": [
+      251,
+      252,
+      253,
+      254,
+      255,
+      256,
+      257,
+      258
+    ],
+    "ammo_pack": [
+      259,
+      260,
+      261,
+      262,
+      263,
+      264,
+      265,
+      266,
+      267,
+      268,
+      269,
+      270,
+      271,
+      272,
+      273,
+      274
+    ]
+  },
+  "teleports": {
+    "exit_count": 0,
+    "pair_count": 0,
+    "pairs": [],
+    "exits": []
+  }
+}

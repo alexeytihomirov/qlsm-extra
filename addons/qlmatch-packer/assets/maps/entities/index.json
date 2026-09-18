@@ -1,0 +1,32 @@
+{
+  "maps": [
+    "aerowalk",
+    "battleforged",
+    "bloodrun",
+    "campgrounds",
+    "cure",
+    "deepinside",
+    "dreadfulplace",
+    "elder",
+    "furiousheights",
+    "grimdungeons",
+    "hektik",
+    "hiddenfortress",
+    "intervention",
+    "limbus",
+    "lostworld",
+    "phrantic",
+    "purgatory",
+    "realmofsteelrats",
+    "retribution",
+    "sinister",
+    "terminus",
+    "tornado",
+    "tortured",
+    "toxicity"
+  ],
+  "sources": {
+    "pak00": "d:\\QuakeLiveData\\pak00",
+    "packs": "d:\\QuakeLiveData\\packs"
+  }
+}

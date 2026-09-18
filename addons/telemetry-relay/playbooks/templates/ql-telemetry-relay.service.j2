@@ -1,0 +1,21 @@
+[Unit]
+Description=QL Telemetry Relay (local HTTP forwarder, 127.0.0.1 only)
+After=network.target
+
+[Service]
+User=ql
+Group=ql
+WorkingDirectory=/home/ql/telemetry-relay
+Environment=QL_TELEMETRY_RELAY_CONFIG=/home/ql/telemetry-relay.json
+Environment=QL_TELEMETRY_RELAY_HOST=127.0.0.1
+Environment=QL_TELEMETRY_RELAY_PORT=8190
+ExecStart=/usr/bin/python3 /home/ql/telemetry-relay/relay.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

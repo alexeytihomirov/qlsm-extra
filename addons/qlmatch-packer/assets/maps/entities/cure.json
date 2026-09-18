@@ -1,0 +1,4567 @@
+{
+  "map_name": "cure",
+  "source": "d:\\QuakeLiveData\\pak00\\maps\\cure.bsp",
+  "entity_count": 403,
+  "entities": [
+    {
+      "id": 2,
+      "classname": "info_player_deathmatch",
+      "x": 152.0,
+      "y": 872.0,
+      "z": 280.0,
+      "attrs": {
+        "angle": "-45.000008"
+      }
+    },
+    {
+      "id": 4,
+      "classname": "misc_teleporter_dest",
+      "x": 1088.0,
+      "y": -160.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "misc_teleporter_dest1",
+        "angle": "-135.000015"
+      }
+    },
+    {
+      "id": 5,
+      "classname": "weapon_lightning",
+      "x": 1472.0,
+      "y": -896.0,
+      "z": -48.0,
+      "alias": "lg_lg_pond",
+      "alias_source": "auto"
+    },
+    {
+      "id": 6,
+      "classname": "item_health_mega",
+      "x": 1536.0,
+      "y": -960.0,
+      "z": 208.0,
+      "alias": "mh_mh_ledge",
+      "alias_source": "auto"
+    },
+    {
+      "id": 7,
+      "classname": "item_quad",
+      "x": 608.0,
+      "y": 416.0,
+      "z": -48.0,
+      "attrs": {
+        "not_gametype": "duel"
+      }
+    },
+    {
+      "id": 8,
+      "classname": "weapon_railgun",
+      "x": 32.0,
+      "y": -736.0,
+      "z": 344.0,
+      "alias": "rg_rg_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 10,
+      "classname": "misc_teleporter_dest",
+      "x": -288.0,
+      "y": -32.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "misc_teleporter_dest2",
+        "angle": "0.000016"
+      }
+    },
+    {
+      "id": 12,
+      "classname": "target_position",
+      "x": 344.0,
+      "y": -736.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "target_position1"
+      }
+    },
+    {
+      "id": 13,
+      "classname": "item_armor_combat",
+      "x": 672.0,
+      "y": 672.0,
+      "z": 192.0,
+      "alias": "ya_ya_podium",
+      "alias_source": "auto"
+    },
+    {
+      "id": 14,
+      "classname": "weapon_rocketlauncher",
+      "x": 608.0,
+      "y": 416.0,
+      "z": -32.0,
+      "attrs": {
+        "gametype": "duel"
+      },
+      "alias": "rl_rl_atrium",
+      "alias_source": "auto"
+    },
+    {
+      "id": 15,
+      "classname": "weapon_plasmagun",
+      "x": 224.0,
+      "y": 416.0,
+      "z": 368.0,
+      "attrs": {
+        "gametype": "duel"
+      },
+      "alias": "pg_rl_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 16,
+      "classname": "info_player_deathmatch",
+      "x": 416.0,
+      "y": -544.0,
+      "z": 408.0,
+      "attrs": {
+        "angle": "90.000000"
+      }
+    },
+    {
+      "id": 17,
+      "classname": "info_player_deathmatch",
+      "x": 800.0,
+      "y": 544.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "-135.000015"
+      }
+    },
+    {
+      "id": 18,
+      "classname": "info_player_deathmatch",
+      "x": -360.0,
+      "y": 488.0,
+      "z": 344.0,
+      "attrs": {
+        "angle": "-45.000008"
+      }
+    },
+    {
+      "id": 19,
+      "classname": "item_health",
+      "x": -320.0,
+      "y": 448.0,
+      "z": -64.0,
+      "alias": "hp25_high_ra_u_turn",
+      "alias_source": "auto"
+    },
+    {
+      "id": 20,
+      "classname": "item_armor_shard",
+      "x": 1040.0,
+      "y": 144.0,
+      "z": -40.0,
+      "alias": "shard_sg_hall",
+      "alias_source": "auto"
+    },
+    {
+      "id": 21,
+      "classname": "item_health",
+      "x": 960.0,
+      "y": 32.0,
+      "z": 224.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_sg_hall",
+      "alias_source": "auto"
+    },
+    {
+      "id": 22,
+      "classname": "item_health",
+      "x": 480.0,
+      "y": -352.0,
+      "z": -16.0,
+      "alias": "hp25_high_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 23,
+      "classname": "item_health_small",
+      "x": 896.0,
+      "y": -480.0,
+      "z": 480.0,
+      "alias": "hp5_mh_stage",
+      "alias_source": "auto"
+    },
+    {
+      "id": 24,
+      "classname": "item_health_small",
+      "x": 640.0,
+      "y": -480.0,
+      "z": 480.0,
+      "alias": "hp5_high_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 25,
+      "classname": "item_health_small",
+      "x": 704.0,
+      "y": -480.0,
+      "z": 480.0,
+      "alias": "hp5_mh_stage_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 26,
+      "classname": "item_health_small",
+      "x": 768.0,
+      "y": -480.0,
+      "z": 480.0,
+      "alias": "hp5_mh_stage_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 27,
+      "classname": "item_health_small",
+      "x": 832.0,
+      "y": -480.0,
+      "z": 480.0,
+      "alias": "hp5_mh_stage_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 28,
+      "classname": "ammo_lightning",
+      "x": 480.0,
+      "y": 768.0,
+      "z": -32.0,
+      "alias": "lg_ammo_ya_podium",
+      "alias_source": "auto"
+    },
+    {
+      "id": 29,
+      "classname": "item_health",
+      "x": -232.0,
+      "y": 192.0,
+      "z": 448.0,
+      "alias": "hp25_high_ra_u_turn_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 30,
+      "classname": "ammo_grenades",
+      "x": 160.0,
+      "y": 672.0,
+      "z": 368.0,
+      "alias": "gl_ammo_pg_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 31,
+      "classname": "ammo_cells",
+      "x": -360.0,
+      "y": 304.0,
+      "z": -24.0,
+      "attrs": {
+        "angle": "-90.000000"
+      },
+      "alias": "plasma_ammo_high_ra_u_turn",
+      "alias_source": "auto"
+    },
+    {
+      "id": 32,
+      "classname": "ammo_shells",
+      "x": -360.0,
+      "y": 260.0,
+      "z": -24.0,
+      "attrs": {
+        "angle": "-90.000000"
+      },
+      "alias": "sg_ammo_high_ra_u_turn",
+      "alias_source": "auto"
+    },
+    {
+      "id": 33,
+      "classname": "ammo_slugs",
+      "x": 160.0,
+      "y": 608.0,
+      "z": 368.0,
+      "alias": "rg_ammo_pg_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 34,
+      "classname": "ammo_bullets",
+      "x": -24.0,
+      "y": -448.0,
+      "z": 96.0,
+      "attrs": {
+        "not_gametype": "duel"
+      },
+      "alias": "mg_ammo_ra_teleporter",
+      "alias_source": "auto"
+    },
+    {
+      "id": 35,
+      "classname": "ammo_bullets",
+      "x": -24.0,
+      "y": -512.0,
+      "z": 96.0,
+      "attrs": {
+        "not_gametype": "duel"
+      },
+      "alias": "mg_ammo_ra_teleporter_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 36,
+      "classname": "ammo_cells",
+      "x": 792.0,
+      "y": -608.0,
+      "z": -48.0,
+      "alias": "plasma_ammo_garden_teleporter",
+      "alias_source": "auto"
+    },
+    {
+      "id": 37,
+      "classname": "ammo_bullets",
+      "x": 848.0,
+      "y": -608.0,
+      "z": -48.0,
+      "alias": "mg_ammo_garden_teleporter",
+      "alias_source": "auto"
+    },
+    {
+      "id": 39,
+      "classname": "target_position",
+      "x": 280.0,
+      "y": 704.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "target_position2"
+      }
+    },
+    {
+      "id": 40,
+      "classname": "item_armor_body",
+      "x": 672.0,
+      "y": -32.0,
+      "z": -40.0,
+      "alias": "ra_gl_path",
+      "alias_source": "auto"
+    },
+    {
+      "id": 41,
+      "classname": "item_armor_jacket",
+      "x": -288.0,
+      "y": 416.0,
+      "z": 448.0,
+      "alias": "ga_high_ra_u_turn",
+      "alias_source": "auto"
+    },
+    {
+      "id": 42,
+      "classname": "item_armor_shard",
+      "x": 352.0,
+      "y": -544.0,
+      "z": -32.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "shard_high_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 43,
+      "classname": "item_armor_shard",
+      "x": 352.0,
+      "y": -416.0,
+      "z": -32.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "shard_high_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 44,
+      "classname": "item_armor_shard",
+      "x": 352.0,
+      "y": -480.0,
+      "z": -32.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "shard_high_rl_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 45,
+      "classname": "ammo_grenades",
+      "x": 1528.0,
+      "y": 128.0,
+      "z": -16.0,
+      "attrs": {
+        "notfree": "1",
+        "angle": "-90.000000",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "gl_ammo_50_hp_staircase",
+      "alias_source": "auto"
+    },
+    {
+      "id": 46,
+      "classname": "ammo_rockets",
+      "x": 1376.0,
+      "y": -160.0,
+      "z": 192.0,
+      "alias": "rocket_ammo_50_hp_staircase",
+      "alias_source": "auto"
+    },
+    {
+      "id": 47,
+      "classname": "ammo_shells",
+      "x": 1376.0,
+      "y": -96.0,
+      "z": 192.0,
+      "alias": "sg_ammo_50_hp_staircase",
+      "alias_source": "auto"
+    },
+    {
+      "id": 48,
+      "classname": "item_armor_shard",
+      "x": 1168.0,
+      "y": 16.0,
+      "z": -40.0,
+      "alias": "shard_sg_hall_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 49,
+      "classname": "item_armor_shard",
+      "x": 1136.0,
+      "y": 48.0,
+      "z": -40.0,
+      "alias": "shard_sg_hall_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 50,
+      "classname": "item_armor_shard",
+      "x": 1104.0,
+      "y": 80.0,
+      "z": -40.0,
+      "alias": "shard_sg_hall_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 51,
+      "classname": "item_armor_shard",
+      "x": 1072.0,
+      "y": 112.0,
+      "z": -40.0,
+      "alias": "shard_sg_hall_5",
+      "alias_source": "auto"
+    },
+    {
+      "id": 52,
+      "classname": "item_health",
+      "x": 1592.0,
+      "y": 128.0,
+      "z": -16.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_50_hp_staircase",
+      "alias_source": "auto"
+    },
+    {
+      "id": 53,
+      "classname": "info_null",
+      "x": 1336.0,
+      "y": -136.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "info_null1"
+      }
+    },
+    {
+      "id": 54,
+      "classname": "info_null",
+      "x": 1336.0,
+      "y": -136.0,
+      "z": 280.0,
+      "attrs": {
+        "targetname": "info_null2"
+      }
+    },
+    {
+      "id": 55,
+      "classname": "info_null",
+      "x": 1392.0,
+      "y": 80.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "info_null5"
+      }
+    },
+    {
+      "id": 56,
+      "classname": "info_null",
+      "x": 1392.0,
+      "y": 80.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "info_null6"
+      }
+    },
+    {
+      "id": 57,
+      "classname": "info_null",
+      "x": 1560.0,
+      "y": 128.0,
+      "z": -128.0,
+      "attrs": {
+        "targetname": "info_null3"
+      }
+    },
+    {
+      "id": 58,
+      "classname": "info_null",
+      "x": 1592.0,
+      "y": 128.0,
+      "z": -128.0,
+      "attrs": {
+        "targetname": "info_null4"
+      }
+    },
+    {
+      "id": 59,
+      "classname": "info_null",
+      "x": 1056.0,
+      "y": 32.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "info_null7"
+      }
+    },
+    {
+      "id": 60,
+      "classname": "info_null",
+      "x": 1216.0,
+      "y": 32.0,
+      "z": 208.0,
+      "attrs": {
+        "targetname": "info_null11"
+      }
+    },
+    {
+      "id": 61,
+      "classname": "info_null",
+      "x": 1056.0,
+      "y": 32.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null10"
+      }
+    },
+    {
+      "id": 62,
+      "classname": "info_null",
+      "x": 1120.0,
+      "y": 128.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null9"
+      }
+    },
+    {
+      "id": 63,
+      "classname": "info_null",
+      "x": 1120.0,
+      "y": -64.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null8"
+      }
+    },
+    {
+      "id": 64,
+      "classname": "info_null",
+      "x": 992.0,
+      "y": 200.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null13"
+      }
+    },
+    {
+      "id": 65,
+      "classname": "info_null",
+      "x": 992.0,
+      "y": 224.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null12"
+      }
+    },
+    {
+      "id": 66,
+      "classname": "info_null",
+      "x": 952.0,
+      "y": -72.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "info_null14"
+      }
+    },
+    {
+      "id": 67,
+      "classname": "info_null",
+      "x": 952.0,
+      "y": -72.0,
+      "z": 296.0,
+      "attrs": {
+        "targetname": "info_null15"
+      }
+    },
+    {
+      "id": 68,
+      "classname": "weapon_shotgun",
+      "x": 1056.0,
+      "y": 32.0,
+      "z": 256.0,
+      "alias": "sg_sg_hall",
+      "alias_source": "auto"
+    },
+    {
+      "id": 69,
+      "classname": "info_null",
+      "x": 1568.0,
+      "y": -128.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null17"
+      }
+    },
+    {
+      "id": 70,
+      "classname": "info_null",
+      "x": 1568.0,
+      "y": -8.0,
+      "z": -128.0,
+      "attrs": {
+        "targetname": "info_null16"
+      }
+    },
+    {
+      "id": 71,
+      "classname": "info_null",
+      "x": 1568.0,
+      "y": 8.0,
+      "z": -128.0,
+      "attrs": {
+        "targetname": "info_null19"
+      }
+    },
+    {
+      "id": 72,
+      "classname": "info_null",
+      "x": 1568.0,
+      "y": 128.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null18"
+      }
+    },
+    {
+      "id": 73,
+      "classname": "info_null",
+      "x": 1360.0,
+      "y": 92.0,
+      "z": 144.0,
+      "attrs": {
+        "targetname": "info_null21"
+      }
+    },
+    {
+      "id": 74,
+      "classname": "info_null",
+      "x": 1360.0,
+      "y": -92.0,
+      "z": 144.0,
+      "attrs": {
+        "targetname": "info_null20"
+      }
+    },
+    {
+      "id": 75,
+      "classname": "info_null",
+      "x": 1112.0,
+      "y": 384.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null23"
+      }
+    },
+    {
+      "id": 76,
+      "classname": "info_null",
+      "x": 992.0,
+      "y": 200.0,
+      "z": 176.0,
+      "attrs": {
+        "targetname": "info_null25"
+      }
+    },
+    {
+      "id": 77,
+      "classname": "info_null",
+      "x": 992.0,
+      "y": 392.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null24"
+      }
+    },
+    {
+      "id": 78,
+      "classname": "info_null",
+      "x": 1096.0,
+      "y": 384.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null22"
+      }
+    },
+    {
+      "id": 79,
+      "classname": "info_null",
+      "x": 904.0,
+      "y": 96.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null26"
+      }
+    },
+    {
+      "id": 80,
+      "classname": "info_null",
+      "x": 1248.0,
+      "y": -272.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null30"
+      }
+    },
+    {
+      "id": 81,
+      "classname": "info_null",
+      "x": 1160.0,
+      "y": -296.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null28"
+      }
+    },
+    {
+      "id": 82,
+      "classname": "info_null",
+      "x": 1248.0,
+      "y": -256.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null29"
+      }
+    },
+    {
+      "id": 83,
+      "classname": "info_null",
+      "x": 1336.0,
+      "y": -296.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null27"
+      }
+    },
+    {
+      "id": 84,
+      "classname": "info_null",
+      "x": 1136.0,
+      "y": 112.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null33"
+      }
+    },
+    {
+      "id": 85,
+      "classname": "info_null",
+      "x": 1096.0,
+      "y": -56.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null32"
+      }
+    },
+    {
+      "id": 86,
+      "classname": "info_null",
+      "x": 968.0,
+      "y": 72.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null34"
+      }
+    },
+    {
+      "id": 87,
+      "classname": "info_null",
+      "x": 1136.0,
+      "y": 112.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null31"
+      }
+    },
+    {
+      "id": 88,
+      "classname": "info_null",
+      "x": 1208.0,
+      "y": 384.0,
+      "z": 296.0,
+      "attrs": {
+        "targetname": "info_null38"
+      }
+    },
+    {
+      "id": 89,
+      "classname": "info_null",
+      "x": 1056.0,
+      "y": 384.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null35"
+      }
+    },
+    {
+      "id": 90,
+      "classname": "info_null",
+      "x": 1096.0,
+      "y": 384.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null36"
+      }
+    },
+    {
+      "id": 91,
+      "classname": "info_null",
+      "x": 1152.0,
+      "y": 464.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null37"
+      }
+    },
+    {
+      "id": 92,
+      "classname": "info_null",
+      "x": 1152.0,
+      "y": 304.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null39"
+      }
+    },
+    {
+      "id": 93,
+      "classname": "info_null",
+      "x": 776.0,
+      "y": 264.0,
+      "z": 40.0,
+      "attrs": {
+        "angle": "0.000016",
+        "targetname": "info_null49"
+      }
+    },
+    {
+      "id": 94,
+      "classname": "info_null",
+      "x": 776.0,
+      "y": 384.0,
+      "z": -120.0,
+      "attrs": {
+        "angle": "0.000016",
+        "targetname": "info_null46"
+      }
+    },
+    {
+      "id": 95,
+      "classname": "info_null",
+      "x": 776.0,
+      "y": 384.0,
+      "z": 152.0,
+      "attrs": {
+        "angle": "0.000016",
+        "targetname": "info_null47"
+      }
+    },
+    {
+      "id": 96,
+      "classname": "info_null",
+      "x": 824.0,
+      "y": 328.0,
+      "z": -120.0,
+      "attrs": {
+        "angle": "0.000016",
+        "targetname": "info_null48"
+      }
+    },
+    {
+      "id": 97,
+      "classname": "info_null",
+      "x": 712.0,
+      "y": 328.0,
+      "z": -120.0,
+      "attrs": {
+        "angle": "0.000016",
+        "targetname": "info_null45"
+      }
+    },
+    {
+      "id": 98,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": 264.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null63"
+      }
+    },
+    {
+      "id": 99,
+      "classname": "info_null",
+      "x": 328.0,
+      "y": 328.0,
+      "z": 264.0,
+      "attrs": {
+        "targetname": "info_null60"
+      }
+    },
+    {
+      "id": 100,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": 384.0,
+      "z": 440.0,
+      "attrs": {
+        "targetname": "info_null62"
+      }
+    },
+    {
+      "id": 101,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": 448.0,
+      "z": 264.0,
+      "attrs": {
+        "targetname": "info_null59"
+      }
+    },
+    {
+      "id": 102,
+      "classname": "info_null",
+      "x": 184.0,
+      "y": 328.0,
+      "z": 264.0,
+      "attrs": {
+        "targetname": "info_null61"
+      }
+    },
+    {
+      "id": 103,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": 888.0,
+      "z": 328.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "targetname": "info_null55"
+      }
+    },
+    {
+      "id": 104,
+      "classname": "info_null",
+      "x": 184.0,
+      "y": 824.0,
+      "z": 264.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "targetname": "info_null58"
+      }
+    },
+    {
+      "id": 105,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": 768.0,
+      "z": 440.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "targetname": "info_null57"
+      }
+    },
+    {
+      "id": 106,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": 712.0,
+      "z": 264.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "targetname": "info_null56"
+      }
+    },
+    {
+      "id": 107,
+      "classname": "info_null",
+      "x": 328.0,
+      "y": 824.0,
+      "z": 264.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "targetname": "info_null54"
+      }
+    },
+    {
+      "id": 108,
+      "classname": "info_null",
+      "x": 776.0,
+      "y": 264.0,
+      "z": 288.0,
+      "attrs": {
+        "angle": "0.000016",
+        "targetname": "info_null40"
+      }
+    },
+    {
+      "id": 109,
+      "classname": "info_null",
+      "x": 824.0,
+      "y": 328.0,
+      "z": 200.0,
+      "attrs": {
+        "angle": "0.000016",
+        "targetname": "info_null44"
+      }
+    },
+    {
+      "id": 110,
+      "classname": "info_null",
+      "x": 776.0,
+      "y": 384.0,
+      "z": 400.0,
+      "attrs": {
+        "angle": "0.000016",
+        "targetname": "info_null43"
+      }
+    },
+    {
+      "id": 111,
+      "classname": "info_null",
+      "x": 776.0,
+      "y": 384.0,
+      "z": 200.0,
+      "attrs": {
+        "angle": "0.000016",
+        "targetname": "info_null42"
+      }
+    },
+    {
+      "id": 112,
+      "classname": "info_null",
+      "x": 712.0,
+      "y": 328.0,
+      "z": 200.0,
+      "attrs": {
+        "angle": "0.000016",
+        "targetname": "info_null41"
+      }
+    },
+    {
+      "id": 113,
+      "classname": "info_null",
+      "x": 592.0,
+      "y": 592.0,
+      "z": -8.0,
+      "attrs": {
+        "targetname": "info_null50"
+      }
+    },
+    {
+      "id": 114,
+      "classname": "info_null",
+      "x": 592.0,
+      "y": 592.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null51"
+      }
+    },
+    {
+      "id": 115,
+      "classname": "info_null",
+      "x": 720.0,
+      "y": 720.0,
+      "z": 152.0,
+      "attrs": {
+        "targetname": "info_null52"
+      }
+    },
+    {
+      "id": 116,
+      "classname": "info_null",
+      "x": 720.0,
+      "y": 720.0,
+      "z": 192.0,
+      "attrs": {
+        "targetname": "info_null53"
+      }
+    },
+    {
+      "id": 117,
+      "classname": "info_null",
+      "x": 136.0,
+      "y": 416.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null68"
+      }
+    },
+    {
+      "id": 118,
+      "classname": "info_null",
+      "x": 184.0,
+      "y": 512.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null65"
+      }
+    },
+    {
+      "id": 119,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": 416.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null64"
+      }
+    },
+    {
+      "id": 120,
+      "classname": "info_null",
+      "x": 184.0,
+      "y": 328.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null66"
+      }
+    },
+    {
+      "id": 121,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": 416.0,
+      "z": 104.0,
+      "attrs": {
+        "targetname": "info_null67"
+      }
+    },
+    {
+      "id": 122,
+      "classname": "info_null",
+      "x": 352.0,
+      "y": 272.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "info_null75"
+      }
+    },
+    {
+      "id": 123,
+      "classname": "info_null",
+      "x": 408.0,
+      "y": 416.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null74"
+      }
+    },
+    {
+      "id": 124,
+      "classname": "info_null",
+      "x": 352.0,
+      "y": 560.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "info_null72"
+      }
+    },
+    {
+      "id": 125,
+      "classname": "info_null",
+      "x": 392.0,
+      "y": 416.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null73"
+      }
+    },
+    {
+      "id": 126,
+      "classname": "info_null",
+      "x": 536.0,
+      "y": 928.0,
+      "z": -8.0,
+      "attrs": {
+        "targetname": "info_null71"
+      }
+    },
+    {
+      "id": 127,
+      "classname": "info_null",
+      "x": 472.0,
+      "y": 928.0,
+      "z": -8.0,
+      "attrs": {
+        "targetname": "info_null69"
+      }
+    },
+    {
+      "id": 128,
+      "classname": "info_null",
+      "x": 568.0,
+      "y": 928.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "info_null70"
+      }
+    },
+    {
+      "id": 129,
+      "classname": "info_null",
+      "x": -160.0,
+      "y": 288.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null76"
+      }
+    },
+    {
+      "id": 130,
+      "classname": "info_null",
+      "x": -160.0,
+      "y": 288.0,
+      "z": -80.0,
+      "attrs": {
+        "targetname": "info_null77"
+      }
+    },
+    {
+      "id": 131,
+      "classname": "info_null",
+      "x": 392.0,
+      "y": 368.0,
+      "z": 456.0,
+      "attrs": {
+        "targetname": "info_null80"
+      }
+    },
+    {
+      "id": 132,
+      "classname": "info_null",
+      "x": 576.0,
+      "y": 368.0,
+      "z": 440.0,
+      "attrs": {
+        "targetname": "info_null78"
+      }
+    },
+    {
+      "id": 133,
+      "classname": "info_null",
+      "x": 472.0,
+      "y": 480.0,
+      "z": 440.0,
+      "attrs": {
+        "targetname": "info_null81"
+      }
+    },
+    {
+      "id": 134,
+      "classname": "info_null",
+      "x": 472.0,
+      "y": 264.0,
+      "z": 440.0,
+      "attrs": {
+        "targetname": "info_null82"
+      }
+    },
+    {
+      "id": 135,
+      "classname": "info_null",
+      "x": 568.0,
+      "y": 368.0,
+      "z": 584.0,
+      "attrs": {
+        "targetname": "info_null79"
+      }
+    },
+    {
+      "id": 136,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": 200.0,
+      "z": 104.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null89"
+      }
+    },
+    {
+      "id": 137,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": 360.0,
+      "z": -120.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null91"
+      }
+    },
+    {
+      "id": 138,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": 360.0,
+      "z": 168.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null92"
+      }
+    },
+    {
+      "id": 139,
+      "classname": "info_null",
+      "x": -200.0,
+      "y": 240.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null88"
+      }
+    },
+    {
+      "id": 140,
+      "classname": "info_null",
+      "x": -376.0,
+      "y": 240.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null90"
+      }
+    },
+    {
+      "id": 141,
+      "classname": "info_null",
+      "x": 56.0,
+      "y": 416.0,
+      "z": 64.0,
+      "attrs": {
+        "targetname": "info_null83"
+      }
+    },
+    {
+      "id": 142,
+      "classname": "info_null",
+      "x": -104.0,
+      "y": 416.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null86"
+      }
+    },
+    {
+      "id": 143,
+      "classname": "info_null",
+      "x": -104.0,
+      "y": 416.0,
+      "z": 168.0,
+      "attrs": {
+        "targetname": "info_null87"
+      }
+    },
+    {
+      "id": 144,
+      "classname": "info_null",
+      "x": 16.0,
+      "y": 504.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "info_null85"
+      }
+    },
+    {
+      "id": 145,
+      "classname": "info_null",
+      "x": 16.0,
+      "y": 328.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "info_null84"
+      }
+    },
+    {
+      "id": 146,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": 88.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null101"
+      }
+    },
+    {
+      "id": 147,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": 104.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null100"
+      }
+    },
+    {
+      "id": 148,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": 120.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null99"
+      }
+    },
+    {
+      "id": 149,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": -184.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "info_null93"
+      }
+    },
+    {
+      "id": 150,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": 96.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "info_null98"
+      }
+    },
+    {
+      "id": 151,
+      "classname": "info_null",
+      "x": -88.0,
+      "y": -32.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "info_null97"
+      }
+    },
+    {
+      "id": 152,
+      "classname": "info_null",
+      "x": 168.0,
+      "y": -32.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "info_null95"
+      }
+    },
+    {
+      "id": 153,
+      "classname": "info_null",
+      "x": -88.0,
+      "y": -32.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "info_null96"
+      }
+    },
+    {
+      "id": 154,
+      "classname": "info_null",
+      "x": 168.0,
+      "y": -32.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "info_null94"
+      }
+    },
+    {
+      "id": 155,
+      "classname": "info_null",
+      "x": -56.0,
+      "y": -256.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "info_null112"
+      }
+    },
+    {
+      "id": 156,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": -328.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "info_null110"
+      }
+    },
+    {
+      "id": 157,
+      "classname": "info_null",
+      "x": 120.0,
+      "y": -256.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "info_null113"
+      }
+    },
+    {
+      "id": 158,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": -344.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "info_null111"
+      }
+    },
+    {
+      "id": 159,
+      "classname": "info_null",
+      "x": -208.0,
+      "y": 128.0,
+      "z": -56.0
+    },
+    {
+      "id": 160,
+      "classname": "info_null",
+      "x": -368.0,
+      "y": 128.0,
+      "z": -56.0
+    },
+    {
+      "id": 161,
+      "classname": "info_null",
+      "x": 184.0,
+      "y": -392.0,
+      "z": 104.0,
+      "attrs": {
+        "targetname": "info_null115"
+      }
+    },
+    {
+      "id": 162,
+      "classname": "info_null",
+      "x": 264.0,
+      "y": -472.0,
+      "z": 40.0,
+      "attrs": {
+        "targetname": "info_null117"
+      }
+    },
+    {
+      "id": 163,
+      "classname": "info_null",
+      "x": 248.0,
+      "y": -472.0,
+      "z": 40.0,
+      "attrs": {
+        "targetname": "info_null114"
+      }
+    },
+    {
+      "id": 164,
+      "classname": "info_null",
+      "x": 184.0,
+      "y": -568.0,
+      "z": 104.0,
+      "attrs": {
+        "targetname": "info_null116"
+      }
+    },
+    {
+      "id": 165,
+      "classname": "info_null",
+      "x": 296.0,
+      "y": -184.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "info_null104"
+      }
+    },
+    {
+      "id": 166,
+      "classname": "info_null",
+      "x": 232.0,
+      "y": -64.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null103"
+      }
+    },
+    {
+      "id": 167,
+      "classname": "info_null",
+      "x": 216.0,
+      "y": -64.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null102"
+      }
+    },
+    {
+      "id": 168,
+      "classname": "info_null",
+      "x": 280.0,
+      "y": 56.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "info_null105"
+      }
+    },
+    {
+      "id": 169,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -208.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null107"
+      }
+    },
+    {
+      "id": 170,
+      "classname": "info_null",
+      "x": 344.0,
+      "y": -200.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "info_null108"
+      }
+    },
+    {
+      "id": 171,
+      "classname": "info_null",
+      "x": 488.0,
+      "y": -200.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "info_null109"
+      }
+    },
+    {
+      "id": 172,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -232.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null106"
+      }
+    },
+    {
+      "id": 173,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -288.0,
+      "z": 312.0,
+      "attrs": {
+        "targetname": "info_null121"
+      }
+    },
+    {
+      "id": 174,
+      "classname": "info_null",
+      "x": 328.0,
+      "y": -288.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null120"
+      }
+    },
+    {
+      "id": 175,
+      "classname": "info_null",
+      "x": 376.0,
+      "y": -288.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null119"
+      }
+    },
+    {
+      "id": 176,
+      "classname": "info_null",
+      "x": 504.0,
+      "y": -288.0,
+      "z": 208.0,
+      "attrs": {
+        "targetname": "info_null118"
+      }
+    },
+    {
+      "id": 177,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": -136.0,
+      "z": 144.0,
+      "attrs": {
+        "targetname": "info_null130"
+      }
+    },
+    {
+      "id": 178,
+      "classname": "info_null",
+      "x": -376.0,
+      "y": -32.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "info_null132"
+      }
+    },
+    {
+      "id": 179,
+      "classname": "info_null",
+      "x": -160.0,
+      "y": -32.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "info_null128"
+      }
+    },
+    {
+      "id": 180,
+      "classname": "info_null",
+      "x": -376.0,
+      "y": -32.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "info_null131"
+      }
+    },
+    {
+      "id": 181,
+      "classname": "info_null",
+      "x": -160.0,
+      "y": -32.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "info_null127"
+      }
+    },
+    {
+      "id": 182,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": 56.0,
+      "z": 144.0,
+      "attrs": {
+        "targetname": "info_null129"
+      }
+    },
+    {
+      "id": 183,
+      "classname": "info_null",
+      "x": 288.0,
+      "y": -184.0,
+      "z": 144.0,
+      "attrs": {
+        "targetname": "info_null138"
+      }
+    },
+    {
+      "id": 184,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -32.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null136"
+      }
+    },
+    {
+      "id": 185,
+      "classname": "info_null",
+      "x": 288.0,
+      "y": 56.0,
+      "z": 144.0,
+      "attrs": {
+        "targetname": "info_null135"
+      }
+    },
+    {
+      "id": 186,
+      "classname": "info_null",
+      "x": 152.0,
+      "y": -32.0,
+      "z": -56.0,
+      "attrs": {
+        "targetname": "info_null134"
+      }
+    },
+    {
+      "id": 187,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -32.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "info_null137"
+      }
+    },
+    {
+      "id": 188,
+      "classname": "info_null",
+      "x": 152.0,
+      "y": -32.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "info_null133"
+      }
+    },
+    {
+      "id": 189,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -408.0,
+      "z": 312.0,
+      "attrs": {
+        "targetname": "info_null124"
+      }
+    },
+    {
+      "id": 190,
+      "classname": "info_null",
+      "x": 504.0,
+      "y": -512.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null125"
+      }
+    },
+    {
+      "id": 191,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -408.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null123"
+      }
+    },
+    {
+      "id": 192,
+      "classname": "info_null",
+      "x": 328.0,
+      "y": -512.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null122"
+      }
+    },
+    {
+      "id": 193,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -560.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null126"
+      }
+    },
+    {
+      "id": 194,
+      "classname": "info_null",
+      "x": -40.0,
+      "y": -288.0,
+      "z": 152.0,
+      "attrs": {
+        "targetname": "info_null143"
+      }
+    },
+    {
+      "id": 195,
+      "classname": "info_null",
+      "x": -56.0,
+      "y": -288.0,
+      "z": 152.0,
+      "attrs": {
+        "targetname": "info_null142"
+      }
+    },
+    {
+      "id": 196,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": -288.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "info_null141"
+      }
+    },
+    {
+      "id": 197,
+      "classname": "info_null",
+      "x": 168.0,
+      "y": -288.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "info_null153"
+      }
+    },
+    {
+      "id": 198,
+      "classname": "info_null",
+      "x": -56.0,
+      "y": -288.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "info_null154"
+      }
+    },
+    {
+      "id": 199,
+      "classname": "info_null",
+      "x": -56.0,
+      "y": -288.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null155"
+      }
+    },
+    {
+      "id": 200,
+      "classname": "info_null",
+      "x": -128.0,
+      "y": -32.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null146"
+      }
+    },
+    {
+      "id": 201,
+      "classname": "info_null",
+      "x": -128.0,
+      "y": 56.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null144"
+      }
+    },
+    {
+      "id": 202,
+      "classname": "info_null",
+      "x": -128.0,
+      "y": 56.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null145"
+      }
+    },
+    {
+      "id": 203,
+      "classname": "info_null",
+      "x": 544.0,
+      "y": 56.0,
+      "z": 520.0,
+      "attrs": {
+        "targetname": "info_null152"
+      }
+    },
+    {
+      "id": 204,
+      "classname": "info_null",
+      "x": 544.0,
+      "y": -8.0,
+      "z": 464.0,
+      "attrs": {
+        "targetname": "info_null150"
+      }
+    },
+    {
+      "id": 205,
+      "classname": "info_null",
+      "x": 224.0,
+      "y": -32.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null147"
+      }
+    },
+    {
+      "id": 206,
+      "classname": "info_null",
+      "x": 224.0,
+      "y": 56.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null149"
+      }
+    },
+    {
+      "id": 207,
+      "classname": "info_null",
+      "x": 224.0,
+      "y": 56.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null148"
+      }
+    },
+    {
+      "id": 208,
+      "classname": "info_null",
+      "x": 544.0,
+      "y": 56.0,
+      "z": 488.0,
+      "attrs": {
+        "targetname": "info_null151"
+      }
+    },
+    {
+      "id": 209,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": -104.0,
+      "z": 576.0,
+      "attrs": {
+        "targetname": "info_null159"
+      }
+    },
+    {
+      "id": 210,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": 56.0,
+      "z": 520.0,
+      "attrs": {
+        "targetname": "info_null160"
+      }
+    },
+    {
+      "id": 211,
+      "classname": "info_null",
+      "x": 136.0,
+      "y": 16.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null157"
+      }
+    },
+    {
+      "id": 212,
+      "classname": "info_null",
+      "x": -72.0,
+      "y": 16.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null158"
+      }
+    },
+    {
+      "id": 213,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": -104.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null156"
+      }
+    },
+    {
+      "id": 214,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -568.0,
+      "z": 480.0,
+      "attrs": {
+        "targetname": "info_null165"
+      }
+    },
+    {
+      "id": 215,
+      "classname": "info_null",
+      "x": 360.0,
+      "y": -528.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null161"
+      }
+    },
+    {
+      "id": 216,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -408.0,
+      "z": 568.0,
+      "attrs": {
+        "targetname": "info_null163"
+      }
+    },
+    {
+      "id": 217,
+      "classname": "info_null",
+      "x": 472.0,
+      "y": -528.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null164"
+      }
+    },
+    {
+      "id": 218,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -408.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null162"
+      }
+    },
+    {
+      "id": 219,
+      "classname": "info_null",
+      "x": 384.0,
+      "y": -288.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null204"
+      }
+    },
+    {
+      "id": 220,
+      "classname": "info_null",
+      "x": 344.0,
+      "y": -288.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null206"
+      }
+    },
+    {
+      "id": 221,
+      "classname": "info_null",
+      "x": 232.0,
+      "y": -736.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null175"
+      }
+    },
+    {
+      "id": 222,
+      "classname": "info_null",
+      "x": 368.0,
+      "y": -656.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null181"
+      }
+    },
+    {
+      "id": 223,
+      "classname": "info_null",
+      "x": 368.0,
+      "y": -656.0,
+      "z": 384.0,
+      "attrs": {
+        "targetname": "info_null180"
+      }
+    },
+    {
+      "id": 224,
+      "classname": "info_null",
+      "x": 368.0,
+      "y": -816.0,
+      "z": 384.0,
+      "attrs": {
+        "targetname": "info_null176"
+      }
+    },
+    {
+      "id": 225,
+      "classname": "info_null",
+      "x": 232.0,
+      "y": -736.0,
+      "z": 384.0,
+      "attrs": {
+        "targetname": "info_null174"
+      }
+    },
+    {
+      "id": 226,
+      "classname": "info_null",
+      "x": 488.0,
+      "y": -736.0,
+      "z": 384.0,
+      "attrs": {
+        "targetname": "info_null178"
+      }
+    },
+    {
+      "id": 227,
+      "classname": "info_null",
+      "x": 488.0,
+      "y": -736.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null179"
+      }
+    },
+    {
+      "id": 228,
+      "classname": "info_null",
+      "x": 368.0,
+      "y": -816.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null177"
+      }
+    },
+    {
+      "id": 229,
+      "classname": "info_null",
+      "x": -56.0,
+      "y": -736.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null173"
+      }
+    },
+    {
+      "id": 230,
+      "classname": "info_null",
+      "x": -56.0,
+      "y": -736.0,
+      "z": 384.0,
+      "attrs": {
+        "targetname": "info_null172"
+      }
+    },
+    {
+      "id": 231,
+      "classname": "info_null",
+      "x": 200.0,
+      "y": -736.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null167"
+      }
+    },
+    {
+      "id": 232,
+      "classname": "info_null",
+      "x": 200.0,
+      "y": -736.0,
+      "z": 384.0,
+      "attrs": {
+        "targetname": "info_null166"
+      }
+    },
+    {
+      "id": 233,
+      "classname": "info_null",
+      "x": 80.0,
+      "y": -656.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null170"
+      }
+    },
+    {
+      "id": 234,
+      "classname": "info_null",
+      "x": 80.0,
+      "y": -816.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null168"
+      }
+    },
+    {
+      "id": 235,
+      "classname": "info_null",
+      "x": 80.0,
+      "y": -816.0,
+      "z": 384.0,
+      "attrs": {
+        "targetname": "info_null169"
+      }
+    },
+    {
+      "id": 236,
+      "classname": "info_null",
+      "x": 80.0,
+      "y": -656.0,
+      "z": 384.0,
+      "attrs": {
+        "targetname": "info_null171"
+      }
+    },
+    {
+      "id": 237,
+      "classname": "info_null",
+      "x": -184.0,
+      "y": -32.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null189"
+      }
+    },
+    {
+      "id": 238,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": -120.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null193"
+      }
+    },
+    {
+      "id": 239,
+      "classname": "info_null",
+      "x": -376.0,
+      "y": -32.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null196"
+      }
+    },
+    {
+      "id": 240,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": 56.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null191"
+      }
+    },
+    {
+      "id": 241,
+      "classname": "info_null",
+      "x": -184.0,
+      "y": -32.0,
+      "z": 576.0,
+      "attrs": {
+        "targetname": "info_null190"
+      }
+    },
+    {
+      "id": 242,
+      "classname": "info_null",
+      "x": -376.0,
+      "y": -32.0,
+      "z": 576.0,
+      "attrs": {
+        "targetname": "info_null195"
+      }
+    },
+    {
+      "id": 243,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": 56.0,
+      "z": 576.0,
+      "attrs": {
+        "targetname": "info_null192"
+      }
+    },
+    {
+      "id": 244,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": -120.0,
+      "z": 576.0,
+      "attrs": {
+        "targetname": "info_null194"
+      }
+    },
+    {
+      "id": 245,
+      "classname": "info_null",
+      "x": -160.0,
+      "y": 288.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null187"
+      }
+    },
+    {
+      "id": 246,
+      "classname": "info_null",
+      "x": -160.0,
+      "y": 288.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null188"
+      }
+    },
+    {
+      "id": 247,
+      "classname": "info_null",
+      "x": 56.0,
+      "y": 416.0,
+      "z": 440.0,
+      "attrs": {
+        "targetname": "info_null186"
+      }
+    },
+    {
+      "id": 248,
+      "classname": "info_null",
+      "x": -40.0,
+      "y": 416.0,
+      "z": 504.0,
+      "attrs": {
+        "targetname": "info_null184"
+      }
+    },
+    {
+      "id": 249,
+      "classname": "info_null",
+      "x": -40.0,
+      "y": 416.0,
+      "z": 264.0,
+      "attrs": {
+        "targetname": "info_null182"
+      }
+    },
+    {
+      "id": 250,
+      "classname": "info_null",
+      "x": 16.0,
+      "y": 504.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null185"
+      }
+    },
+    {
+      "id": 251,
+      "classname": "info_null",
+      "x": 16.0,
+      "y": 328.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null183"
+      }
+    },
+    {
+      "id": 252,
+      "classname": "info_null",
+      "x": 184.0,
+      "y": 264.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "info_null197"
+      }
+    },
+    {
+      "id": 253,
+      "classname": "info_null",
+      "x": 184.0,
+      "y": 568.0,
+      "z": 24.0,
+      "attrs": {
+        "targetname": "info_null198"
+      }
+    },
+    {
+      "id": 254,
+      "classname": "info_null",
+      "x": 136.0,
+      "y": 264.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "info_null199"
+      }
+    },
+    {
+      "id": 255,
+      "classname": "info_null",
+      "x": -72.0,
+      "y": 504.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null203"
+      }
+    },
+    {
+      "id": 256,
+      "classname": "info_null",
+      "x": -160.0,
+      "y": 416.0,
+      "z": 264.0,
+      "attrs": {
+        "targetname": "info_null201"
+      }
+    },
+    {
+      "id": 257,
+      "classname": "info_null",
+      "x": -144.0,
+      "y": 416.0,
+      "z": 264.0,
+      "attrs": {
+        "targetname": "info_null200"
+      }
+    },
+    {
+      "id": 258,
+      "classname": "info_null",
+      "x": -72.0,
+      "y": 328.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null202"
+      }
+    },
+    {
+      "id": 259,
+      "classname": "info_null",
+      "x": 384.0,
+      "y": -288.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null205"
+      }
+    },
+    {
+      "id": 260,
+      "classname": "info_null",
+      "x": 1384.0,
+      "y": -808.0,
+      "z": 96.0,
+      "attrs": {
+        "targetname": "info_null210"
+      }
+    },
+    {
+      "id": 261,
+      "classname": "info_null",
+      "x": 1592.0,
+      "y": -864.0,
+      "z": 96.0,
+      "attrs": {
+        "targetname": "info_null212"
+      }
+    },
+    {
+      "id": 262,
+      "classname": "info_null",
+      "x": 1440.0,
+      "y": -1016.0,
+      "z": -72.0,
+      "attrs": {
+        "targetname": "info_null207"
+      }
+    },
+    {
+      "id": 263,
+      "classname": "info_null",
+      "x": 1440.0,
+      "y": -1016.0,
+      "z": 96.0,
+      "attrs": {
+        "targetname": "info_null208"
+      }
+    },
+    {
+      "id": 264,
+      "classname": "info_null",
+      "x": 1592.0,
+      "y": -864.0,
+      "z": -72.0,
+      "attrs": {
+        "targetname": "info_null211"
+      }
+    },
+    {
+      "id": 265,
+      "classname": "info_null",
+      "x": 1528.0,
+      "y": -952.0,
+      "z": -8.0,
+      "attrs": {
+        "targetname": "info_null213"
+      }
+    },
+    {
+      "id": 266,
+      "classname": "info_null",
+      "x": 1456.0,
+      "y": -880.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null209"
+      }
+    },
+    {
+      "id": 267,
+      "classname": "info_null",
+      "x": 232.0,
+      "y": -464.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null214",
+        "angle": "-179.999985"
+      }
+    },
+    {
+      "id": 268,
+      "classname": "info_null",
+      "x": 232.0,
+      "y": -504.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null215",
+        "angle": "-179.999985"
+      }
+    },
+    {
+      "id": 269,
+      "classname": "info_null",
+      "x": 120.0,
+      "y": 96.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null217"
+      }
+    },
+    {
+      "id": 270,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": 120.0,
+      "z": 440.0,
+      "attrs": {
+        "targetname": "info_null219"
+      }
+    },
+    {
+      "id": 271,
+      "classname": "info_null",
+      "x": 32.0,
+      "y": 120.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null216"
+      }
+    },
+    {
+      "id": 272,
+      "classname": "info_null",
+      "x": -56.0,
+      "y": 96.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null218"
+      }
+    },
+    {
+      "id": 273,
+      "classname": "info_null",
+      "x": 1056.0,
+      "y": -184.0,
+      "z": 288.0,
+      "attrs": {
+        "targetname": "info_null242"
+      }
+    },
+    {
+      "id": 274,
+      "classname": "info_null",
+      "x": 1056.0,
+      "y": -320.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null239"
+      }
+    },
+    {
+      "id": 275,
+      "classname": "info_null",
+      "x": 1056.0,
+      "y": -320.0,
+      "z": 352.0,
+      "attrs": {
+        "targetname": "info_null240"
+      }
+    },
+    {
+      "id": 276,
+      "classname": "info_null",
+      "x": 904.0,
+      "y": -200.0,
+      "z": 288.0,
+      "attrs": {
+        "targetname": "info_null241"
+      }
+    },
+    {
+      "id": 277,
+      "classname": "info_null",
+      "x": 1208.0,
+      "y": -200.0,
+      "z": 288.0,
+      "attrs": {
+        "targetname": "info_null238"
+      }
+    },
+    {
+      "id": 278,
+      "classname": "info_null",
+      "x": 1056.0,
+      "y": -184.0,
+      "z": 504.0,
+      "attrs": {
+        "targetname": "info_null246"
+      }
+    },
+    {
+      "id": 279,
+      "classname": "info_null",
+      "x": 1056.0,
+      "y": -320.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null244"
+      }
+    },
+    {
+      "id": 280,
+      "classname": "info_null",
+      "x": 1208.0,
+      "y": -200.0,
+      "z": 504.0,
+      "attrs": {
+        "targetname": "info_null243"
+      }
+    },
+    {
+      "id": 281,
+      "classname": "info_null",
+      "x": 1056.0,
+      "y": -320.0,
+      "z": 568.0,
+      "attrs": {
+        "targetname": "info_null245"
+      }
+    },
+    {
+      "id": 282,
+      "classname": "info_null",
+      "x": 904.0,
+      "y": -200.0,
+      "z": 504.0,
+      "attrs": {
+        "targetname": "info_null247"
+      }
+    },
+    {
+      "id": 283,
+      "classname": "info_null",
+      "x": 760.0,
+      "y": -480.0,
+      "z": 552.0,
+      "attrs": {
+        "targetname": "info_null249"
+      }
+    },
+    {
+      "id": 284,
+      "classname": "info_null",
+      "x": 760.0,
+      "y": -480.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null248"
+      }
+    },
+    {
+      "id": 285,
+      "classname": "info_null",
+      "x": 672.0,
+      "y": -392.0,
+      "z": 432.0,
+      "attrs": {
+        "targetname": "info_null250"
+      }
+    },
+    {
+      "id": 286,
+      "classname": "info_null",
+      "x": 672.0,
+      "y": -568.0,
+      "z": 432.0,
+      "attrs": {
+        "targetname": "info_null251"
+      }
+    },
+    {
+      "id": 287,
+      "classname": "info_null",
+      "x": 584.0,
+      "y": -480.0,
+      "z": 528.0,
+      "attrs": {
+        "targetname": "info_null252"
+      }
+    },
+    {
+      "id": 288,
+      "classname": "info_null",
+      "x": 672.0,
+      "y": -392.0,
+      "z": 216.0,
+      "attrs": {
+        "targetname": "info_null273"
+      }
+    },
+    {
+      "id": 289,
+      "classname": "info_null",
+      "x": 760.0,
+      "y": -480.0,
+      "z": 336.0,
+      "attrs": {
+        "targetname": "info_null270"
+      }
+    },
+    {
+      "id": 290,
+      "classname": "info_null",
+      "x": 584.0,
+      "y": -480.0,
+      "z": 312.0,
+      "attrs": {
+        "targetname": "info_null272"
+      }
+    },
+    {
+      "id": 291,
+      "classname": "info_null",
+      "x": 672.0,
+      "y": -568.0,
+      "z": 216.0,
+      "attrs": {
+        "targetname": "info_null271"
+      }
+    },
+    {
+      "id": 292,
+      "classname": "info_null",
+      "x": 760.0,
+      "y": -480.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null269"
+      }
+    },
+    {
+      "id": 293,
+      "classname": "info_null",
+      "x": 1312.0,
+      "y": -800.0,
+      "z": 32.0,
+      "attrs": {
+        "targetname": "info_null237"
+      }
+    },
+    {
+      "id": 294,
+      "classname": "info_null",
+      "x": 1312.0,
+      "y": -800.0,
+      "z": 8.0,
+      "attrs": {
+        "targetname": "info_null235"
+      }
+    },
+    {
+      "id": 295,
+      "classname": "info_null",
+      "x": 1312.0,
+      "y": -736.0,
+      "z": 32.0,
+      "attrs": {
+        "targetname": "info_null221"
+      }
+    },
+    {
+      "id": 296,
+      "classname": "info_null",
+      "x": 1112.0,
+      "y": -536.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "info_null223"
+      }
+    },
+    {
+      "id": 297,
+      "classname": "info_null",
+      "x": 1376.0,
+      "y": -736.0,
+      "z": 32.0,
+      "attrs": {
+        "targetname": "info_null230"
+      }
+    },
+    {
+      "id": 298,
+      "classname": "info_null",
+      "x": 1376.0,
+      "y": -736.0,
+      "z": 8.0,
+      "attrs": {
+        "targetname": "info_null229"
+      }
+    },
+    {
+      "id": 299,
+      "classname": "info_null",
+      "x": 1376.0,
+      "y": -800.0,
+      "z": 32.0,
+      "attrs": {
+        "targetname": "info_null234"
+      }
+    },
+    {
+      "id": 300,
+      "classname": "info_null",
+      "x": 1376.0,
+      "y": -800.0,
+      "z": 8.0,
+      "attrs": {
+        "targetname": "info_null232"
+      }
+    },
+    {
+      "id": 301,
+      "classname": "info_null",
+      "x": 1312.0,
+      "y": -736.0,
+      "z": 8.0,
+      "attrs": {
+        "targetname": "info_null220"
+      }
+    },
+    {
+      "id": 302,
+      "classname": "info_null",
+      "x": 1216.0,
+      "y": -640.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null222"
+      }
+    },
+    {
+      "id": 303,
+      "classname": "info_null",
+      "x": 1464.0,
+      "y": -648.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null231"
+      }
+    },
+    {
+      "id": 304,
+      "classname": "info_null",
+      "x": 1472.0,
+      "y": -896.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null233"
+      }
+    },
+    {
+      "id": 305,
+      "classname": "info_null",
+      "x": 1224.0,
+      "y": -888.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null236"
+      }
+    },
+    {
+      "id": 306,
+      "classname": "info_null",
+      "x": 1312.0,
+      "y": -544.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null228"
+      }
+    },
+    {
+      "id": 307,
+      "classname": "info_null",
+      "x": 1384.0,
+      "y": -472.0,
+      "z": -32.0,
+      "attrs": {
+        "targetname": "info_null226"
+      }
+    },
+    {
+      "id": 308,
+      "classname": "info_null",
+      "x": 1384.0,
+      "y": -472.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "info_null227"
+      }
+    },
+    {
+      "id": 309,
+      "classname": "info_null",
+      "x": 1064.0,
+      "y": -488.0,
+      "z": 112.0,
+      "attrs": {
+        "targetname": "info_null225"
+      }
+    },
+    {
+      "id": 310,
+      "classname": "info_null",
+      "x": 1080.0,
+      "y": -504.0,
+      "z": 112.0,
+      "attrs": {
+        "targetname": "info_null224"
+      }
+    },
+    {
+      "id": 311,
+      "classname": "info_null",
+      "x": 1088.0,
+      "y": -512.0,
+      "z": 680.0,
+      "attrs": {
+        "targetname": "info_null299"
+      }
+    },
+    {
+      "id": 312,
+      "classname": "info_null",
+      "x": 1088.0,
+      "y": -512.0,
+      "z": 704.0,
+      "attrs": {
+        "targetname": "info_null300"
+      }
+    },
+    {
+      "id": 313,
+      "classname": "info_null",
+      "x": 1432.0,
+      "y": -784.0,
+      "z": 280.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "info_null261"
+      }
+    },
+    {
+      "id": 314,
+      "classname": "info_null",
+      "x": 1504.0,
+      "y": -672.0,
+      "z": 280.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "info_null267"
+      }
+    },
+    {
+      "id": 315,
+      "classname": "info_null",
+      "x": 1496.0,
+      "y": -672.0,
+      "z": 408.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "info_null268"
+      }
+    },
+    {
+      "id": 316,
+      "classname": "info_null",
+      "x": 1344.0,
+      "y": -672.0,
+      "z": 280.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "info_null263"
+      }
+    },
+    {
+      "id": 317,
+      "classname": "info_null",
+      "x": 1432.0,
+      "y": -552.0,
+      "z": 280.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "info_null265"
+      }
+    },
+    {
+      "id": 318,
+      "classname": "info_null",
+      "x": 1432.0,
+      "y": -784.0,
+      "z": 408.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "info_null262"
+      }
+    },
+    {
+      "id": 319,
+      "classname": "info_null",
+      "x": 1344.0,
+      "y": -672.0,
+      "z": 408.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "info_null264"
+      }
+    },
+    {
+      "id": 320,
+      "classname": "info_null",
+      "x": 1432.0,
+      "y": -552.0,
+      "z": 408.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "info_null266"
+      }
+    },
+    {
+      "id": 321,
+      "classname": "info_null",
+      "x": 1136.0,
+      "y": -864.0,
+      "z": 280.0,
+      "attrs": {
+        "targetname": "info_null257"
+      }
+    },
+    {
+      "id": 322,
+      "classname": "info_null",
+      "x": 1248.0,
+      "y": -936.0,
+      "z": 280.0,
+      "attrs": {
+        "targetname": "info_null259"
+      }
+    },
+    {
+      "id": 323,
+      "classname": "info_null",
+      "x": 1248.0,
+      "y": -928.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "info_null260"
+      }
+    },
+    {
+      "id": 324,
+      "classname": "info_null",
+      "x": 1248.0,
+      "y": -776.0,
+      "z": 280.0,
+      "attrs": {
+        "targetname": "info_null254"
+      }
+    },
+    {
+      "id": 325,
+      "classname": "info_null",
+      "x": 1368.0,
+      "y": -864.0,
+      "z": 280.0,
+      "attrs": {
+        "targetname": "info_null255"
+      }
+    },
+    {
+      "id": 326,
+      "classname": "info_null",
+      "x": 1136.0,
+      "y": -864.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "info_null258"
+      }
+    },
+    {
+      "id": 327,
+      "classname": "info_null",
+      "x": 1248.0,
+      "y": -776.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "info_null253"
+      }
+    },
+    {
+      "id": 328,
+      "classname": "info_null",
+      "x": 1368.0,
+      "y": -864.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "info_null256"
+      }
+    },
+    {
+      "id": 329,
+      "classname": "info_null",
+      "x": 848.0,
+      "y": -272.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null283"
+      }
+    },
+    {
+      "id": 330,
+      "classname": "info_null",
+      "x": 864.0,
+      "y": -288.0,
+      "z": 136.0,
+      "attrs": {
+        "targetname": "info_null284"
+      }
+    },
+    {
+      "id": 331,
+      "classname": "info_null",
+      "x": 328.0,
+      "y": -480.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null276"
+      }
+    },
+    {
+      "id": 332,
+      "classname": "info_null",
+      "x": 456.0,
+      "y": -480.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null278"
+      }
+    },
+    {
+      "id": 333,
+      "classname": "info_null",
+      "x": 456.0,
+      "y": -480.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "info_null277"
+      }
+    },
+    {
+      "id": 334,
+      "classname": "info_null",
+      "x": 352.0,
+      "y": -568.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null280"
+      }
+    },
+    {
+      "id": 335,
+      "classname": "info_null",
+      "x": 360.0,
+      "y": -584.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "info_null279"
+      }
+    },
+    {
+      "id": 336,
+      "classname": "info_null",
+      "x": 368.0,
+      "y": -376.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "info_null274"
+      }
+    },
+    {
+      "id": 337,
+      "classname": "info_null",
+      "x": 360.0,
+      "y": -376.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null275"
+      }
+    },
+    {
+      "id": 338,
+      "classname": "info_null",
+      "x": 328.0,
+      "y": -352.0,
+      "z": -56.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null290"
+      }
+    },
+    {
+      "id": 339,
+      "classname": "info_null",
+      "x": 856.0,
+      "y": -480.0,
+      "z": -120.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null286"
+      }
+    },
+    {
+      "id": 340,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -320.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "info_null281"
+      }
+    },
+    {
+      "id": 341,
+      "classname": "info_null",
+      "x": 416.0,
+      "y": -304.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "info_null282"
+      }
+    },
+    {
+      "id": 342,
+      "classname": "info_null",
+      "x": 840.0,
+      "y": -480.0,
+      "z": -120.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null285"
+      }
+    },
+    {
+      "id": 343,
+      "classname": "info_null",
+      "x": 800.0,
+      "y": -568.0,
+      "z": -56.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null288"
+      }
+    },
+    {
+      "id": 344,
+      "classname": "info_null",
+      "x": 800.0,
+      "y": -392.0,
+      "z": -56.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null287"
+      }
+    },
+    {
+      "id": 345,
+      "classname": "info_null",
+      "x": 504.0,
+      "y": -352.0,
+      "z": -56.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "info_null289"
+      }
+    },
+    {
+      "id": 346,
+      "classname": "item_health",
+      "x": 32.0,
+      "y": 96.0,
+      "z": -8.0,
+      "alias": "hp25_high_ra_u_turn_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 347,
+      "classname": "info_null",
+      "x": 952.0,
+      "y": -72.0,
+      "z": -8.0,
+      "attrs": {
+        "targetname": "info_null298"
+      }
+    },
+    {
+      "id": 348,
+      "classname": "info_null",
+      "x": 984.0,
+      "y": -152.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null295"
+      }
+    },
+    {
+      "id": 349,
+      "classname": "info_null",
+      "x": 864.0,
+      "y": -160.0,
+      "z": -120.0,
+      "attrs": {
+        "targetname": "info_null291"
+      }
+    },
+    {
+      "id": 350,
+      "classname": "info_null",
+      "x": 808.0,
+      "y": -152.0,
+      "z": -8.0,
+      "attrs": {
+        "targetname": "info_null293"
+      }
+    },
+    {
+      "id": 351,
+      "classname": "info_null",
+      "x": 864.0,
+      "y": -160.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null292"
+      }
+    },
+    {
+      "id": 352,
+      "classname": "info_null",
+      "x": 872.0,
+      "y": -32.0,
+      "z": -72.0,
+      "attrs": {
+        "targetname": "info_null296"
+      }
+    },
+    {
+      "id": 353,
+      "classname": "info_null",
+      "x": 984.0,
+      "y": -152.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null294"
+      }
+    },
+    {
+      "id": 354,
+      "classname": "info_null",
+      "x": 872.0,
+      "y": -32.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null297"
+      }
+    },
+    {
+      "id": 355,
+      "classname": "func_bobbing",
+      "x": 948.0,
+      "y": -740.0,
+      "z": -64.0,
+      "attrs": {
+        "height": "5",
+        "speed": "5",
+        "model": "*5"
+      }
+    },
+    {
+      "id": 356,
+      "classname": "func_bobbing",
+      "x": 32.0,
+      "y": -592.0,
+      "z": 100.0,
+      "attrs": {
+        "speed": "5",
+        "height": "5",
+        "model": "*6"
+      }
+    },
+    {
+      "id": 357,
+      "classname": "item_armor_shard",
+      "x": 912.0,
+      "y": -240.0,
+      "z": 192.0,
+      "alias": "shard_mh_stage",
+      "alias_source": "auto"
+    },
+    {
+      "id": 358,
+      "classname": "item_armor_shard",
+      "x": 816.0,
+      "y": -336.0,
+      "z": 192.0,
+      "alias": "shard_mh_stage_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 359,
+      "classname": "item_armor_shard",
+      "x": 864.0,
+      "y": -288.0,
+      "z": 192.0,
+      "alias": "shard_mh_stage_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 360,
+      "classname": "item_health_large",
+      "x": 1504.0,
+      "y": 24.0,
+      "z": -64.0,
+      "attrs": {
+        "gametype": "duel"
+      },
+      "alias": "hp50_50_hp_staircase",
+      "alias_source": "auto"
+    },
+    {
+      "id": 361,
+      "classname": "item_armor_jacket",
+      "x": 992.0,
+      "y": -416.0,
+      "z": 480.0,
+      "alias": "ga_mh_stage",
+      "alias_source": "auto"
+    },
+    {
+      "id": 362,
+      "classname": "weapon_grenadelauncher",
+      "x": 416.0,
+      "y": -32.0,
+      "z": 464.0,
+      "alias": "gl_gl_path",
+      "alias_source": "auto"
+    },
+    {
+      "id": 365,
+      "classname": "target_location",
+      "x": -288.0,
+      "y": 168.0,
+      "z": 432.0,
+      "attrs": {
+        "message": "High RA U-turn"
+      }
+    },
+    {
+      "id": 366,
+      "classname": "target_location",
+      "x": 208.0,
+      "y": 712.0,
+      "z": 368.0,
+      "attrs": {
+        "message": "PG Balcony"
+      }
+    },
+    {
+      "id": 367,
+      "classname": "target_location",
+      "x": 552.0,
+      "y": 464.0,
+      "z": -48.0,
+      "attrs": {
+        "message": "RL Atrium",
+        "gametype": "duel"
+      }
+    },
+    {
+      "id": 368,
+      "classname": "target_location",
+      "x": 416.0,
+      "y": -32.0,
+      "z": 464.0,
+      "attrs": {
+        "message": "GL Path"
+      }
+    },
+    {
+      "id": 369,
+      "classname": "target_location",
+      "x": -288.0,
+      "y": 168.0,
+      "z": -48.0,
+      "attrs": {
+        "message": "Low RA U-turn"
+      }
+    },
+    {
+      "id": 370,
+      "classname": "target_location",
+      "x": 416.0,
+      "y": -32.0,
+      "z": -48.0,
+      "attrs": {
+        "message": "RA Pit"
+      }
+    },
+    {
+      "id": 371,
+      "classname": "target_location",
+      "x": 424.0,
+      "y": -288.0,
+      "z": 220.0,
+      "attrs": {
+        "message": "High RL",
+        "gametype": "duel",
+        "not_gametype": "duel"
+      }
+    },
+    {
+      "id": 372,
+      "classname": "target_location",
+      "x": 160.0,
+      "y": -736.0,
+      "z": 312.0,
+      "attrs": {
+        "message": "RG Balcony"
+      }
+    },
+    {
+      "id": 373,
+      "classname": "target_location",
+      "x": 32.0,
+      "y": -448.0,
+      "z": 48.0,
+      "attrs": {
+        "message": "RA Teleporter"
+      }
+    },
+    {
+      "id": 374,
+      "classname": "target_location",
+      "x": 1344.0,
+      "y": -768.0,
+      "z": 152.0,
+      "attrs": {
+        "message": "MH Pillar"
+      }
+    },
+    {
+      "id": 375,
+      "classname": "target_location",
+      "x": 1536.0,
+      "y": -960.0,
+      "z": 152.0,
+      "attrs": {
+        "message": "MH Ledge"
+      }
+    },
+    {
+      "id": 376,
+      "classname": "target_location",
+      "x": 1472.0,
+      "y": -896.0,
+      "z": -80.0,
+      "attrs": {
+        "message": "LG Pond"
+      }
+    },
+    {
+      "id": 377,
+      "classname": "target_location",
+      "x": 984.0,
+      "y": -752.0,
+      "z": -80.0,
+      "attrs": {
+        "message": "Garden Teleporter"
+      }
+    },
+    {
+      "id": 378,
+      "classname": "target_location",
+      "x": 1488.0,
+      "y": 0.0,
+      "z": -80.0,
+      "attrs": {
+        "message": "50 HP Staircase"
+      }
+    },
+    {
+      "id": 379,
+      "classname": "target_location",
+      "x": 1056.0,
+      "y": 32.0,
+      "z": 200.0,
+      "attrs": {
+        "message": "SG Hall"
+      }
+    },
+    {
+      "id": 380,
+      "classname": "target_location",
+      "x": 928.0,
+      "y": -352.0,
+      "z": 200.0,
+      "attrs": {
+        "message": "MH Stage"
+      }
+    },
+    {
+      "id": 381,
+      "classname": "target_location",
+      "x": 928.0,
+      "y": -352.0,
+      "z": 464.0,
+      "attrs": {
+        "message": "High GA"
+      }
+    },
+    {
+      "id": 382,
+      "classname": "target_location",
+      "x": 672.0,
+      "y": 672.0,
+      "z": 120.0,
+      "attrs": {
+        "message": "YA Podium"
+      }
+    },
+    {
+      "id": 383,
+      "classname": "target_location",
+      "x": 776.0,
+      "y": 384.0,
+      "z": 256.0,
+      "attrs": {
+        "message": "YA Low Balcony"
+      }
+    },
+    {
+      "id": 384,
+      "classname": "target_location",
+      "x": 224.0,
+      "y": 416.0,
+      "z": 344.0,
+      "attrs": {
+        "message": "RL Balcony",
+        "not_gametype": "duel"
+      }
+    },
+    {
+      "id": 385,
+      "classname": "item_health",
+      "x": 256.0,
+      "y": 848.0,
+      "z": 288.0,
+      "alias": "hp25_pg_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 386,
+      "classname": "item_health",
+      "x": 224.0,
+      "y": -792.0,
+      "z": 312.0,
+      "attrs": {
+        "not_gametype": "duel"
+      },
+      "alias": "hp25_rg_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 387,
+      "classname": "weapon_rocketlauncher",
+      "x": 416.0,
+      "y": -288.0,
+      "z": 184.0,
+      "attrs": {
+        "gametype": "duel"
+      },
+      "alias": "rl_high_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 388,
+      "classname": "weapon_plasmagun",
+      "x": 416.0,
+      "y": -288.0,
+      "z": 200.0,
+      "attrs": {
+        "not_gametype": "duel"
+      },
+      "alias": "pg_high_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 389,
+      "classname": "target_location",
+      "x": 424.0,
+      "y": -288.0,
+      "z": 184.0,
+      "attrs": {
+        "message": "High RL",
+        "gametype": "duel"
+      }
+    },
+    {
+      "id": 390,
+      "classname": "weapon_rocketlauncher",
+      "x": 224.0,
+      "y": 416.0,
+      "z": 368.0,
+      "attrs": {
+        "not_gametype": "duel"
+      },
+      "alias": "rl_rl_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 391,
+      "classname": "target_location",
+      "x": 224.0,
+      "y": 416.0,
+      "z": 368.0,
+      "attrs": {
+        "message": "PG Balcony",
+        "gametype": "duel"
+      }
+    },
+    {
+      "id": 392,
+      "classname": "target_location",
+      "x": 552.0,
+      "y": 480.0,
+      "z": -48.0,
+      "attrs": {
+        "message": "Quad Atrium",
+        "not_gametype": "duel"
+      }
+    },
+    {
+      "id": 393,
+      "classname": "info_player_deathmatch",
+      "x": 416.0,
+      "y": -544.0,
+      "z": 152.0,
+      "attrs": {
+        "angle": "90.000000"
+      }
+    },
+    {
+      "id": 394,
+      "classname": "info_player_deathmatch",
+      "x": 1024.0,
+      "y": -864.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "90.000000"
+      }
+    },
+    {
+      "id": 395,
+      "classname": "info_player_deathmatch",
+      "x": 1344.0,
+      "y": 32.0,
+      "z": -104.0,
+      "attrs": {
+        "spawnflags": "1",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 396,
+      "classname": "info_player_deathmatch",
+      "x": 1168.0,
+      "y": 464.0,
+      "z": 216.0,
+      "attrs": {
+        "spawnflags": "1",
+        "angle": "-135.000015"
+      }
+    },
+    {
+      "id": 397,
+      "classname": "ammo_shells",
+      "x": 200.0,
+      "y": 32.0,
+      "z": 408.0,
+      "alias": "sg_ammo_gl_path",
+      "alias_source": "auto"
+    },
+    {
+      "id": 398,
+      "classname": "info_player_deathmatch",
+      "x": 1696.0,
+      "y": -160.0,
+      "z": -8.0,
+      "attrs": {
+        "spawnflags": "1",
+        "angle": "134.999985"
+      }
+    },
+    {
+      "id": 399,
+      "classname": "info_player_deathmatch",
+      "x": -356.0,
+      "y": 32.0,
+      "z": -40.0,
+      "attrs": {
+        "angle": "0.000009",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 400,
+      "classname": "info_player_deathmatch",
+      "x": -24.0,
+      "y": 92.0,
+      "z": -40.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 401,
+      "classname": "info_player_intermission",
+      "x": 976.0,
+      "y": -400.0,
+      "z": 208.0,
+      "attrs": {
+        "angle": "-45.000008"
+      }
+    },
+    {
+      "id": 402,
+      "classname": "info_player_deathmatch",
+      "x": -356.0,
+      "y": -96.0,
+      "z": -40.0,
+      "attrs": {
+        "angle": "0.000009",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 403,
+      "classname": "ammo_pack",
+      "x": -24.0,
+      "y": -480.0,
+      "z": 132.0,
+      "attrs": {
+        "not_gametype": "duel"
+      },
+      "alias": "ammo_pack_ra_teleporter",
+      "alias_source": "auto"
+    },
+    {
+      "id": 404,
+      "classname": "ammo_pack",
+      "x": 820.0,
+      "y": -608.0,
+      "z": -12.0,
+      "alias": "ammo_pack_garden_teleporter",
+      "alias_source": "auto"
+    },
+    {
+      "id": 405,
+      "classname": "ammo_pack",
+      "x": 1376.0,
+      "y": -128.0,
+      "z": 228.0,
+      "alias": "ammo_pack_50_hp_staircase",
+      "alias_source": "auto"
+    },
+    {
+      "id": 406,
+      "classname": "ammo_pack",
+      "x": 1528.0,
+      "y": 128.0,
+      "z": 20.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "ammo_pack_50_hp_staircase_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 407,
+      "classname": "ammo_pack",
+      "x": -360.0,
+      "y": 284.0,
+      "z": 12.0,
+      "attrs": {
+        "angle": "-90.000000"
+      },
+      "alias": "ammo_pack_high_ra_u_turn",
+      "alias_source": "auto"
+    },
+    {
+      "id": 408,
+      "classname": "ammo_pack",
+      "x": 480.0,
+      "y": 768.0,
+      "z": 4.0,
+      "alias": "ammo_pack_ya_podium",
+      "alias_source": "auto"
+    },
+    {
+      "id": 409,
+      "classname": "ammo_pack",
+      "x": 160.0,
+      "y": 640.0,
+      "z": 404.0,
+      "alias": "ammo_pack_pg_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 410,
+      "classname": "ammo_pack",
+      "x": 200.0,
+      "y": 32.0,
+      "z": 444.0,
+      "alias": "ammo_pack_gl_path",
+      "alias_source": "auto"
+    }
+  ],
+  "by_classname": {
+    "info_player_deathmatch": [
+      2,
+      16,
+      17,
+      18,
+      393,
+      394,
+      395,
+      396,
+      398,
+      399,
+      400,
+      402
+    ],
+    "misc_teleporter_dest": [
+      4,
+      10
+    ],
+    "weapon_lightning": [
+      5
+    ],
+    "item_health_mega": [
+      6
+    ],
+    "item_quad": [
+      7
+    ],
+    "weapon_railgun": [
+      8
+    ],
+    "target_position": [
+      12,
+      39
+    ],
+    "item_armor_combat": [
+      13
+    ],
+    "weapon_rocketlauncher": [
+      14,
+      387,
+      390
+    ],
+    "weapon_plasmagun": [
+      15,
+      388
+    ],
+    "item_health": [
+      19,
+      21,
+      22,
+      29,
+      52,
+      346,
+      385,
+      386
+    ],
+    "item_armor_shard": [
+      20,
+      42,
+      43,
+      44,
+      48,
+      49,
+      50,
+      51,
+      357,
+      358,
+      359
+    ],
+    "item_health_small": [
+      23,
+      24,
+      25,
+      26,
+      27
+    ],
+    "ammo_lightning": [
+      28
+    ],
+    "ammo_grenades": [
+      30,
+      45
+    ],
+    "ammo_cells": [
+      31,
+      36
+    ],
+    "ammo_shells": [
+      32,
+      47,
+      397
+    ],
+    "ammo_slugs": [
+      33
+    ],
+    "ammo_bullets": [
+      34,
+      35,
+      37
+    ],
+    "item_armor_body": [
+      40
+    ],
+    "item_armor_jacket": [
+      41,
+      361
+    ],
+    "ammo_rockets": [
+      46
+    ],
+    "info_null": [
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      122,
+      123,
+      124,
+      125,
+      126,
+      127,
+      128,
+      129,
+      130,
+      131,
+      132,
+      133,
+      134,
+      135,
+      136,
+      137,
+      138,
+      139,
+      140,
+      141,
+      142,
+      143,
+      144,
+      145,
+      146,
+      147,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      169,
+      170,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180,
+      181,
+      182,
+      183,
+      184,
+      185,
+      186,
+      187,
+      188,
+      189,
+      190,
+      191,
+      192,
+      193,
+      194,
+      195,
+      196,
+      197,
+      198,
+      199,
+      200,
+      201,
+      202,
+      203,
+      204,
+      205,
+      206,
+      207,
+      208,
+      209,
+      210,
+      211,
+      212,
+      213,
+      214,
+      215,
+      216,
+      217,
+      218,
+      219,
+      220,
+      221,
+      222,
+      223,
+      224,
+      225,
+      226,
+      227,
+      228,
+      229,
+      230,
+      231,
+      232,
+      233,
+      234,
+      235,
+      236,
+      237,
+      238,
+      239,
+      240,
+      241,
+      242,
+      243,
+      244,
+      245,
+      246,
+      247,
+      248,
+      249,
+      250,
+      251,
+      252,
+      253,
+      254,
+      255,
+      256,
+      257,
+      258,
+      259,
+      260,
+      261,
+      262,
+      263,
+      264,
+      265,
+      266,
+      267,
+      268,
+      269,
+      270,
+      271,
+      272,
+      273,
+      274,
+      275,
+      276,
+      277,
+      278,
+      279,
+      280,
+      281,
+      282,
+      283,
+      284,
+      285,
+      286,
+      287,
+      288,
+      289,
+      290,
+      291,
+      292,
+      293,
+      294,
+      295,
+      296,
+      297,
+      298,
+      299,
+      300,
+      301,
+      302,
+      303,
+      304,
+      305,
+      306,
+      307,
+      308,
+      309,
+      310,
+      311,
+      312,
+      313,
+      314,
+      315,
+      316,
+      317,
+      318,
+      319,
+      320,
+      321,
+      322,
+      323,
+      324,
+      325,
+      326,
+      327,
+      328,
+      329,
+      330,
+      331,
+      332,
+      333,
+      334,
+      335,
+      336,
+      337,
+      338,
+      339,
+      340,
+      341,
+      342,
+      343,
+      344,
+      345,
+      347,
+      348,
+      349,
+      350,
+      351,
+      352,
+      353,
+      354
+    ],
+    "weapon_shotgun": [
+      68
+    ],
+    "func_bobbing": [
+      355,
+      356
+    ],
+    "item_health_large": [
+      360
+    ],
+    "weapon_grenadelauncher": [
+      362
+    ],
+    "target_location": [
+      365,
+      366,
+      367,
+      368,
+      369,
+      370,
+      371,
+      372,
+      373,
+      374,
+      375,
+      376,
+      377,
+      378,
+      379,
+      380,
+      381,
+      382,
+      383,
+      384,
+      389,
+      391,
+      392
+    ],
+    "info_player_intermission": [
+      401
+    ],
+    "ammo_pack": [
+      403,
+      404,
+      405,
+      406,
+      407,
+      408,
+      409,
+      410
+    ]
+  },
+  "teleports": {
+    "exit_count": 0,
+    "pair_count": 0,
+    "pairs": [],
+    "exits": []
+  }
+}

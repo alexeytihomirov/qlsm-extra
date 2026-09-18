@@ -1,0 +1,31 @@
+{
+  "label": "Lobby",
+  "description": "Lobby instance plugin — auto-redirects players from a lobby server to the right destination match server.",
+  "commands": [
+    { "name": "lobby", "permission": 0, "description": "Lists available destination servers." },
+    { "name": "servers", "permission": 0, "description": "Alias for !lobby." },
+    { "name": "go", "usage": "[slug]", "permission": 0, "description": "Redirects you to a destination server (or the assigned one if no slug given)." },
+    { "name": "join", "usage": "[slug]", "permission": 0, "description": "Alias for !go." },
+    { "name": "play", "usage": "[slug]", "permission": 0, "description": "Alias for !go." },
+    { "name": "lobbyset", "usage": "<id> <slug>", "permission": 3, "description": "Assigns a player to a specific destination server." },
+    { "name": "lobbyclear", "usage": "[id]", "permission": 3, "description": "Clears a player's (or everyone's) destination assignment." },
+    { "name": "lobbysend", "usage": "<id> [slug]", "permission": 3, "description": "Immediately redirects a player to a destination server." },
+    { "name": "lobbynotify", "permission": 0, "description": "Debug — re-checks pending redirect/notify data for all connected players." },
+    { "name": "hubnotify", "permission": 0, "description": "Alias for !lobbynotify." }
+  ],
+  "cvars": [
+    { "cvar": "qlx_lobbyEnabled", "label": "Enabled", "description": "Turns lobby redirect behaviour on or off.", "type": "bool", "default": true },
+    { "cvar": "qlx_lobbyPublicHost", "label": "Public Host", "description": "Public hostname/IP players are told to connect to.", "type": "string", "default": "" },
+    { "cvar": "qlx_lobbyDestinations", "label": "Destinations", "description": "Configured destination servers (slug list) players can be sent to.", "type": "string", "default": "" },
+    { "cvar": "qlx_lobbyDefaultDest", "label": "Default Destination", "description": "Slug of the destination server used when none is assigned.", "type": "string", "default": "" },
+    { "cvar": "qlx_lobbyAutoRedirect", "label": "Auto Redirect", "description": "Automatically redirects players without requiring !go.", "type": "bool", "default": true },
+    { "cvar": "qlx_lobbyRedirectDelay", "label": "Redirect Delay (s)", "description": "Seconds to wait before auto-redirecting a player.", "type": "number", "default": 5, "min": 0 },
+    { "cvar": "qlx_lobbyForceSpec", "label": "Force Spectator", "description": "Forces players into spectator while in the lobby.", "type": "bool", "default": true },
+    { "cvar": "qlx_lobbyStayPerm", "label": "Stay-In-Lobby Permission", "description": "Minimum permission level allowed to stay in the lobby without being redirected.", "type": "number", "default": 3, "min": 0, "max": 5 },
+    { "cvar": "qlx_lobbyConnectMessage", "label": "Connect Message", "description": "Extra message shown to a player on connecting to the lobby.", "type": "string", "default": "" },
+    { "cvar": "qlx_lobbyTrySteamOpen", "label": "Try Steam Open Connect", "description": "Attempts a Steam-open connect flow when redirecting.", "type": "bool", "default": false },
+    { "cvar": "qlx_lobbyInstancesJson", "label": "Instances JSON", "description": "Path to a JSON file describing available destination instances.", "type": "string", "default": "" },
+    { "cvar": "qlx_hubNotifyDelay", "label": "Hub Notify Delay (s)", "description": "Seconds before notifying the Hub of a pending tournament match.", "type": "number", "default": 60, "min": 0 },
+    { "cvar": "qlx_hubNotifyCountdown", "label": "Hub Notify Countdown", "description": "Shows a countdown message before the Hub notify fires.", "type": "bool", "default": true }
+  ]
+}

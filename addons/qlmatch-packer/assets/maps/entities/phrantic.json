@@ -1,0 +1,936 @@
+{
+  "map_name": "phrantic",
+  "source": "d:\\QuakeLiveData\\pak00\\maps\\phrantic.bsp",
+  "entity_count": 80,
+  "entities": [
+    {
+      "id": 2,
+      "classname": "info_player_deathmatch",
+      "x": 624.0,
+      "y": -32.0,
+      "z": 232.0,
+      "attrs": {
+        "angle": "270",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 3,
+      "classname": "weapon_rocketlauncher",
+      "x": -192.0,
+      "y": 80.0,
+      "z": 16.0,
+      "alias": "rl_e3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 5,
+      "classname": "misc_teleporter_dest",
+      "x": 32.0,
+      "y": -96.0,
+      "z": 392.0,
+      "attrs": {
+        "angle": "90",
+        "targetname": "tele1"
+      }
+    },
+    {
+      "id": 7,
+      "classname": "info_notnull",
+      "x": 1040.0,
+      "y": 544.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "bounce1"
+      }
+    },
+    {
+      "id": 8,
+      "classname": "item_health_large",
+      "x": 328.0,
+      "y": 128.0,
+      "z": 24.0,
+      "alias": "hp50_e8",
+      "alias_source": "auto"
+    },
+    {
+      "id": 10,
+      "classname": "item_health_small",
+      "x": 160.0,
+      "y": 200.0,
+      "z": 224.0,
+      "alias": "hp5_e10",
+      "alias_source": "auto"
+    },
+    {
+      "id": 11,
+      "classname": "item_health_small",
+      "x": 256.0,
+      "y": 200.0,
+      "z": 224.0,
+      "alias": "hp5_e11",
+      "alias_source": "auto"
+    },
+    {
+      "id": 12,
+      "classname": "item_health_small",
+      "x": 352.0,
+      "y": 200.0,
+      "z": 224.0,
+      "alias": "hp5_e12",
+      "alias_source": "auto"
+    },
+    {
+      "id": 13,
+      "classname": "weapon_plasmagun",
+      "x": 136.0,
+      "y": -432.0,
+      "z": 16.0,
+      "alias": "pg_e13",
+      "alias_source": "auto"
+    },
+    {
+      "id": 14,
+      "classname": "item_armor_body",
+      "x": -544.0,
+      "y": -672.0,
+      "z": -48.0,
+      "alias": "ra_e14",
+      "alias_source": "auto"
+    },
+    {
+      "id": 15,
+      "classname": "item_armor_combat",
+      "x": -112.0,
+      "y": 304.0,
+      "z": 384.0,
+      "alias": "ya_e15",
+      "alias_source": "auto"
+    },
+    {
+      "id": 16,
+      "classname": "weapon_shotgun",
+      "x": 112.0,
+      "y": 592.0,
+      "z": 384.0,
+      "alias": "sg_e16",
+      "alias_source": "auto"
+    },
+    {
+      "id": 17,
+      "classname": "weapon_lightning",
+      "x": 448.0,
+      "y": -352.0,
+      "z": 224.0,
+      "alias": "lg_e17",
+      "alias_source": "auto"
+    },
+    {
+      "id": 18,
+      "classname": "item_armor_combat",
+      "x": 1244.0,
+      "y": 52.0,
+      "z": 16.0,
+      "alias": "ya_e18",
+      "alias_source": "auto"
+    },
+    {
+      "id": 19,
+      "classname": "item_health",
+      "x": 1376.0,
+      "y": 160.0,
+      "z": 224.0,
+      "attrs": {
+        "gametype": "duel"
+      },
+      "alias": "hp25_e19",
+      "alias_source": "auto"
+    },
+    {
+      "id": 20,
+      "classname": "item_health",
+      "x": 64.0,
+      "y": -400.0,
+      "z": 224.0,
+      "attrs": {
+        "gametype": "ffa tdm"
+      },
+      "alias": "hp25_e20",
+      "alias_source": "auto"
+    },
+    {
+      "id": 21,
+      "classname": "item_health",
+      "x": 1184.0,
+      "y": 688.0,
+      "z": 336.0,
+      "alias": "hp25_e21",
+      "alias_source": "auto"
+    },
+    {
+      "id": 22,
+      "classname": "item_armor_shard",
+      "x": 656.0,
+      "y": 656.0,
+      "z": 336.0,
+      "alias": "shard_e22",
+      "alias_source": "auto"
+    },
+    {
+      "id": 23,
+      "classname": "item_armor_shard",
+      "x": 752.0,
+      "y": 656.0,
+      "z": 336.0,
+      "alias": "shard_e23",
+      "alias_source": "auto"
+    },
+    {
+      "id": 24,
+      "classname": "ammo_lightning",
+      "x": -128.0,
+      "y": -768.0,
+      "z": -48.0,
+      "alias": "lg_ammo_e24",
+      "alias_source": "auto"
+    },
+    {
+      "id": 25,
+      "classname": "ammo_lightning",
+      "x": 1224.0,
+      "y": 368.0,
+      "z": 16.0,
+      "alias": "lg_ammo_e25",
+      "alias_source": "auto"
+    },
+    {
+      "id": 26,
+      "classname": "weapon_grenadelauncher",
+      "x": -216.0,
+      "y": -328.0,
+      "z": 224.0,
+      "alias": "gl_e26",
+      "alias_source": "auto"
+    },
+    {
+      "id": 27,
+      "classname": "info_player_deathmatch",
+      "x": 168.0,
+      "y": -728.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "135"
+      }
+    },
+    {
+      "id": 28,
+      "classname": "info_player_deathmatch",
+      "x": 656.0,
+      "y": 704.0,
+      "z": 344.0,
+      "attrs": {
+        "angle": "196",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 29,
+      "classname": "info_player_deathmatch",
+      "x": 568.0,
+      "y": -384.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "duel",
+        "angle": "135",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 30,
+      "classname": "info_player_deathmatch",
+      "x": -184.0,
+      "y": 234.0,
+      "z": 232.0,
+      "attrs": {
+        "angle": "315",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 31,
+      "classname": "item_health",
+      "x": -176.0,
+      "y": 96.0,
+      "z": 224.0,
+      "alias": "hp25_e31",
+      "alias_source": "auto"
+    },
+    {
+      "id": 32,
+      "classname": "item_armor_shard",
+      "x": 976.0,
+      "y": 656.0,
+      "z": 336.0,
+      "alias": "shard_e32",
+      "alias_source": "auto"
+    },
+    {
+      "id": 33,
+      "classname": "item_armor_shard",
+      "x": 1072.0,
+      "y": 656.0,
+      "z": 336.0,
+      "alias": "shard_e33",
+      "alias_source": "auto"
+    },
+    {
+      "id": 34,
+      "classname": "ammo_bullets",
+      "x": 1224.0,
+      "y": 312.0,
+      "z": 16.0,
+      "alias": "mg_ammo_e34",
+      "alias_source": "auto"
+    },
+    {
+      "id": 35,
+      "classname": "info_player_deathmatch",
+      "x": 1216.0,
+      "y": 456.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "225",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 36,
+      "classname": "item_armor_shard",
+      "x": 624.0,
+      "y": -32.0,
+      "z": 224.0,
+      "alias": "shard_e36",
+      "alias_source": "auto"
+    },
+    {
+      "id": 37,
+      "classname": "item_armor_shard",
+      "x": 624.0,
+      "y": -104.0,
+      "z": 224.0,
+      "alias": "shard_e37",
+      "alias_source": "auto"
+    },
+    {
+      "id": 38,
+      "classname": "item_armor_shard",
+      "x": 624.0,
+      "y": -176.0,
+      "z": 224.0,
+      "alias": "shard_e38",
+      "alias_source": "auto"
+    },
+    {
+      "id": 39,
+      "classname": "ammo_shells",
+      "x": 80.0,
+      "y": 24.0,
+      "z": 16.0,
+      "alias": "sg_ammo_e39",
+      "alias_source": "auto"
+    },
+    {
+      "id": 40,
+      "classname": "ammo_shells",
+      "x": -40.0,
+      "y": 552.0,
+      "z": 384.0,
+      "attrs": {
+        "gametype": "ffa tdm"
+      },
+      "alias": "sg_ammo_e40",
+      "alias_source": "auto"
+    },
+    {
+      "id": 41,
+      "classname": "ammo_shells",
+      "x": 672.0,
+      "y": 248.0,
+      "z": 224.0,
+      "alias": "sg_ammo_e41",
+      "alias_source": "auto"
+    },
+    {
+      "id": 42,
+      "classname": "ammo_grenades",
+      "x": 608.0,
+      "y": 248.0,
+      "z": 224.0,
+      "alias": "gl_ammo_e42",
+      "alias_source": "auto"
+    },
+    {
+      "id": 43,
+      "classname": "ammo_bullets",
+      "x": -544.0,
+      "y": -512.0,
+      "z": 16.0,
+      "alias": "mg_ammo_e43",
+      "alias_source": "auto"
+    },
+    {
+      "id": 44,
+      "classname": "ammo_cells",
+      "x": -480.0,
+      "y": -512.0,
+      "z": 16.0,
+      "alias": "plasma_ammo_e44",
+      "alias_source": "auto"
+    },
+    {
+      "id": 45,
+      "classname": "item_armor_shard",
+      "x": -192.0,
+      "y": -256.0,
+      "z": 224.0,
+      "alias": "shard_e45",
+      "alias_source": "auto"
+    },
+    {
+      "id": 46,
+      "classname": "item_armor_shard",
+      "x": -160.0,
+      "y": -208.0,
+      "z": 224.0,
+      "alias": "shard_e46",
+      "alias_source": "auto"
+    },
+    {
+      "id": 47,
+      "classname": "info_notnull",
+      "x": 1384.0,
+      "y": 112.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "t1"
+      }
+    },
+    {
+      "id": 48,
+      "classname": "info_notnull",
+      "x": 1320.0,
+      "y": 192.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "t2"
+      }
+    },
+    {
+      "id": 49,
+      "classname": "info_notnull",
+      "x": 1272.0,
+      "y": 264.0,
+      "z": 376.0,
+      "attrs": {
+        "targetname": "t3"
+      }
+    },
+    {
+      "id": 50,
+      "classname": "info_player_intermission",
+      "x": 520.0,
+      "y": 152.0,
+      "z": 296.0,
+      "attrs": {
+        "angle": "175",
+        "target": "t4"
+      }
+    },
+    {
+      "id": 51,
+      "classname": "info_notnull",
+      "x": -168.0,
+      "y": 64.0,
+      "z": 464.0,
+      "attrs": {
+        "targetname": "t4"
+      }
+    },
+    {
+      "id": 52,
+      "classname": "item_quad",
+      "x": 568.0,
+      "y": -352.0,
+      "z": 16.0,
+      "attrs": {
+        "gametype": "ffa tdm"
+      }
+    },
+    {
+      "id": 53,
+      "classname": "item_health",
+      "x": 1248.0,
+      "y": 688.0,
+      "z": 336.0,
+      "attrs": {
+        "gametype": "ffa tdm"
+      },
+      "alias": "hp25_e53",
+      "alias_source": "auto"
+    },
+    {
+      "id": 54,
+      "classname": "target_location",
+      "x": 1136.0,
+      "y": 376.0,
+      "z": 336.0,
+      "attrs": {
+        "Message": "Bounce"
+      }
+    },
+    {
+      "id": 55,
+      "classname": "target_location",
+      "x": 152.0,
+      "y": 648.0,
+      "z": 448.0,
+      "attrs": {
+        "Message": "High Passage"
+      }
+    },
+    {
+      "id": 56,
+      "classname": "target_location",
+      "x": 136.0,
+      "y": -64.0,
+      "z": 448.0,
+      "attrs": {
+        "Message": "Atrium"
+      }
+    },
+    {
+      "id": 57,
+      "classname": "target_location",
+      "x": 144.0,
+      "y": -72.0,
+      "z": 16.0,
+      "attrs": {
+        "Message": "Atrium"
+      }
+    },
+    {
+      "id": 58,
+      "classname": "target_location",
+      "x": 168.0,
+      "y": -704.0,
+      "z": 16.0,
+      "attrs": {
+        "Message": "Plasma"
+      }
+    },
+    {
+      "id": 59,
+      "classname": "target_location",
+      "x": -360.0,
+      "y": -688.0,
+      "z": 16.0,
+      "attrs": {
+        "Message": "Red Armor"
+      }
+    },
+    {
+      "id": 60,
+      "classname": "target_location",
+      "x": -192.0,
+      "y": 64.0,
+      "z": 16.0,
+      "attrs": {
+        "Message": "Rocket"
+      }
+    },
+    {
+      "id": 61,
+      "classname": "target_location",
+      "x": -144.0,
+      "y": -64.0,
+      "z": 272.0,
+      "attrs": {
+        "Message": "Atrium"
+      }
+    },
+    {
+      "id": 62,
+      "classname": "target_location",
+      "x": 624.0,
+      "y": -264.0,
+      "z": 272.0,
+      "attrs": {
+        "Message": "Atrium"
+      }
+    },
+    {
+      "id": 63,
+      "classname": "weapon_shotgun",
+      "x": 736.0,
+      "y": 56.0,
+      "z": 16.0,
+      "attrs": {
+        "gametype": "ffa tdm"
+      },
+      "alias": "sg_e63",
+      "alias_source": "auto"
+    },
+    {
+      "id": 64,
+      "classname": "item_health",
+      "x": 64.0,
+      "y": -336.0,
+      "z": 224.0,
+      "alias": "hp25_e64",
+      "alias_source": "auto"
+    },
+    {
+      "id": 65,
+      "classname": "info_player_deathmatch",
+      "x": -552.0,
+      "y": -808.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "45",
+        "gametype": "ffa tdm"
+      }
+    },
+    {
+      "id": 66,
+      "classname": "info_player_deathmatch",
+      "x": 560.0,
+      "y": 48.0,
+      "z": 24.0,
+      "attrs": {
+        "gametype": "ffa tdm",
+        "angle": "45"
+      }
+    },
+    {
+      "id": 80,
+      "classname": "info_player_deathmatch",
+      "x": -120.0,
+      "y": -240.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "110"
+      }
+    },
+    {
+      "id": 81,
+      "classname": "weapon_rocketlauncher",
+      "x": 1072.0,
+      "y": 120.0,
+      "z": 224.0,
+      "alias": "rl_e81",
+      "alias_source": "auto"
+    },
+    {
+      "id": 83,
+      "classname": "target_speaker",
+      "x": 208.0,
+      "y": -64.0,
+      "z": 8.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_water_07.wav"
+      }
+    },
+    {
+      "id": 84,
+      "classname": "target_speaker",
+      "x": 1040.0,
+      "y": 464.0,
+      "z": 32.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_bouncepad_03_louder.wav"
+      }
+    },
+    {
+      "id": 85,
+      "classname": "target_speaker",
+      "x": 32.0,
+      "y": 160.0,
+      "z": 544.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/portal01.wav"
+      }
+    },
+    {
+      "id": 86,
+      "classname": "target_speaker",
+      "x": 664.0,
+      "y": -352.0,
+      "z": 16.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_telehum.wav"
+      }
+    },
+    {
+      "id": 87,
+      "classname": "target_speaker",
+      "x": 1096.0,
+      "y": 408.0,
+      "z": 568.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_09.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 88,
+      "classname": "target_speaker",
+      "x": 352.0,
+      "y": -288.0,
+      "z": 592.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_wind_01.wav"
+      }
+    },
+    {
+      "id": 89,
+      "classname": "target_speaker",
+      "x": -384.0,
+      "y": -688.0,
+      "z": 32.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_bgnoise_04.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 90,
+      "classname": "target_speaker",
+      "x": 232.0,
+      "y": 208.0,
+      "z": 588.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 91,
+      "classname": "target_speaker",
+      "x": 0.0,
+      "y": -688.0,
+      "z": -80.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_water_02.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 92,
+      "classname": "info_player_deathmatch",
+      "x": 1384.0,
+      "y": 592.0,
+      "z": 336.0,
+      "attrs": {
+        "angle": "245"
+      }
+    },
+    {
+      "id": 93,
+      "classname": "ammo_pack",
+      "x": -128.0,
+      "y": -768.0,
+      "z": -12.0,
+      "alias": "ammo_pack_e93",
+      "alias_source": "auto"
+    },
+    {
+      "id": 94,
+      "classname": "ammo_pack",
+      "x": 80.0,
+      "y": 24.0,
+      "z": 52.0,
+      "alias": "ammo_pack_e94",
+      "alias_source": "auto"
+    },
+    {
+      "id": 95,
+      "classname": "ammo_pack",
+      "x": 1224.0,
+      "y": 340.0,
+      "z": 52.0,
+      "alias": "ammo_pack_e95",
+      "alias_source": "auto"
+    },
+    {
+      "id": 96,
+      "classname": "ammo_pack",
+      "x": 640.0,
+      "y": 248.0,
+      "z": 260.0,
+      "alias": "ammo_pack_e96",
+      "alias_source": "auto"
+    },
+    {
+      "id": 97,
+      "classname": "ammo_pack",
+      "x": -40.0,
+      "y": 552.0,
+      "z": 420.0,
+      "attrs": {
+        "gametype": "ffa tdm"
+      },
+      "alias": "ammo_pack_e97",
+      "alias_source": "auto"
+    },
+    {
+      "id": 98,
+      "classname": "ammo_pack",
+      "x": -512.0,
+      "y": -512.0,
+      "z": 52.0,
+      "alias": "ammo_pack_e98",
+      "alias_source": "auto"
+    }
+  ],
+  "by_classname": {
+    "info_player_deathmatch": [
+      2,
+      27,
+      28,
+      29,
+      30,
+      35,
+      65,
+      66,
+      80,
+      92
+    ],
+    "weapon_rocketlauncher": [
+      3,
+      81
+    ],
+    "misc_teleporter_dest": [
+      5
+    ],
+    "info_notnull": [
+      7,
+      47,
+      48,
+      49,
+      51
+    ],
+    "item_health_large": [
+      8
+    ],
+    "item_health_small": [
+      10,
+      11,
+      12
+    ],
+    "weapon_plasmagun": [
+      13
+    ],
+    "item_armor_body": [
+      14
+    ],
+    "item_armor_combat": [
+      15,
+      18
+    ],
+    "weapon_shotgun": [
+      16,
+      63
+    ],
+    "weapon_lightning": [
+      17
+    ],
+    "item_health": [
+      19,
+      20,
+      21,
+      31,
+      53,
+      64
+    ],
+    "item_armor_shard": [
+      22,
+      23,
+      32,
+      33,
+      36,
+      37,
+      38,
+      45,
+      46
+    ],
+    "ammo_lightning": [
+      24,
+      25
+    ],
+    "weapon_grenadelauncher": [
+      26
+    ],
+    "ammo_bullets": [
+      34,
+      43
+    ],
+    "ammo_shells": [
+      39,
+      40,
+      41
+    ],
+    "ammo_grenades": [
+      42
+    ],
+    "ammo_cells": [
+      44
+    ],
+    "info_player_intermission": [
+      50
+    ],
+    "item_quad": [
+      52
+    ],
+    "target_location": [
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62
+    ],
+    "target_speaker": [
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91
+    ],
+    "ammo_pack": [
+      93,
+      94,
+      95,
+      96,
+      97,
+      98
+    ]
+  },
+  "teleports": {
+    "exit_count": 0,
+    "pair_count": 0,
+    "pairs": [],
+    "exits": []
+  }
+}

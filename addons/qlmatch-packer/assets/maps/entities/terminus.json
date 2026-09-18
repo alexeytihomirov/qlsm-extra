@@ -1,0 +1,5257 @@
+{
+  "map_name": "terminus",
+  "source": "d:\\QuakeLiveData\\pak00\\maps\\terminus.bsp",
+  "entity_count": 467,
+  "entities": [
+    {
+      "id": 2,
+      "classname": "target_position",
+      "x": 64.0,
+      "y": -96.0,
+      "z": 32.0,
+      "attrs": {
+        "targetname": "target_position1"
+      }
+    },
+    {
+      "id": 3,
+      "classname": "item_health_mega",
+      "x": -1040.0,
+      "y": 320.0,
+      "z": -344.0,
+      "alias": "mh_4mh_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 4,
+      "classname": "target_position",
+      "x": -1424.0,
+      "y": 1472.0,
+      "z": 112.0,
+      "attrs": {
+        "targetname": "target_position9"
+      }
+    },
+    {
+      "id": 5,
+      "classname": "item_enviro",
+      "x": -2176.0,
+      "y": 2016.0,
+      "z": -288.0
+    },
+    {
+      "id": 6,
+      "classname": "item_armor_combat",
+      "x": -1872.0,
+      "y": 96.000031,
+      "z": 304.0,
+      "attrs": {
+        "angle": "180.000000"
+      },
+      "alias": "ya_4mh_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 7,
+      "classname": "item_armor_combat",
+      "x": 192.0,
+      "y": 880.0,
+      "z": -96.0,
+      "attrs": {
+        "angle": "-90.000000"
+      },
+      "alias": "ya_3low_ya_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 8,
+      "classname": "weapon_lightning",
+      "x": -2016.0,
+      "y": 984.0,
+      "z": -8.0,
+      "alias": "lg_7lg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 9,
+      "classname": "target_position",
+      "x": -568.0,
+      "y": 192.0,
+      "z": 336.0,
+      "attrs": {
+        "targetname": "target_position5"
+      }
+    },
+    {
+      "id": 10,
+      "classname": "weapon_railgun",
+      "x": -724.0,
+      "y": 108.0,
+      "z": -264.0,
+      "alias": "rg_rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 14,
+      "classname": "item_armor_shard",
+      "x": -1136.0,
+      "y": 1064.0,
+      "z": -264.0,
+      "alias": "shard_lift",
+      "alias_source": "auto"
+    },
+    {
+      "id": 15,
+      "classname": "item_armor_shard",
+      "x": -1168.0,
+      "y": 1096.0,
+      "z": -264.0,
+      "alias": "shard_lift_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 16,
+      "classname": "item_armor_shard",
+      "x": -1376.0,
+      "y": 896.0,
+      "z": 216.0,
+      "alias": "shard_7lg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 17,
+      "classname": "item_armor_shard",
+      "x": -1376.0,
+      "y": 864.0,
+      "z": 216.0,
+      "alias": "shard_7lg_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 19,
+      "classname": "misc_teleporter_dest",
+      "x": -2080.0,
+      "y": -32.0,
+      "z": 288.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "misc_teleporter_dest2"
+      }
+    },
+    {
+      "id": 20,
+      "classname": "misc_teleporter_dest",
+      "x": -480.0,
+      "y": -1216.0,
+      "z": 208.0,
+      "attrs": {
+        "targetname": "misc_teleporter_dest1",
+        "angle": "90.000000"
+      }
+    },
+    {
+      "id": 22,
+      "classname": "misc_portal_surface",
+      "x": -480.0,
+      "y": -1248.0,
+      "z": 256.0,
+      "attrs": {
+        "target": "misc_portal_camera1"
+      }
+    },
+    {
+      "id": 23,
+      "classname": "misc_portal_camera",
+      "x": -2080.0,
+      "y": -32.0,
+      "z": 336.0,
+      "attrs": {
+        "targetname": "misc_portal_camera1",
+        "target": "target_position2",
+        "roll": "180"
+      }
+    },
+    {
+      "id": 24,
+      "classname": "misc_portal_surface",
+      "x": -2080.0,
+      "y": -48.0,
+      "z": 336.0,
+      "attrs": {
+        "target": "misc_portal_camera2"
+      }
+    },
+    {
+      "id": 25,
+      "classname": "misc_portal_camera",
+      "x": -480.0,
+      "y": -1216.0,
+      "z": 256.0,
+      "attrs": {
+        "targetname": "misc_portal_camera2",
+        "target": "target_position3",
+        "roll": "180"
+      }
+    },
+    {
+      "id": 26,
+      "classname": "target_speaker",
+      "x": -1952.0,
+      "y": 1536.0,
+      "z": -368.0,
+      "attrs": {
+        "spawnflags": "8",
+        "noise": "*falling1.wav",
+        "targetname": "target_speaker1"
+      }
+    },
+    {
+      "id": 27,
+      "classname": "target_remove_powerups",
+      "x": -1952.0,
+      "y": 1536.0,
+      "z": -448.0,
+      "attrs": {
+        "targetname": "target_remove_powerups1"
+      }
+    },
+    {
+      "id": 31,
+      "classname": "item_armor_jacket",
+      "x": -1728.0,
+      "y": 704.0,
+      "z": -8.0,
+      "alias": "ga_3bs_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 33,
+      "classname": "target_push",
+      "x": -1600.0,
+      "y": 2240.0,
+      "z": 160.0,
+      "attrs": {
+        "targetname": "target_push1"
+      }
+    },
+    {
+      "id": 34,
+      "classname": "item_armor_body",
+      "x": -896.0,
+      "y": 2272.0,
+      "z": 128.0,
+      "attrs": {
+        "angle": "-90"
+      },
+      "alias": "ra_1ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 36,
+      "classname": "ammo_lightning",
+      "x": -416.0,
+      "y": 2132.0,
+      "z": 0.0,
+      "alias": "lg_ammo_1ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 37,
+      "classname": "ammo_cells",
+      "x": -416.0,
+      "y": 2028.0,
+      "z": 0.0,
+      "alias": "plasma_ammo_1ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 38,
+      "classname": "ammo_shells",
+      "x": -1576.0,
+      "y": 2560.0,
+      "z": 128.0,
+      "alias": "sg_ammo_1ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 39,
+      "classname": "ammo_bullets",
+      "x": -1704.0,
+      "y": 2208.0,
+      "z": 128.0,
+      "alias": "mg_ammo_1ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 40,
+      "classname": "item_health_large",
+      "x": -1392.0,
+      "y": 2272.0,
+      "z": 0.0,
+      "alias": "hp50_1ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 41,
+      "classname": "ammo_rockets",
+      "x": -1600.0,
+      "y": 2344.0,
+      "z": -288.0,
+      "alias": "rocket_ammo_1ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 42,
+      "classname": "item_health",
+      "x": -1496.0,
+      "y": 2144.0,
+      "z": -288.0,
+      "alias": "hp25_1ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 43,
+      "classname": "item_health",
+      "x": -1704.0,
+      "y": 2144.0,
+      "z": -288.0,
+      "alias": "hp25_1ra_7_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 44,
+      "classname": "item_armor_shard",
+      "x": -1088.0,
+      "y": 936.0,
+      "z": 136.0,
+      "alias": "shard_lift_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 45,
+      "classname": "item_armor_shard",
+      "x": -1184.0,
+      "y": 936.0,
+      "z": 136.0,
+      "alias": "shard_pg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 46,
+      "classname": "item_armor_shard",
+      "x": -1152.0,
+      "y": 936.0,
+      "z": 136.0,
+      "alias": "shard_lift_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 47,
+      "classname": "item_armor_shard",
+      "x": -1120.0,
+      "y": 936.0,
+      "z": 136.0,
+      "alias": "shard_lift_5",
+      "alias_source": "auto"
+    },
+    {
+      "id": 48,
+      "classname": "item_health",
+      "x": -1512.0,
+      "y": 1192.0,
+      "z": 104.0,
+      "alias": "hp25_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 49,
+      "classname": "ammo_shells",
+      "x": -1504.0,
+      "y": 1576.0,
+      "z": 128.0,
+      "alias": "sg_ammo_3bs_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 50,
+      "classname": "ammo_pack",
+      "x": -1120.0,
+      "y": 1200.0,
+      "z": 152.0,
+      "alias": "ammo_pack_lift",
+      "alias_source": "auto"
+    },
+    {
+      "id": 51,
+      "classname": "ammo_rockets",
+      "x": -1120.0,
+      "y": 908.0,
+      "z": -192.0,
+      "alias": "rocket_ammo_lift",
+      "alias_source": "auto"
+    },
+    {
+      "id": 52,
+      "classname": "item_health",
+      "x": -864.0,
+      "y": 1312.0,
+      "z": -256.0,
+      "alias": "hp25_1pre_ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 53,
+      "classname": "item_health",
+      "x": -1152.0,
+      "y": 952.0,
+      "z": -192.0,
+      "alias": "hp25_lift",
+      "alias_source": "auto"
+    },
+    {
+      "id": 54,
+      "classname": "weapon_shotgun",
+      "x": -384.0,
+      "y": -320.0,
+      "z": -320.0,
+      "alias": "sg_quad_sewer",
+      "alias_source": "auto"
+    },
+    {
+      "id": 55,
+      "classname": "weapon_rocketlauncher",
+      "x": -608.0,
+      "y": -544.0,
+      "z": 0.0,
+      "alias": "rl_low_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 56,
+      "classname": "item_health_small",
+      "x": 416.0,
+      "y": 512.0,
+      "z": -8.0,
+      "alias": "hp5_3low_ya_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 57,
+      "classname": "item_health_small",
+      "x": 416.0,
+      "y": 448.0,
+      "z": -8.0,
+      "alias": "hp5_3low_ya_7_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 58,
+      "classname": "item_health_small",
+      "x": 416.0,
+      "y": 480.0,
+      "z": -8.0,
+      "alias": "hp5_3low_ya_7_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 59,
+      "classname": "ammo_cells",
+      "x": -40.0,
+      "y": 800.0,
+      "z": -128.0,
+      "alias": "plasma_ammo_3low_ya_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 60,
+      "classname": "ammo_lightning",
+      "x": 344.0,
+      "y": 496.0,
+      "z": -176.0,
+      "alias": "lg_ammo_3low_ya_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 61,
+      "classname": "ammo_bullets",
+      "x": -352.0,
+      "y": -1024.0,
+      "z": 256.0,
+      "alias": "mg_ammo_low_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 62,
+      "classname": "ammo_shells",
+      "x": -352.0,
+      "y": -1072.0,
+      "z": 256.0,
+      "alias": "sg_ammo_low_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 63,
+      "classname": "item_health",
+      "x": -608.0,
+      "y": -1056.0,
+      "z": 256.0,
+      "alias": "hp25_low_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 64,
+      "classname": "weapon_shotgun",
+      "x": -2272.0,
+      "y": 384.0,
+      "z": 320.0,
+      "alias": "sg_3high_ya_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 65,
+      "classname": "weapon_plasmagun",
+      "x": -896.0,
+      "y": 832.0,
+      "z": 120.0,
+      "alias": "pg_high_pg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 66,
+      "classname": "weapon_rocketlauncher",
+      "x": -704.0,
+      "y": 1792.0,
+      "z": 128.0,
+      "alias": "rl_1ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 67,
+      "classname": "item_health",
+      "x": 344.0,
+      "y": 448.0,
+      "z": -176.0,
+      "alias": "hp25_3low_ya_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 68,
+      "classname": "item_health",
+      "x": -1296.0,
+      "y": -224.0,
+      "z": 96.0,
+      "alias": "hp25_4mh_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 69,
+      "classname": "item_health",
+      "x": -1328.0,
+      "y": -224.0,
+      "z": 96.0,
+      "alias": "hp25_4mh_7_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 70,
+      "classname": "weapon_grenadelauncher",
+      "x": -1376.0,
+      "y": 64.0,
+      "z": 256.0,
+      "alias": "gl_yard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 71,
+      "classname": "ammo_grenades",
+      "x": -904.0,
+      "y": 128.0,
+      "z": 168.0,
+      "alias": "gl_ammo_4mh_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 72,
+      "classname": "ammo_cells",
+      "x": -904.0,
+      "y": 176.0,
+      "z": 168.0,
+      "alias": "plasma_ammo_yard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 73,
+      "classname": "item_health_small",
+      "x": -792.0,
+      "y": 96.0,
+      "z": 208.0,
+      "alias": "hp5_yard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 74,
+      "classname": "item_health_small",
+      "x": -816.0,
+      "y": 96.0,
+      "z": 208.0,
+      "alias": "hp5_yard_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 75,
+      "classname": "ammo_grenades",
+      "x": -672.0,
+      "y": 1184.0,
+      "z": 104.0,
+      "alias": "gl_ammo_lift",
+      "alias_source": "auto"
+    },
+    {
+      "id": 76,
+      "classname": "ammo_rockets",
+      "x": -1576.0,
+      "y": 1280.0,
+      "z": 256.0,
+      "alias": "rocket_ammo_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 77,
+      "classname": "ammo_cells",
+      "x": -1928.0,
+      "y": 936.0,
+      "z": 320.0,
+      "alias": "plasma_ammo_3bs_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 78,
+      "classname": "ammo_shells",
+      "x": -1968.0,
+      "y": 936.0,
+      "z": 320.0,
+      "alias": "sg_ammo_7lg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 79,
+      "classname": "item_health",
+      "x": -1376.0,
+      "y": 832.0,
+      "z": 224.0,
+      "alias": "hp25_7lg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 80,
+      "classname": "item_health_small",
+      "x": -928.0,
+      "y": -48.0,
+      "z": 296.0,
+      "alias": "hp5_4mh_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 81,
+      "classname": "item_health_small",
+      "x": -928.0,
+      "y": 0.0,
+      "z": 296.0,
+      "alias": "hp5_4mh_7_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 82,
+      "classname": "item_health_small",
+      "x": -928.0,
+      "y": -24.0,
+      "z": 296.0,
+      "alias": "hp5_4mh_7_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 83,
+      "classname": "ammo_rockets",
+      "x": -480.0,
+      "y": -96.0,
+      "z": -352.0,
+      "alias": "rocket_ammo_low_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 84,
+      "classname": "item_health",
+      "x": 96.0,
+      "y": 432.0,
+      "z": 312.0,
+      "alias": "hp25_3low_ya_7_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 85,
+      "classname": "item_armor_shard",
+      "x": -544.0,
+      "y": -96.0,
+      "z": -352.0,
+      "alias": "shard_low_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 86,
+      "classname": "item_armor_shard",
+      "x": -520.0,
+      "y": -96.0,
+      "z": -352.0,
+      "alias": "shard_low_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 87,
+      "classname": "item_health_small",
+      "x": 128.0,
+      "y": -352.0,
+      "z": -328.0,
+      "alias": "hp5_5quad_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 88,
+      "classname": "item_health_small",
+      "x": 96.0,
+      "y": -352.0,
+      "z": -328.0,
+      "alias": "hp5_5quad_7_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 89,
+      "classname": "ammo_lightning",
+      "x": -1576.0,
+      "y": 1232.0,
+      "z": 256.0,
+      "alias": "lg_ammo_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 91,
+      "classname": "target_push",
+      "x": -232.0,
+      "y": 392.0,
+      "z": 320.0,
+      "attrs": {
+        "targetname": "target_push2"
+      }
+    },
+    {
+      "id": 92,
+      "classname": "misc_teleporter_dest",
+      "x": -28.0,
+      "y": 452.0,
+      "z": -120.0,
+      "attrs": {
+        "angle": "70.000000",
+        "targetname": "misc_teleporter_dest3"
+      }
+    },
+    {
+      "id": 94,
+      "classname": "item_armor_shard",
+      "x": -1368.0,
+      "y": 616.0,
+      "z": -232.0,
+      "alias": "shard_4mh_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 95,
+      "classname": "item_armor_shard",
+      "x": -1392.0,
+      "y": 616.0,
+      "z": -232.0,
+      "alias": "shard_4mh_7_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 97,
+      "classname": "info_player_deathmatch",
+      "x": -296.0,
+      "y": 296.0,
+      "z": -128.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "targetname": "dom_3_respawn"
+      }
+    },
+    {
+      "id": 98,
+      "classname": "info_player_deathmatch",
+      "x": -896.0,
+      "y": 1688.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "dom_1_respawn"
+      }
+    },
+    {
+      "id": 99,
+      "classname": "info_player_deathmatch",
+      "x": -416.0,
+      "y": 1176.0,
+      "z": 104.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "dom_1_respawn"
+      }
+    },
+    {
+      "id": 100,
+      "classname": "info_player_deathmatch",
+      "x": -1328.0,
+      "y": 608.0,
+      "z": 96.0,
+      "attrs": {
+        "angle": "-90",
+        "targetname": "dom_2_respawn"
+      }
+    },
+    {
+      "id": 101,
+      "classname": "info_player_deathmatch",
+      "x": -1384.0,
+      "y": 256.0,
+      "z": 96.0,
+      "attrs": {
+        "targetname": "dom_2_respawn"
+      }
+    },
+    {
+      "id": 102,
+      "classname": "info_player_deathmatch",
+      "x": -248.0,
+      "y": -672.0,
+      "z": 208.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "targetname": "dom_2_respawn"
+      }
+    },
+    {
+      "id": 103,
+      "classname": "info_player_deathmatch",
+      "x": -104.0,
+      "y": 96.0,
+      "z": -352.0,
+      "attrs": {
+        "targetname": "dom_3_respawn"
+      }
+    },
+    {
+      "id": 104,
+      "classname": "info_player_deathmatch",
+      "x": -1528.0,
+      "y": 384.0,
+      "z": 208.0,
+      "attrs": {
+        "angle": "-179.999985"
+      }
+    },
+    {
+      "id": 105,
+      "classname": "info_player_deathmatch",
+      "x": -1504.0,
+      "y": 1368.0,
+      "z": 232.0,
+      "attrs": {
+        "angle": "-90.000000",
+        "targetname": "dom_1_respawn"
+      }
+    },
+    {
+      "id": 106,
+      "classname": "info_player_deathmatch",
+      "x": -848.0,
+      "y": -152.0,
+      "z": 288.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "targetname": "dom_2_respawn"
+      }
+    },
+    {
+      "id": 107,
+      "classname": "info_player_deathmatch",
+      "x": -792.0,
+      "y": 1120.0,
+      "z": -296.0,
+      "attrs": {
+        "angle": "180",
+        "targetname": "dom_1_respawn"
+      }
+    },
+    {
+      "id": 108,
+      "classname": "info_player_deathmatch",
+      "x": -1596.0,
+      "y": 936.0,
+      "z": -272.0,
+      "attrs": {
+        "angle": "-179.999985"
+      }
+    },
+    {
+      "id": 109,
+      "classname": "info_player_deathmatch",
+      "x": -632.0,
+      "y": 560.0,
+      "z": 160.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "targetname": "dom_2_respawn"
+      }
+    },
+    {
+      "id": 110,
+      "classname": "info_player_deathmatch",
+      "x": -136.0,
+      "y": -192.0,
+      "z": -32.0
+    },
+    {
+      "id": 111,
+      "classname": "info_player_deathmatch",
+      "x": -616.0,
+      "y": -416.0,
+      "z": -368.0,
+      "attrs": {
+        "targetname": "dom_3_respawn"
+      }
+    },
+    {
+      "id": 112,
+      "classname": "info_player_deathmatch",
+      "x": -792.0,
+      "y": 1088.0,
+      "z": 96.0,
+      "attrs": {
+        "angle": "90.000000",
+        "targetname": "dom_1_respawn"
+      }
+    },
+    {
+      "id": 113,
+      "classname": "item_armor_shard",
+      "x": -976.0,
+      "y": 656.0,
+      "z": -160.0,
+      "alias": "shard_high_pg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 114,
+      "classname": "item_armor_shard",
+      "x": -976.0,
+      "y": 688.0,
+      "z": -160.0,
+      "alias": "shard_high_pg_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 115,
+      "classname": "item_health",
+      "x": 64.0,
+      "y": -408.0,
+      "z": 256.0,
+      "alias": "hp25_5quad_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 117,
+      "classname": "target_push",
+      "x": -384.0,
+      "y": -768.0,
+      "z": 256.0,
+      "attrs": {
+        "targetname": "target_push3"
+      }
+    },
+    {
+      "id": 120,
+      "classname": "func_rotating",
+      "x": -896.0,
+      "y": 1652.0,
+      "z": 104.0,
+      "attrs": {
+        "noise": "sound/world/fan4.wav",
+        "speed": "80",
+        "spawnflags": "8",
+        "model": "*17"
+      }
+    },
+    {
+      "id": 125,
+      "classname": "info_player_deathmatch",
+      "x": 328.0,
+      "y": 248.0,
+      "z": -224.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "targetname": "dom_3_respawn"
+      }
+    },
+    {
+      "id": 126,
+      "classname": "info_player_deathmatch",
+      "x": -144.0,
+      "y": 672.0,
+      "z": -224.0,
+      "attrs": {
+        "angle": "-90",
+        "targetname": "dom_3_respawn"
+      }
+    },
+    {
+      "id": 127,
+      "classname": "ammo_bullets",
+      "x": -184.0,
+      "y": -32.0,
+      "z": -352.0,
+      "alias": "mg_ammo_5quad_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 128,
+      "classname": "item_health",
+      "x": -752.0,
+      "y": 312.0,
+      "z": -272.0,
+      "alias": "hp25_yard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 129,
+      "classname": "item_health_small",
+      "x": -752.0,
+      "y": 376.0,
+      "z": -272.0,
+      "alias": "hp5_yard_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 130,
+      "classname": "item_health_small",
+      "x": -752.0,
+      "y": 344.0,
+      "z": -272.0,
+      "alias": "hp5_yard_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 131,
+      "classname": "item_armor_shard",
+      "x": -720.0,
+      "y": 384.0,
+      "z": -272.0,
+      "alias": "shard_yard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 132,
+      "classname": "item_armor_shard",
+      "x": -696.0,
+      "y": 384.0,
+      "z": -272.0,
+      "alias": "shard_rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 133,
+      "classname": "target_speaker",
+      "x": -160.0,
+      "y": 320.0,
+      "z": -56.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_bgnoise_02.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 134,
+      "classname": "target_speaker",
+      "x": -1000.0,
+      "y": 1104.0,
+      "z": -72.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav"
+      }
+    },
+    {
+      "id": 135,
+      "classname": "func_rotating",
+      "x": -716.0,
+      "y": -544.0,
+      "z": 24.0,
+      "attrs": {
+        "speed": "80",
+        "noise": "sound/world/fan4.wav",
+        "spawnflags": "4",
+        "model": "*22"
+      }
+    },
+    {
+      "id": 136,
+      "classname": "item_quad",
+      "x": 392.0,
+      "y": 112.0,
+      "z": 256.0
+    },
+    {
+      "id": 137,
+      "classname": "target_speaker",
+      "x": -384.0,
+      "y": -704.0,
+      "z": -56.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_bgnoise_02.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 138,
+      "classname": "target_speaker",
+      "x": 60.0,
+      "y": -96.0,
+      "z": -376.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_bgnoise_02.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 139,
+      "classname": "target_speaker",
+      "x": -1600.0,
+      "y": 2236.0,
+      "z": -344.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_bgnoise_02.wav",
+        "angle": "0.000010"
+      }
+    },
+    {
+      "id": 140,
+      "classname": "target_speaker",
+      "x": -644.0,
+      "y": 192.0,
+      "z": 136.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_bgnoise_02.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 141,
+      "classname": "target_speaker",
+      "x": -1476.0,
+      "y": 1472.0,
+      "z": -280.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_bgnoise_02.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 142,
+      "classname": "info_null",
+      "x": -2176.0,
+      "y": 2016.0,
+      "z": -224.0,
+      "attrs": {
+        "targetname": "info_null1"
+      }
+    },
+    {
+      "id": 146,
+      "classname": "info_null",
+      "x": -368.0,
+      "y": -184.0,
+      "z": -240.0,
+      "attrs": {
+        "targetname": "info_null5"
+      }
+    },
+    {
+      "id": 147,
+      "classname": "info_null",
+      "x": -272.0,
+      "y": -184.0,
+      "z": -240.0,
+      "attrs": {
+        "targetname": "info_null2"
+      }
+    },
+    {
+      "id": 148,
+      "classname": "info_null",
+      "x": -544.0,
+      "y": -352.0,
+      "z": -232.0,
+      "attrs": {
+        "targetname": "info_null4"
+      }
+    },
+    {
+      "id": 149,
+      "classname": "info_null",
+      "x": -544.0,
+      "y": -160.0,
+      "z": -232.0,
+      "attrs": {
+        "targetname": "info_null3"
+      }
+    },
+    {
+      "id": 150,
+      "classname": "info_null",
+      "x": -1616.0,
+      "y": 1856.0,
+      "z": -116.0,
+      "attrs": {
+        "targetname": "info_null6"
+      }
+    },
+    {
+      "id": 151,
+      "classname": "info_null",
+      "x": 0.0,
+      "y": 224.0,
+      "z": -136.0,
+      "attrs": {
+        "targetname": "info_null9"
+      }
+    },
+    {
+      "id": 152,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": -32.0,
+      "z": -136.0,
+      "attrs": {
+        "targetname": "info_null11"
+      }
+    },
+    {
+      "id": 153,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": 224.0,
+      "z": -136.0,
+      "attrs": {
+        "targetname": "info_null10"
+      }
+    },
+    {
+      "id": 154,
+      "classname": "info_null",
+      "x": 64.0,
+      "y": 512.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null16"
+      }
+    },
+    {
+      "id": 155,
+      "classname": "info_null",
+      "x": 288.0,
+      "y": 480.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null13"
+      }
+    },
+    {
+      "id": 156,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": 704.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null14"
+      }
+    },
+    {
+      "id": 157,
+      "classname": "info_null",
+      "x": 64.0,
+      "y": 704.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "info_null15"
+      }
+    },
+    {
+      "id": 158,
+      "classname": "info_null",
+      "x": -1464.0,
+      "y": 1296.0,
+      "z": 160.0,
+      "attrs": {
+        "targetname": "info_null17"
+      }
+    },
+    {
+      "id": 159,
+      "classname": "info_null",
+      "x": -1248.0,
+      "y": 1552.0,
+      "z": 272.0,
+      "attrs": {
+        "targetname": "info_null18"
+      }
+    },
+    {
+      "id": 160,
+      "classname": "info_null",
+      "x": -544.0,
+      "y": 1552.0,
+      "z": 272.0,
+      "attrs": {
+        "targetname": "info_null19"
+      }
+    },
+    {
+      "id": 161,
+      "classname": "info_null",
+      "x": -1804.0,
+      "y": 1416.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null29"
+      }
+    },
+    {
+      "id": 162,
+      "classname": "info_null",
+      "x": -1608.0,
+      "y": 1172.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null22"
+      }
+    },
+    {
+      "id": 163,
+      "classname": "info_null",
+      "x": -1660.0,
+      "y": 1120.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null21"
+      }
+    },
+    {
+      "id": 164,
+      "classname": "info_null",
+      "x": -1608.0,
+      "y": 1068.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null20"
+      }
+    },
+    {
+      "id": 165,
+      "classname": "info_null",
+      "x": -1804.0,
+      "y": 1120.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null23"
+      }
+    },
+    {
+      "id": 166,
+      "classname": "info_null",
+      "x": -1856.0,
+      "y": 1172.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null26"
+      }
+    },
+    {
+      "id": 167,
+      "classname": "info_null",
+      "x": -1908.0,
+      "y": 1120.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null25"
+      }
+    },
+    {
+      "id": 168,
+      "classname": "info_null",
+      "x": -1856.0,
+      "y": 1068.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null24"
+      }
+    },
+    {
+      "id": 169,
+      "classname": "info_null",
+      "x": -1856.0,
+      "y": 1364.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null27"
+      }
+    },
+    {
+      "id": 170,
+      "classname": "info_null",
+      "x": -1908.0,
+      "y": 1416.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null28"
+      }
+    },
+    {
+      "id": 171,
+      "classname": "info_null",
+      "x": -1024.0,
+      "y": -312.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "info_null30"
+      }
+    },
+    {
+      "id": 172,
+      "classname": "info_null",
+      "x": -1216.0,
+      "y": -312.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "info_null31"
+      }
+    },
+    {
+      "id": 173,
+      "classname": "info_null",
+      "x": -1632.0,
+      "y": 96.0,
+      "z": 352.0,
+      "attrs": {
+        "targetname": "info_null32"
+      }
+    },
+    {
+      "id": 174,
+      "classname": "info_null",
+      "x": -576.0,
+      "y": -1016.0,
+      "z": 336.0,
+      "attrs": {
+        "targetname": "info_null33"
+      }
+    },
+    {
+      "id": 175,
+      "classname": "info_null",
+      "x": -1384.0,
+      "y": 832.0,
+      "z": 360.0,
+      "attrs": {
+        "targetname": "info_null34"
+      }
+    },
+    {
+      "id": 176,
+      "classname": "info_null",
+      "x": -1084.0,
+      "y": 176.0,
+      "z": -192.0,
+      "attrs": {
+        "targetname": "info_null35"
+      }
+    },
+    {
+      "id": 177,
+      "classname": "info_null",
+      "x": -968.0,
+      "y": 160.0,
+      "z": -204.0,
+      "attrs": {
+        "targetname": "info_null37"
+      }
+    },
+    {
+      "id": 178,
+      "classname": "info_null",
+      "x": -1024.0,
+      "y": 140.0,
+      "z": -232.0,
+      "attrs": {
+        "targetname": "info_null36"
+      }
+    },
+    {
+      "id": 179,
+      "classname": "info_null",
+      "x": -456.0,
+      "y": 192.0,
+      "z": 432.0,
+      "attrs": {
+        "targetname": "info_null43"
+      }
+    },
+    {
+      "id": 180,
+      "classname": "info_null",
+      "x": -456.0,
+      "y": 64.0,
+      "z": 432.0,
+      "attrs": {
+        "targetname": "info_null40"
+      }
+    },
+    {
+      "id": 181,
+      "classname": "info_null",
+      "x": -416.0,
+      "y": 64.0,
+      "z": 432.0,
+      "attrs": {
+        "targetname": "info_null39"
+      }
+    },
+    {
+      "id": 182,
+      "classname": "info_null",
+      "x": -376.0,
+      "y": 64.0,
+      "z": 432.0,
+      "attrs": {
+        "targetname": "info_null38"
+      }
+    },
+    {
+      "id": 183,
+      "classname": "info_null",
+      "x": -376.0,
+      "y": 192.0,
+      "z": 432.0,
+      "attrs": {
+        "targetname": "info_null41"
+      }
+    },
+    {
+      "id": 184,
+      "classname": "info_null",
+      "x": -416.0,
+      "y": 192.0,
+      "z": 432.0,
+      "attrs": {
+        "targetname": "info_null42"
+      }
+    },
+    {
+      "id": 185,
+      "classname": "info_null",
+      "x": -1720.0,
+      "y": 1568.0,
+      "z": -116.0,
+      "attrs": {
+        "targetname": "info_null7"
+      }
+    },
+    {
+      "id": 186,
+      "classname": "info_null",
+      "x": -1728.0,
+      "y": 1024.0,
+      "z": 12.0,
+      "attrs": {
+        "targetname": "info_null45"
+      }
+    },
+    {
+      "id": 187,
+      "classname": "info_null",
+      "x": -1728.0,
+      "y": 1280.0,
+      "z": 12.0,
+      "attrs": {
+        "targetname": "info_null46"
+      }
+    },
+    {
+      "id": 188,
+      "classname": "info_null",
+      "x": -2016.0,
+      "y": 1280.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "info_null47"
+      }
+    },
+    {
+      "id": 189,
+      "classname": "info_null",
+      "x": -2016.0,
+      "y": 1024.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "info_null44"
+      }
+    },
+    {
+      "id": 190,
+      "classname": "info_null",
+      "x": -1744.0,
+      "y": 800.0,
+      "z": 120.0,
+      "attrs": {
+        "targetname": "info_null48"
+      }
+    },
+    {
+      "id": 191,
+      "classname": "info_null",
+      "x": -1384.0,
+      "y": 808.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "info_null49"
+      }
+    },
+    {
+      "id": 192,
+      "classname": "info_null",
+      "x": -1384.0,
+      "y": 808.0,
+      "z": 128.0,
+      "attrs": {
+        "targetname": "info_null50"
+      }
+    },
+    {
+      "id": 193,
+      "classname": "info_null",
+      "x": -2136.0,
+      "y": 920.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "info_null51"
+      }
+    },
+    {
+      "id": 194,
+      "classname": "info_null",
+      "x": -2136.0,
+      "y": 920.0,
+      "z": 392.0,
+      "attrs": {
+        "targetname": "info_null52"
+      }
+    },
+    {
+      "id": 195,
+      "classname": "info_null",
+      "x": -680.0,
+      "y": 560.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "info_null54"
+      }
+    },
+    {
+      "id": 196,
+      "classname": "info_null",
+      "x": -736.0,
+      "y": 160.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null56"
+      }
+    },
+    {
+      "id": 197,
+      "classname": "info_null",
+      "x": -736.0,
+      "y": 352.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null55"
+      }
+    },
+    {
+      "id": 198,
+      "classname": "info_null",
+      "x": -1544.0,
+      "y": 1312.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null62"
+      }
+    },
+    {
+      "id": 199,
+      "classname": "info_null",
+      "x": -1544.0,
+      "y": 1072.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null57"
+      }
+    },
+    {
+      "id": 200,
+      "classname": "info_null",
+      "x": -1544.0,
+      "y": 1120.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null58"
+      }
+    },
+    {
+      "id": 201,
+      "classname": "info_null",
+      "x": -1544.0,
+      "y": 1216.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null60"
+      }
+    },
+    {
+      "id": 202,
+      "classname": "info_null",
+      "x": -1544.0,
+      "y": 1264.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null61"
+      }
+    },
+    {
+      "id": 203,
+      "classname": "info_null",
+      "x": -1544.0,
+      "y": 1168.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null59"
+      }
+    },
+    {
+      "id": 204,
+      "classname": "info_null",
+      "x": -1544.0,
+      "y": 1360.0,
+      "z": 328.0,
+      "attrs": {
+        "targetname": "info_null63"
+      }
+    },
+    {
+      "id": 205,
+      "classname": "info_null",
+      "x": -384.0,
+      "y": 248.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "info_null64"
+      }
+    },
+    {
+      "id": 206,
+      "classname": "info_null",
+      "x": -640.0,
+      "y": 992.0,
+      "z": -104.0,
+      "attrs": {
+        "targetname": "info_null65"
+      }
+    },
+    {
+      "id": 207,
+      "classname": "info_null",
+      "x": -680.0,
+      "y": 1112.0,
+      "z": -168.0,
+      "attrs": {
+        "targetname": "info_null66"
+      }
+    },
+    {
+      "id": 208,
+      "classname": "info_null",
+      "x": -1024.0,
+      "y": 704.0,
+      "z": -88.0,
+      "attrs": {
+        "targetname": "info_null67"
+      }
+    },
+    {
+      "id": 209,
+      "classname": "info_null",
+      "x": -664.0,
+      "y": 256.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "info_null68"
+      }
+    },
+    {
+      "id": 210,
+      "classname": "info_null",
+      "x": 88.0,
+      "y": 32.0,
+      "z": -232.0,
+      "attrs": {
+        "targetname": "info_null69"
+      }
+    },
+    {
+      "id": 211,
+      "classname": "info_null",
+      "x": 24.0,
+      "y": -288.0,
+      "z": -240.0,
+      "attrs": {
+        "targetname": "info_null70"
+      }
+    },
+    {
+      "id": 212,
+      "classname": "info_null",
+      "x": -896.0,
+      "y": 512.0,
+      "z": -96.0,
+      "attrs": {
+        "targetname": "info_null73"
+      }
+    },
+    {
+      "id": 213,
+      "classname": "info_null",
+      "x": -896.0,
+      "y": 128.0,
+      "z": -96.0,
+      "attrs": {
+        "targetname": "info_null71"
+      }
+    },
+    {
+      "id": 214,
+      "classname": "info_null",
+      "x": -896.0,
+      "y": 320.0,
+      "z": -96.0,
+      "attrs": {
+        "targetname": "info_null72"
+      }
+    },
+    {
+      "id": 215,
+      "classname": "info_null",
+      "x": -1384.0,
+      "y": 384.0,
+      "z": -96.0,
+      "attrs": {
+        "targetname": "info_null75"
+      }
+    },
+    {
+      "id": 216,
+      "classname": "info_null",
+      "x": -1384.0,
+      "y": 544.0,
+      "z": -96.0,
+      "attrs": {
+        "targetname": "info_null74"
+      }
+    },
+    {
+      "id": 217,
+      "classname": "info_null",
+      "x": -272.0,
+      "y": -864.0,
+      "z": 352.0,
+      "attrs": {
+        "targetname": "info_null77"
+      }
+    },
+    {
+      "id": 218,
+      "classname": "info_null",
+      "x": -1552.0,
+      "y": 384.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "info_null78"
+      }
+    },
+    {
+      "id": 219,
+      "classname": "info_null",
+      "x": -1632.0,
+      "y": 800.0,
+      "z": 432.0,
+      "attrs": {
+        "targetname": "info_null79"
+      }
+    },
+    {
+      "id": 220,
+      "classname": "info_null",
+      "x": -560.0,
+      "y": -320.0,
+      "z": 96.0,
+      "attrs": {
+        "targetname": "info_null80"
+      }
+    },
+    {
+      "id": 221,
+      "classname": "info_null",
+      "x": -32.0,
+      "y": -296.0,
+      "z": 360.0,
+      "attrs": {
+        "targetname": "info_null81"
+      }
+    },
+    {
+      "id": 222,
+      "classname": "info_null",
+      "x": -1728.0,
+      "y": 696.0,
+      "z": -200.0,
+      "attrs": {
+        "targetname": "info_null82"
+      }
+    },
+    {
+      "id": 223,
+      "classname": "info_null",
+      "x": -1728.0,
+      "y": 776.0,
+      "z": -200.0,
+      "attrs": {
+        "targetname": "info_null83"
+      }
+    },
+    {
+      "id": 224,
+      "classname": "info_null",
+      "x": -1632.0,
+      "y": 584.0,
+      "z": 312.0,
+      "attrs": {
+        "targetname": "info_null84"
+      }
+    },
+    {
+      "id": 225,
+      "classname": "info_null",
+      "x": -1632.0,
+      "y": 504.0,
+      "z": 312.0,
+      "attrs": {
+        "targetname": "info_null85"
+      }
+    },
+    {
+      "id": 226,
+      "classname": "info_null",
+      "x": -896.0,
+      "y": 1808.0,
+      "z": 192.0,
+      "attrs": {
+        "targetname": "info_null90"
+      }
+    },
+    {
+      "id": 227,
+      "classname": "info_null",
+      "x": -1728.0,
+      "y": 896.0,
+      "z": -160.0,
+      "attrs": {
+        "targetname": "info_null91"
+      }
+    },
+    {
+      "id": 228,
+      "classname": "target_speaker",
+      "x": -2056.0,
+      "y": 632.0,
+      "z": 12.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 229,
+      "classname": "target_speaker",
+      "x": -1272.0,
+      "y": 424.0,
+      "z": -244.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 230,
+      "classname": "target_speaker",
+      "x": -248.0,
+      "y": 472.0,
+      "z": -212.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 231,
+      "classname": "target_speaker",
+      "x": 32.0,
+      "y": 520.0,
+      "z": 300.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_machinery_04_short.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 232,
+      "classname": "target_speaker",
+      "x": -1368.0,
+      "y": 600.0,
+      "z": 108.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 233,
+      "classname": "target_speaker",
+      "x": -680.0,
+      "y": 1564.0,
+      "z": 104.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 234,
+      "classname": "target_speaker",
+      "x": -1112.0,
+      "y": 1564.0,
+      "z": 104.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 235,
+      "classname": "info_null",
+      "x": -256.0,
+      "y": 576.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null86"
+      }
+    },
+    {
+      "id": 236,
+      "classname": "info_null",
+      "x": -512.0,
+      "y": 544.0,
+      "z": -16.0,
+      "attrs": {
+        "targetname": "info_null92"
+      }
+    },
+    {
+      "id": 237,
+      "classname": "info_null",
+      "x": -704.0,
+      "y": 544.0,
+      "z": -16.0,
+      "attrs": {
+        "targetname": "info_null93"
+      }
+    },
+    {
+      "id": 238,
+      "classname": "info_null",
+      "x": -368.0,
+      "y": 224.0,
+      "z": -208.0,
+      "attrs": {
+        "targetname": "info_null87"
+      }
+    },
+    {
+      "id": 239,
+      "classname": "info_null",
+      "x": -8.0,
+      "y": -560.0,
+      "z": 336.0,
+      "attrs": {
+        "targetname": "info_null95"
+      }
+    },
+    {
+      "id": 240,
+      "classname": "info_null",
+      "x": -48.0,
+      "y": -560.0,
+      "z": 336.0,
+      "attrs": {
+        "targetname": "info_null94"
+      }
+    },
+    {
+      "id": 241,
+      "classname": "info_null",
+      "x": -1056.0,
+      "y": 1752.0,
+      "z": 120.0,
+      "attrs": {
+        "targetname": "info_null97"
+      }
+    },
+    {
+      "id": 242,
+      "classname": "info_null",
+      "x": -1056.0,
+      "y": 1752.0,
+      "z": 168.0,
+      "attrs": {
+        "targetname": "info_null96"
+      }
+    },
+    {
+      "id": 243,
+      "classname": "info_null",
+      "x": -736.0,
+      "y": 1752.0,
+      "z": 168.0,
+      "attrs": {
+        "targetname": "info_null99"
+      }
+    },
+    {
+      "id": 244,
+      "classname": "info_null",
+      "x": -736.0,
+      "y": 1752.0,
+      "z": 120.0,
+      "attrs": {
+        "targetname": "info_null98"
+      }
+    },
+    {
+      "id": 245,
+      "classname": "info_null",
+      "x": -928.0,
+      "y": 2528.0,
+      "z": 168.0,
+      "attrs": {
+        "targetname": "info_null102"
+      }
+    },
+    {
+      "id": 246,
+      "classname": "info_null",
+      "x": -640.0,
+      "y": 2352.0,
+      "z": 168.0,
+      "attrs": {
+        "targetname": "info_null103"
+      }
+    },
+    {
+      "id": 247,
+      "classname": "info_null",
+      "x": -448.0,
+      "y": 2272.0,
+      "z": 168.0,
+      "attrs": {
+        "targetname": "info_null104"
+      }
+    },
+    {
+      "id": 248,
+      "classname": "info_null",
+      "x": -1248.0,
+      "y": 1792.0,
+      "z": 192.0,
+      "attrs": {
+        "targetname": "info_null107"
+      }
+    },
+    {
+      "id": 249,
+      "classname": "info_null",
+      "x": -1472.0,
+      "y": 1520.0,
+      "z": 248.0,
+      "attrs": {
+        "targetname": "info_null108"
+      }
+    },
+    {
+      "id": 250,
+      "classname": "info_null",
+      "x": -544.0,
+      "y": 1232.0,
+      "z": 216.0,
+      "attrs": {
+        "targetname": "info_null114"
+      }
+    },
+    {
+      "id": 251,
+      "classname": "info_null",
+      "x": -648.0,
+      "y": 560.0,
+      "z": 320.0,
+      "attrs": {
+        "targetname": "info_null117"
+      }
+    },
+    {
+      "id": 252,
+      "classname": "info_null",
+      "x": -1984.0,
+      "y": 736.0,
+      "z": 448.0,
+      "attrs": {
+        "targetname": "info_null118"
+      }
+    },
+    {
+      "id": 253,
+      "classname": "info_null",
+      "x": -624.0,
+      "y": 172.0,
+      "z": -208.0,
+      "attrs": {
+        "targetname": "info_null109"
+      }
+    },
+    {
+      "id": 254,
+      "classname": "info_null",
+      "x": -624.0,
+      "y": 244.0,
+      "z": -208.0,
+      "attrs": {
+        "targetname": "info_null100"
+      }
+    },
+    {
+      "id": 255,
+      "classname": "info_null",
+      "x": -660.0,
+      "y": 208.0,
+      "z": -208.0,
+      "attrs": {
+        "targetname": "info_null110"
+      }
+    },
+    {
+      "id": 256,
+      "classname": "info_null",
+      "x": -588.0,
+      "y": 208.0,
+      "z": -208.0,
+      "attrs": {
+        "targetname": "info_null101"
+      }
+    },
+    {
+      "id": 257,
+      "classname": "info_null",
+      "x": 8.0,
+      "y": 152.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "info_null115"
+      }
+    },
+    {
+      "id": 258,
+      "classname": "info_null",
+      "x": 8.0,
+      "y": 40.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "info_null111"
+      }
+    },
+    {
+      "id": 259,
+      "classname": "info_null",
+      "x": 120.0,
+      "y": 152.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "info_null116"
+      }
+    },
+    {
+      "id": 260,
+      "classname": "info_null",
+      "x": 120.0,
+      "y": 40.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "info_null112"
+      }
+    },
+    {
+      "id": 261,
+      "classname": "info_null",
+      "x": 64.0,
+      "y": -208.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "info_null119"
+      }
+    },
+    {
+      "id": 262,
+      "classname": "info_null",
+      "x": -48.0,
+      "y": 368.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "info_null120"
+      }
+    },
+    {
+      "id": 263,
+      "classname": "info_null",
+      "x": -208.0,
+      "y": 208.0,
+      "z": 0.0,
+      "attrs": {
+        "targetname": "info_null121"
+      }
+    },
+    {
+      "id": 267,
+      "classname": "info_null",
+      "x": -1716.0,
+      "y": 544.0,
+      "z": -200.0,
+      "attrs": {
+        "targetname": "info_null122"
+      }
+    },
+    {
+      "id": 268,
+      "classname": "info_null",
+      "x": -1716.0,
+      "y": 320.0,
+      "z": -208.0,
+      "attrs": {
+        "targetname": "info_null8"
+      }
+    },
+    {
+      "id": 269,
+      "classname": "info_null",
+      "x": -520.0,
+      "y": -248.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null123"
+      }
+    },
+    {
+      "id": 270,
+      "classname": "info_null",
+      "x": -1600.0,
+      "y": 2104.0,
+      "z": -224.0,
+      "attrs": {
+        "targetname": "info_null124"
+      }
+    },
+    {
+      "id": 271,
+      "classname": "info_null",
+      "x": -960.0,
+      "y": 1088.0,
+      "z": -72.0,
+      "attrs": {
+        "targetname": "info_null126"
+      }
+    },
+    {
+      "id": 272,
+      "classname": "info_null",
+      "x": -1024.0,
+      "y": 1120.0,
+      "z": -72.0,
+      "attrs": {
+        "targetname": "info_null127"
+      }
+    },
+    {
+      "id": 273,
+      "classname": "info_null",
+      "x": -1024.0,
+      "y": 1088.0,
+      "z": -72.0,
+      "attrs": {
+        "targetname": "info_null128"
+      }
+    },
+    {
+      "id": 274,
+      "classname": "info_null",
+      "x": -960.0,
+      "y": 1120.0,
+      "z": -80.0,
+      "attrs": {
+        "targetname": "info_null125"
+      }
+    },
+    {
+      "id": 275,
+      "classname": "info_null",
+      "x": -1360.0,
+      "y": -128.0,
+      "z": 152.0,
+      "attrs": {
+        "targetname": "info_null134"
+      }
+    },
+    {
+      "id": 276,
+      "classname": "info_null",
+      "x": -1360.0,
+      "y": 32.0,
+      "z": 152.0,
+      "attrs": {
+        "targetname": "info_null133"
+      }
+    },
+    {
+      "id": 277,
+      "classname": "info_null",
+      "x": -952.0,
+      "y": -64.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "info_null135"
+      }
+    },
+    {
+      "id": 278,
+      "classname": "info_null",
+      "x": -1964.0,
+      "y": 440.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "info_null138"
+      }
+    },
+    {
+      "id": 279,
+      "classname": "info_null",
+      "x": -1964.0,
+      "y": 328.0,
+      "z": 428.0,
+      "attrs": {
+        "targetname": "info_null136"
+      }
+    },
+    {
+      "id": 280,
+      "classname": "info_null",
+      "x": -1928.0,
+      "y": 384.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null137"
+      }
+    },
+    {
+      "id": 281,
+      "classname": "target_speaker",
+      "x": -1600.0,
+      "y": 2240.0,
+      "z": -84.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav"
+      }
+    },
+    {
+      "id": 282,
+      "classname": "info_null",
+      "x": -1376.0,
+      "y": 248.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "info_null140"
+      }
+    },
+    {
+      "id": 283,
+      "classname": "info_null",
+      "x": -1376.0,
+      "y": 360.0,
+      "z": -344.0,
+      "attrs": {
+        "targetname": "info_null88"
+      }
+    },
+    {
+      "id": 284,
+      "classname": "info_null",
+      "x": -336.0,
+      "y": 384.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null141"
+      }
+    },
+    {
+      "id": 285,
+      "classname": "info_null",
+      "x": -1376.0,
+      "y": -160.0,
+      "z": 288.0,
+      "attrs": {
+        "targetname": "info_null142"
+      }
+    },
+    {
+      "id": 286,
+      "classname": "info_null",
+      "x": -1792.0,
+      "y": 168.0,
+      "z": 296.0,
+      "attrs": {
+        "targetname": "info_null143"
+      }
+    },
+    {
+      "id": 287,
+      "classname": "info_null",
+      "x": -1792.0,
+      "y": 16.0,
+      "z": 296.0,
+      "attrs": {
+        "targetname": "info_null144"
+      }
+    },
+    {
+      "id": 288,
+      "classname": "info_null",
+      "x": -1152.0,
+      "y": 512.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "info_null145"
+      }
+    },
+    {
+      "id": 289,
+      "classname": "info_null",
+      "x": -1152.0,
+      "y": 128.0,
+      "z": -64.0,
+      "attrs": {
+        "targetname": "info_null89"
+      }
+    },
+    {
+      "id": 290,
+      "classname": "info_null",
+      "x": -2096.0,
+      "y": 96.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null147"
+      }
+    },
+    {
+      "id": 291,
+      "classname": "info_null",
+      "x": -2096.0,
+      "y": 160.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null146"
+      }
+    },
+    {
+      "id": 292,
+      "classname": "info_null",
+      "x": -2064.0,
+      "y": 160.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null53"
+      }
+    },
+    {
+      "id": 293,
+      "classname": "info_null",
+      "x": -2064.0,
+      "y": 96.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null148"
+      }
+    },
+    {
+      "id": 294,
+      "classname": "info_null",
+      "x": -788.0,
+      "y": 2196.0,
+      "z": -32.0,
+      "attrs": {
+        "targetname": "info_null152"
+      }
+    },
+    {
+      "id": 295,
+      "classname": "info_null",
+      "x": -1004.0,
+      "y": 2196.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "info_null149"
+      }
+    },
+    {
+      "id": 296,
+      "classname": "info_null",
+      "x": -928.0,
+      "y": 2176.0,
+      "z": -32.0,
+      "attrs": {
+        "targetname": "info_null150"
+      }
+    },
+    {
+      "id": 297,
+      "classname": "info_null",
+      "x": -856.0,
+      "y": 2176.0,
+      "z": -32.0,
+      "attrs": {
+        "targetname": "info_null151"
+      }
+    },
+    {
+      "id": 298,
+      "classname": "info_null",
+      "x": -2032.0,
+      "y": 624.0,
+      "z": 12.0,
+      "attrs": {
+        "targetname": "info_null156"
+      }
+    },
+    {
+      "id": 299,
+      "classname": "info_null",
+      "x": -2064.0,
+      "y": 656.0,
+      "z": 12.0,
+      "attrs": {
+        "targetname": "info_null154"
+      }
+    },
+    {
+      "id": 300,
+      "classname": "info_null",
+      "x": -2040.0,
+      "y": 648.0,
+      "z": 12.0,
+      "attrs": {
+        "targetname": "info_null155"
+      }
+    },
+    {
+      "id": 301,
+      "classname": "info_null",
+      "x": -2080.0,
+      "y": 736.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null139"
+      }
+    },
+    {
+      "id": 302,
+      "classname": "info_null",
+      "x": -1984.0,
+      "y": 832.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null113"
+      }
+    },
+    {
+      "id": 303,
+      "classname": "info_null",
+      "x": -1888.0,
+      "y": 736.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null157"
+      }
+    },
+    {
+      "id": 304,
+      "classname": "info_null",
+      "x": -1984.0,
+      "y": 640.0,
+      "z": 400.0,
+      "attrs": {
+        "targetname": "info_null153"
+      }
+    },
+    {
+      "id": 305,
+      "classname": "info_null",
+      "x": -880.0,
+      "y": 2368.0,
+      "z": 168.0,
+      "attrs": {
+        "targetname": "info_null161"
+      }
+    },
+    {
+      "id": 306,
+      "classname": "info_null",
+      "x": -912.0,
+      "y": 2368.0,
+      "z": 168.0,
+      "attrs": {
+        "targetname": "info_null158"
+      }
+    },
+    {
+      "id": 307,
+      "classname": "info_null",
+      "x": -912.0,
+      "y": 2304.0,
+      "z": 168.0,
+      "attrs": {
+        "targetname": "info_null159"
+      }
+    },
+    {
+      "id": 308,
+      "classname": "info_null",
+      "x": -880.0,
+      "y": 2304.0,
+      "z": 168.0,
+      "attrs": {
+        "targetname": "info_null160"
+      }
+    },
+    {
+      "id": 309,
+      "classname": "info_null",
+      "x": -560.0,
+      "y": 1904.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null162"
+      }
+    },
+    {
+      "id": 310,
+      "classname": "info_null",
+      "x": -560.0,
+      "y": 1840.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null164"
+      }
+    },
+    {
+      "id": 311,
+      "classname": "info_null",
+      "x": -528.0,
+      "y": 1840.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null165"
+      }
+    },
+    {
+      "id": 312,
+      "classname": "info_null",
+      "x": -528.0,
+      "y": 1904.0,
+      "z": 200.0,
+      "attrs": {
+        "targetname": "info_null163"
+      }
+    },
+    {
+      "id": 313,
+      "classname": "info_null",
+      "x": -912.0,
+      "y": 1264.0,
+      "z": 244.0,
+      "attrs": {
+        "targetname": "info_null177"
+      }
+    },
+    {
+      "id": 314,
+      "classname": "info_null",
+      "x": -912.0,
+      "y": 1200.0,
+      "z": 244.0,
+      "attrs": {
+        "targetname": "info_null178"
+      }
+    },
+    {
+      "id": 315,
+      "classname": "info_null",
+      "x": -880.0,
+      "y": 1200.0,
+      "z": 244.0,
+      "attrs": {
+        "targetname": "info_null179"
+      }
+    },
+    {
+      "id": 316,
+      "classname": "info_null",
+      "x": -880.0,
+      "y": 1264.0,
+      "z": 244.0,
+      "attrs": {
+        "targetname": "info_null176"
+      }
+    },
+    {
+      "id": 317,
+      "classname": "info_null",
+      "x": -1244.0,
+      "y": 924.0,
+      "z": 224.0,
+      "attrs": {
+        "targetname": "info_null169"
+      }
+    },
+    {
+      "id": 318,
+      "classname": "info_null",
+      "x": -1244.0,
+      "y": 924.0,
+      "z": 176.0,
+      "attrs": {
+        "targetname": "info_null170"
+      }
+    },
+    {
+      "id": 319,
+      "classname": "info_null",
+      "x": -1244.0,
+      "y": 924.0,
+      "z": 128.0,
+      "attrs": {
+        "targetname": "info_null171"
+      }
+    },
+    {
+      "id": 320,
+      "classname": "info_null",
+      "x": -1152.0,
+      "y": 600.0,
+      "z": 216.0,
+      "attrs": {
+        "targetname": "info_null172"
+      }
+    },
+    {
+      "id": 321,
+      "classname": "info_null",
+      "x": -800.0,
+      "y": -48.0,
+      "z": 88.0,
+      "attrs": {
+        "targetname": "info_null173"
+      }
+    },
+    {
+      "id": 322,
+      "classname": "info_null",
+      "x": -376.0,
+      "y": -48.0,
+      "z": 40.0,
+      "attrs": {
+        "targetname": "info_null174"
+      }
+    },
+    {
+      "id": 323,
+      "classname": "info_null",
+      "x": -896.0,
+      "y": 1408.0,
+      "z": 224.0,
+      "attrs": {
+        "targetname": "info_null175"
+      }
+    },
+    {
+      "id": 324,
+      "classname": "info_null",
+      "x": -1016.0,
+      "y": -216.0,
+      "z": -320.0,
+      "attrs": {
+        "targetname": "info_null166"
+      }
+    },
+    {
+      "id": 325,
+      "classname": "info_null",
+      "x": -1016.0,
+      "y": -216.0,
+      "z": -240.0,
+      "attrs": {
+        "targetname": "info_null168"
+      }
+    },
+    {
+      "id": 326,
+      "classname": "info_null",
+      "x": -1016.0,
+      "y": -216.0,
+      "z": -280.0,
+      "attrs": {
+        "targetname": "info_null167"
+      }
+    },
+    {
+      "id": 327,
+      "classname": "info_null",
+      "x": -472.0,
+      "y": 2048.0,
+      "z": 192.0,
+      "attrs": {
+        "targetname": "info_null180"
+      }
+    },
+    {
+      "id": 328,
+      "classname": "info_null",
+      "x": -1696.0,
+      "y": 2272.0,
+      "z": 212.0,
+      "attrs": {
+        "targetname": "info_null182"
+      }
+    },
+    {
+      "id": 329,
+      "classname": "info_null",
+      "x": -1568.0,
+      "y": 2144.0,
+      "z": 212.0,
+      "attrs": {
+        "targetname": "info_null181"
+      }
+    },
+    {
+      "id": 330,
+      "classname": "info_null",
+      "x": -136.0,
+      "y": -96.0,
+      "z": -232.0,
+      "attrs": {
+        "targetname": "info_null183"
+      }
+    },
+    {
+      "id": 331,
+      "classname": "info_null",
+      "x": -136.0,
+      "y": -288.0,
+      "z": -232.0,
+      "attrs": {
+        "targetname": "info_null184"
+      }
+    },
+    {
+      "id": 332,
+      "classname": "info_null",
+      "x": -536.0,
+      "y": -48.0,
+      "z": 104.0,
+      "attrs": {
+        "targetname": "info_null187"
+      }
+    },
+    {
+      "id": 333,
+      "classname": "info_null",
+      "x": -1536.0,
+      "y": 2608.0,
+      "z": 152.0,
+      "attrs": {
+        "targetname": "info_null189"
+      }
+    },
+    {
+      "id": 334,
+      "classname": "info_null",
+      "x": -1536.0,
+      "y": 2608.0,
+      "z": 104.0,
+      "attrs": {
+        "targetname": "info_null190"
+      }
+    },
+    {
+      "id": 335,
+      "classname": "info_null",
+      "x": -1492.0,
+      "y": -156.0,
+      "z": 348.0,
+      "attrs": {
+        "targetname": "info_null191"
+      }
+    },
+    {
+      "id": 336,
+      "classname": "info_null",
+      "x": -1518.0,
+      "y": -46.0,
+      "z": 348.0,
+      "attrs": {
+        "targetname": "info_null192"
+      }
+    },
+    {
+      "id": 337,
+      "classname": "info_null",
+      "x": -1400.0,
+      "y": 1856.0,
+      "z": 104.0,
+      "attrs": {
+        "targetname": "info_null193"
+      }
+    },
+    {
+      "id": 338,
+      "classname": "info_null",
+      "x": -1400.0,
+      "y": 1760.0,
+      "z": 104.0,
+      "attrs": {
+        "targetname": "info_null194"
+      }
+    },
+    {
+      "id": 339,
+      "classname": "target_location",
+      "x": -544.0,
+      "y": 1440.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "^1Pre-RA^7"
+      }
+    },
+    {
+      "id": 340,
+      "classname": "target_location",
+      "x": -1600.0,
+      "y": 2240.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "^1RA^7"
+      }
+    },
+    {
+      "id": 341,
+      "classname": "target_location",
+      "x": -896.0,
+      "y": 2368.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "^1RA^7"
+      }
+    },
+    {
+      "id": 342,
+      "classname": "target_location",
+      "x": -512.0,
+      "y": 1856.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "^1RA^7"
+      }
+    },
+    {
+      "id": 343,
+      "classname": "target_location",
+      "x": -896.0,
+      "y": 1856.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "^1RA^7"
+      }
+    },
+    {
+      "id": 344,
+      "classname": "target_location",
+      "x": -1248.0,
+      "y": 1856.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "^1RA^7"
+      }
+    },
+    {
+      "id": 345,
+      "classname": "target_location",
+      "x": -1280.0,
+      "y": 1344.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "^1Pre-RA^7"
+      }
+    },
+    {
+      "id": 346,
+      "classname": "target_location",
+      "x": -896.0,
+      "y": 1280.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "^1Pre-RA^7"
+      }
+    },
+    {
+      "id": 347,
+      "classname": "target_location",
+      "x": -896.0,
+      "y": 864.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "High PG"
+      }
+    },
+    {
+      "id": 348,
+      "classname": "target_location",
+      "x": -1184.0,
+      "y": 832.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "PG"
+      }
+    },
+    {
+      "id": 349,
+      "classname": "target_location",
+      "x": -1152.0,
+      "y": 192.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "Yard"
+      }
+    },
+    {
+      "id": 350,
+      "classname": "target_location",
+      "x": -832.0,
+      "y": -256.0,
+      "z": 320.0,
+      "attrs": {
+        "message": "Yard"
+      }
+    },
+    {
+      "id": 351,
+      "classname": "target_location",
+      "x": -800.0,
+      "y": 304.0,
+      "z": 192.0,
+      "attrs": {
+        "message": "Yard"
+      }
+    },
+    {
+      "id": 352,
+      "classname": "target_location",
+      "x": -96.0,
+      "y": 432.0,
+      "z": 320.0,
+      "attrs": {
+        "message": "^5Quad^7"
+      }
+    },
+    {
+      "id": 353,
+      "classname": "target_location",
+      "x": -352.0,
+      "y": 176.0,
+      "z": 320.0,
+      "attrs": {
+        "message": "^5Quad^7"
+      }
+    },
+    {
+      "id": 354,
+      "classname": "target_location",
+      "x": 64.0,
+      "y": 96.0,
+      "z": 320.0,
+      "attrs": {
+        "message": "^5Quad^7"
+      }
+    },
+    {
+      "id": 355,
+      "classname": "target_location",
+      "x": 416.0,
+      "y": 96.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "^5Quad^7"
+      }
+    },
+    {
+      "id": 356,
+      "classname": "target_location",
+      "x": 416.0,
+      "y": -256.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "^5Quad^7"
+      }
+    },
+    {
+      "id": 357,
+      "classname": "target_location",
+      "x": -32.0,
+      "y": -704.0,
+      "z": 256.0,
+      "attrs": {
+        "message": "^5Quad^7"
+      }
+    },
+    {
+      "id": 358,
+      "classname": "target_location",
+      "x": 192.0,
+      "y": -128.0,
+      "z": 32.0,
+      "attrs": {
+        "message": "^5Quad^7"
+      }
+    },
+    {
+      "id": 359,
+      "classname": "target_location",
+      "x": -512.0,
+      "y": -256.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "Low RL"
+      }
+    },
+    {
+      "id": 360,
+      "classname": "target_location",
+      "x": -480.0,
+      "y": -480.0,
+      "z": 128.0,
+      "attrs": {
+        "message": "Low RL"
+      }
+    },
+    {
+      "id": 361,
+      "classname": "target_location",
+      "x": -32.0,
+      "y": -320.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "^5Quad^7"
+      }
+    },
+    {
+      "id": 362,
+      "classname": "target_location",
+      "x": -480.0,
+      "y": -928.0,
+      "z": 224.0,
+      "attrs": {
+        "message": "Low RL"
+      }
+    },
+    {
+      "id": 363,
+      "classname": "target_location",
+      "x": -1536.0,
+      "y": 96.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "Yard"
+      }
+    },
+    {
+      "id": 364,
+      "classname": "target_location",
+      "x": -1632.0,
+      "y": 384.0,
+      "z": 256.0,
+      "attrs": {
+        "message": "^3High YA^7"
+      }
+    },
+    {
+      "id": 365,
+      "classname": "target_location",
+      "x": -2048.0,
+      "y": 384.0,
+      "z": 320.0,
+      "attrs": {
+        "message": "^3High YA^7"
+      }
+    },
+    {
+      "id": 366,
+      "classname": "target_location",
+      "x": -1448.0,
+      "y": 896.0,
+      "z": 64.0,
+      "attrs": {
+        "message": "^7LG"
+      }
+    },
+    {
+      "id": 367,
+      "classname": "target_location",
+      "x": -1504.0,
+      "y": 1312.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "Balcony"
+      }
+    },
+    {
+      "id": 368,
+      "classname": "target_location",
+      "x": -1504.0,
+      "y": 832.0,
+      "z": 256.0,
+      "attrs": {
+        "message": "Balcony"
+      }
+    },
+    {
+      "id": 369,
+      "classname": "target_location",
+      "x": -1504.0,
+      "y": 1120.0,
+      "z": 288.0,
+      "attrs": {
+        "message": "Balcony"
+      }
+    },
+    {
+      "id": 370,
+      "classname": "target_location",
+      "x": -1984.0,
+      "y": 736.0,
+      "z": 32.0,
+      "attrs": {
+        "message": "^7LG"
+      }
+    },
+    {
+      "id": 371,
+      "classname": "target_location",
+      "x": -1600.0,
+      "y": 2240.0,
+      "z": -288.0,
+      "attrs": {
+        "message": "^3BS^7"
+      }
+    },
+    {
+      "id": 372,
+      "classname": "target_location",
+      "x": -1728.0,
+      "y": 928.0,
+      "z": -256.0,
+      "attrs": {
+        "message": "^3BS^7"
+      }
+    },
+    {
+      "id": 373,
+      "classname": "target_location",
+      "x": -384.0,
+      "y": 256.0,
+      "z": -96.0,
+      "attrs": {
+        "message": "RG"
+      }
+    },
+    {
+      "id": 374,
+      "classname": "target_location",
+      "x": -1984.0,
+      "y": 1472.0,
+      "z": -256.0,
+      "attrs": {
+        "message": "^3BS^7"
+      }
+    },
+    {
+      "id": 375,
+      "classname": "target_location",
+      "x": -1728.0,
+      "y": 1472.0,
+      "z": -256.0,
+      "attrs": {
+        "message": "^3BS^7"
+      }
+    },
+    {
+      "id": 376,
+      "classname": "target_location",
+      "x": -1376.0,
+      "y": 1248.0,
+      "z": -256.0,
+      "attrs": {
+        "message": "^3BS^7"
+      }
+    },
+    {
+      "id": 377,
+      "classname": "target_location",
+      "x": -608.0,
+      "y": 1248.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "Lift"
+      }
+    },
+    {
+      "id": 378,
+      "classname": "target_location",
+      "x": -1088.0,
+      "y": 1248.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "Lift"
+      }
+    },
+    {
+      "id": 379,
+      "classname": "target_location",
+      "x": -1088.0,
+      "y": 992.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "Lift"
+      }
+    },
+    {
+      "id": 380,
+      "classname": "target_location",
+      "x": -864.0,
+      "y": 992.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "Lift"
+      }
+    },
+    {
+      "id": 381,
+      "classname": "target_location",
+      "x": -864.0,
+      "y": 1248.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "Lift"
+      }
+    },
+    {
+      "id": 382,
+      "classname": "target_location",
+      "x": -608.0,
+      "y": 992.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "Lift"
+      }
+    },
+    {
+      "id": 383,
+      "classname": "target_location",
+      "x": -384.0,
+      "y": 256.0,
+      "z": -224.0,
+      "attrs": {
+        "message": "RG"
+      }
+    },
+    {
+      "id": 384,
+      "classname": "target_location",
+      "x": 288.0,
+      "y": 544.0,
+      "z": -32.0,
+      "attrs": {
+        "message": "^3Low YA^7"
+      }
+    },
+    {
+      "id": 385,
+      "classname": "target_location",
+      "x": -640.0,
+      "y": 256.0,
+      "z": -96.0,
+      "attrs": {
+        "message": "RG"
+      }
+    },
+    {
+      "id": 386,
+      "classname": "target_location",
+      "x": -640.0,
+      "y": 288.0,
+      "z": -224.0,
+      "attrs": {
+        "message": "RG"
+      }
+    },
+    {
+      "id": 387,
+      "classname": "target_location",
+      "x": -640.0,
+      "y": 576.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "RG"
+      }
+    },
+    {
+      "id": 388,
+      "classname": "target_location",
+      "x": -384.0,
+      "y": 576.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "RG"
+      }
+    },
+    {
+      "id": 389,
+      "classname": "target_location",
+      "x": -224.0,
+      "y": 576.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "RG"
+      }
+    },
+    {
+      "id": 390,
+      "classname": "target_location",
+      "x": 192.0,
+      "y": 768.0,
+      "z": -32.0,
+      "attrs": {
+        "message": "^3Low YA^7"
+      }
+    },
+    {
+      "id": 391,
+      "classname": "target_location",
+      "x": 264.0,
+      "y": 232.0,
+      "z": -192.0,
+      "attrs": {
+        "message": "Quad Sewer"
+      }
+    },
+    {
+      "id": 392,
+      "classname": "target_location",
+      "x": 192.0,
+      "y": 64.0,
+      "z": -320.0,
+      "attrs": {
+        "message": "Quad Sewer"
+      }
+    },
+    {
+      "id": 393,
+      "classname": "target_location",
+      "x": -768.0,
+      "y": -224.0,
+      "z": -320.0,
+      "attrs": {
+        "message": "Quad Sewer"
+      }
+    },
+    {
+      "id": 394,
+      "classname": "target_location",
+      "x": -960.0,
+      "y": -160.0,
+      "z": -320.0,
+      "attrs": {
+        "message": "^4MH^7"
+      }
+    },
+    {
+      "id": 395,
+      "classname": "target_location",
+      "x": -1024.0,
+      "y": 32.0,
+      "z": -320.0,
+      "attrs": {
+        "message": "^4MH^7"
+      }
+    },
+    {
+      "id": 396,
+      "classname": "target_location",
+      "x": -1344.0,
+      "y": 512.0,
+      "z": -256.0,
+      "attrs": {
+        "message": "^4MH^7"
+      }
+    },
+    {
+      "id": 397,
+      "classname": "target_location",
+      "x": -1728.0,
+      "y": 336.0,
+      "z": -256.0,
+      "attrs": {
+        "message": "^4MH^7"
+      }
+    },
+    {
+      "id": 398,
+      "classname": "target_location",
+      "x": 32.0,
+      "y": 608.0,
+      "z": -96.0,
+      "attrs": {
+        "message": "^3Low YA^7"
+      }
+    },
+    {
+      "id": 399,
+      "classname": "info_null",
+      "x": -1408.0,
+      "y": -312.0,
+      "z": 344.0,
+      "attrs": {
+        "targetname": "info_null197"
+      }
+    },
+    {
+      "id": 400,
+      "classname": "info_player_intermission",
+      "x": -1664.0,
+      "y": 1920.0,
+      "z": -132.0,
+      "attrs": {
+        "angle": "-162.930084",
+        "target": "info_notnull1"
+      }
+    },
+    {
+      "id": 401,
+      "classname": "info_notnull",
+      "x": -1684.0,
+      "y": 1884.0,
+      "z": -136.0,
+      "attrs": {
+        "targetname": "info_notnull1"
+      }
+    },
+    {
+      "id": 402,
+      "classname": "target_location",
+      "x": -320.0,
+      "y": -288.0,
+      "z": -288.0,
+      "attrs": {
+        "message": "Quad Sewer"
+      }
+    },
+    {
+      "id": 403,
+      "classname": "target_location",
+      "x": -1040.0,
+      "y": 320.0,
+      "z": -256.0,
+      "attrs": {
+        "message": "^4MH^7"
+      }
+    },
+    {
+      "id": 404,
+      "classname": "info_null",
+      "x": 272.0,
+      "y": 488.0,
+      "z": -116.0,
+      "attrs": {
+        "targetname": "info_null12"
+      }
+    },
+    {
+      "id": 405,
+      "classname": "info_null",
+      "x": -776.0,
+      "y": -264.0,
+      "z": 424.0,
+      "attrs": {
+        "targetname": "info_null198"
+      }
+    },
+    {
+      "id": 406,
+      "classname": "info_null",
+      "x": -2080.0,
+      "y": 16.0,
+      "z": 336.0,
+      "attrs": {
+        "targetname": "info_null185"
+      }
+    },
+    {
+      "id": 407,
+      "classname": "target_speaker",
+      "x": -1360.0,
+      "y": 16.0,
+      "z": 244.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 409,
+      "classname": "target_speaker",
+      "x": -2312.0,
+      "y": 96.0,
+      "z": 312.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/tim_elect.wav"
+      }
+    },
+    {
+      "id": 410,
+      "classname": "target_speaker",
+      "x": -336.0,
+      "y": -416.0,
+      "z": 400.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/tim_elect.wav"
+      }
+    },
+    {
+      "id": 411,
+      "classname": "target_speaker",
+      "x": -704.0,
+      "y": -536.0,
+      "z": 24.0,
+      "attrs": {
+        "noise": "sound/world/fan4.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 412,
+      "classname": "target_speaker",
+      "x": -832.0,
+      "y": 560.0,
+      "z": 320.0,
+      "attrs": {
+        "noise": "sound/world/fan4.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 413,
+      "classname": "target_speaker",
+      "x": -896.0,
+      "y": 1672.0,
+      "z": 104.0,
+      "attrs": {
+        "noise": "sound/world/fan4.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 414,
+      "classname": "target_speaker",
+      "x": -1248.0,
+      "y": 928.0,
+      "z": 160.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 415,
+      "classname": "target_speaker",
+      "x": -1400.0,
+      "y": 824.0,
+      "z": 96.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 416,
+      "classname": "target_speaker",
+      "x": 16.0,
+      "y": 320.0,
+      "z": -320.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_machinery_04_short.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 417,
+      "classname": "target_speaker",
+      "x": -320.0,
+      "y": -96.0,
+      "z": -360.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_machinery_03.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 418,
+      "classname": "target_speaker",
+      "x": 352.0,
+      "y": -96.0,
+      "z": -192.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_machinery_03.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 419,
+      "classname": "target_speaker",
+      "x": -384.0,
+      "y": -320.0,
+      "z": -512.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_water_07.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 420,
+      "classname": "target_speaker",
+      "x": -1040.0,
+      "y": 320.0,
+      "z": -512.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_water_07.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 421,
+      "classname": "target_speaker",
+      "x": -896.0,
+      "y": 2080.0,
+      "z": 320.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 422,
+      "classname": "target_speaker",
+      "x": -2304.0,
+      "y": 384.0,
+      "z": 544.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 423,
+      "classname": "target_speaker",
+      "x": -1568.0,
+      "y": 2272.0,
+      "z": 320.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 424,
+      "classname": "target_speaker",
+      "x": -352.0,
+      "y": 2080.0,
+      "z": -192.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_water_07.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 425,
+      "classname": "target_speaker",
+      "x": -896.0,
+      "y": 2208.0,
+      "z": 288.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_kennethlight_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 426,
+      "classname": "target_speaker",
+      "x": -704.0,
+      "y": 2080.0,
+      "z": -192.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_water_07.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 427,
+      "classname": "target_speaker",
+      "x": -896.0,
+      "y": 1528.0,
+      "z": 160.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_bgnoise_02.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 428,
+      "classname": "target_speaker",
+      "x": -320.0,
+      "y": 1464.0,
+      "z": 112.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_machinery_03.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 429,
+      "classname": "target_speaker",
+      "x": -1984.0,
+      "y": 1792.0,
+      "z": -64.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 430,
+      "classname": "target_speaker",
+      "x": -1216.0,
+      "y": 288.0,
+      "z": 640.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 431,
+      "classname": "target_speaker",
+      "x": -528.0,
+      "y": -512.0,
+      "z": 512.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 432,
+      "classname": "target_speaker",
+      "x": -32.0,
+      "y": -736.0,
+      "z": 480.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 433,
+      "classname": "target_speaker",
+      "x": 96.0,
+      "y": 96.0,
+      "z": 608.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 434,
+      "classname": "target_speaker",
+      "x": 424.0,
+      "y": -264.0,
+      "z": 296.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_electric_hum_01.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 435,
+      "classname": "target_speaker",
+      "x": -376.0,
+      "y": 384.0,
+      "z": 300.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_neonlight_buzz_quieter.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 436,
+      "classname": "target_speaker",
+      "x": -224.0,
+      "y": 520.0,
+      "z": 300.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_machinery_04_short.wav",
+        "angle": "-90.000000"
+      }
+    },
+    {
+      "id": 437,
+      "classname": "target_speaker",
+      "x": 192.0,
+      "y": 1024.0,
+      "z": -80.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/tim_elect.wav"
+      }
+    },
+    {
+      "id": 438,
+      "classname": "target_speaker",
+      "x": -992.0,
+      "y": 1216.0,
+      "z": -448.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_water_07.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 439,
+      "classname": "info_null",
+      "x": -192.0,
+      "y": 224.0,
+      "z": -244.0,
+      "attrs": {
+        "targetname": "info_null186"
+      }
+    },
+    {
+      "id": 440,
+      "classname": "target_speaker",
+      "x": -1248.0,
+      "y": 2648.0,
+      "z": 88.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/tim_elect.wav"
+      }
+    },
+    {
+      "id": 441,
+      "classname": "ammo_slugs",
+      "x": -384.0,
+      "y": -160.0,
+      "z": 64.0,
+      "alias": "rg_ammo_quad_sewer",
+      "alias_source": "auto"
+    },
+    {
+      "id": 442,
+      "classname": "item_armor_shard",
+      "x": -928.0,
+      "y": -96.0,
+      "z": 296.0,
+      "alias": "shard_4mh_7_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 443,
+      "classname": "item_armor_shard",
+      "x": -928.0,
+      "y": -72.0,
+      "z": 296.0,
+      "alias": "shard_4mh_7_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 444,
+      "classname": "target_position",
+      "x": -2080.0,
+      "y": 0.0,
+      "z": 336.0,
+      "attrs": {
+        "targetname": "target_position2"
+      }
+    },
+    {
+      "id": 445,
+      "classname": "target_position",
+      "x": -480.0,
+      "y": -1184.0,
+      "z": 256.0,
+      "attrs": {
+        "targetname": "target_position3"
+      }
+    },
+    {
+      "id": 446,
+      "classname": "info_null",
+      "x": -480.0,
+      "y": -1184.0,
+      "z": 304.0,
+      "attrs": {
+        "targetname": "info_null76"
+      }
+    },
+    {
+      "id": 447,
+      "classname": "info_null",
+      "x": -1368.0,
+      "y": 1248.0,
+      "z": -160.0,
+      "attrs": {
+        "targetname": "info_null105"
+      }
+    },
+    {
+      "id": 448,
+      "classname": "info_null",
+      "x": -1424.0,
+      "y": 1248.0,
+      "z": -160.0,
+      "attrs": {
+        "targetname": "info_null106"
+      }
+    },
+    {
+      "id": 449,
+      "classname": "info_null",
+      "x": -504.0,
+      "y": 704.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null129"
+      }
+    },
+    {
+      "id": 450,
+      "classname": "info_null",
+      "x": -624.0,
+      "y": 704.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "info_null130"
+      }
+    },
+    {
+      "id": 451,
+      "classname": "info_null",
+      "x": -856.0,
+      "y": 560.0,
+      "z": 320.0,
+      "attrs": {
+        "targetname": "info_null131"
+      }
+    },
+    {
+      "id": 452,
+      "classname": "info_null",
+      "x": -384.0,
+      "y": -1016.0,
+      "z": 336.0,
+      "attrs": {
+        "targetname": "info_null132"
+      }
+    },
+    {
+      "id": 453,
+      "classname": "target_speaker",
+      "x": 400.0,
+      "y": 480.0,
+      "z": -176.0,
+      "attrs": {
+        "noise": "sound/world/fan4.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 454,
+      "classname": "func_rotating",
+      "x": 420.0,
+      "y": 480.0,
+      "z": -176.0,
+      "attrs": {
+        "spawnflags": "4",
+        "model": "*30"
+      }
+    },
+    {
+      "id": 455,
+      "classname": "info_null",
+      "x": 352.0,
+      "y": 480.0,
+      "z": -176.0,
+      "attrs": {
+        "targetname": "info_null188"
+      }
+    },
+    {
+      "id": 456,
+      "classname": "target_speaker",
+      "x": -1600.0,
+      "y": 2384.0,
+      "z": -256.0,
+      "attrs": {
+        "noise": "sound/world/fan4.wav",
+        "spawnflags": "1",
+        "angle": "90.000000"
+      }
+    },
+    {
+      "id": 457,
+      "classname": "info_null",
+      "x": -1600.0,
+      "y": 2336.0,
+      "z": -248.0,
+      "attrs": {
+        "targetname": "info_null195",
+        "angle": "90.000000"
+      }
+    },
+    {
+      "id": 458,
+      "classname": "func_rotating",
+      "x": -1600.0,
+      "y": 2404.0,
+      "z": -256.0,
+      "attrs": {
+        "spawnflags": "8",
+        "model": "*31"
+      }
+    },
+    {
+      "id": 459,
+      "classname": "team_dom_point",
+      "x": -864.0,
+      "y": 2048.0,
+      "z": -24.0,
+      "attrs": {
+        "identifier": "1",
+        "count": "128",
+        "target": "dom_1_respawn"
+      }
+    },
+    {
+      "id": 460,
+      "classname": "team_CTF_redplayer",
+      "x": -1320.0,
+      "y": 2096.0,
+      "z": -32.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 461,
+      "classname": "team_CTF_redplayer",
+      "x": -1320.0,
+      "y": 2032.0,
+      "z": -32.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 462,
+      "classname": "team_CTF_redplayer",
+      "x": -1320.0,
+      "y": 2160.0,
+      "z": -32.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 463,
+      "classname": "team_CTF_redplayer",
+      "x": -1320.0,
+      "y": 2224.0,
+      "z": -32.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 464,
+      "classname": "team_CTF_redplayer",
+      "x": -656.0,
+      "y": 2064.0,
+      "z": -16.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 465,
+      "classname": "team_CTF_redplayer",
+      "x": -656.0,
+      "y": 2000.0,
+      "z": -16.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 466,
+      "classname": "team_CTF_redplayer",
+      "x": -656.0,
+      "y": 2128.0,
+      "z": -16.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 467,
+      "classname": "team_CTF_redplayer",
+      "x": -656.0,
+      "y": 2192.0,
+      "z": -16.0,
+      "attrs": {
+        "angle": "-179.999985",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 468,
+      "classname": "team_dom_point",
+      "x": -416.0,
+      "y": 128.0,
+      "z": 280.0,
+      "attrs": {
+        "identifier": "2",
+        "count": "128",
+        "target": "dom_2_respawn"
+      }
+    },
+    {
+      "id": 469,
+      "classname": "team_CTF_blueplayer",
+      "x": -256.0,
+      "y": -440.0,
+      "z": -352.0,
+      "attrs": {
+        "angle": "90.000000",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 470,
+      "classname": "team_CTF_blueplayer",
+      "x": -576.0,
+      "y": -432.0,
+      "z": -352.0,
+      "attrs": {
+        "angle": "90.000000",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 472,
+      "classname": "team_dom_point",
+      "x": -384.0,
+      "y": -320.0,
+      "z": -360.0,
+      "attrs": {
+        "identifier": "3",
+        "count": "128",
+        "target": "dom_3_respawn"
+      }
+    },
+    {
+      "id": 473,
+      "classname": "team_CTF_blueplayer",
+      "x": -512.0,
+      "y": -440.0,
+      "z": -352.0,
+      "attrs": {
+        "angle": "90.000000",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 474,
+      "classname": "team_CTF_blueplayer",
+      "x": -448.0,
+      "y": -440.0,
+      "z": -352.0,
+      "attrs": {
+        "angle": "90.000000",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 475,
+      "classname": "team_CTF_blueplayer",
+      "x": -384.0,
+      "y": -440.0,
+      "z": -352.0,
+      "attrs": {
+        "angle": "90.000000",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 476,
+      "classname": "team_CTF_blueplayer",
+      "x": -320.0,
+      "y": -440.0,
+      "z": -352.0,
+      "attrs": {
+        "angle": "90.000000",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 477,
+      "classname": "team_CTF_blueplayer",
+      "x": -216.0,
+      "y": -24.0,
+      "z": -352.0,
+      "attrs": {
+        "angle": "-90",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 478,
+      "classname": "team_CTF_blueplayer",
+      "x": -152.0,
+      "y": -24.0,
+      "z": -352.0,
+      "attrs": {
+        "angle": "-90",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 479,
+      "classname": "item_botroam",
+      "x": -544.0,
+      "y": 1272.0,
+      "z": -208.0,
+      "attrs": {
+        "weight": "10"
+      },
+      "alias": "botroam_lift",
+      "alias_source": "auto"
+    },
+    {
+      "id": 484,
+      "classname": "item_armor_shard",
+      "x": -168.0,
+      "y": -136.0,
+      "z": 288.0,
+      "alias": "shard_quad_sewer",
+      "alias_source": "auto"
+    },
+    {
+      "id": 485,
+      "classname": "ammo_pack",
+      "x": -352.0,
+      "y": -1048.0,
+      "z": 292.0,
+      "alias": "ammo_pack_low_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 486,
+      "classname": "ammo_pack",
+      "x": -480.0,
+      "y": -96.0,
+      "z": -316.0,
+      "alias": "ammo_pack_low_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 487,
+      "classname": "ammo_pack",
+      "x": -184.0,
+      "y": -32.0,
+      "z": -316.0,
+      "alias": "ammo_pack_5quad_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 488,
+      "classname": "ammo_pack",
+      "x": -384.0,
+      "y": -160.0,
+      "z": 100.0,
+      "alias": "ammo_pack_quad_sewer",
+      "alias_source": "auto"
+    },
+    {
+      "id": 489,
+      "classname": "ammo_pack",
+      "x": -904.0,
+      "y": 152.0,
+      "z": 204.0,
+      "alias": "ammo_pack_4mh_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 490,
+      "classname": "ammo_pack",
+      "x": 344.0,
+      "y": 496.0,
+      "z": -140.0,
+      "alias": "ammo_pack_3low_ya_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 491,
+      "classname": "ammo_pack",
+      "x": -1120.0,
+      "y": 908.0,
+      "z": -156.0,
+      "alias": "ammo_pack_lift_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 492,
+      "classname": "ammo_pack",
+      "x": -40.0,
+      "y": 800.0,
+      "z": -92.0,
+      "alias": "ammo_pack_3low_ya_7_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 493,
+      "classname": "ammo_pack",
+      "x": -672.0,
+      "y": 1184.0,
+      "z": 140.0,
+      "alias": "ammo_pack_lift_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 494,
+      "classname": "ammo_pack",
+      "x": -1576.0,
+      "y": 1256.0,
+      "z": 292.0,
+      "alias": "ammo_pack_balcony",
+      "alias_source": "auto"
+    },
+    {
+      "id": 495,
+      "classname": "ammo_pack",
+      "x": -1504.0,
+      "y": 1576.0,
+      "z": 164.0,
+      "alias": "ammo_pack_3bs_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 496,
+      "classname": "ammo_pack",
+      "x": -416.0,
+      "y": 2080.0,
+      "z": 36.0,
+      "alias": "ammo_pack_1ra_7",
+      "alias_source": "auto"
+    },
+    {
+      "id": 497,
+      "classname": "ammo_pack",
+      "x": -1704.0,
+      "y": 2208.0,
+      "z": 164.0,
+      "alias": "ammo_pack_1ra_7_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 498,
+      "classname": "ammo_pack",
+      "x": -1600.0,
+      "y": 2344.0,
+      "z": -252.0,
+      "alias": "ammo_pack_1ra_7_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 499,
+      "classname": "ammo_pack",
+      "x": -1576.0,
+      "y": 2560.0,
+      "z": 164.0,
+      "alias": "ammo_pack_1ra_7_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 500,
+      "classname": "ammo_pack",
+      "x": -1948.0,
+      "y": 936.0,
+      "z": 356.0,
+      "alias": "ammo_pack_7lg",
+      "alias_source": "auto"
+    }
+  ],
+  "by_classname": {
+    "target_position": [
+      2,
+      4,
+      9,
+      444,
+      445
+    ],
+    "item_health_mega": [
+      3
+    ],
+    "item_enviro": [
+      5
+    ],
+    "item_armor_combat": [
+      6,
+      7
+    ],
+    "weapon_lightning": [
+      8
+    ],
+    "weapon_railgun": [
+      10
+    ],
+    "item_armor_shard": [
+      14,
+      15,
+      16,
+      17,
+      44,
+      45,
+      46,
+      47,
+      85,
+      86,
+      94,
+      95,
+      113,
+      114,
+      131,
+      132,
+      442,
+      443,
+      484
+    ],
+    "misc_teleporter_dest": [
+      19,
+      20,
+      92
+    ],
+    "misc_portal_surface": [
+      22,
+      24
+    ],
+    "misc_portal_camera": [
+      23,
+      25
+    ],
+    "target_speaker": [
+      26,
+      133,
+      134,
+      137,
+      138,
+      139,
+      140,
+      141,
+      228,
+      229,
+      230,
+      231,
+      232,
+      233,
+      234,
+      281,
+      407,
+      409,
+      410,
+      411,
+      412,
+      413,
+      414,
+      415,
+      416,
+      417,
+      418,
+      419,
+      420,
+      421,
+      422,
+      423,
+      424,
+      425,
+      426,
+      427,
+      428,
+      429,
+      430,
+      431,
+      432,
+      433,
+      434,
+      435,
+      436,
+      437,
+      438,
+      440,
+      453,
+      456
+    ],
+    "target_remove_powerups": [
+      27
+    ],
+    "item_armor_jacket": [
+      31
+    ],
+    "target_push": [
+      33,
+      91,
+      117
+    ],
+    "item_armor_body": [
+      34
+    ],
+    "ammo_lightning": [
+      36,
+      60,
+      89
+    ],
+    "ammo_cells": [
+      37,
+      59,
+      72,
+      77
+    ],
+    "ammo_shells": [
+      38,
+      49,
+      62,
+      78
+    ],
+    "ammo_bullets": [
+      39,
+      61,
+      127
+    ],
+    "item_health_large": [
+      40
+    ],
+    "ammo_rockets": [
+      41,
+      51,
+      76,
+      83
+    ],
+    "item_health": [
+      42,
+      43,
+      48,
+      52,
+      53,
+      63,
+      67,
+      68,
+      69,
+      79,
+      84,
+      115,
+      128
+    ],
+    "ammo_pack": [
+      50,
+      485,
+      486,
+      487,
+      488,
+      489,
+      490,
+      491,
+      492,
+      493,
+      494,
+      495,
+      496,
+      497,
+      498,
+      499,
+      500
+    ],
+    "weapon_shotgun": [
+      54,
+      64
+    ],
+    "weapon_rocketlauncher": [
+      55,
+      66
+    ],
+    "item_health_small": [
+      56,
+      57,
+      58,
+      73,
+      74,
+      80,
+      81,
+      82,
+      87,
+      88,
+      129,
+      130
+    ],
+    "weapon_plasmagun": [
+      65
+    ],
+    "weapon_grenadelauncher": [
+      70
+    ],
+    "ammo_grenades": [
+      71,
+      75
+    ],
+    "info_player_deathmatch": [
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      125,
+      126
+    ],
+    "func_rotating": [
+      120,
+      135,
+      454,
+      458
+    ],
+    "item_quad": [
+      136
+    ],
+    "info_null": [
+      142,
+      146,
+      147,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      169,
+      170,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180,
+      181,
+      182,
+      183,
+      184,
+      185,
+      186,
+      187,
+      188,
+      189,
+      190,
+      191,
+      192,
+      193,
+      194,
+      195,
+      196,
+      197,
+      198,
+      199,
+      200,
+      201,
+      202,
+      203,
+      204,
+      205,
+      206,
+      207,
+      208,
+      209,
+      210,
+      211,
+      212,
+      213,
+      214,
+      215,
+      216,
+      217,
+      218,
+      219,
+      220,
+      221,
+      222,
+      223,
+      224,
+      225,
+      226,
+      227,
+      235,
+      236,
+      237,
+      238,
+      239,
+      240,
+      241,
+      242,
+      243,
+      244,
+      245,
+      246,
+      247,
+      248,
+      249,
+      250,
+      251,
+      252,
+      253,
+      254,
+      255,
+      256,
+      257,
+      258,
+      259,
+      260,
+      261,
+      262,
+      263,
+      267,
+      268,
+      269,
+      270,
+      271,
+      272,
+      273,
+      274,
+      275,
+      276,
+      277,
+      278,
+      279,
+      280,
+      282,
+      283,
+      284,
+      285,
+      286,
+      287,
+      288,
+      289,
+      290,
+      291,
+      292,
+      293,
+      294,
+      295,
+      296,
+      297,
+      298,
+      299,
+      300,
+      301,
+      302,
+      303,
+      304,
+      305,
+      306,
+      307,
+      308,
+      309,
+      310,
+      311,
+      312,
+      313,
+      314,
+      315,
+      316,
+      317,
+      318,
+      319,
+      320,
+      321,
+      322,
+      323,
+      324,
+      325,
+      326,
+      327,
+      328,
+      329,
+      330,
+      331,
+      332,
+      333,
+      334,
+      335,
+      336,
+      337,
+      338,
+      399,
+      404,
+      405,
+      406,
+      439,
+      446,
+      447,
+      448,
+      449,
+      450,
+      451,
+      452,
+      455,
+      457
+    ],
+    "target_location": [
+      339,
+      340,
+      341,
+      342,
+      343,
+      344,
+      345,
+      346,
+      347,
+      348,
+      349,
+      350,
+      351,
+      352,
+      353,
+      354,
+      355,
+      356,
+      357,
+      358,
+      359,
+      360,
+      361,
+      362,
+      363,
+      364,
+      365,
+      366,
+      367,
+      368,
+      369,
+      370,
+      371,
+      372,
+      373,
+      374,
+      375,
+      376,
+      377,
+      378,
+      379,
+      380,
+      381,
+      382,
+      383,
+      384,
+      385,
+      386,
+      387,
+      388,
+      389,
+      390,
+      391,
+      392,
+      393,
+      394,
+      395,
+      396,
+      397,
+      398,
+      402,
+      403
+    ],
+    "info_player_intermission": [
+      400
+    ],
+    "info_notnull": [
+      401
+    ],
+    "ammo_slugs": [
+      441
+    ],
+    "team_dom_point": [
+      459,
+      468,
+      472
+    ],
+    "team_CTF_redplayer": [
+      460,
+      461,
+      462,
+      463,
+      464,
+      465,
+      466,
+      467
+    ],
+    "team_CTF_blueplayer": [
+      469,
+      470,
+      473,
+      474,
+      475,
+      476,
+      477,
+      478
+    ],
+    "item_botroam": [
+      479
+    ]
+  },
+  "teleports": {
+    "exit_count": 0,
+    "pair_count": 0,
+    "pairs": [],
+    "exits": []
+  }
+}

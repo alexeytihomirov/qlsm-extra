@@ -1,0 +1,90 @@
+---
+# Deploys the external qlmatch-packer (assets/ in this addon -> /home/ql/
+# qlmatch-packer/ on the host) and the Node.js runtime it needs.
+# demo_native_autorecord.py launches it as a separate process after every
+# finished native-demo match (demo_match_finalized) to build the .qlmatch
+# package, render the operator's filename template, and deliver the result
+# via rclone.
+#
+# Run by this addon's host.payload_sync handler (backend.py) after a
+# successful ansible_host_setup.py / ansible_plugin_update.py run -- same
+# dual wiring core's own tasks/sync_common_plugins.yml gets, now via the
+# addon hook instead of an import_tasks core owned.
+#
+# Node >= 22 comes from NodeSource, NOT Debian's own nodejs package: the
+# packer's vendored parser (vendor/qldemo/huffman.js) uses
+# `import ... with { type: "json" }`, which Debian 12's nodejs 18 cannot
+# parse. rclone is deliberately NOT installed here - remotes hold operator
+# credentials, so installing/configuring rclone stays a manual operator
+# step (rclone config); the packer just skips delivery of targets it
+# cannot reach and logs it.
+
+- name: Deploy external qlmatch-packer + Node.js runtime
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  tasks:
+    - name: Check installed node version
+      command: node --version
+      register: qlmatch_node_version
+      changed_when: false
+      failed_when: false
+
+    - name: Add NodeSource repo key (node too old or missing)
+      when: qlmatch_node_version.rc != 0 or
+            ((qlmatch_node_version.stdout | regex_replace('^v', '')).split('.') | first | int) < 22
+      shell: |
+        set -e
+        mkdir -p /usr/share/keyrings
+        curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor --yes -o /usr/share/keyrings/nodesource.gpg
+        echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
+      args:
+        executable: /bin/bash
+
+    - name: Install Node.js 22 from NodeSource
+      when: qlmatch_node_version.rc != 0 or
+            ((qlmatch_node_version.stdout | regex_replace('^v', '')).split('.') | first | int) < 22
+      apt:
+        update_cache: yes
+        pkg:
+          - nodejs
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Check if local qlmatch-packer directory exists
+      stat:
+        path: "{{ playbook_dir }}/../assets"
+      delegate_to: localhost
+      register: local_qlmatch_packer_stat
+      become: no
+
+    - name: Sync qlmatch-packer to the host
+      synchronize:
+        src: "{{ playbook_dir }}/../assets/"
+        dest: "/home/ql/qlmatch-packer/"
+        private_key: "{{ ansible_ssh_private_key_file }}"
+        archive: yes
+        recursive: yes
+        delete: yes
+      when: local_qlmatch_packer_stat.stat.exists and local_qlmatch_packer_stat.stat.isdir
+
+    - name: Ensure correct ownership of qlmatch-packer
+      file:
+        path: "/home/ql/qlmatch-packer"
+        owner: ql
+        group: ql
+        recurse: yes
+        state: directory
+      when: local_qlmatch_packer_stat.stat.exists and local_qlmatch_packer_stat.stat.isdir
+
+    - name: Check whether rclone is available (delivery is optional)
+      command: rclone version
+      register: qlmatch_rclone_check
+      changed_when: false
+      failed_when: false
+
+    - name: Warn when rclone is missing
+      debug:
+        msg: "QLMATCH_PACKER_WARN: rclone is not installed on this host - .qlmatch delivery targets (qlx_qlmatchRcloneTargets) will fail until the operator installs and configures rclone."
+      when: qlmatch_rclone_check.rc != 0

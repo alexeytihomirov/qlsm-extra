@@ -1,0 +1,62 @@
+{
+  "id": "telemetry-relay",
+  "version": "1.2.0",
+  "name": "Telemetry Relay",
+  "description": "Forwards live match/player/pickup telemetry from each game instance to ql-stats-hub through a per-host relay sidecar.",
+  "scopes": ["global", "host", "instance"],
+  "ui_api": 1,
+
+  "ui": {
+    "icon": "radio",
+
+    "host_menu": [
+      {
+        "id": "relay",
+        "label": "Telemetry Relay",
+        "icon": "radio",
+        "panel": "host_relay"
+      }
+    ],
+    "instance_tabs": [
+      { "id": "telemetry", "label": "Telemetry", "icon": "radio", "panel": "instance_telemetry" }
+    ],
+    "settings_section": {
+      "label": "Telemetry Stats Hub", "icon": "radio", "panel": "global_settings"
+    },
+
+    "panels": {
+      "host_relay": {
+        "kind": "form",
+        "description": "Relay sidecar for this host. Enable it to forward telemetry from every instance on this host to the stats-hub target below (falls back to the cluster-wide default when left blank).",
+        "load": "GET hosts/{host_id}",
+        "submit": "PUT hosts/{host_id}",
+        "fields": [
+          { "key": "enabled", "type": "bool", "label": "Enabled", "default": false, "description": "Deploys and starts the relay sidecar on this host." },
+          { "key": "url_override", "type": "string", "label": "Stats-hub URL override", "placeholder": "https://stats.example", "description": "Leave blank to use the cluster-wide default." },
+          { "key": "ingest_token_override", "type": "secret", "label": "Ingest token override", "description": "Leave blank to use the cluster-wide default." }
+        ]
+      },
+
+      "instance_telemetry": {
+        "kind": "form",
+        "description": "Reserves this instance's cluster-wide stats-hub server ID and points its qlx_statsHub* cvars at the host relay. Requires the relay enabled on the host. Applies config and restarts the instance.",
+        "load": "GET instances/{instance_id}",
+        "submit": "POST instances/{instance_id}/enable",
+        "fields": [
+          { "key": "server_id", "type": "number", "label": "Reserved server ID", "default": 0, "min": 0, "description": "Read-only result of the reservation. 0 means telemetry has never been enabled for this instance. Saving reserves one and applies the config." }
+        ]
+      },
+
+      "global_settings": {
+        "kind": "form",
+        "description": "Cluster-wide stats-hub target. Individual hosts may override both values.",
+        "load": "GET stats-hub",
+        "submit": "PUT stats-hub",
+        "fields": [
+          { "key": "url", "type": "string", "label": "Stats-hub URL", "placeholder": "https://stats.example", "description": "Default ql-stats-hub base URL every host's relay forwards to." },
+          { "key": "ingest_token", "type": "secret", "label": "Ingest token", "description": "STATS_HUB_INGEST_TOKEN, not STATS_HUB_API_TOKEN. The wrong one fails silently with a 401 that trips the circuit breaker on every feed." }
+        ]
+      }
+    }
+  }
+}

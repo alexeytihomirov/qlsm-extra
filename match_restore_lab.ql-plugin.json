@@ -1,0 +1,17 @@
+{
+  "label": "Match Restore Lab",
+  "description": "Optional lab/debug commands for match_restore — item-spawn timers, low-level item entity tools, manual match clock control, single-player state debug. Not used in a real tournament restore; requires match_restore to be loaded.",
+  "commands": [
+    { "name": "spawnsec", "usage": "<alias|list|scan|reset> <seconds> [entity_id]", "permission": 5, "description": "Manages item-spawn timer overrides for the current map." },
+    { "name": "spawnitem", "usage": "<alias|list|scan|reset> <seconds> [entity_id]", "permission": 5, "description": "Alias for !spawnsec." },
+    { "name": "itemlab", "usage": "touch <eid> [cid] | respawn <eid> <sec> | stat <eid>", "permission": 5, "description": "Low-level item-entity tools used while building a checkpoint (touch/respawn/inspect)." },
+    { "name": "itemslot", "usage": "touch <eid> [cid] | respawn <eid> <sec> | stat <eid>", "permission": 5, "description": "Alias for !itemlab." },
+    { "name": "matchtime", "usage": "show | <seconds> | <mm:ss> | ms <milliseconds>", "permission": 5, "description": "Shows or sets the current match clock." },
+    { "name": "setmatchtime", "usage": "show | <seconds> | <mm:ss> | ms <milliseconds>", "permission": 5, "description": "Alias for !matchtime." },
+    { "name": "restoreplayer", "usage": "<client_id|me> <json_or_base64>", "permission": 5, "description": "Restores a single player's state from an exported snapshot." },
+    { "name": "restorepl", "usage": "<client_id|me> <json_or_base64>", "permission": 5, "description": "Alias for !restoreplayer." }
+  ],
+  "cvars": [
+    { "cvar": "qlx_matchRestoreLabEnabled", "label": "Enabled", "description": "Turns the lab/debug command set on or off. Shared with match_restore's own enable flag.", "type": "bool", "default": true }
+  ]
+}

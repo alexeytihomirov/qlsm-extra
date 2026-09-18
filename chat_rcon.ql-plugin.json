@@ -1,0 +1,15 @@
+{
+  "label": "Chat RCON",
+  "description": "!rcon in chat — tiered ACL console passthrough for referees/admins. Pair with chat_rcon_acl.py. Registered at permission 0 but the handler enforces its own ref/admin tiers internally (qlx_chatRconRefPerm / qlx_chatRconAdminPerm).",
+  "commands": [
+    { "name": "rcon", "usage": "<command> [args...]", "permission": 0, "description": "Runs an allow-listed RCON command from chat (tier depends on the caller's own permission level, checked internally)." }
+  ],
+  "cvars": [
+    { "cvar": "qlx_chatRconEnabled", "label": "Enabled", "description": "Turns !rcon on or off entirely.", "type": "bool", "default": true },
+    { "cvar": "qlx_chatRconRefPerm", "label": "Referee Permission Level", "description": "Minimum minqlx permission level treated as a referee tier.", "type": "number", "default": 3, "min": 0, "max": 5 },
+    { "cvar": "qlx_chatRconAdminPerm", "label": "Admin Permission Level", "description": "Minimum minqlx permission level treated as the admin tier.", "type": "number", "default": 5, "min": 0, "max": 5 },
+    { "cvar": "qlx_chatRconRefCommands", "label": "Referee-Allowed Commands", "description": "Comma-separated RCON commands referees are allowed to run.", "type": "string", "default": "pause,unpause,abort,map,teamsize,timelimit,fraglimit,g_password,lock,unlock,allready,forceteam,putteam" },
+    { "cvar": "qlx_chatRconAdminDeny", "label": "Admin-Denied Commands", "description": "Comma-separated RCON commands even admins are not allowed to run.", "type": "string", "default": "quit,rconpassword,exec,vstr,alias,bind,system,devmap" }
+  ],
+  "depends_on": ["chat_rcon_acl.py"]
+}

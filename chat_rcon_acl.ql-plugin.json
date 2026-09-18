@@ -1,0 +1,4 @@
+{
+  "label": "⚠️ chat_rcon helper — DO NOT ENABLE separately",
+  "description": "Pure ACL helper module for chat_rcon.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin — enabling it standalone will error."
+}

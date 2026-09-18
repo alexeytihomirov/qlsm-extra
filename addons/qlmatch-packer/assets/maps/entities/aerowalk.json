@@ -1,0 +1,756 @@
+{
+  "map_name": "aerowalk",
+  "source": "d:\\QuakeLiveData\\pak00\\maps\\aerowalk.bsp",
+  "entity_count": 65,
+  "entities": [
+    {
+      "id": 2,
+      "classname": "item_armor_combat",
+      "x": 784.0,
+      "y": -16.0,
+      "z": 136.0,
+      "alias": "ya_e2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 3,
+      "classname": "item_armor_jacket",
+      "x": -544.0,
+      "y": -304.0,
+      "z": 136.0,
+      "alias": "ga_e3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 4,
+      "classname": "misc_teleporter_dest",
+      "x": 16.0,
+      "y": -464.0,
+      "z": 376.0,
+      "attrs": {
+        "targetname": "rg"
+      }
+    },
+    {
+      "id": 5,
+      "classname": "misc_teleporter_dest",
+      "x": -324.0,
+      "y": -304.0,
+      "z": 144.0,
+      "attrs": {
+        "targetname": "25armour",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 6,
+      "classname": "info_null",
+      "x": -56.0,
+      "y": -144.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "t7"
+      }
+    },
+    {
+      "id": 7,
+      "classname": "info_null",
+      "x": -56.0,
+      "y": -272.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "t6"
+      }
+    },
+    {
+      "id": 8,
+      "classname": "item_health_small",
+      "x": 928.0,
+      "y": -456.0,
+      "z": 136.0,
+      "alias": "hp5_e8",
+      "alias_source": "auto"
+    },
+    {
+      "id": 9,
+      "classname": "info_player_intermission",
+      "x": -32.0,
+      "y": -360.0,
+      "z": 576.0,
+      "attrs": {
+        "target": "cam1",
+        "angle": "45"
+      }
+    },
+    {
+      "id": 10,
+      "classname": "target_position",
+      "x": 56.0,
+      "y": -264.0,
+      "z": 520.0,
+      "attrs": {
+        "targetname": "cam1"
+      }
+    },
+    {
+      "id": 11,
+      "classname": "item_health_small",
+      "x": 928.0,
+      "y": -600.0,
+      "z": 136.0,
+      "alias": "hp5_e11",
+      "alias_source": "auto"
+    },
+    {
+      "id": 12,
+      "classname": "item_health_small",
+      "x": 928.0,
+      "y": -504.0,
+      "z": 136.0,
+      "alias": "hp5_e12",
+      "alias_source": "auto"
+    },
+    {
+      "id": 13,
+      "classname": "target_speaker",
+      "x": 704.0,
+      "y": -640.0,
+      "z": 200.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_telehum.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 14,
+      "classname": "target_speaker",
+      "x": 128.0,
+      "y": 136.0,
+      "z": 16.0,
+      "attrs": {
+        "spawnflags": "0",
+        "noise": "sound/ambient/loop_telehum.wav"
+      }
+    },
+    {
+      "id": 15,
+      "classname": "target_speaker",
+      "x": -40.0,
+      "y": -224.0,
+      "z": 16.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_telehum.wav",
+        "spawnflags": "0"
+      }
+    },
+    {
+      "id": 16,
+      "classname": "item_health",
+      "x": 320.0,
+      "y": -464.0,
+      "z": 368.0,
+      "attrs": {
+        "spawnflags": "0"
+      },
+      "alias": "hp25_e16",
+      "alias_source": "auto"
+    },
+    {
+      "id": 17,
+      "classname": "item_health",
+      "x": -112.0,
+      "y": 608.0,
+      "z": 312.0,
+      "alias": "hp25_e17",
+      "alias_source": "auto"
+    },
+    {
+      "id": 18,
+      "classname": "item_health",
+      "x": -176.0,
+      "y": 608.0,
+      "z": 312.0,
+      "alias": "hp25_e18",
+      "alias_source": "auto"
+    },
+    {
+      "id": 19,
+      "classname": "item_health",
+      "x": -144.0,
+      "y": -200.0,
+      "z": 136.0,
+      "alias": "hp25_e19",
+      "alias_source": "auto"
+    },
+    {
+      "id": 20,
+      "classname": "info_player_deathmatch",
+      "x": 960.0,
+      "y": -160.0,
+      "z": 144.0,
+      "attrs": {
+        "angle": "135"
+      }
+    },
+    {
+      "id": 21,
+      "classname": "target_position",
+      "x": 148.0,
+      "y": 312.0,
+      "z": 440.0,
+      "attrs": {
+        "targetname": "jump1"
+      }
+    },
+    {
+      "id": 22,
+      "classname": "weapon_rocketlauncher",
+      "x": 448.0,
+      "y": 32.0,
+      "z": 368.0,
+      "alias": "rl_e22",
+      "alias_source": "auto"
+    },
+    {
+      "id": 23,
+      "classname": "weapon_railgun",
+      "x": 160.0,
+      "y": -464.0,
+      "z": 368.0,
+      "alias": "rg_e23",
+      "alias_source": "auto"
+    },
+    {
+      "id": 27,
+      "classname": "misc_teleporter_dest",
+      "x": 368.0,
+      "y": 120.0,
+      "z": 144.0,
+      "attrs": {
+        "angle": "270",
+        "targetname": "upper_sg"
+      }
+    },
+    {
+      "id": 28,
+      "classname": "weapon_lightning",
+      "x": -228.0,
+      "y": 288.0,
+      "z": 312.0,
+      "alias": "lg_e28",
+      "alias_source": "auto"
+    },
+    {
+      "id": 29,
+      "classname": "ammo_rockets",
+      "x": 776.0,
+      "y": -520.0,
+      "z": 368.0,
+      "alias": "rocket_ammo_e29",
+      "alias_source": "auto"
+    },
+    {
+      "id": 30,
+      "classname": "weapon_grenadelauncher",
+      "x": 928.0,
+      "y": -384.0,
+      "z": 136.0,
+      "alias": "gl_e30",
+      "alias_source": "auto"
+    },
+    {
+      "id": 32,
+      "classname": "info_player_deathmatch",
+      "x": -132.0,
+      "y": 364.0,
+      "z": 144.0,
+      "attrs": {
+        "angle": "315"
+      }
+    },
+    {
+      "id": 33,
+      "classname": "info_player_deathmatch",
+      "x": 776.0,
+      "y": 12.0,
+      "z": 376.0,
+      "attrs": {
+        "angle": "225"
+      }
+    },
+    {
+      "id": 34,
+      "classname": "item_health",
+      "x": -40.0,
+      "y": -96.0,
+      "z": -56.0,
+      "alias": "hp25_e34",
+      "alias_source": "auto"
+    },
+    {
+      "id": 35,
+      "classname": "item_health",
+      "x": 784.0,
+      "y": -256.0,
+      "z": 136.0,
+      "alias": "hp25_e35",
+      "alias_source": "auto"
+    },
+    {
+      "id": 37,
+      "classname": "misc_teleporter_dest",
+      "x": 640.0,
+      "y": -648.0,
+      "z": 376.0,
+      "attrs": {
+        "targetname": "upper_gl",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 38,
+      "classname": "target_speaker",
+      "x": -304.0,
+      "y": -304.0,
+      "z": 184.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_telehum.wav"
+      }
+    },
+    {
+      "id": 39,
+      "classname": "info_player_deathmatch",
+      "x": 160.0,
+      "y": -352.0,
+      "z": -48.0,
+      "attrs": {
+        "angle": "90"
+      }
+    },
+    {
+      "id": 40,
+      "classname": "item_health_small",
+      "x": 928.0,
+      "y": -552.0,
+      "z": 136.0,
+      "alias": "hp5_e40",
+      "alias_source": "auto"
+    },
+    {
+      "id": 41,
+      "classname": "info_player_deathmatch",
+      "x": -608.0,
+      "y": -304.0,
+      "z": 144.0
+    },
+    {
+      "id": 42,
+      "classname": "ammo_rockets",
+      "x": 64.0,
+      "y": -352.0,
+      "z": -56.0,
+      "alias": "rocket_ammo_e42",
+      "alias_source": "auto"
+    },
+    {
+      "id": 43,
+      "classname": "weapon_shotgun",
+      "x": 128.0,
+      "y": 0.0,
+      "z": -56.0,
+      "alias": "sg_e43",
+      "alias_source": "auto"
+    },
+    {
+      "id": 44,
+      "classname": "ammo_bullets",
+      "x": 400.0,
+      "y": -128.0,
+      "z": 136.0,
+      "alias": "mg_ammo_e44",
+      "alias_source": "auto"
+    },
+    {
+      "id": 45,
+      "classname": "ammo_lightning",
+      "x": 436.0,
+      "y": -128.0,
+      "z": 368.0,
+      "alias": "lg_ammo_e45",
+      "alias_source": "auto"
+    },
+    {
+      "id": 46,
+      "classname": "ammo_shells",
+      "x": 492.0,
+      "y": -128.0,
+      "z": 368.0,
+      "alias": "sg_ammo_e46",
+      "alias_source": "auto"
+    },
+    {
+      "id": 47,
+      "classname": "ammo_lightning",
+      "x": -136.0,
+      "y": 296.0,
+      "z": 136.0,
+      "alias": "lg_ammo_e47",
+      "alias_source": "auto"
+    },
+    {
+      "id": 49,
+      "classname": "weapon_rocketlauncher",
+      "x": -384.0,
+      "y": -448.0,
+      "z": 136.0,
+      "alias": "rl_e49",
+      "alias_source": "auto"
+    },
+    {
+      "id": 50,
+      "classname": "item_health_mega",
+      "x": 128.0,
+      "y": -464.0,
+      "z": 64.0,
+      "alias": "mh_e50",
+      "alias_source": "auto"
+    },
+    {
+      "id": 51,
+      "classname": "ammo_bullets",
+      "x": 668.0,
+      "y": -512.0,
+      "z": 64.0,
+      "alias": "mg_ammo_e51",
+      "alias_source": "auto"
+    },
+    {
+      "id": 52,
+      "classname": "ammo_shells",
+      "x": 612.0,
+      "y": -512.0,
+      "z": 64.0,
+      "alias": "sg_ammo_e52",
+      "alias_source": "auto"
+    },
+    {
+      "id": 53,
+      "classname": "item_armor_jacket",
+      "x": 432.0,
+      "y": -464.0,
+      "z": 64.0,
+      "alias": "ga_e53",
+      "alias_source": "auto"
+    },
+    {
+      "id": 54,
+      "classname": "misc_teleporter_dest",
+      "x": 928.0,
+      "y": -160.0,
+      "z": 376.0,
+      "attrs": {
+        "spawnflags": "0",
+        "angle": "270",
+        "targetname": "gldest"
+      }
+    },
+    {
+      "id": 55,
+      "classname": "info_null",
+      "x": -6.0,
+      "y": 10.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "t8"
+      }
+    },
+    {
+      "id": 56,
+      "classname": "info_null",
+      "x": 40.0,
+      "y": 112.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "t9"
+      }
+    },
+    {
+      "id": 57,
+      "classname": "info_null",
+      "x": 376.0,
+      "y": -272.0,
+      "z": 408.0,
+      "attrs": {
+        "targetname": "t10"
+      }
+    },
+    {
+      "id": 61,
+      "classname": "target_speaker",
+      "x": 128.0,
+      "y": -32.0,
+      "z": 584.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_wind_stroggos.wav"
+      }
+    },
+    {
+      "id": 62,
+      "classname": "target_speaker",
+      "x": 976.0,
+      "y": -608.0,
+      "z": 560.0,
+      "attrs": {
+        "noise": "sound/ambient/loop_wind_stroggos.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 63,
+      "classname": "target_speaker",
+      "x": -320.0,
+      "y": 464.0,
+      "z": 584.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/ambient/loop_wind_stroggos.wav"
+      }
+    },
+    {
+      "id": 64,
+      "classname": "info_player_deathmatch",
+      "x": -384.0,
+      "y": -106.0,
+      "z": 360.0,
+      "attrs": {
+        "angle": "90"
+      }
+    },
+    {
+      "id": 65,
+      "classname": "item_armor_body",
+      "x": -384.0,
+      "y": -70.0,
+      "z": 352.0,
+      "alias": "ra_e65",
+      "alias_source": "auto"
+    },
+    {
+      "id": 66,
+      "classname": "info_player_deathmatch",
+      "x": 544.0,
+      "y": -668.0,
+      "z": 376.0,
+      "attrs": {
+        "angle": "90"
+      }
+    },
+    {
+      "id": 67,
+      "classname": "info_player_deathmatch",
+      "x": 408.0,
+      "y": 560.0,
+      "z": 376.0,
+      "attrs": {
+        "angle": "225"
+      }
+    },
+    {
+      "id": 68,
+      "classname": "team_dom_point",
+      "x": 128.0,
+      "y": -32.0,
+      "z": -56.0,
+      "attrs": {
+        "gametype": "dom",
+        "count": "128",
+        "identifier": "1"
+      }
+    },
+    {
+      "id": 72,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": -272.0,
+      "z": 16.0,
+      "attrs": {
+        "targetname": "stairlight"
+      }
+    },
+    {
+      "id": 73,
+      "classname": "ammo_pack",
+      "x": 640.0,
+      "y": -512.0,
+      "z": 96.0,
+      "alias": "ammo_pack_e73",
+      "alias_source": "auto"
+    },
+    {
+      "id": 74,
+      "classname": "ammo_pack",
+      "x": 400.0,
+      "y": -128.0,
+      "z": 172.0,
+      "alias": "ammo_pack_e74",
+      "alias_source": "auto"
+    },
+    {
+      "id": 75,
+      "classname": "ammo_pack",
+      "x": 64.0,
+      "y": -352.0,
+      "z": -24.0,
+      "alias": "ammo_pack_e75",
+      "alias_source": "auto"
+    },
+    {
+      "id": 76,
+      "classname": "ammo_pack",
+      "x": -136.0,
+      "y": 296.0,
+      "z": 168.0,
+      "alias": "ammo_pack_e76",
+      "alias_source": "auto"
+    },
+    {
+      "id": 77,
+      "classname": "ammo_pack",
+      "x": 464.0,
+      "y": -128.0,
+      "z": 400.0,
+      "alias": "ammo_pack_e77",
+      "alias_source": "auto"
+    },
+    {
+      "id": 78,
+      "classname": "ammo_pack",
+      "x": 776.0,
+      "y": -520.0,
+      "z": 400.0,
+      "alias": "ammo_pack_e78",
+      "alias_source": "auto"
+    }
+  ],
+  "by_classname": {
+    "item_armor_combat": [
+      2
+    ],
+    "item_armor_jacket": [
+      3,
+      53
+    ],
+    "misc_teleporter_dest": [
+      4,
+      5,
+      27,
+      37,
+      54
+    ],
+    "info_null": [
+      6,
+      7,
+      55,
+      56,
+      57,
+      72
+    ],
+    "item_health_small": [
+      8,
+      11,
+      12,
+      40
+    ],
+    "info_player_intermission": [
+      9
+    ],
+    "target_position": [
+      10,
+      21
+    ],
+    "target_speaker": [
+      13,
+      14,
+      15,
+      38,
+      61,
+      62,
+      63
+    ],
+    "item_health": [
+      16,
+      17,
+      18,
+      19,
+      34,
+      35
+    ],
+    "info_player_deathmatch": [
+      20,
+      32,
+      33,
+      39,
+      41,
+      64,
+      66,
+      67
+    ],
+    "weapon_rocketlauncher": [
+      22,
+      49
+    ],
+    "weapon_railgun": [
+      23
+    ],
+    "weapon_lightning": [
+      28
+    ],
+    "ammo_rockets": [
+      29,
+      42
+    ],
+    "weapon_grenadelauncher": [
+      30
+    ],
+    "weapon_shotgun": [
+      43
+    ],
+    "ammo_bullets": [
+      44,
+      51
+    ],
+    "ammo_lightning": [
+      45,
+      47
+    ],
+    "ammo_shells": [
+      46,
+      52
+    ],
+    "item_health_mega": [
+      50
+    ],
+    "item_armor_body": [
+      65
+    ],
+    "team_dom_point": [
+      68
+    ],
+    "ammo_pack": [
+      73,
+      74,
+      75,
+      76,
+      77,
+      78
+    ]
+  },
+  "teleports": {
+    "exit_count": 0,
+    "pair_count": 0,
+    "pairs": [],
+    "exits": []
+  }
+}

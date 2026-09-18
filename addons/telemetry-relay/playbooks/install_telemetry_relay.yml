@@ -1,0 +1,87 @@
+---
+# Installs + configures ql-telemetry-relay (local HTTP forwarder, one per
+# host - it routes internally by server_id in each POST body). Called by
+# qlsm's "Telemetry relay" host toggle (ui/task_logic/ansible_telemetry_relay.py),
+# which passes real telemetry_relay_enabled/token/routes extravars.
+#
+# Can also be run directly for a one-off manual install - without extravars
+# it renders a disabled, empty-routes config (the historical default), so a
+# bare run never turns on a relay an operator didn't ask for:
+#   ansible-playbook -i ansible/inventory/<host>.yml ansible/playbooks/install_telemetry_relay.yml
+#
+# routes shape (per instance): { "<server_id>": {
+#   "telemetry": "<stats-hub base>/api/ingest/telemetry",
+#   "server_name": "<instance name>"
+# } }
+# item_events/session_events URLs are derived by relay.py from "telemetry"
+# when not given explicitly.
+
+- name: Install + configure ql-telemetry-relay (local HTTP forwarder, one per host)
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  vars:
+    telemetry_relay_dir: "/home/ql/telemetry-relay"
+    telemetry_relay_config: "/home/ql/telemetry-relay.json"
+    telemetry_relay_enabled: false
+    telemetry_relay_token: ""
+    telemetry_relay_routes: {}
+    telemetry_relay_timeout_sec: 2
+
+  tasks:
+    - name: Create telemetry-relay directory
+      file:
+        path: "{{ telemetry_relay_dir }}"
+        state: directory
+        owner: ql
+        group: ql
+        mode: '0755'
+
+    - name: Copy relay.py to the host
+      copy:
+        src: "{{ playbook_dir }}/../assets/relay.py"
+        dest: "{{ telemetry_relay_dir }}/relay.py"
+        owner: ql
+        group: ql
+        mode: '0755'
+
+    - name: Render telemetry-relay.json config
+      copy:
+        dest: "{{ telemetry_relay_config }}"
+        owner: ql
+        group: ql
+        mode: '0600'
+        content: |
+          {{ {
+            'enabled': telemetry_relay_enabled | bool,
+            'token': telemetry_relay_token,
+            'routes': telemetry_relay_routes,
+            'timeout_sec': telemetry_relay_timeout_sec,
+          } | to_nice_json }}
+      notify: reload systemd and (re)start telemetry relay
+
+    - name: Render ql-telemetry-relay systemd unit
+      template:
+        src: templates/ql-telemetry-relay.service.j2
+        dest: /etc/systemd/system/ql-telemetry-relay.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: reload systemd and (re)start telemetry relay
+
+    - name: Flush handlers so daemon_reload/restart runs before enabling
+      meta: flush_handlers
+
+    - name: Enable ql-telemetry-relay service
+      ansible.builtin.systemd:
+        name: ql-telemetry-relay
+        enabled: yes
+        state: started
+
+  handlers:
+    - name: reload systemd and (re)start telemetry relay
+      ansible.builtin.systemd:
+        daemon_reload: yes
+        name: ql-telemetry-relay
+        state: restarted

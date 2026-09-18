@@ -1,0 +1,23 @@
+{
+  "id": "qlmatch-packer",
+  "version": "1.0.0",
+  "name": "Qlmatch Packer",
+  "description": "Deploys the external Node.js qlmatch-packer (+ Node 22 runtime) to every managed host after setup / \"Update Plugins\", and makes demo-management recognise the .qlmatch/.replay.json.gz files it produces (the .packer.log it also writes is deliberately never surfaced there). Cvars (qlx_qlmatchNameTemplate, qlx_qlmatchRcloneTargets) live on the demo_native_autorecord plugin's own manifest, editable from the Plugins tab -- this addon's own settings only control whether the replay sidecar shows up in the Demos widget.",
+  "scopes": ["global", "host"],
+  "ui_api": 1,
+  "depends": ["demo-management"],
+
+  "settings": {
+    "global": [
+      { "key": "show_replay_json", "type": "bool", "label": "Show .replay.json.gz files", "default": true, "description": "List the merged-replay sidecar in the Demos widget. Purely a listing switch -- the file is still written on the host either way." }
+    ]
+  },
+
+  "ui": {
+    "icon": "package",
+    "settings_section": { "label": "Qlmatch Packer", "icon": "package", "panel": "global_settings" },
+    "panels": {
+      "global_settings": { "kind": "form" }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "label": "⚠️ match_restore helper — DO NOT ENABLE separately",
+  "description": "Support module for match_restore.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin."
+}

@@ -1,0 +1,10 @@
+{
+  "label": "Tournament Access",
+  "description": "Whitelist / join gate for tournament matches — restricts who can join based on a tournament roster.",
+  "cvars": [
+    { "cvar": "qlx_tournamentAccessEnabled", "label": "Enabled", "description": "Turns the tournament join-gate on or off.", "type": "bool", "default": false },
+    { "cvar": "qlx_tournamentId", "label": "Tournament ID", "description": "ID of the tournament whose roster gates access to this server.", "type": "number", "default": 0, "min": 0 },
+    { "cvar": "qlx_tournamentAccessBypassPerm", "label": "Bypass Permission", "description": "Minimum minqlx permission level that bypasses the roster gate.", "type": "number", "default": 3, "min": 0, "max": 5 },
+    { "cvar": "qlx_devAuthOpen", "label": "Dev Auth Open", "description": "Disables the roster gate entirely for local/dev testing.", "type": "bool", "default": false }
+  ]
+}

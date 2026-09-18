@@ -1,0 +1,2601 @@
+{
+  "map_name": "campgrounds",
+  "source": "d:\\QuakeLiveData\\pak00\\maps\\campgrounds.bsp",
+  "entity_count": 219,
+  "entities": [
+    {
+      "id": 2,
+      "classname": "target_location",
+      "x": -112.0,
+      "y": -840.0,
+      "z": 536.0,
+      "attrs": {
+        "message": "Bridge"
+      }
+    },
+    {
+      "id": 3,
+      "classname": "target_location",
+      "x": -1216.0,
+      "y": 64.0,
+      "z": 560.0,
+      "attrs": {
+        "message": "Pillar Tops"
+      }
+    },
+    {
+      "id": 4,
+      "classname": "target_location",
+      "x": 256.0,
+      "y": -704.0,
+      "z": 24.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 5,
+      "classname": "target_location",
+      "x": -232.0,
+      "y": -536.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "Courtyard 2nd Floor"
+      }
+    },
+    {
+      "id": 6,
+      "classname": "target_location",
+      "x": 896.0,
+      "y": -640.0,
+      "z": 416.0,
+      "attrs": {
+        "message": "Rocket Stairwell"
+      }
+    },
+    {
+      "id": 7,
+      "classname": "target_location",
+      "x": 448.0,
+      "y": -160.0,
+      "z": 568.0,
+      "attrs": {
+        "message": "Railgun"
+      }
+    },
+    {
+      "id": 8,
+      "classname": "target_location",
+      "x": -768.0,
+      "y": 320.0,
+      "z": 40.0,
+      "attrs": {
+        "message": "Plasma Gun"
+      }
+    },
+    {
+      "id": 9,
+      "classname": "target_location",
+      "x": -1144.0,
+      "y": -832.0,
+      "z": 232.0,
+      "attrs": {
+        "message": "Shotgun"
+      }
+    },
+    {
+      "id": 10,
+      "classname": "target_location",
+      "x": -1472.0,
+      "y": 448.0,
+      "z": 584.0,
+      "attrs": {
+        "message": "Armor Deck"
+      }
+    },
+    {
+      "id": 11,
+      "classname": "target_location",
+      "x": 256.0,
+      "y": -1344.0,
+      "z": 240.0,
+      "attrs": {
+        "message": "Armor Landing"
+      }
+    },
+    {
+      "id": 12,
+      "classname": "target_location",
+      "x": -576.0,
+      "y": -744.0,
+      "z": 568.0,
+      "attrs": {
+        "message": "Rocket Launcher"
+      }
+    },
+    {
+      "id": 13,
+      "classname": "target_location",
+      "x": -576.0,
+      "y": -256.0,
+      "z": 40.0,
+      "attrs": {
+        "message": "Center Courtyard"
+      }
+    },
+    {
+      "id": 14,
+      "classname": "weapon_shotgun",
+      "x": 192.0,
+      "y": -320.0,
+      "z": 16.0,
+      "alias": "sg_lower_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 15,
+      "classname": "item_armor_combat",
+      "x": -1472.0,
+      "y": 448.0,
+      "z": 530.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "ya_armor_deck",
+      "alias_source": "auto"
+    },
+    {
+      "id": 16,
+      "classname": "item_armor_body",
+      "x": 256.0,
+      "y": -1344.0,
+      "z": 208.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "tdm ctf ca"
+      },
+      "alias": "ra_armor_landing",
+      "alias_source": "auto"
+    },
+    {
+      "id": 17,
+      "classname": "info_player_deathmatch",
+      "x": -208.0,
+      "y": 448.0,
+      "z": 24.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "360",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 18,
+      "classname": "info_player_deathmatch",
+      "x": -576.0,
+      "y": 1088.0,
+      "z": 154.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "270",
+        "spawnflags": "1",
+        "targetname": "t56"
+      }
+    },
+    {
+      "id": 19,
+      "classname": "info_player_deathmatch",
+      "x": 40.0,
+      "y": -704.0,
+      "z": 538.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 20,
+      "classname": "info_player_deathmatch",
+      "x": 888.0,
+      "y": -768.0,
+      "z": 410.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "180",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 21,
+      "classname": "info_player_deathmatch",
+      "x": -1616.0,
+      "y": 200.0,
+      "z": 24.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "360",
+        "spawnflags": "1",
+        "targetname": "t57"
+      }
+    },
+    {
+      "id": 22,
+      "classname": "item_health",
+      "x": -1064.0,
+      "y": -672.0,
+      "z": 208.0,
+      "alias": "hp25_shotgun",
+      "alias_source": "auto"
+    },
+    {
+      "id": 23,
+      "classname": "weapon_shotgun",
+      "x": -1144.0,
+      "y": -832.0,
+      "z": 208.0,
+      "alias": "sg_shotgun",
+      "alias_source": "auto"
+    },
+    {
+      "id": 24,
+      "classname": "weapon_plasmagun",
+      "x": -128.0,
+      "y": -832.0,
+      "z": 274.0,
+      "attrs": {
+        "not_gametype": "tdm"
+      },
+      "alias": "pg_bridge",
+      "alias_source": "auto"
+    },
+    {
+      "id": 25,
+      "classname": "info_notnull",
+      "x": -576.0,
+      "y": -158.0,
+      "z": 504.0,
+      "attrs": {
+        "targetname": "t10"
+      }
+    },
+    {
+      "id": 26,
+      "classname": "info_player_intermission",
+      "x": -576.0,
+      "y": -384.0,
+      "z": 560.0,
+      "attrs": {
+        "target": "t10"
+      }
+    },
+    {
+      "id": 27,
+      "classname": "ammo_bullets",
+      "x": 208.0,
+      "y": -848.0,
+      "z": 16.0,
+      "alias": "mg_ammo_bridge",
+      "alias_source": "auto"
+    },
+    {
+      "id": 28,
+      "classname": "ammo_slugs",
+      "x": 304.0,
+      "y": -848.0,
+      "z": 16.0,
+      "alias": "rg_ammo_bridge",
+      "alias_source": "auto"
+    },
+    {
+      "id": 29,
+      "classname": "ammo_cells",
+      "x": 256.0,
+      "y": -896.0,
+      "z": 16.0,
+      "alias": "plasma_ammo_bridge",
+      "alias_source": "auto"
+    },
+    {
+      "id": 30,
+      "classname": "ammo_rockets",
+      "x": 256.0,
+      "y": -800.0,
+      "z": 16.0,
+      "alias": "rocket_ammo_bridge",
+      "alias_source": "auto"
+    },
+    {
+      "id": 31,
+      "classname": "item_health",
+      "x": 256.0,
+      "y": -848.0,
+      "z": 16.0,
+      "alias": "hp25_bridge",
+      "alias_source": "auto"
+    },
+    {
+      "id": 32,
+      "classname": "ammo_shells",
+      "x": 164.0,
+      "y": -66.0,
+      "z": 272.0,
+      "alias": "sg_ammo_lower_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 33,
+      "classname": "item_health",
+      "x": -64.0,
+      "y": -800.0,
+      "z": 528.0,
+      "alias": "hp25_bridge_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 34,
+      "classname": "ammo_bullets",
+      "x": -1216.0,
+      "y": -320.0,
+      "z": 144.0,
+      "alias": "mg_ammo_lower_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 35,
+      "classname": "ammo_slugs",
+      "x": -1472.0,
+      "y": -320.0,
+      "z": 144.0,
+      "alias": "rg_ammo_lower_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 36,
+      "classname": "ammo_cells",
+      "x": -1344.0,
+      "y": -64.0,
+      "z": 80.0,
+      "alias": "plasma_ammo_pillar_tops",
+      "alias_source": "auto"
+    },
+    {
+      "id": 37,
+      "classname": "info_player_deathmatch",
+      "x": -856.0,
+      "y": 472.0,
+      "z": 24.0,
+      "attrs": {
+        "not_gametype": "race",
+        "target": "t5",
+        "spawnflags": "1",
+        "angle": "315",
+        "targetname": "t56"
+      }
+    },
+    {
+      "id": 38,
+      "classname": "item_health",
+      "x": 24.0,
+      "y": -576.0,
+      "z": 272.0,
+      "alias": "hp25_courtyard_2nd_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 39,
+      "classname": "info_player_deathmatch",
+      "x": -64.0,
+      "y": -1088.0,
+      "z": 282.0,
+      "attrs": {
+        "not_gametype": "race",
+        "target": "t5",
+        "spawnflags": "4",
+        "angle": "45",
+        "targetname": "t58"
+      }
+    },
+    {
+      "id": 40,
+      "classname": "ammo_rockets",
+      "x": -672.0,
+      "y": 1104.0,
+      "z": 144.0,
+      "alias": "rocket_ammo_plasma_stairwell",
+      "alias_source": "auto"
+    },
+    {
+      "id": 42,
+      "classname": "info_notnull",
+      "x": -1472.0,
+      "y": 384.0,
+      "z": 668.0,
+      "attrs": {
+        "targetname": "t3"
+      }
+    },
+    {
+      "id": 43,
+      "classname": "ammo_slugs",
+      "x": 448.0,
+      "y": -32.0,
+      "z": 528.0,
+      "alias": "rg_ammo_railgun",
+      "alias_source": "auto"
+    },
+    {
+      "id": 44,
+      "classname": "weapon_railgun",
+      "x": 448.0,
+      "y": -160.0,
+      "z": 528.0,
+      "alias": "rg_railgun",
+      "alias_source": "auto"
+    },
+    {
+      "id": 45,
+      "classname": "info_notnull",
+      "x": -362.0,
+      "y": 592.0,
+      "z": 620.0,
+      "attrs": {
+        "targetname": "t2"
+      }
+    },
+    {
+      "id": 46,
+      "classname": "weapon_rocketlauncher",
+      "x": -576.0,
+      "y": -768.0,
+      "z": 530.0,
+      "alias": "rl_rocket_launcher",
+      "alias_source": "auto"
+    },
+    {
+      "id": 47,
+      "classname": "info_player_deathmatch",
+      "x": -192.0,
+      "y": 64.0,
+      "z": 282.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "225",
+        "spawnflags": "4",
+        "targetname": "t56"
+      }
+    },
+    {
+      "id": 48,
+      "classname": "info_notnull",
+      "x": -576.0,
+      "y": -640.0,
+      "z": 652.0,
+      "attrs": {
+        "targetname": "t1"
+      }
+    },
+    {
+      "id": 50,
+      "classname": "target_position",
+      "x": -768.0,
+      "y": 768.0,
+      "z": 460.0,
+      "attrs": {
+        "targetname": "t32"
+      }
+    },
+    {
+      "id": 51,
+      "classname": "info_player_deathmatch",
+      "x": -992.0,
+      "y": 192.0,
+      "z": 284.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "360",
+        "targetname": "t56"
+      }
+    },
+    {
+      "id": 52,
+      "classname": "info_camp",
+      "x": -704.0,
+      "y": -528.0,
+      "z": 552.0,
+      "attrs": {
+        "range": "64"
+      }
+    },
+    {
+      "id": 53,
+      "classname": "info_camp",
+      "x": -448.0,
+      "y": -528.0,
+      "z": 552.0,
+      "attrs": {
+        "range": "64"
+      }
+    },
+    {
+      "id": 54,
+      "classname": "info_camp",
+      "x": 256.0,
+      "y": -672.0,
+      "z": 552.0,
+      "attrs": {
+        "range": "64"
+      }
+    },
+    {
+      "id": 55,
+      "classname": "info_camp",
+      "x": 448.0,
+      "y": -160.0,
+      "z": 552.0,
+      "attrs": {
+        "range": "64",
+        "weight": "10"
+      }
+    },
+    {
+      "id": 56,
+      "classname": "info_camp",
+      "x": -320.0,
+      "y": 552.0,
+      "z": 552.0,
+      "attrs": {
+        "range": "64"
+      }
+    },
+    {
+      "id": 57,
+      "classname": "info_camp",
+      "x": -872.0,
+      "y": -488.0,
+      "z": 288.0,
+      "attrs": {
+        "range": "32"
+      }
+    },
+    {
+      "id": 58,
+      "classname": "info_camp",
+      "x": -576.0,
+      "y": -672.0,
+      "z": 552.0,
+      "attrs": {
+        "range": "64",
+        "weight": "10"
+      }
+    },
+    {
+      "id": 59,
+      "classname": "info_camp",
+      "x": 256.0,
+      "y": -1000.0,
+      "z": 552.0,
+      "attrs": {
+        "range": "64"
+      }
+    },
+    {
+      "id": 60,
+      "classname": "target_location",
+      "x": -672.0,
+      "y": 1088.0,
+      "z": 216.0,
+      "attrs": {
+        "message": "Plasma Stairwell"
+      }
+    },
+    {
+      "id": 61,
+      "classname": "target_location",
+      "x": -168.0,
+      "y": -264.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "Courtyard 2nd Floor"
+      }
+    },
+    {
+      "id": 62,
+      "classname": "target_location",
+      "x": -272.0,
+      "y": 16.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "Courtyard 2nd Floor"
+      }
+    },
+    {
+      "id": 63,
+      "classname": "target_location",
+      "x": -616.0,
+      "y": 136.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "Courtyard 2nd Floor"
+      }
+    },
+    {
+      "id": 64,
+      "classname": "target_location",
+      "x": -936.0,
+      "y": 104.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "Courtyard 2nd Floor"
+      }
+    },
+    {
+      "id": 65,
+      "classname": "target_location",
+      "x": -968.0,
+      "y": -160.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "Courtyard 2nd Floor"
+      }
+    },
+    {
+      "id": 66,
+      "classname": "target_location",
+      "x": -968.0,
+      "y": -456.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "Courtyard 2nd Floor"
+      }
+    },
+    {
+      "id": 67,
+      "classname": "target_location",
+      "x": -576.0,
+      "y": -32.0,
+      "z": 40.0,
+      "attrs": {
+        "message": "Center Courtyard"
+      }
+    },
+    {
+      "id": 68,
+      "classname": "target_location",
+      "x": -752.0,
+      "y": -256.0,
+      "z": 40.0,
+      "attrs": {
+        "message": "Center Courtyard"
+      }
+    },
+    {
+      "id": 69,
+      "classname": "target_location",
+      "x": -280.0,
+      "y": -328.0,
+      "z": 40.0,
+      "attrs": {
+        "message": "Center Courtyard"
+      }
+    },
+    {
+      "id": 70,
+      "classname": "target_location",
+      "x": -576.0,
+      "y": -472.0,
+      "z": 40.0,
+      "attrs": {
+        "message": "Center Courtyard"
+      }
+    },
+    {
+      "id": 71,
+      "classname": "target_location",
+      "x": 240.0,
+      "y": -360.0,
+      "z": 24.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 72,
+      "classname": "target_location",
+      "x": 224.0,
+      "y": -8.0,
+      "z": 24.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 73,
+      "classname": "target_location",
+      "x": 136.0,
+      "y": 296.0,
+      "z": 24.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 74,
+      "classname": "target_location",
+      "x": -144.0,
+      "y": 368.0,
+      "z": 24.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 75,
+      "classname": "target_location",
+      "x": -1160.0,
+      "y": 248.0,
+      "z": 24.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 76,
+      "classname": "target_location",
+      "x": -1472.0,
+      "y": 64.0,
+      "z": 560.0,
+      "attrs": {
+        "message": "Pillar Tops"
+      }
+    },
+    {
+      "id": 77,
+      "classname": "target_location",
+      "x": -1600.0,
+      "y": -192.0,
+      "z": 560.0,
+      "attrs": {
+        "message": "Pillar Tops"
+      }
+    },
+    {
+      "id": 78,
+      "classname": "target_location",
+      "x": -1344.0,
+      "y": -192.0,
+      "z": 560.0,
+      "attrs": {
+        "message": "Pillar Tops"
+      }
+    },
+    {
+      "id": 79,
+      "classname": "target_location",
+      "x": -1472.0,
+      "y": 192.0,
+      "z": 24.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 80,
+      "classname": "target_location",
+      "x": -1600.0,
+      "y": 64.0,
+      "z": 72.0,
+      "attrs": {
+        "message": "Lower Floor (Near Yellow Armour)"
+      }
+    },
+    {
+      "id": 81,
+      "classname": "target_location",
+      "x": -1208.0,
+      "y": -80.0,
+      "z": 96.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 82,
+      "classname": "target_location",
+      "x": -1472.0,
+      "y": -72.0,
+      "z": 96.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 83,
+      "classname": "target_location",
+      "x": -1472.0,
+      "y": -320.0,
+      "z": 168.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 84,
+      "classname": "target_location",
+      "x": -1216.0,
+      "y": -320.0,
+      "z": 168.0,
+      "attrs": {
+        "message": "Lower Floor"
+      }
+    },
+    {
+      "id": 85,
+      "classname": "target_location",
+      "x": -1216.0,
+      "y": -792.0,
+      "z": 536.0,
+      "attrs": {
+        "message": "Upper Floor"
+      }
+    },
+    {
+      "id": 86,
+      "classname": "target_location",
+      "x": 312.0,
+      "y": -872.0,
+      "z": 536.0,
+      "attrs": {
+        "message": "Bridge"
+      }
+    },
+    {
+      "id": 87,
+      "classname": "target_location",
+      "x": -256.0,
+      "y": -880.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "2nd Floor"
+      }
+    },
+    {
+      "id": 88,
+      "classname": "target_location",
+      "x": 64.0,
+      "y": -888.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "2nd Floor"
+      }
+    },
+    {
+      "id": 89,
+      "classname": "target_location",
+      "x": 280.0,
+      "y": -664.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "2nd Floor"
+      }
+    },
+    {
+      "id": 90,
+      "classname": "target_location",
+      "x": 272.0,
+      "y": -280.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "2nd Floor"
+      }
+    },
+    {
+      "id": 91,
+      "classname": "target_location",
+      "x": 184.0,
+      "y": 72.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "2nd Floor"
+      }
+    },
+    {
+      "id": 92,
+      "classname": "target_location",
+      "x": 96.0,
+      "y": 248.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "2nd Floor"
+      }
+    },
+    {
+      "id": 93,
+      "classname": "target_location",
+      "x": -168.0,
+      "y": 328.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "2nd Floor"
+      }
+    },
+    {
+      "id": 94,
+      "classname": "target_location",
+      "x": -952.0,
+      "y": -816.0,
+      "z": 272.0,
+      "attrs": {
+        "message": "Shotgun"
+      }
+    },
+    {
+      "id": 95,
+      "classname": "target_location",
+      "x": 448.0,
+      "y": 16.0,
+      "z": 568.0,
+      "attrs": {
+        "message": "Railgun"
+      }
+    },
+    {
+      "id": 96,
+      "classname": "info_null",
+      "x": -320.0,
+      "y": 320.0,
+      "z": 72.0,
+      "attrs": {
+        "targetname": "t52"
+      }
+    },
+    {
+      "id": 97,
+      "classname": "info_null",
+      "x": -768.0,
+      "y": 320.0,
+      "z": 140.0,
+      "attrs": {
+        "targetname": "t42"
+      }
+    },
+    {
+      "id": 98,
+      "classname": "info_null",
+      "x": -96.0,
+      "y": 320.0,
+      "z": 140.0,
+      "attrs": {
+        "targetname": "t39"
+      }
+    },
+    {
+      "id": 99,
+      "classname": "info_null",
+      "x": 96.0,
+      "y": 224.0,
+      "z": 140.0,
+      "attrs": {
+        "targetname": "t41"
+      }
+    },
+    {
+      "id": 100,
+      "classname": "info_null",
+      "x": 192.0,
+      "y": 16.0,
+      "z": 140.0,
+      "attrs": {
+        "targetname": "t40"
+      }
+    },
+    {
+      "id": 101,
+      "classname": "info_null",
+      "x": -192.0,
+      "y": -320.0,
+      "z": 84.0,
+      "attrs": {
+        "targetname": "t54"
+      }
+    },
+    {
+      "id": 102,
+      "classname": "info_null",
+      "x": 256.0,
+      "y": -704.0,
+      "z": 84.0,
+      "attrs": {
+        "targetname": "t55"
+      }
+    },
+    {
+      "id": 103,
+      "classname": "info_null",
+      "x": 328.0,
+      "y": -1183.0,
+      "z": 312.0,
+      "attrs": {
+        "targetname": "t11"
+      }
+    },
+    {
+      "id": 104,
+      "classname": "info_null",
+      "x": 255.0,
+      "y": -1127.0,
+      "z": 274.0,
+      "attrs": {
+        "targetname": "t13"
+      }
+    },
+    {
+      "id": 105,
+      "classname": "info_null",
+      "x": 172.0,
+      "y": -1196.0,
+      "z": 260.0,
+      "attrs": {
+        "targetname": "t12"
+      }
+    },
+    {
+      "id": 106,
+      "classname": "info_null",
+      "x": 320.0,
+      "y": -888.0,
+      "z": 332.0,
+      "attrs": {
+        "targetname": "t14"
+      }
+    },
+    {
+      "id": 107,
+      "classname": "info_null",
+      "x": 192.0,
+      "y": -888.0,
+      "z": 332.0,
+      "attrs": {
+        "targetname": "t15"
+      }
+    },
+    {
+      "id": 108,
+      "classname": "info_null",
+      "x": 64.0,
+      "y": -888.0,
+      "z": 332.0,
+      "attrs": {
+        "targetname": "t16"
+      }
+    },
+    {
+      "id": 109,
+      "classname": "info_null",
+      "x": -64.0,
+      "y": -888.0,
+      "z": 332.0,
+      "attrs": {
+        "targetname": "t17"
+      }
+    },
+    {
+      "id": 110,
+      "classname": "info_null",
+      "x": -192.0,
+      "y": -888.0,
+      "z": 332.0,
+      "attrs": {
+        "targetname": "t18"
+      }
+    },
+    {
+      "id": 111,
+      "classname": "info_null",
+      "x": -320.0,
+      "y": -888.0,
+      "z": 332.0,
+      "attrs": {
+        "targetname": "t20"
+      }
+    },
+    {
+      "id": 112,
+      "classname": "info_null",
+      "x": -320.0,
+      "y": -704.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t23"
+      }
+    },
+    {
+      "id": 113,
+      "classname": "info_null",
+      "x": 64.0,
+      "y": -192.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t24"
+      }
+    },
+    {
+      "id": 114,
+      "classname": "info_null",
+      "x": -888.0,
+      "y": -258.0,
+      "z": 520.0,
+      "attrs": {
+        "targetname": "t48"
+      }
+    },
+    {
+      "id": 115,
+      "classname": "info_null",
+      "x": -640.0,
+      "y": -8.0,
+      "z": 520.0,
+      "attrs": {
+        "targetname": "t50"
+      }
+    },
+    {
+      "id": 116,
+      "classname": "info_null",
+      "x": -512.0,
+      "y": -8.0,
+      "z": 520.0,
+      "attrs": {
+        "targetname": "t51"
+      }
+    },
+    {
+      "id": 117,
+      "classname": "info_null",
+      "x": -264.0,
+      "y": -257.0,
+      "z": 520.0,
+      "attrs": {
+        "targetname": "t49"
+      }
+    },
+    {
+      "id": 118,
+      "classname": "info_null",
+      "x": -768.0,
+      "y": 608.0,
+      "z": 337.0,
+      "attrs": {
+        "targetname": "t26"
+      }
+    },
+    {
+      "id": 119,
+      "classname": "info_null",
+      "x": -768.0,
+      "y": 928.0,
+      "z": 460.0,
+      "attrs": {
+        "targetname": "t33"
+      }
+    },
+    {
+      "id": 120,
+      "classname": "info_null",
+      "x": -768.0,
+      "y": 1088.0,
+      "z": 460.0,
+      "attrs": {
+        "targetname": "t31"
+      }
+    },
+    {
+      "id": 121,
+      "classname": "info_null",
+      "x": -576.0,
+      "y": 1088.0,
+      "z": 460.0,
+      "attrs": {
+        "targetname": "t30"
+      }
+    },
+    {
+      "id": 122,
+      "classname": "info_null",
+      "x": -576.0,
+      "y": 928.0,
+      "z": 460.0,
+      "attrs": {
+        "targetname": "t29"
+      }
+    },
+    {
+      "id": 123,
+      "classname": "info_null",
+      "x": -576.0,
+      "y": 768.0,
+      "z": 460.0,
+      "attrs": {
+        "targetname": "t28"
+      }
+    },
+    {
+      "id": 124,
+      "classname": "info_null",
+      "x": -576.0,
+      "y": 608.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "t27"
+      }
+    },
+    {
+      "id": 125,
+      "classname": "info_null",
+      "x": -576.0,
+      "y": 64.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "t53"
+      }
+    },
+    {
+      "id": 126,
+      "classname": "info_null",
+      "x": -492.0,
+      "y": 372.0,
+      "z": 632.0,
+      "attrs": {
+        "targetname": "t44"
+      }
+    },
+    {
+      "id": 127,
+      "classname": "info_null",
+      "x": -376.0,
+      "y": 548.0,
+      "z": 640.0,
+      "attrs": {
+        "targetname": "t43"
+      }
+    },
+    {
+      "id": 128,
+      "classname": "info_null",
+      "x": -288.0,
+      "y": 430.0,
+      "z": 716.0,
+      "attrs": {
+        "targetname": "t45"
+      }
+    },
+    {
+      "id": 129,
+      "classname": "info_null",
+      "x": -192.0,
+      "y": 576.0,
+      "z": 680.0,
+      "attrs": {
+        "targetname": "t47"
+      }
+    },
+    {
+      "id": 130,
+      "classname": "info_null",
+      "x": -960.0,
+      "y": -832.0,
+      "z": 580.0,
+      "attrs": {
+        "targetname": "t36"
+      }
+    },
+    {
+      "id": 131,
+      "classname": "info_null",
+      "x": -832.0,
+      "y": -832.0,
+      "z": 580.0,
+      "attrs": {
+        "targetname": "t35"
+      }
+    },
+    {
+      "id": 132,
+      "classname": "info_null",
+      "x": -320.0,
+      "y": -832.0,
+      "z": 580.0,
+      "attrs": {
+        "targetname": "t34"
+      }
+    },
+    {
+      "id": 133,
+      "classname": "info_null",
+      "x": 448.0,
+      "y": -64.0,
+      "z": 680.0,
+      "attrs": {
+        "targetname": "t46"
+      }
+    },
+    {
+      "id": 134,
+      "classname": "info_null",
+      "x": 576.0,
+      "y": -512.0,
+      "z": 520.0,
+      "attrs": {
+        "targetname": "t37"
+      }
+    },
+    {
+      "id": 135,
+      "classname": "info_null",
+      "x": 576.0,
+      "y": -768.0,
+      "z": 712.0,
+      "attrs": {
+        "targetname": "t38"
+      }
+    },
+    {
+      "id": 136,
+      "classname": "info_null",
+      "x": -832.0,
+      "y": -704.0,
+      "z": 324.0,
+      "attrs": {
+        "targetname": "t25"
+      }
+    },
+    {
+      "id": 140,
+      "classname": "item_health_mega",
+      "x": -576.0,
+      "y": -256.0,
+      "z": 18.0,
+      "attrs": {
+        "notteam": "1",
+        "not_gametype": "ffa tdm ctf ca"
+      },
+      "alias": "mh_center_courtyard",
+      "alias_source": "auto"
+    },
+    {
+      "id": 141,
+      "classname": "item_health",
+      "x": -576.0,
+      "y": 480.0,
+      "z": 272.0,
+      "alias": "hp25_plasma_gun",
+      "alias_source": "auto"
+    },
+    {
+      "id": 142,
+      "classname": "item_armor_shard",
+      "x": -192.0,
+      "y": 320.0,
+      "z": 16.0,
+      "alias": "shard_2nd_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 143,
+      "classname": "item_armor_shard",
+      "x": -144.0,
+      "y": 320.0,
+      "z": 16.0,
+      "alias": "shard_2nd_floor_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 144,
+      "classname": "item_armor_shard",
+      "x": -96.0,
+      "y": 320.0,
+      "z": 16.0,
+      "alias": "shard_lower_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 145,
+      "classname": "item_armor_shard",
+      "x": -48.0,
+      "y": 312.0,
+      "z": 16.0,
+      "alias": "shard_lower_floor_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 146,
+      "classname": "item_armor_shard",
+      "x": 0.0,
+      "y": 296.0,
+      "z": 16.0,
+      "alias": "shard_2nd_floor_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 147,
+      "classname": "ammo_grenades",
+      "x": 164.0,
+      "y": -16.0,
+      "z": 272.0,
+      "alias": "gl_ammo_lower_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 148,
+      "classname": "weapon_grenadelauncher",
+      "x": -1600.0,
+      "y": -192.0,
+      "z": 528.0,
+      "attrs": {
+        "not_gametype": "tdm ft"
+      },
+      "alias": "gl_pillar_tops",
+      "alias_source": "auto"
+    },
+    {
+      "id": 149,
+      "classname": "weapon_lightning",
+      "x": -768.0,
+      "y": 320.0,
+      "z": 16.0,
+      "attrs": {
+        "not_gametype": "tdm"
+      },
+      "alias": "lg_plasma_gun",
+      "alias_source": "auto"
+    },
+    {
+      "id": 150,
+      "classname": "ammo_lightning",
+      "x": 928.0,
+      "y": -640.0,
+      "z": 400.0,
+      "alias": "lg_ammo_rocket_stairwell",
+      "alias_source": "auto"
+    },
+    {
+      "id": 152,
+      "classname": "item_health",
+      "x": -640.0,
+      "y": 480.0,
+      "z": 272.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_plasma_gun_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 153,
+      "classname": "item_health",
+      "x": 24.0,
+      "y": -640.0,
+      "z": 272.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_lower_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 154,
+      "classname": "item_health_large",
+      "x": -208.0,
+      "y": -560.0,
+      "z": 276.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp50_courtyard_2nd_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 155,
+      "classname": "item_health",
+      "x": -128.0,
+      "y": -800.0,
+      "z": 528.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp25_bridge_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 156,
+      "classname": "item_health",
+      "x": -1600.0,
+      "y": -48.0,
+      "z": 84.0,
+      "alias": "hp25_lower_floor_near_yellow_armour",
+      "alias_source": "auto"
+    },
+    {
+      "id": 157,
+      "classname": "ammo_rockets",
+      "x": -992.0,
+      "y": -240.0,
+      "z": 272.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "rocket_ammo_courtyard_2nd_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 158,
+      "classname": "ammo_grenades",
+      "x": -992.0,
+      "y": -304.0,
+      "z": 272.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "gl_ammo_courtyard_2nd_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 159,
+      "classname": "ammo_cells",
+      "x": -320.0,
+      "y": 96.0,
+      "z": 272.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "plasma_ammo_courtyard_2nd_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 160,
+      "classname": "ammo_lightning",
+      "x": -256.0,
+      "y": 96.0,
+      "z": 272.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "lg_ammo_courtyard_2nd_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 161,
+      "classname": "info_player_deathmatch",
+      "x": 464.0,
+      "y": -976.0,
+      "z": 538.0,
+      "attrs": {
+        "not_gametype": "race",
+        "spawnflags": "1",
+        "angle": "135",
+        "targetname": "t58"
+      }
+    },
+    {
+      "id": 162,
+      "classname": "item_quad",
+      "x": -576.0,
+      "y": -256.0,
+      "z": 60.0,
+      "attrs": {
+        "not_gametype": "duel",
+        "notsingle": "1"
+      }
+    },
+    {
+      "id": 163,
+      "classname": "item_armor_body",
+      "x": -1472.0,
+      "y": 448.0,
+      "z": 542.0,
+      "attrs": {
+        "notfree": "1",
+        "notsingle": "1",
+        "not_gametype": "duel ffa dm"
+      },
+      "alias": "ra_armor_deck",
+      "alias_source": "auto"
+    },
+    {
+      "id": 164,
+      "classname": "item_armor_combat",
+      "x": 256.0,
+      "y": -1344.0,
+      "z": 212.0,
+      "attrs": {
+        "notsingle": "1",
+        "notfree": "1",
+        "not_gametype": "duel ffa dm"
+      },
+      "alias": "ya_armor_landing",
+      "alias_source": "auto"
+    },
+    {
+      "id": 168,
+      "classname": "info_player_deathmatch",
+      "x": -352.0,
+      "y": -848.0,
+      "z": 282.0,
+      "attrs": {
+        "not_gametype": "race",
+        "spawnflags": "4",
+        "angle": "360",
+        "targetname": "t58"
+      }
+    },
+    {
+      "id": 169,
+      "classname": "info_player_deathmatch",
+      "x": 447.0,
+      "y": -160.0,
+      "z": 282.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "270",
+        "targetname": "t58"
+      }
+    },
+    {
+      "id": 170,
+      "classname": "info_player_deathmatch",
+      "x": -848.0,
+      "y": -832.0,
+      "z": 284.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "180",
+        "targetname": "t57"
+      }
+    },
+    {
+      "id": 171,
+      "classname": "info_player_deathmatch",
+      "x": -192.0,
+      "y": -960.0,
+      "z": 538.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "45",
+        "targetname": "t58"
+      }
+    },
+    {
+      "id": 172,
+      "classname": "info_player_deathmatch",
+      "x": 8.0,
+      "y": -176.0,
+      "z": 26.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "315",
+        "targetname": "t56"
+      }
+    },
+    {
+      "id": 173,
+      "classname": "weapon_lightning",
+      "x": -128.0,
+      "y": -832.0,
+      "z": 306.0,
+      "attrs": {
+        "gametype": "tdm"
+      },
+      "alias": "lg_bridge",
+      "alias_source": "auto"
+    },
+    {
+      "id": 174,
+      "classname": "weapon_plasmagun",
+      "x": -768.0,
+      "y": 320.0,
+      "z": 48.0,
+      "attrs": {
+        "gametype": "tdm"
+      },
+      "alias": "pg_plasma_gun",
+      "alias_source": "auto"
+    },
+    {
+      "id": 175,
+      "classname": "weapon_grenadelauncher",
+      "x": -1472.0,
+      "y": 64.0,
+      "z": 528.0,
+      "attrs": {
+        "gametype": "tdm ft"
+      },
+      "alias": "gl_pillar_tops_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 176,
+      "classname": "item_health_large",
+      "x": -1600.0,
+      "y": -192.0,
+      "z": 528.0,
+      "attrs": {
+        "notfree": "1",
+        "not_gametype": "ffa dm duel"
+      },
+      "alias": "hp50_pillar_tops",
+      "alias_source": "auto"
+    },
+    {
+      "id": 181,
+      "classname": "info_player_deathmatch",
+      "x": 888.0,
+      "y": -512.0,
+      "z": 410.0,
+      "attrs": {
+        "not_gametype": "race",
+        "spawnflags": "1",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 182,
+      "classname": "info_player_deathmatch",
+      "x": -768.0,
+      "y": 1088.0,
+      "z": 154.0,
+      "attrs": {
+        "not_gametype": "race",
+        "spawnflags": "1",
+        "angle": "270",
+        "targetname": "t57"
+      }
+    },
+    {
+      "id": 183,
+      "classname": "team_dom_point",
+      "x": 256.0,
+      "y": -832.0,
+      "z": 536.0,
+      "attrs": {
+        "identifier": "1",
+        "count": "128",
+        "target": "t58"
+      }
+    },
+    {
+      "id": 184,
+      "classname": "team_dom_point",
+      "x": -576.0,
+      "y": -256.0,
+      "z": 24.0,
+      "attrs": {
+        "count": "128",
+        "identifier": "2",
+        "target": "t56"
+      }
+    },
+    {
+      "id": 185,
+      "classname": "team_dom_point",
+      "x": -1472.0,
+      "y": 448.0,
+      "z": 536.0,
+      "attrs": {
+        "identifier": "3",
+        "count": "144",
+        "target": "t57"
+      }
+    },
+    {
+      "id": 186,
+      "classname": "team_CTF_blueplayer",
+      "x": -1344.0,
+      "y": -192.0,
+      "z": 536.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 187,
+      "classname": "team_CTF_blueplayer",
+      "x": -1216.0,
+      "y": 64.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "135",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 188,
+      "classname": "team_CTF_redplayer",
+      "x": -128.0,
+      "y": -832.0,
+      "z": 536.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 189,
+      "classname": "team_CTF_redplayer",
+      "x": -128.0,
+      "y": -960.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "360",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 190,
+      "classname": "team_CTF_redplayer",
+      "x": 32.0,
+      "y": -680.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "315",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 191,
+      "classname": "team_CTF_redplayer",
+      "x": 480.0,
+      "y": -984.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "135",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 192,
+      "classname": "team_CTF_redplayer",
+      "x": 480.0,
+      "y": -680.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "225",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 193,
+      "classname": "team_CTF_redplayer",
+      "x": 480.0,
+      "y": -768.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 194,
+      "classname": "team_CTF_redplayer",
+      "x": 480.0,
+      "y": -896.0,
+      "z": 536.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 195,
+      "classname": "team_CTF_redplayer",
+      "x": 480.0,
+      "y": -832.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 196,
+      "classname": "info_player_deathmatch",
+      "x": -1344.0,
+      "y": 448.0,
+      "z": 536.0,
+      "attrs": {
+        "targetname": "t57",
+        "angle": "270",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 197,
+      "classname": "info_player_deathmatch",
+      "x": -1600.0,
+      "y": -320.0,
+      "z": 152.0,
+      "attrs": {
+        "angle": "360",
+        "gametype": "dom",
+        "targetname": "t57"
+      }
+    },
+    {
+      "id": 198,
+      "classname": "race_point",
+      "x": 112.0,
+      "y": 240.0,
+      "z": 272.0,
+      "attrs": {
+        "targetname": "t72",
+        "target": "t65"
+      }
+    },
+    {
+      "id": 199,
+      "classname": "race_point",
+      "x": -1264.0,
+      "y": -752.0,
+      "z": 528.0,
+      "attrs": {
+        "target": "t63",
+        "targetname": "t62"
+      }
+    },
+    {
+      "id": 200,
+      "classname": "race_point",
+      "x": -256.0,
+      "y": -832.0,
+      "z": 528.0,
+      "attrs": {
+        "target": "t62",
+        "targetname": "t61"
+      }
+    },
+    {
+      "id": 201,
+      "classname": "race_point",
+      "x": 448.0,
+      "y": -160.0,
+      "z": 528.0,
+      "attrs": {
+        "target": "t61",
+        "targetname": "t60"
+      }
+    },
+    {
+      "id": 202,
+      "classname": "race_point",
+      "x": -288.0,
+      "y": 576.0,
+      "z": 528.0,
+      "attrs": {
+        "target": "t60",
+        "targetname": "t59"
+      }
+    },
+    {
+      "id": 203,
+      "classname": "race_point",
+      "x": -1224.0,
+      "y": 328.0,
+      "z": 528.0,
+      "attrs": {
+        "target": "t59"
+      }
+    },
+    {
+      "id": 204,
+      "classname": "info_player_deathmatch",
+      "x": -1624.0,
+      "y": 352.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "360",
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 205,
+      "classname": "info_player_deathmatch",
+      "x": -1624.0,
+      "y": 304.0,
+      "z": 536.0,
+      "attrs": {
+        "gametype": "race",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 206,
+      "classname": "info_player_deathmatch",
+      "x": -1576.0,
+      "y": 352.0,
+      "z": 536.0,
+      "attrs": {
+        "gametype": "race",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 207,
+      "classname": "info_player_deathmatch",
+      "x": -1576.0,
+      "y": 304.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "360",
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 208,
+      "classname": "race_point",
+      "x": 448.0,
+      "y": -912.0,
+      "z": 272.0,
+      "attrs": {
+        "target": "t66",
+        "targetname": "t65"
+      }
+    },
+    {
+      "id": 209,
+      "classname": "race_point",
+      "x": -320.0,
+      "y": -768.0,
+      "z": 272.0,
+      "attrs": {
+        "target": "t67",
+        "targetname": "t66"
+      }
+    },
+    {
+      "id": 210,
+      "classname": "race_point",
+      "x": -272.0,
+      "y": -16.0,
+      "z": 272.0,
+      "attrs": {
+        "target": "t68",
+        "targetname": "t67"
+      }
+    },
+    {
+      "id": 211,
+      "classname": "race_point",
+      "x": -880.0,
+      "y": -16.0,
+      "z": 272.0,
+      "attrs": {
+        "target": "t69",
+        "targetname": "t68"
+      }
+    },
+    {
+      "id": 212,
+      "classname": "race_point",
+      "x": -192.0,
+      "y": -320.0,
+      "z": 16.0,
+      "attrs": {
+        "target": "t70",
+        "targetname": "t69"
+      }
+    },
+    {
+      "id": 213,
+      "classname": "race_point",
+      "x": 160.0,
+      "y": 288.0,
+      "z": 16.0,
+      "attrs": {
+        "target": "t71",
+        "targetname": "t70"
+      }
+    },
+    {
+      "id": 214,
+      "classname": "race_point",
+      "x": -768.0,
+      "y": 320.0,
+      "z": 16.0,
+      "attrs": {
+        "targetname": "t71"
+      }
+    },
+    {
+      "id": 215,
+      "classname": "info_player_deathmatch",
+      "x": -1576.0,
+      "y": 424.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "360",
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 216,
+      "classname": "info_player_deathmatch",
+      "x": -1368.0,
+      "y": 296.0,
+      "z": 536.0,
+      "attrs": {
+        "gametype": "race",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 217,
+      "classname": "info_player_deathmatch",
+      "x": -1624.0,
+      "y": 424.0,
+      "z": 536.0,
+      "attrs": {
+        "gametype": "race",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 218,
+      "classname": "info_player_deathmatch",
+      "x": -1368.0,
+      "y": 352.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "360",
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 219,
+      "classname": "race_point",
+      "x": -768.0,
+      "y": 320.0,
+      "z": 272.0,
+      "attrs": {
+        "target": "t72",
+        "targetname": "t63"
+      }
+    },
+    {
+      "id": 220,
+      "classname": "ammo_pack",
+      "x": -288.0,
+      "y": 96.0,
+      "z": 272.0,
+      "alias": "ammo_pack_courtyard_2nd_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 221,
+      "classname": "ammo_pack",
+      "x": 164.0,
+      "y": -40.0,
+      "z": 272.0,
+      "alias": "ammo_pack_lower_floor",
+      "alias_source": "auto"
+    },
+    {
+      "id": 222,
+      "classname": "ammo_pack",
+      "x": 208.0,
+      "y": -848.0,
+      "z": 48.0,
+      "alias": "ammo_pack_bridge",
+      "alias_source": "auto"
+    },
+    {
+      "id": 223,
+      "classname": "ammo_pack",
+      "x": 304.0,
+      "y": -848.0,
+      "z": 48.0,
+      "alias": "ammo_pack_bridge_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 224,
+      "classname": "ammo_pack",
+      "x": 928.0,
+      "y": -640.0,
+      "z": 432.0,
+      "alias": "ammo_pack_rocket_stairwell",
+      "alias_source": "auto"
+    },
+    {
+      "id": 225,
+      "classname": "ammo_pack",
+      "x": -672.0,
+      "y": 1104.0,
+      "z": 176.0,
+      "alias": "ammo_pack_plasma_stairwell",
+      "alias_source": "auto"
+    },
+    {
+      "id": 226,
+      "classname": "ammo_pack",
+      "x": -992.0,
+      "y": -272.0,
+      "z": 308.0,
+      "alias": "ammo_pack_courtyard_2nd_floor_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 227,
+      "classname": "ammo_pack",
+      "x": -1216.0,
+      "y": -320.0,
+      "z": 176.0,
+      "alias": "ammo_pack_lower_floor_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 228,
+      "classname": "team_CTF_blueplayer",
+      "x": -1472.0,
+      "y": 64.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "90",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 229,
+      "classname": "team_CTF_blueplayer",
+      "x": -1600.0,
+      "y": -192.0,
+      "z": 536.0,
+      "attrs": {
+        "angle": "45",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 230,
+      "classname": "team_CTF_blueplayer",
+      "x": -1632.0,
+      "y": 352.0,
+      "z": 544.0,
+      "attrs": {
+        "angle": "360",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 231,
+      "classname": "team_CTF_blueplayer",
+      "x": -1632.0,
+      "y": 304.0,
+      "z": 544.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 232,
+      "classname": "team_CTF_blueplayer",
+      "x": -1312.0,
+      "y": 352.0,
+      "z": 544.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 233,
+      "classname": "team_CTF_blueplayer",
+      "x": -1312.0,
+      "y": 296.0,
+      "z": 544.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "dom"
+      }
+    }
+  ],
+  "by_classname": {
+    "target_location": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95
+    ],
+    "weapon_shotgun": [
+      14,
+      23
+    ],
+    "item_armor_combat": [
+      15,
+      164
+    ],
+    "item_armor_body": [
+      16,
+      163
+    ],
+    "info_player_deathmatch": [
+      17,
+      18,
+      19,
+      20,
+      21,
+      37,
+      39,
+      47,
+      51,
+      161,
+      168,
+      169,
+      170,
+      171,
+      172,
+      181,
+      182,
+      196,
+      197,
+      204,
+      205,
+      206,
+      207,
+      215,
+      216,
+      217,
+      218
+    ],
+    "item_health": [
+      22,
+      31,
+      33,
+      38,
+      141,
+      152,
+      153,
+      155,
+      156
+    ],
+    "weapon_plasmagun": [
+      24,
+      174
+    ],
+    "info_notnull": [
+      25,
+      42,
+      45,
+      48
+    ],
+    "info_player_intermission": [
+      26
+    ],
+    "ammo_bullets": [
+      27,
+      34
+    ],
+    "ammo_slugs": [
+      28,
+      35,
+      43
+    ],
+    "ammo_cells": [
+      29,
+      36,
+      159
+    ],
+    "ammo_rockets": [
+      30,
+      40,
+      157
+    ],
+    "ammo_shells": [
+      32
+    ],
+    "weapon_railgun": [
+      44
+    ],
+    "weapon_rocketlauncher": [
+      46
+    ],
+    "target_position": [
+      50
+    ],
+    "info_camp": [
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59
+    ],
+    "info_null": [
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      122,
+      123,
+      124,
+      125,
+      126,
+      127,
+      128,
+      129,
+      130,
+      131,
+      132,
+      133,
+      134,
+      135,
+      136
+    ],
+    "item_health_mega": [
+      140
+    ],
+    "item_armor_shard": [
+      142,
+      143,
+      144,
+      145,
+      146
+    ],
+    "ammo_grenades": [
+      147,
+      158
+    ],
+    "weapon_grenadelauncher": [
+      148,
+      175
+    ],
+    "weapon_lightning": [
+      149,
+      173
+    ],
+    "ammo_lightning": [
+      150,
+      160
+    ],
+    "item_health_large": [
+      154,
+      176
+    ],
+    "item_quad": [
+      162
+    ],
+    "team_dom_point": [
+      183,
+      184,
+      185
+    ],
+    "team_CTF_blueplayer": [
+      186,
+      187,
+      228,
+      229,
+      230,
+      231,
+      232,
+      233
+    ],
+    "team_CTF_redplayer": [
+      188,
+      189,
+      190,
+      191,
+      192,
+      193,
+      194,
+      195
+    ],
+    "race_point": [
+      198,
+      199,
+      200,
+      201,
+      202,
+      203,
+      208,
+      209,
+      210,
+      211,
+      212,
+      213,
+      214,
+      219
+    ],
+    "ammo_pack": [
+      220,
+      221,
+      222,
+      223,
+      224,
+      225,
+      226,
+      227
+    ]
+  },
+  "teleports": {
+    "exit_count": 0,
+    "pair_count": 0,
+    "pairs": [],
+    "exits": []
+  }
+}

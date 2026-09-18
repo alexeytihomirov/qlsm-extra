@@ -1,0 +1,1230 @@
+{
+  "map_name": "tortured",
+  "source": "d:\\QuakeLiveData\\packs\\tortured\\maps\\tortured_converted.map",
+  "entity_count": 97,
+  "entities": [
+    {
+      "id": 1,
+      "classname": "misc_teleporter_dest",
+      "x": -736.0,
+      "y": -128.0,
+      "z": 184.0,
+      "attrs": {
+        "targetname": "misc_teleporter_dest4"
+      }
+    },
+    {
+      "id": 2,
+      "classname": "misc_teleporter_dest",
+      "x": 384.0,
+      "y": -640.0,
+      "z": 120.0,
+      "attrs": {
+        "targetname": "misc_teleporter_dest1"
+      }
+    },
+    {
+      "id": 3,
+      "classname": "item_armor_body",
+      "x": 376.0,
+      "y": 288.0,
+      "z": 124.0,
+      "alias": "ra_1ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 5,
+      "classname": "misc_teleporter_dest",
+      "x": 0.0,
+      "y": 672.0,
+      "z": 56.0,
+      "attrs": {
+        "targetname": "misc_teleporter_dest3"
+      }
+    },
+    {
+      "id": 6,
+      "classname": "trigger_teleport",
+      "x": 163.11111111111111,
+      "y": 411.55555555555554,
+      "z": -74.66666666666667,
+      "attrs": {
+        "target": "misc_teleporter_dest5"
+      }
+    },
+    {
+      "id": 7,
+      "classname": "misc_teleporter_dest",
+      "x": 640.0,
+      "y": 704.0,
+      "z": 94.0,
+      "attrs": {
+        "angle": "-135",
+        "targetname": "misc_teleporter_dest5"
+      }
+    },
+    {
+      "id": 8,
+      "classname": "info_player_deathmatch",
+      "x": 432.0,
+      "y": 176.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "90"
+      }
+    },
+    {
+      "id": 9,
+      "classname": "info_player_deathmatch",
+      "x": -656.0,
+      "y": 672.0,
+      "z": -88.0
+    },
+    {
+      "id": 10,
+      "classname": "info_player_deathmatch",
+      "x": 32.0,
+      "y": 512.0,
+      "z": 24.0,
+      "attrs": {
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 13,
+      "classname": "item_health_large",
+      "x": -624.0,
+      "y": 704.0,
+      "z": -48.0,
+      "alias": "hp50_3ya_7_lg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 14,
+      "classname": "info_player_deathmatch",
+      "x": -536.0,
+      "y": 96.0,
+      "z": -112.0,
+      "attrs": {
+        "angle": "270"
+      }
+    },
+    {
+      "id": 15,
+      "classname": "target_position",
+      "x": -792.0,
+      "y": 64.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position14",
+        "angle": "-1.40334e-014"
+      }
+    },
+    {
+      "id": 16,
+      "classname": "target_position",
+      "x": 288.0,
+      "y": 728.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position15",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 17,
+      "classname": "target_position",
+      "x": -512.0,
+      "y": 728.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position16",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 18,
+      "classname": "target_position",
+      "x": -648.0,
+      "y": 608.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position17",
+        "angle": "-1.40334e-014"
+      }
+    },
+    {
+      "id": 19,
+      "classname": "target_position",
+      "x": -792.0,
+      "y": 320.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position18",
+        "angle": "-1.40334e-014"
+      }
+    },
+    {
+      "id": 20,
+      "classname": "target_position",
+      "x": 360.0,
+      "y": 416.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position3",
+        "angle": "-1.40334e-014"
+      }
+    },
+    {
+      "id": 21,
+      "classname": "target_position",
+      "x": 88.0,
+      "y": 408.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position4",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 22,
+      "classname": "target_position",
+      "x": 168.0,
+      "y": -640.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position6",
+        "angle": "-1.40334e-014"
+      }
+    },
+    {
+      "id": 23,
+      "classname": "target_position",
+      "x": 32.0,
+      "y": 728.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position5",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 24,
+      "classname": "target_position",
+      "x": -256.0,
+      "y": 672.0,
+      "z": -96.0,
+      "attrs": {
+        "targetname": "target_position7",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 25,
+      "classname": "target_position",
+      "x": -416.0,
+      "y": 176.0,
+      "z": -48.0,
+      "attrs": {
+        "targetname": "target_position8",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 26,
+      "classname": "target_position",
+      "x": -112.0,
+      "y": -32.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position10",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 27,
+      "classname": "target_position",
+      "x": 352.0,
+      "y": -192.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position13",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 28,
+      "classname": "target_position",
+      "x": -288.0,
+      "y": -1520.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position19",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 29,
+      "classname": "trigger_teleport",
+      "x": -261.3333333333333,
+      "y": -1188.4444444444443,
+      "z": -79.11111111111111,
+      "attrs": {
+        "target": "misc_teleporter_dest2"
+      }
+    },
+    {
+      "id": 30,
+      "classname": "misc_teleporter_dest",
+      "x": -288.0,
+      "y": -1520.0,
+      "z": 88.0,
+      "attrs": {
+        "angle": "90",
+        "targetname": "misc_teleporter_dest2"
+      }
+    },
+    {
+      "id": 31,
+      "classname": "target_position",
+      "x": -128.0,
+      "y": 352.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position21",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 32,
+      "classname": "target_position",
+      "x": 512.0,
+      "y": -832.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position23",
+        "angle": "-1.40334e-014"
+      }
+    },
+    {
+      "id": 33,
+      "classname": "weapon_grenadelauncher",
+      "x": -248.0,
+      "y": 72.0,
+      "z": 104.0,
+      "alias": "gl_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 34,
+      "classname": "ammo_rockets",
+      "x": -52.0,
+      "y": -1408.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "180"
+      },
+      "alias": "rocket_ammo_4mh",
+      "alias_source": "auto"
+    },
+    {
+      "id": 35,
+      "classname": "ammo_lightning",
+      "x": -12.0,
+      "y": -1408.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "180"
+      },
+      "alias": "lg_ammo_4mh",
+      "alias_source": "auto"
+    },
+    {
+      "id": 36,
+      "classname": "ammo_pack",
+      "x": -32.0,
+      "y": -1408.0,
+      "z": -68.0,
+      "attrs": {
+        "angle": "180"
+      },
+      "alias": "ammo_pack_4mh",
+      "alias_source": "auto"
+    },
+    {
+      "id": 37,
+      "classname": "item_armor_combat",
+      "x": -736.0,
+      "y": 384.0,
+      "z": -16.0,
+      "alias": "ya_3ya_7_lg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 38,
+      "classname": "target_position",
+      "x": -224.0,
+      "y": -1184.0,
+      "z": 240.0,
+      "attrs": {
+        "targetname": "target_position9",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 39,
+      "classname": "info_player_deathmatch",
+      "x": -160.0,
+      "y": -1424.0,
+      "z": -112.0,
+      "attrs": {
+        "angle": "45"
+      }
+    },
+    {
+      "id": 40,
+      "classname": "item_armor_shard",
+      "x": -72.0,
+      "y": -32.0,
+      "z": 96.0,
+      "alias": "shard_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 41,
+      "classname": "item_armor_shard",
+      "x": -152.0,
+      "y": -32.0,
+      "z": 96.0,
+      "alias": "shard_5quad_7_2rg_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 42,
+      "classname": "item_armor_shard",
+      "x": -112.0,
+      "y": -32.0,
+      "z": 96.0,
+      "alias": "shard_5quad_7_2rg_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 43,
+      "classname": "item_health_small",
+      "x": 176.0,
+      "y": 672.0,
+      "z": 48.0,
+      "attrs": {
+        "angle": "-90"
+      },
+      "alias": "hp5_1ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 44,
+      "classname": "item_health_small",
+      "x": 0.0,
+      "y": -992.0,
+      "z": -104.0,
+      "alias": "hp5_4mh",
+      "alias_source": "auto"
+    },
+    {
+      "id": 45,
+      "classname": "info_player_deathmatch",
+      "x": -88.0,
+      "y": -680.0,
+      "z": 152.0,
+      "attrs": {
+        "angle": "180"
+      }
+    },
+    {
+      "id": 46,
+      "classname": "item_health_small",
+      "x": 256.0,
+      "y": 672.0,
+      "z": 48.0,
+      "attrs": {
+        "angle": "-90"
+      },
+      "alias": "hp5_1ra_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 47,
+      "classname": "item_health_small",
+      "x": 0.0,
+      "y": -832.0,
+      "z": -104.0,
+      "alias": "hp5_4mh_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 48,
+      "classname": "target_position",
+      "x": 48.0,
+      "y": -1416.0,
+      "z": 48.0,
+      "attrs": {
+        "targetname": "target_position12",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 49,
+      "classname": "weapon_rocketlauncher",
+      "x": 512.0,
+      "y": -1184.0,
+      "z": 56.0,
+      "alias": "rl_1rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 50,
+      "classname": "weapon_railgun",
+      "x": -664.0,
+      "y": -600.0,
+      "z": 160.0,
+      "alias": "rg_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 51,
+      "classname": "weapon_shotgun",
+      "x": 608.0,
+      "y": 416.0,
+      "z": -32.0,
+      "alias": "sg_1ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 52,
+      "classname": "target_position",
+      "x": 664.0,
+      "y": 448.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position20",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 53,
+      "classname": "target_position",
+      "x": 32.0,
+      "y": -352.0,
+      "z": 232.0,
+      "attrs": {
+        "targetname": "target_position22",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 54,
+      "classname": "target_position",
+      "x": 664.0,
+      "y": 128.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position2",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 55,
+      "classname": "info_player_deathmatch",
+      "x": 656.0,
+      "y": -720.0,
+      "z": 88.0,
+      "attrs": {
+        "angle": "135"
+      }
+    },
+    {
+      "id": 56,
+      "classname": "target_position",
+      "x": 320.0,
+      "y": -1184.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position11",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 57,
+      "classname": "target_position",
+      "x": 64.0,
+      "y": -1184.0,
+      "z": 240.0,
+      "attrs": {
+        "targetname": "target_position24",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 58,
+      "classname": "target_position",
+      "x": 600.0,
+      "y": -1100.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position25",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 59,
+      "classname": "target_position",
+      "x": 64.0,
+      "y": -1296.0,
+      "z": 240.0,
+      "attrs": {
+        "targetname": "target_position26",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 60,
+      "classname": "target_position",
+      "x": -224.0,
+      "y": -1296.0,
+      "z": 240.0,
+      "attrs": {
+        "targetname": "target_position27",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 61,
+      "classname": "target_speaker",
+      "x": -736.0,
+      "y": -352.0,
+      "z": 552.0,
+      "attrs": {
+        "radius": "10",
+        "noise": "sound/tortured/wind_01.ogg",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 62,
+      "classname": "target_speaker",
+      "x": -648.0,
+      "y": 728.0,
+      "z": 552.0,
+      "attrs": {
+        "radius": "10",
+        "noise": "sound/tortured/wind_02.ogg",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 63,
+      "classname": "target_speaker",
+      "x": 640.0,
+      "y": -704.0,
+      "z": 448.0,
+      "attrs": {
+        "noise": "sound/tortured/owl.ogg",
+        "wait": "15",
+        "random": "5"
+      }
+    },
+    {
+      "id": 64,
+      "classname": "target_speaker",
+      "x": -200.0,
+      "y": -1456.0,
+      "z": 552.0,
+      "attrs": {
+        "noise": "sound/tortured/cricket.ogg",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 65,
+      "classname": "target_speaker",
+      "x": 376.0,
+      "y": 664.0,
+      "z": 552.0,
+      "attrs": {
+        "radius": "10",
+        "noise": "sound/tortured/wind_01.ogg",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 66,
+      "classname": "item_health",
+      "x": 32.0,
+      "y": -304.0,
+      "z": 144.0,
+      "alias": "hp25_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 67,
+      "classname": "item_health",
+      "x": -16.0,
+      "y": -304.0,
+      "z": 144.0,
+      "alias": "hp25_5quad_7_2rg_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 68,
+      "classname": "ammo_bullets",
+      "x": 44.0,
+      "y": -144.0,
+      "z": 88.0,
+      "attrs": {
+        "angle": "180"
+      },
+      "alias": "mg_ammo_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 69,
+      "classname": "target_position",
+      "x": 664.0,
+      "y": -576.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position28",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 70,
+      "classname": "target_speaker",
+      "x": 383.0,
+      "y": 376.0,
+      "z": 330.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/tortured/raven.ogg"
+      }
+    },
+    {
+      "id": 71,
+      "classname": "target_speaker",
+      "x": -200.0,
+      "y": -1240.0,
+      "z": 552.0,
+      "attrs": {
+        "radius": "10",
+        "noise": "sound/tortured/wind_01.ogg",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 72,
+      "classname": "target_position",
+      "x": -288.0,
+      "y": -960.0,
+      "z": 80.0,
+      "attrs": {
+        "targetname": "target_position1",
+        "angle": "-90"
+      }
+    },
+    {
+      "id": 73,
+      "classname": "target_speaker",
+      "x": 472.0,
+      "y": -560.0,
+      "z": 552.0,
+      "attrs": {
+        "radius": "10",
+        "noise": "sound/tortured/wind_02.ogg",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 74,
+      "classname": "item_health_small",
+      "x": 216.0,
+      "y": 672.0,
+      "z": 48.0,
+      "attrs": {
+        "angle": "-90"
+      },
+      "alias": "hp5_1ra_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 75,
+      "classname": "item_health_small",
+      "x": 0.0,
+      "y": -952.0,
+      "z": -104.0,
+      "alias": "hp5_4mh_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 76,
+      "classname": "item_health_small",
+      "x": 0.0,
+      "y": -872.0,
+      "z": -104.0,
+      "alias": "hp5_4mh_4",
+      "alias_source": "auto"
+    },
+    {
+      "id": 77,
+      "classname": "item_health_small",
+      "x": 0.0,
+      "y": -912.0,
+      "z": -104.0,
+      "alias": "hp5_4mh_5",
+      "alias_source": "auto"
+    },
+    {
+      "id": 78,
+      "classname": "info_player_deathmatch",
+      "x": 288.0,
+      "y": -736.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "180"
+      }
+    },
+    {
+      "id": 79,
+      "classname": "info_player_deathmatch",
+      "x": -208.0,
+      "y": -112.0,
+      "z": 88.0,
+      "attrs": {
+        "angle": "90"
+      }
+    },
+    {
+      "id": 80,
+      "classname": "info_player_intermission",
+      "x": 232.0,
+      "y": -1048.0,
+      "z": 96.0,
+      "attrs": {
+        "angles": "15 217 0"
+      }
+    },
+    {
+      "id": 81,
+      "classname": "target_location",
+      "x": 512.0,
+      "y": 448.0,
+      "z": 88.0,
+      "attrs": {
+        "message": "^1RA"
+      }
+    },
+    {
+      "id": 82,
+      "classname": "target_location",
+      "x": -96.0,
+      "y": -1248.0,
+      "z": 88.0,
+      "attrs": {
+        "message": "^4MH"
+      }
+    },
+    {
+      "id": 83,
+      "classname": "target_location",
+      "x": 512.0,
+      "y": -576.0,
+      "z": 160.0,
+      "attrs": {
+        "message": "^1RL"
+      }
+    },
+    {
+      "id": 84,
+      "classname": "target_location",
+      "x": -416.0,
+      "y": -360.0,
+      "z": 88.0,
+      "attrs": {
+        "message": "^5QUAD^7/^2RG"
+      }
+    },
+    {
+      "id": 85,
+      "classname": "target_location",
+      "x": -512.0,
+      "y": 640.0,
+      "z": 88.0,
+      "attrs": {
+        "message": "^3YA^7/LG"
+      }
+    },
+    {
+      "id": 86,
+      "classname": "item_armor_combat",
+      "x": 48.0,
+      "y": -1384.0,
+      "z": 80.0,
+      "attrs": {
+        "angle": "90",
+        "gametype": "duel"
+      },
+      "alias": "ya_4mh",
+      "alias_source": "auto"
+    },
+    {
+      "id": 87,
+      "classname": "item_health_mega",
+      "x": 48.0,
+      "y": -1384.0,
+      "z": 120.0,
+      "attrs": {
+        "angle": "90",
+        "not_gametype": "duel"
+      },
+      "alias": "mh_4mh",
+      "alias_source": "auto"
+    },
+    {
+      "id": 88,
+      "classname": "item_health_mega",
+      "x": -512.0,
+      "y": -452.0,
+      "z": -24.0,
+      "attrs": {
+        "gametype": "duel"
+      },
+      "alias": "mh_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 89,
+      "classname": "item_quad",
+      "x": -512.0,
+      "y": -456.0,
+      "z": -64.0,
+      "attrs": {
+        "not_gametype": "duel"
+      }
+    },
+    {
+      "id": 90,
+      "classname": "weapon_rocketlauncher",
+      "x": -232.0,
+      "y": 672.0,
+      "z": -136.0,
+      "attrs": {
+        "gametype": "duel"
+      },
+      "alias": "rl_3ya_7_lg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 91,
+      "classname": "ammo_bullets",
+      "x": -592.0,
+      "y": -244.0,
+      "z": -112.0,
+      "attrs": {
+        "angle": "-90"
+      },
+      "alias": "mg_ammo_5quad_7_2rg_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 92,
+      "classname": "ammo_rockets",
+      "x": -592.0,
+      "y": -204.0,
+      "z": -112.0,
+      "attrs": {
+        "angle": "-90",
+        "gametype": "duel"
+      },
+      "alias": "rocket_ammo_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 93,
+      "classname": "ammo_shells",
+      "x": -592.0,
+      "y": -204.0,
+      "z": -80.0,
+      "attrs": {
+        "angle": "-90",
+        "not_gametype": "duel"
+      },
+      "alias": "sg_ammo_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 94,
+      "classname": "ammo_pack",
+      "x": -592.0,
+      "y": -224.0,
+      "z": -76.0,
+      "attrs": {
+        "angle": "-90"
+      },
+      "alias": "ammo_pack_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 95,
+      "classname": "ammo_shells",
+      "x": 4.0,
+      "y": -144.0,
+      "z": 88.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "duel"
+      },
+      "alias": "sg_ammo_5quad_7_2rg_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 96,
+      "classname": "ammo_cells",
+      "x": 4.0,
+      "y": -144.0,
+      "z": 128.0,
+      "attrs": {
+        "angle": "180",
+        "not_gametype": "duel"
+      },
+      "alias": "plasma_ammo_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 97,
+      "classname": "ammo_pack",
+      "x": 24.0,
+      "y": -144.0,
+      "z": 124.0,
+      "attrs": {
+        "angle": "180"
+      },
+      "alias": "ammo_pack_5quad_7_2rg_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 98,
+      "classname": "weapon_lightning",
+      "x": 0.0,
+      "y": -272.0,
+      "z": -88.0,
+      "attrs": {
+        "gametype": "duel"
+      },
+      "alias": "lg_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 99,
+      "classname": "weapon_plasmagun",
+      "x": 0.0,
+      "y": -272.0,
+      "z": -48.0,
+      "attrs": {
+        "not_gametype": "duel"
+      },
+      "alias": "pg_5quad_7_2rg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 100,
+      "classname": "weapon_lightning",
+      "x": -232.0,
+      "y": 672.0,
+      "z": -112.0,
+      "attrs": {
+        "not_gametype": "duel"
+      },
+      "alias": "lg_3ya_7_lg",
+      "alias_source": "auto"
+    }
+  ],
+  "by_classname": {
+    "misc_teleporter_dest": [
+      1,
+      2,
+      5,
+      7,
+      30
+    ],
+    "item_armor_body": [
+      3
+    ],
+    "trigger_teleport": [
+      6,
+      29
+    ],
+    "info_player_deathmatch": [
+      8,
+      9,
+      10,
+      14,
+      39,
+      45,
+      55,
+      78,
+      79
+    ],
+    "item_health_large": [
+      13
+    ],
+    "target_position": [
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      31,
+      32,
+      38,
+      48,
+      52,
+      53,
+      54,
+      56,
+      57,
+      58,
+      59,
+      60,
+      69,
+      72
+    ],
+    "weapon_grenadelauncher": [
+      33
+    ],
+    "ammo_rockets": [
+      34,
+      92
+    ],
+    "ammo_lightning": [
+      35
+    ],
+    "ammo_pack": [
+      36,
+      94,
+      97
+    ],
+    "item_armor_combat": [
+      37,
+      86
+    ],
+    "item_armor_shard": [
+      40,
+      41,
+      42
+    ],
+    "item_health_small": [
+      43,
+      44,
+      46,
+      47,
+      74,
+      75,
+      76,
+      77
+    ],
+    "weapon_rocketlauncher": [
+      49,
+      90
+    ],
+    "weapon_railgun": [
+      50
+    ],
+    "weapon_shotgun": [
+      51
+    ],
+    "target_speaker": [
+      61,
+      62,
+      63,
+      64,
+      65,
+      70,
+      71,
+      73
+    ],
+    "item_health": [
+      66,
+      67
+    ],
+    "ammo_bullets": [
+      68,
+      91
+    ],
+    "info_player_intermission": [
+      80
+    ],
+    "target_location": [
+      81,
+      82,
+      83,
+      84,
+      85
+    ],
+    "item_health_mega": [
+      87,
+      88
+    ],
+    "item_quad": [
+      89
+    ],
+    "ammo_shells": [
+      93,
+      95
+    ],
+    "ammo_cells": [
+      96
+    ],
+    "weapon_lightning": [
+      98,
+      100
+    ],
+    "weapon_plasmagun": [
+      99
+    ]
+  },
+  "teleports": {
+    "exit_count": 2,
+    "pair_count": 2,
+    "pairs": [
+      {
+        "entrance_id": 6,
+        "exit_id": 7,
+        "entrance_classname": "trigger_teleport",
+        "exit_classname": "misc_teleporter_dest"
+      },
+      {
+        "entrance_id": 29,
+        "exit_id": 30,
+        "entrance_classname": "trigger_teleport",
+        "exit_classname": "misc_teleporter_dest"
+      }
+    ],
+    "exits": [
+      {
+        "id": 7,
+        "classname": "misc_teleporter_dest"
+      },
+      {
+        "id": 30,
+        "classname": "misc_teleporter_dest"
+      }
+    ]
+  }
+}

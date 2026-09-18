@@ -1,0 +1,2127 @@
+{
+  "map_name": "deepinside",
+  "source": "d:\\QuakeLiveData\\pak00\\maps\\deepinside.bsp",
+  "entity_count": 181,
+  "entities": [
+    {
+      "id": 3,
+      "classname": "target_position",
+      "x": -904.0,
+      "y": 544.0,
+      "z": 280.0,
+      "attrs": {
+        "targetname": "t14"
+      }
+    },
+    {
+      "id": 4,
+      "classname": "info_player_deathmatch",
+      "x": 16.0,
+      "y": 48.0,
+      "z": -40.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "180",
+        "targetname": "t99"
+      }
+    },
+    {
+      "id": 5,
+      "classname": "item_health",
+      "x": -440.0,
+      "y": -1096.0,
+      "z": -48.0,
+      "alias": "hp25_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 6,
+      "classname": "ammo_shells",
+      "x": -656.0,
+      "y": -1552.0,
+      "z": 464.0,
+      "alias": "sg_ammo_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 7,
+      "classname": "weapon_shotgun",
+      "x": -64.0,
+      "y": 240.0,
+      "z": 224.0,
+      "alias": "sg_central_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 8,
+      "classname": "weapon_grenadelauncher",
+      "x": 1104.0,
+      "y": 1072.0,
+      "z": 304.0,
+      "alias": "gl_ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 9,
+      "classname": "item_armor_combat",
+      "x": -1040.0,
+      "y": -448.0,
+      "z": 208.0,
+      "alias": "ya_weak_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 10,
+      "classname": "item_armor_combat",
+      "x": -304.0,
+      "y": -32.0,
+      "z": -80.0,
+      "alias": "ya_lower_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 11,
+      "classname": "item_botroam",
+      "x": 128.0,
+      "y": 1312.0,
+      "z": -56.0,
+      "alias": "botroam_shaft",
+      "alias_source": "auto"
+    },
+    {
+      "id": 12,
+      "classname": "item_health",
+      "x": 16.0,
+      "y": -848.0,
+      "z": 464.0,
+      "alias": "hp25_quad_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 13,
+      "classname": "item_armor_shard",
+      "x": 488.0,
+      "y": -1240.0,
+      "z": 464.0,
+      "alias": "shard_rail",
+      "alias_source": "auto"
+    },
+    {
+      "id": 14,
+      "classname": "target_speaker",
+      "x": 864.0,
+      "y": -944.0,
+      "z": -200.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/water1.wav"
+      }
+    },
+    {
+      "id": 15,
+      "classname": "weapon_railgun",
+      "x": 880.0,
+      "y": -1256.0,
+      "z": 304.0,
+      "alias": "rg_mega",
+      "alias_source": "auto"
+    },
+    {
+      "id": 16,
+      "classname": "item_botroam",
+      "x": 368.0,
+      "y": -864.0,
+      "z": 456.0,
+      "attrs": {
+        "weight": "300"
+      },
+      "alias": "botroam_rail",
+      "alias_source": "auto"
+    },
+    {
+      "id": 17,
+      "classname": "item_botroam",
+      "x": 832.0,
+      "y": 960.0,
+      "z": 408.0,
+      "attrs": {
+        "weight": "300"
+      },
+      "alias": "botroam_ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 18,
+      "classname": "weapon_lightning",
+      "x": 608.0,
+      "y": 896.0,
+      "z": -48.0,
+      "alias": "lg_ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 19,
+      "classname": "item_health",
+      "x": 320.0,
+      "y": 1408.0,
+      "z": -48.0,
+      "alias": "hp25_shaft",
+      "alias_source": "auto"
+    },
+    {
+      "id": 21,
+      "classname": "item_health_large",
+      "x": 616.0,
+      "y": -1256.0,
+      "z": 304.0,
+      "alias": "hp50_mega",
+      "alias_source": "auto"
+    },
+    {
+      "id": 22,
+      "classname": "item_health",
+      "x": 608.0,
+      "y": -64.0,
+      "z": 176.0,
+      "alias": "hp25_strong_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 23,
+      "classname": "info_player_deathmatch",
+      "x": -480.0,
+      "y": -672.0,
+      "z": 312.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "270"
+      }
+    },
+    {
+      "id": 24,
+      "classname": "info_player_deathmatch",
+      "x": 168.0,
+      "y": 1416.0,
+      "z": -40.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "270",
+        "targetname": "t100"
+      }
+    },
+    {
+      "id": 25,
+      "classname": "target_location",
+      "x": 936.0,
+      "y": 264.0,
+      "z": 456.0,
+      "attrs": {
+        "message": "RA",
+        "count": "1"
+      }
+    },
+    {
+      "id": 26,
+      "classname": "weapon_shotgun",
+      "x": 16.0,
+      "y": -688.0,
+      "z": -48.0,
+      "alias": "sg_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 27,
+      "classname": "info_player_deathmatch",
+      "x": 448.0,
+      "y": -16.0,
+      "z": -40.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 28,
+      "classname": "weapon_rocketlauncher",
+      "x": 1456.0,
+      "y": 64.0,
+      "z": 304.0,
+      "alias": "rl_strong_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 29,
+      "classname": "item_quad",
+      "x": -336.0,
+      "y": -1128.0,
+      "z": 464.0
+    },
+    {
+      "id": 30,
+      "classname": "ammo_rockets",
+      "x": 1104.0,
+      "y": 368.0,
+      "z": 416.0,
+      "alias": "rocket_ammo_ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 31,
+      "classname": "item_health",
+      "x": 272.0,
+      "y": 272.0,
+      "z": 224.0,
+      "alias": "hp25_central_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 32,
+      "classname": "info_player_deathmatch",
+      "x": 280.0,
+      "y": 176.0,
+      "z": 232.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "180",
+        "targetname": "t98"
+      }
+    },
+    {
+      "id": 33,
+      "classname": "ammo_rockets",
+      "x": -944.0,
+      "y": 64.0,
+      "z": 208.0,
+      "alias": "rocket_ammo_weak_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 34,
+      "classname": "ammo_bullets",
+      "x": -628.0,
+      "y": 628.0,
+      "z": 304.0,
+      "alias": "mg_ammo_weak_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 35,
+      "classname": "item_health_mega",
+      "x": 864.0,
+      "y": -864.0,
+      "z": -114.0,
+      "alias": "mh_rail",
+      "alias_source": "auto"
+    },
+    {
+      "id": 36,
+      "classname": "item_armor_body",
+      "x": 832.0,
+      "y": 1248.0,
+      "z": 416.0,
+      "alias": "ra_ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 37,
+      "classname": "ammo_cells",
+      "x": 1312.0,
+      "y": 96.0,
+      "z": 112.0,
+      "alias": "plasma_ammo_strong_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 38,
+      "classname": "item_health",
+      "x": 1320.0,
+      "y": -872.0,
+      "z": 176.0,
+      "alias": "hp25_strong_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 39,
+      "classname": "item_health",
+      "x": 864.0,
+      "y": 672.0,
+      "z": 304.0,
+      "alias": "hp25_ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 40,
+      "classname": "info_player_deathmatch",
+      "x": 1024.0,
+      "y": -1096.0,
+      "z": -104.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "135",
+        "targetname": "t99"
+      }
+    },
+    {
+      "id": 41,
+      "classname": "info_player_deathmatch",
+      "x": 1632.0,
+      "y": 896.0,
+      "z": 312.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "225",
+        "targetname": "t100"
+      }
+    },
+    {
+      "id": 42,
+      "classname": "target_location",
+      "x": -1256.0,
+      "y": -360.0,
+      "z": 248.0,
+      "attrs": {
+        "message": "Weak YA",
+        "count": "3"
+      }
+    },
+    {
+      "id": 43,
+      "classname": "target_location",
+      "x": -440.0,
+      "y": -616.0,
+      "z": -24.0,
+      "attrs": {
+        "message": "Lower SG",
+        "count": "5"
+      }
+    },
+    {
+      "id": 44,
+      "classname": "target_location",
+      "x": 856.0,
+      "y": -664.0,
+      "z": -88.0,
+      "attrs": {
+        "message": "Mega",
+        "count": "5"
+      }
+    },
+    {
+      "id": 45,
+      "classname": "target_location",
+      "x": 480.0,
+      "y": 320.0,
+      "z": -24.0,
+      "attrs": {
+        "message": "Shaft",
+        "count": "7"
+      }
+    },
+    {
+      "id": 46,
+      "classname": "target_location",
+      "x": 344.0,
+      "y": -1176.0,
+      "z": 520.0,
+      "attrs": {
+        "message": "Rail",
+        "count": "2"
+      }
+    },
+    {
+      "id": 47,
+      "classname": "ammo_lightning",
+      "x": 1312.0,
+      "y": 32.0,
+      "z": 112.0,
+      "alias": "lg_ammo_strong_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 48,
+      "classname": "target_position",
+      "x": 800.0,
+      "y": 64.0,
+      "z": 184.0,
+      "attrs": {
+        "targetname": "t21"
+      }
+    },
+    {
+      "id": 50,
+      "classname": "target_position",
+      "x": -160.0,
+      "y": -864.0,
+      "z": 440.0,
+      "attrs": {
+        "targetname": "t22"
+      }
+    },
+    {
+      "id": 52,
+      "classname": "target_position",
+      "x": -96.0,
+      "y": 1224.0,
+      "z": 280.0,
+      "attrs": {
+        "targetname": "t23"
+      }
+    },
+    {
+      "id": 53,
+      "classname": "info_player_deathmatch",
+      "x": -288.0,
+      "y": -1168.0,
+      "z": -40.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 54,
+      "classname": "info_player_deathmatch",
+      "x": -1160.0,
+      "y": 640.0,
+      "z": 216.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "270",
+        "targetname": "t98"
+      }
+    },
+    {
+      "id": 55,
+      "classname": "info_player_deathmatch",
+      "x": 712.0,
+      "y": -1152.0,
+      "z": 184.0,
+      "attrs": {
+        "not_gametype": "race",
+        "angle": "90",
+        "targetname": "t98"
+      }
+    },
+    {
+      "id": 56,
+      "classname": "item_health",
+      "x": -1392.0,
+      "y": 48.0,
+      "z": 208.0,
+      "alias": "hp25_weak_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 57,
+      "classname": "target_location",
+      "x": -632.0,
+      "y": -728.0,
+      "z": 344.0,
+      "attrs": {
+        "message": "Quad",
+        "count": "4"
+      }
+    },
+    {
+      "id": 58,
+      "classname": "target_location",
+      "x": 72.0,
+      "y": -1096.0,
+      "z": -24.0,
+      "attrs": {
+        "message": "Lower SG",
+        "count": "5"
+      }
+    },
+    {
+      "id": 59,
+      "classname": "target_location",
+      "x": 360.0,
+      "y": -680.0,
+      "z": 552.0,
+      "attrs": {
+        "message": "Rail",
+        "count": "2"
+      }
+    },
+    {
+      "id": 60,
+      "classname": "target_location",
+      "x": 760.0,
+      "y": -1032.0,
+      "z": 216.0,
+      "attrs": {
+        "message": "Rail",
+        "count": "2"
+      }
+    },
+    {
+      "id": 61,
+      "classname": "target_location",
+      "x": 616.0,
+      "y": -568.0,
+      "z": 296.0,
+      "attrs": {
+        "message": "Rail",
+        "count": "2"
+      }
+    },
+    {
+      "id": 62,
+      "classname": "target_location",
+      "x": 440.0,
+      "y": 920.0,
+      "z": 360.0,
+      "attrs": {
+        "message": "RA",
+        "count": "1"
+      }
+    },
+    {
+      "id": 63,
+      "classname": "target_location",
+      "x": 760.0,
+      "y": -1064.0,
+      "z": -88.0,
+      "attrs": {
+        "message": "Mega",
+        "count": "5"
+      }
+    },
+    {
+      "id": 64,
+      "classname": "target_location",
+      "x": 296.0,
+      "y": 600.0,
+      "z": -24.0,
+      "attrs": {
+        "message": "Shaft",
+        "count": "7"
+      }
+    },
+    {
+      "id": 65,
+      "classname": "target_location",
+      "x": 496.0,
+      "y": 1024.0,
+      "z": -24.0,
+      "attrs": {
+        "message": "Shaft",
+        "count": "7"
+      }
+    },
+    {
+      "id": 66,
+      "classname": "target_location",
+      "x": -72.0,
+      "y": 1272.0,
+      "z": -24.0,
+      "attrs": {
+        "message": "Shaft",
+        "count": "7"
+      }
+    },
+    {
+      "id": 67,
+      "classname": "target_location",
+      "x": 1176.0,
+      "y": 824.0,
+      "z": 376.0,
+      "attrs": {
+        "message": "RA",
+        "count": "1"
+      }
+    },
+    {
+      "id": 68,
+      "classname": "target_location",
+      "x": 1368.0,
+      "y": 24.0,
+      "z": 376.0,
+      "attrs": {
+        "message": "Strong RL",
+        "count": "1"
+      }
+    },
+    {
+      "id": 69,
+      "classname": "target_location",
+      "x": 1608.0,
+      "y": 56.0,
+      "z": 120.0,
+      "attrs": {
+        "message": "Strong RL",
+        "count": "1"
+      }
+    },
+    {
+      "id": 70,
+      "classname": "target_location",
+      "x": 872.0,
+      "y": 40.0,
+      "z": 232.0,
+      "attrs": {
+        "message": "Strong RL",
+        "count": "1"
+      }
+    },
+    {
+      "id": 71,
+      "classname": "target_location",
+      "x": -104.0,
+      "y": -24.0,
+      "z": -24.0,
+      "attrs": {
+        "message": "Lower YA",
+        "count": "3"
+      }
+    },
+    {
+      "id": 72,
+      "classname": "target_location",
+      "x": -632.0,
+      "y": 600.0,
+      "z": -24.0,
+      "attrs": {
+        "message": "Weak RL",
+        "count": "3"
+      }
+    },
+    {
+      "id": 73,
+      "classname": "target_location",
+      "x": -184.0,
+      "y": -904.0,
+      "z": 376.0,
+      "attrs": {
+        "message": "Quad",
+        "count": "4"
+      }
+    },
+    {
+      "id": 74,
+      "classname": "target_location",
+      "x": -552.0,
+      "y": -1144.0,
+      "z": 504.0,
+      "attrs": {
+        "message": "Quad",
+        "count": "4"
+      }
+    },
+    {
+      "id": 75,
+      "classname": "target_location",
+      "x": -232.0,
+      "y": -248.0,
+      "z": 344.0,
+      "attrs": {
+        "message": "Central Room",
+        "count": "3"
+      }
+    },
+    {
+      "id": 76,
+      "classname": "target_location",
+      "x": 216.0,
+      "y": -264.0,
+      "z": 224.0,
+      "attrs": {
+        "message": "Central Room",
+        "count": "3"
+      }
+    },
+    {
+      "id": 77,
+      "classname": "target_location",
+      "x": -1064.0,
+      "y": 584.0,
+      "z": 280.0,
+      "attrs": {
+        "message": "Weak RL",
+        "count": "3"
+      }
+    },
+    {
+      "id": 78,
+      "classname": "target_location",
+      "x": 936.0,
+      "y": -728.0,
+      "z": 216.0,
+      "attrs": {
+        "message": "Rail",
+        "count": "2"
+      }
+    },
+    {
+      "id": 79,
+      "classname": "target_location",
+      "x": 456.0,
+      "y": -88.0,
+      "z": 376.0,
+      "attrs": {
+        "count": "1",
+        "message": "Strong RL"
+      }
+    },
+    {
+      "id": 80,
+      "classname": "target_location",
+      "x": 1464.0,
+      "y": -680.0,
+      "z": 216.0,
+      "attrs": {
+        "message": "Strong RL",
+        "count": "1"
+      }
+    },
+    {
+      "id": 81,
+      "classname": "target_location",
+      "x": 824.0,
+      "y": 1000.0,
+      "z": 440.0,
+      "attrs": {
+        "message": "RA",
+        "count": "1"
+      }
+    },
+    {
+      "id": 82,
+      "classname": "item_health",
+      "x": 608.0,
+      "y": 192.0,
+      "z": 176.0,
+      "alias": "hp25_shaft_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 83,
+      "classname": "item_armor_shard",
+      "x": -624.0,
+      "y": -576.0,
+      "z": 304.0,
+      "alias": "shard_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 84,
+      "classname": "item_armor_shard",
+      "x": -624.0,
+      "y": -512.0,
+      "z": 304.0,
+      "alias": "shard_lower_sg",
+      "alias_source": "auto"
+    },
+    {
+      "id": 85,
+      "classname": "item_armor_shard",
+      "x": -624.0,
+      "y": -448.0,
+      "z": 304.0,
+      "alias": "shard_lower_sg_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 86,
+      "classname": "ammo_slugs",
+      "x": 1104.0,
+      "y": 432.0,
+      "z": 416.0,
+      "alias": "rg_ammo_ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 87,
+      "classname": "ammo_bullets",
+      "x": -684.0,
+      "y": 628.0,
+      "z": 304.0,
+      "alias": "mg_ammo_weak_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 88,
+      "classname": "misc_teleporter_dest",
+      "x": 1456.0,
+      "y": -952.0,
+      "z": 184.0,
+      "attrs": {
+        "angle": "90",
+        "targetname": "tele2"
+      }
+    },
+    {
+      "id": 89,
+      "classname": "target_location",
+      "x": -16.0,
+      "y": -1512.0,
+      "z": 520.0,
+      "attrs": {
+        "message": "Quad",
+        "count": "4"
+      }
+    },
+    {
+      "id": 90,
+      "classname": "item_health",
+      "x": 800.0,
+      "y": 672.0,
+      "z": 304.0,
+      "alias": "hp25_ra_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 93,
+      "classname": "item_health",
+      "x": -1392.0,
+      "y": -16.0,
+      "z": 208.0,
+      "alias": "hp25_weak_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 94,
+      "classname": "ammo_bullets",
+      "x": 836.0,
+      "y": -1148.0,
+      "z": -112.0,
+      "alias": "mg_ammo_mega",
+      "alias_source": "auto"
+    },
+    {
+      "id": 95,
+      "classname": "ammo_bullets",
+      "x": 892.0,
+      "y": -1148.0,
+      "z": -112.0,
+      "alias": "mg_ammo_mega_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 96,
+      "classname": "ammo_lightning",
+      "x": 112.0,
+      "y": -336.0,
+      "z": 224.0,
+      "alias": "lg_ammo_central_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 97,
+      "classname": "ammo_shells",
+      "x": 528.0,
+      "y": 1040.0,
+      "z": 304.0,
+      "alias": "sg_ammo_shaft",
+      "alias_source": "auto"
+    },
+    {
+      "id": 98,
+      "classname": "ammo_grenades",
+      "x": 528.0,
+      "y": 1104.0,
+      "z": 304.0,
+      "alias": "gl_ammo_shaft",
+      "alias_source": "auto"
+    },
+    {
+      "id": 99,
+      "classname": "target_position",
+      "x": 472.0,
+      "y": -864.0,
+      "z": 536.0,
+      "attrs": {
+        "targetname": "t27"
+      }
+    },
+    {
+      "id": 101,
+      "classname": "ammo_rockets",
+      "x": 976.0,
+      "y": -432.0,
+      "z": 176.0,
+      "alias": "rocket_ammo_mega",
+      "alias_source": "auto"
+    },
+    {
+      "id": 102,
+      "classname": "target_position",
+      "x": 1028.0,
+      "y": 340.0,
+      "z": 468.0,
+      "attrs": {
+        "targetname": "t97"
+      }
+    },
+    {
+      "id": 103,
+      "classname": "info_player_intermission",
+      "x": 1136.0,
+      "y": -112.0,
+      "z": 496.0,
+      "attrs": {
+        "spawnflags": "0",
+        "target": "t97"
+      }
+    },
+    {
+      "id": 104,
+      "classname": "target_speaker",
+      "x": -64.0,
+      "y": -16.0,
+      "z": 584.0,
+      "attrs": {
+        "noise": "sound/world/ambience03.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 105,
+      "classname": "target_speaker",
+      "x": -1088.0,
+      "y": 320.0,
+      "z": 528.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/ambience03.wav"
+      }
+    },
+    {
+      "id": 106,
+      "classname": "target_speaker",
+      "x": -320.0,
+      "y": -1104.0,
+      "z": 720.0,
+      "attrs": {
+        "spawnflags": "1",
+        "noise": "sound/world/ambience03.wav"
+      }
+    },
+    {
+      "id": 107,
+      "classname": "target_speaker",
+      "x": 560.0,
+      "y": -864.0,
+      "z": 704.0,
+      "attrs": {
+        "noise": "sound/world/ambience03.wav",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 108,
+      "classname": "item_armor_shard",
+      "x": 424.0,
+      "y": -1240.0,
+      "z": 464.0,
+      "alias": "shard_rail_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 109,
+      "classname": "item_health",
+      "x": -672.0,
+      "y": -848.0,
+      "z": 464.0,
+      "alias": "hp25_quad_3",
+      "alias_source": "auto"
+    },
+    {
+      "id": 110,
+      "classname": "target_position",
+      "x": -336.0,
+      "y": -1408.0,
+      "z": 520.0,
+      "attrs": {
+        "targetname": "t25"
+      }
+    },
+    {
+      "id": 111,
+      "classname": "weapon_plasmagun",
+      "x": -464.0,
+      "y": -944.0,
+      "z": 304.0,
+      "alias": "pg_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 112,
+      "classname": "ammo_shells",
+      "x": -944.0,
+      "y": 0.0,
+      "z": 208.0,
+      "alias": "sg_ammo_weak_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 113,
+      "classname": "ammo_grenades",
+      "x": -656.0,
+      "y": -1488.0,
+      "z": 464.0,
+      "alias": "gl_ammo_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 114,
+      "classname": "item_health",
+      "x": -656.0,
+      "y": -240.0,
+      "z": 304.0,
+      "alias": "hp25_lower_ya",
+      "alias_source": "auto"
+    },
+    {
+      "id": 115,
+      "classname": "ammo_cells",
+      "x": 48.0,
+      "y": -336.0,
+      "z": 224.0,
+      "alias": "plasma_ammo_central_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 116,
+      "classname": "ammo_rockets",
+      "x": -388.0,
+      "y": -1140.0,
+      "z": -48.0,
+      "alias": "rocket_ammo_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 117,
+      "classname": "ammo_shells",
+      "x": 976.0,
+      "y": -496.0,
+      "z": 176.0,
+      "alias": "sg_ammo_mega",
+      "alias_source": "auto"
+    },
+    {
+      "id": 118,
+      "classname": "target_location",
+      "x": -360.0,
+      "y": 216.0,
+      "z": 344.0,
+      "attrs": {
+        "message": "Central Room",
+        "count": "3"
+      }
+    },
+    {
+      "id": 119,
+      "classname": "target_location",
+      "x": 120.0,
+      "y": 296.0,
+      "z": 272.0,
+      "attrs": {
+        "message": "Central Room",
+        "count": "3"
+      }
+    },
+    {
+      "id": 120,
+      "classname": "target_location",
+      "x": -1064.0,
+      "y": -712.0,
+      "z": 248.0,
+      "attrs": {
+        "message": "Weak YA",
+        "count": "3"
+      }
+    },
+    {
+      "id": 121,
+      "classname": "target_location",
+      "x": -520.0,
+      "y": -88.0,
+      "z": -24.0,
+      "attrs": {
+        "message": "Lower YA",
+        "count": "3"
+      }
+    },
+    {
+      "id": 122,
+      "classname": "target_location",
+      "x": -88.0,
+      "y": 1112.0,
+      "z": 248.0,
+      "attrs": {
+        "message": "Shaft",
+        "count": "7"
+      }
+    },
+    {
+      "id": 123,
+      "classname": "item_armor_shard",
+      "x": 1624.0,
+      "y": -848.0,
+      "z": 176.0,
+      "alias": "shard_strong_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 124,
+      "classname": "item_armor_shard",
+      "x": 1624.0,
+      "y": -784.0,
+      "z": 176.0,
+      "alias": "shard_strong_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 125,
+      "classname": "item_botroam",
+      "x": 832.0,
+      "y": 1168.0,
+      "z": 408.0,
+      "attrs": {
+        "weight": "300"
+      },
+      "alias": "botroam_ra_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 126,
+      "classname": "target_location",
+      "x": -24.0,
+      "y": 520.0,
+      "z": -24.0,
+      "attrs": {
+        "count": "3",
+        "message": "Lower YA"
+      }
+    },
+    {
+      "id": 131,
+      "classname": "team_dom_point",
+      "x": -464.0,
+      "y": -944.0,
+      "z": 312.0,
+      "attrs": {
+        "identifier": "3",
+        "count": "128",
+        "target": "t98"
+      }
+    },
+    {
+      "id": 133,
+      "classname": "team_dom_point",
+      "x": 832.0,
+      "y": 912.0,
+      "z": 312.0,
+      "attrs": {
+        "identifier": "1",
+        "count": "128",
+        "target": "t100"
+      }
+    },
+    {
+      "id": 134,
+      "classname": "team_dom_point",
+      "x": 864.0,
+      "y": -864.0,
+      "z": -104.0,
+      "attrs": {
+        "identifier": "2",
+        "count": "128",
+        "target": "t99"
+      }
+    },
+    {
+      "id": 135,
+      "classname": "info_player_deathmatch",
+      "x": 256.0,
+      "y": -704.0,
+      "z": 472.0,
+      "attrs": {
+        "angle": "270",
+        "gametype": "dom",
+        "targetname": "t98"
+      }
+    },
+    {
+      "id": 136,
+      "classname": "info_player_deathmatch",
+      "x": 1504.0,
+      "y": 64.0,
+      "z": 120.0,
+      "attrs": {
+        "targetname": "t100",
+        "angle": "90",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 137,
+      "classname": "info_player_deathmatch",
+      "x": 448.0,
+      "y": 192.0,
+      "z": 312.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "360",
+        "targetname": "t100"
+      }
+    },
+    {
+      "id": 138,
+      "classname": "info_player_deathmatch",
+      "x": 16.0,
+      "y": -688.0,
+      "z": -40.0,
+      "attrs": {
+        "targetname": "t99",
+        "angle": "270",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 139,
+      "classname": "info_player_deathmatch",
+      "x": -160.0,
+      "y": -1168.0,
+      "z": -40.0,
+      "attrs": {
+        "angle": "360",
+        "gametype": "dom",
+        "targetname": "t99"
+      }
+    },
+    {
+      "id": 140,
+      "classname": "info_player_deathmatch",
+      "x": -416.0,
+      "y": -1112.0,
+      "z": -40.0,
+      "attrs": {
+        "angle": "45",
+        "gametype": "dom",
+        "targetname": "t98"
+      }
+    },
+    {
+      "id": 141,
+      "classname": "info_player_deathmatch",
+      "x": 64.0,
+      "y": 384.0,
+      "z": 232.0,
+      "attrs": {
+        "angle": "90",
+        "gametype": "dom",
+        "targetname": "t100"
+      }
+    },
+    {
+      "id": 142,
+      "classname": "team_CTF_redplayer",
+      "x": 832.0,
+      "y": 1120.0,
+      "z": 312.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "270"
+      }
+    },
+    {
+      "id": 143,
+      "classname": "team_CTF_redplayer",
+      "x": 768.0,
+      "y": 1120.0,
+      "z": 312.0,
+      "attrs": {
+        "angle": "270",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 144,
+      "classname": "team_CTF_redplayer",
+      "x": 896.0,
+      "y": 1120.0,
+      "z": 312.0,
+      "attrs": {
+        "angle": "270",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 145,
+      "classname": "team_CTF_redplayer",
+      "x": 576.0,
+      "y": 960.0,
+      "z": 312.0,
+      "attrs": {
+        "angle": "360",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 146,
+      "classname": "team_CTF_redplayer",
+      "x": 576.0,
+      "y": 896.0,
+      "z": 312.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 147,
+      "classname": "team_CTF_redplayer",
+      "x": 576.0,
+      "y": 832.0,
+      "z": 312.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "360"
+      }
+    },
+    {
+      "id": 148,
+      "classname": "team_CTF_redplayer",
+      "x": 1088.0,
+      "y": 960.0,
+      "z": 312.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 149,
+      "classname": "team_CTF_redplayer",
+      "x": 1088.0,
+      "y": 896.0,
+      "z": 312.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 150,
+      "classname": "team_CTF_redplayer",
+      "x": 1096.0,
+      "y": 832.0,
+      "z": 312.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 151,
+      "classname": "team_CTF_blueplayer",
+      "x": -672.0,
+      "y": -896.0,
+      "z": 312.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 152,
+      "classname": "team_CTF_blueplayer",
+      "x": -672.0,
+      "y": -960.0,
+      "z": 312.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 153,
+      "classname": "team_CTF_blueplayer",
+      "x": -672.0,
+      "y": -1024.0,
+      "z": 312.0,
+      "attrs": {
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 154,
+      "classname": "team_CTF_blueplayer",
+      "x": -536.0,
+      "y": -704.0,
+      "z": 312.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "270"
+      }
+    },
+    {
+      "id": 155,
+      "classname": "team_CTF_blueplayer",
+      "x": -480.0,
+      "y": -704.0,
+      "z": 312.0,
+      "attrs": {
+        "angle": "270",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 156,
+      "classname": "team_CTF_blueplayer",
+      "x": -416.0,
+      "y": -704.0,
+      "z": 312.0,
+      "attrs": {
+        "angle": "270",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 157,
+      "classname": "team_CTF_blueplayer",
+      "x": -544.0,
+      "y": -1184.0,
+      "z": 312.0,
+      "attrs": {
+        "angle": "90",
+        "gametype": "dom"
+      }
+    },
+    {
+      "id": 158,
+      "classname": "team_CTF_blueplayer",
+      "x": -480.0,
+      "y": -1184.0,
+      "z": 312.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 159,
+      "classname": "team_CTF_blueplayer",
+      "x": -608.0,
+      "y": -1440.0,
+      "z": 472.0,
+      "attrs": {
+        "gametype": "dom",
+        "angle": "90"
+      }
+    },
+    {
+      "id": 160,
+      "classname": "race_point",
+      "x": 864.0,
+      "y": -864.0,
+      "z": -112.0,
+      "attrs": {
+        "target": "t101"
+      }
+    },
+    {
+      "id": 161,
+      "classname": "race_point",
+      "x": 16.0,
+      "y": -688.0,
+      "z": -48.0,
+      "attrs": {
+        "target": "t102",
+        "targetname": "t101"
+      }
+    },
+    {
+      "id": 162,
+      "classname": "race_point",
+      "x": 480.0,
+      "y": 352.0,
+      "z": -48.0,
+      "attrs": {
+        "target": "t104",
+        "targetname": "t103"
+      }
+    },
+    {
+      "id": 163,
+      "classname": "race_point",
+      "x": -288.0,
+      "y": -32.0,
+      "z": -32.0,
+      "attrs": {
+        "target": "t103",
+        "targetname": "t102",
+        "spawnflags": "1"
+      }
+    },
+    {
+      "id": 164,
+      "classname": "race_point",
+      "x": 1440.0,
+      "y": -64.0,
+      "z": 112.0,
+      "attrs": {
+        "target": "t105",
+        "targetname": "t104"
+      }
+    },
+    {
+      "id": 165,
+      "classname": "race_point",
+      "x": 560.0,
+      "y": 600.0,
+      "z": 336.0,
+      "attrs": {
+        "target": "t108",
+        "targetname": "t113"
+      }
+    },
+    {
+      "id": 166,
+      "classname": "race_point",
+      "x": 1088.0,
+      "y": -752.0,
+      "z": 176.0,
+      "attrs": {
+        "target": "t110",
+        "targetname": "t105"
+      }
+    },
+    {
+      "id": 167,
+      "classname": "race_point",
+      "x": 120.0,
+      "y": -536.0,
+      "z": 464.0,
+      "attrs": {
+        "target": "t111",
+        "targetname": "t110"
+      }
+    },
+    {
+      "id": 168,
+      "classname": "race_point",
+      "x": -448.0,
+      "y": 224.0,
+      "z": 304.0,
+      "attrs": {
+        "target": "t113",
+        "targetname": "t114"
+      }
+    },
+    {
+      "id": 169,
+      "classname": "race_point",
+      "x": -1264.0,
+      "y": -64.0,
+      "z": 208.0,
+      "attrs": {
+        "target": "t114",
+        "targetname": "t114b"
+      }
+    },
+    {
+      "id": 170,
+      "classname": "race_point",
+      "x": 832.0,
+      "y": 1248.0,
+      "z": 416.0,
+      "attrs": {
+        "targetname": "t108"
+      }
+    },
+    {
+      "id": 171,
+      "classname": "info_player_deathmatch",
+      "x": 704.0,
+      "y": -768.0,
+      "z": -104.0,
+      "attrs": {
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 172,
+      "classname": "info_player_deathmatch",
+      "x": 704.0,
+      "y": -832.0,
+      "z": -104.0,
+      "attrs": {
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 173,
+      "classname": "info_player_deathmatch",
+      "x": 704.0,
+      "y": -896.0,
+      "z": -104.0,
+      "attrs": {
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 174,
+      "classname": "info_player_deathmatch",
+      "x": 720.0,
+      "y": -640.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "315",
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 175,
+      "classname": "info_player_deathmatch",
+      "x": 1008.0,
+      "y": -640.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "225",
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 176,
+      "classname": "info_player_deathmatch",
+      "x": 1024.0,
+      "y": -768.0,
+      "z": -104.0,
+      "attrs": {
+        "gametype": "race",
+        "angle": "180"
+      }
+    },
+    {
+      "id": 177,
+      "classname": "info_player_deathmatch",
+      "x": 1024.0,
+      "y": -832.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 178,
+      "classname": "info_player_deathmatch",
+      "x": 1024.0,
+      "y": -896.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 179,
+      "classname": "info_player_deathmatch",
+      "x": 1024.0,
+      "y": -960.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "180",
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 180,
+      "classname": "info_player_deathmatch",
+      "x": 1008.0,
+      "y": -1072.0,
+      "z": -104.0,
+      "attrs": {
+        "angle": "135",
+        "gametype": "race"
+      }
+    },
+    {
+      "id": 181,
+      "classname": "race_point",
+      "x": -728.0,
+      "y": -720.0,
+      "z": 304.0,
+      "attrs": {
+        "targetname": "t111",
+        "target": "t114b"
+      }
+    },
+    {
+      "id": 182,
+      "classname": "ammo_pack",
+      "x": -656.0,
+      "y": -1520.0,
+      "z": 500.0,
+      "alias": "ammo_pack_quad",
+      "alias_source": "auto"
+    },
+    {
+      "id": 183,
+      "classname": "ammo_pack",
+      "x": 864.0,
+      "y": -1148.0,
+      "z": -76.0,
+      "alias": "ammo_pack_mega",
+      "alias_source": "auto"
+    },
+    {
+      "id": 184,
+      "classname": "ammo_pack",
+      "x": -388.0,
+      "y": -1140.0,
+      "z": -12.0,
+      "alias": "ammo_pack_quad_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 185,
+      "classname": "ammo_pack",
+      "x": 976.0,
+      "y": -464.0,
+      "z": 212.0,
+      "alias": "ammo_pack_mega_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 186,
+      "classname": "ammo_pack",
+      "x": 80.0,
+      "y": -336.0,
+      "z": 224.0,
+      "alias": "ammo_pack_central_room",
+      "alias_source": "auto"
+    },
+    {
+      "id": 187,
+      "classname": "ammo_pack",
+      "x": 1312.0,
+      "y": 64.0,
+      "z": 148.0,
+      "alias": "ammo_pack_strong_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 188,
+      "classname": "ammo_pack",
+      "x": -944.0,
+      "y": 32.0,
+      "z": 208.0,
+      "alias": "ammo_pack_weak_rl",
+      "alias_source": "auto"
+    },
+    {
+      "id": 189,
+      "classname": "ammo_pack",
+      "x": -656.0,
+      "y": 628.0,
+      "z": 336.0,
+      "alias": "ammo_pack_weak_rl_2",
+      "alias_source": "auto"
+    },
+    {
+      "id": 190,
+      "classname": "ammo_pack",
+      "x": 1104.0,
+      "y": 400.0,
+      "z": 452.0,
+      "alias": "ammo_pack_ra",
+      "alias_source": "auto"
+    },
+    {
+      "id": 191,
+      "classname": "ammo_pack",
+      "x": 528.0,
+      "y": 1072.0,
+      "z": 304.0,
+      "alias": "ammo_pack_shaft",
+      "alias_source": "auto"
+    },
+    {
+      "id": 192,
+      "classname": "target_location",
+      "x": -696.0,
+      "y": 344.0,
+      "z": 344.0,
+      "attrs": {
+        "message": "Weak RL",
+        "count": "3"
+      }
+    },
+    {
+      "id": 193,
+      "classname": "target_location",
+      "x": -1256.0,
+      "y": 104.0,
+      "z": 296.0,
+      "attrs": {
+        "count": "3",
+        "message": "Weak RL"
+      }
+    },
+    {
+      "id": 194,
+      "classname": "weapon_rocketlauncher",
+      "x": -1344.0,
+      "y": 552.0,
+      "z": 304.0,
+      "alias": "rl_weak_rl",
+      "alias_source": "auto"
+    }
+  ],
+  "by_classname": {
+    "target_position": [
+      3,
+      48,
+      50,
+      52,
+      99,
+      102,
+      110
+    ],
+    "info_player_deathmatch": [
+      4,
+      23,
+      24,
+      27,
+      32,
+      40,
+      41,
+      53,
+      54,
+      55,
+      135,
+      136,
+      137,
+      138,
+      139,
+      140,
+      141,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180
+    ],
+    "item_health": [
+      5,
+      12,
+      19,
+      22,
+      31,
+      38,
+      39,
+      56,
+      82,
+      90,
+      93,
+      109,
+      114
+    ],
+    "ammo_shells": [
+      6,
+      97,
+      112,
+      117
+    ],
+    "weapon_shotgun": [
+      7,
+      26
+    ],
+    "weapon_grenadelauncher": [
+      8
+    ],
+    "item_armor_combat": [
+      9,
+      10
+    ],
+    "item_botroam": [
+      11,
+      16,
+      17,
+      125
+    ],
+    "item_armor_shard": [
+      13,
+      83,
+      84,
+      85,
+      108,
+      123,
+      124
+    ],
+    "target_speaker": [
+      14,
+      104,
+      105,
+      106,
+      107
+    ],
+    "weapon_railgun": [
+      15
+    ],
+    "weapon_lightning": [
+      18
+    ],
+    "item_health_large": [
+      21
+    ],
+    "target_location": [
+      25,
+      42,
+      43,
+      44,
+      45,
+      46,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      89,
+      118,
+      119,
+      120,
+      121,
+      122,
+      126,
+      192,
+      193
+    ],
+    "weapon_rocketlauncher": [
+      28,
+      194
+    ],
+    "item_quad": [
+      29
+    ],
+    "ammo_rockets": [
+      30,
+      33,
+      101,
+      116
+    ],
+    "ammo_bullets": [
+      34,
+      87,
+      94,
+      95
+    ],
+    "item_health_mega": [
+      35
+    ],
+    "item_armor_body": [
+      36
+    ],
+    "ammo_cells": [
+      37,
+      115
+    ],
+    "ammo_lightning": [
+      47,
+      96
+    ],
+    "ammo_slugs": [
+      86
+    ],
+    "misc_teleporter_dest": [
+      88
+    ],
+    "ammo_grenades": [
+      98,
+      113
+    ],
+    "info_player_intermission": [
+      103
+    ],
+    "weapon_plasmagun": [
+      111
+    ],
+    "team_dom_point": [
+      131,
+      133,
+      134
+    ],
+    "team_CTF_redplayer": [
+      142,
+      143,
+      144,
+      145,
+      146,
+      147,
+      148,
+      149,
+      150
+    ],
+    "team_CTF_blueplayer": [
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      159
+    ],
+    "race_point": [
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      169,
+      170,
+      181
+    ],
+    "ammo_pack": [
+      182,
+      183,
+      184,
+      185,
+      186,
+      187,
+      188,
+      189,
+      190,
+      191
+    ]
+  },
+  "teleports": {
+    "exit_count": 0,
+    "pair_count": 0,
+    "pairs": [],
+    "exits": []
+  }
+}
