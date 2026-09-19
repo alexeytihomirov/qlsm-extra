@@ -2,7 +2,8 @@
 """Refresh qlsm-repository.json and rebuild packages/*.zip.
 
 Plugins: recompute each listed entry's sha256 from the .py next to this
-script (LF-normalized, matching qlsm's CRLF-insensitive comparison).
+script (LF-normalized, matching qlsm's CRLF-insensitive comparison), and
+copy `depends_on` from the plugin's own `.ql-plugin.json` sidecar.
 
 Addons: zip each directory under addons/<id>/ into packages/<id>.zip
 (with qlsm-addon.json at the archive root), then refresh that entry's
@@ -64,6 +65,17 @@ def _load_sidecar_meta(filename: str) -> dict:
         out['label'] = data['label'].strip()
     if isinstance(data.get('description'), str) and data['description'].strip():
         out['description'] = data['description'].strip()
+    # depends_on is what tells qlsm a listed file is a helper of another listed
+    # plugin: it gets no row of its own in the Repositories page and is
+    # downloaded together with whatever needs it. The sidecar is the source of
+    # truth (the Plugins tab reads the same field from it), so it is copied
+    # rather than maintained by hand in the manifest.
+    depends_on = data.get('depends_on')
+    if isinstance(depends_on, list):
+        names = [d.strip() for d in depends_on
+                 if isinstance(d, str) and d.strip().endswith('.py') and '/' not in d]
+        if names:
+            out['depends_on'] = names
     return out
 
 
@@ -90,6 +102,12 @@ def _plugin_entries(existing: list) -> list:
             value = prev.get(key) or meta.get(key)
             if value:
                 entry[key] = value
+        # Sidecar wins here, unlike the fields above: a dependency list kept
+        # only in the manifest would go stale the moment the plugin's own
+        # sidecar changed.
+        depends_on = meta.get('depends_on') or prev.get('depends_on')
+        if depends_on:
+            entry['depends_on'] = depends_on
         if not path.is_file():
             missing.append(filename)
             if prev.get('sha256'):

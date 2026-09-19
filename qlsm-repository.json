@@ -12,7 +12,10 @@
       "runtime": "minqlx",
       "label": "Chat RCON",
       "description": "!rcon in chat \u2014 tiered ACL console passthrough for referees/admins. Pair with chat_rcon_acl.py. Registered at permission 0 but the handler enforces its own ref/admin tiers internally (qlx_chatRconRefPerm / qlx_chatRconAdminPerm).",
-      "sha256": "33aa75d8ebe5a7e841c0e70b70846f35660e4e3535de6afbbb2a2cfe13df7ea8"
+      "sha256": "33aa75d8ebe5a7e841c0e70b70846f35660e4e3535de6afbbb2a2cfe13df7ea8",
+      "depends_on": [
+        "chat_rcon_acl.py"
+      ]
     },
     {
       "filename": "chat_rcon_acl.py",
