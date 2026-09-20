@@ -39,13 +39,12 @@ and commit the updated `qlsm-repository.json` + `packages/*.zip`.
 | `lobby.py` | Yes |
 | `match_restore_util.py` | No — helper for `match_restore.py` |
 | `match_restore_lab.py` | Optional add-on to `match_restore.py` |
-| `match_restore.py` + `restore/` | Yes together — **not** in the repository manifest |
+| `match_restore.py` + `restore/` | Yes together — downloads as one entry |
 
-`match_restore.py` needs the `restore/` package beside it. qlsm's repository
-download is one bare filename per click, so that pair is left out of
-`qlsm-repository.json`. Copy `match_restore.py`, `match_restore.ql-plugin.json`,
-and the whole `restore/` directory into the host's `minqlx` plugin pool by hand
-(same as before).
+`match_restore.py` needs the `restore/` package beside it. Its manifest entry
+declares `package_files` for every file under `restore/`, so downloading
+`match_restore.py` from the Repositories page fetches the whole folder with
+it. `generate_manifest.py` regenerates that list from `PACKAGE_FOLDERS`.
 
 These plugins assume qlsm's `minqlxtended-patched` runtime
 ([alexeytihomirov/minqlxtended](https://github.com/alexeytihomirov/minqlxtended)).
