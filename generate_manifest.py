@@ -3,14 +3,18 @@
 
 Plugins: recompute each listed entry's sha256 from the .py next to this
 script (LF-normalized, matching qlsm's CRLF-insensitive comparison), and
-copy `depends_on` from the plugin's own `.ql-plugin.json` sidecar.
+copy `depends_on` from the plugin's own `.ql-plugin.json` sidecar. A plugin
+listed in PACKAGE_FOLDERS also gets `package_files`: every file under its
+folder, LF-normalized sha256 each, so qlsm downloads the whole folder
+alongside the .py (see ui/plugin_repositories.py's `package_files`, added
+once qlsm could fetch more than a single bare `<name>.py` per entry).
 
 Addons: zip each directory under addons/<id>/ into packages/<id>.zip
 (with qlsm-addon.json at the archive root), then refresh that entry's
 version / sha256 / label / description from the addon's own manifest.
 
-Run this (and commit the result) whenever a listed .py or any addon
-source changes.
+Run this (and commit the result) whenever a listed .py, package folder, or
+any addon source changes.
 """
 from __future__ import annotations
 
@@ -26,15 +30,23 @@ ADDONS_DIR = ROOT / 'addons'
 PACKAGES_DIR = ROOT / 'packages'
 
 # Plugins qlsm can fetch as a single bare filename (+ optional sidecar).
-# match_restore.py needs restore/ alongside it and is deliberately omitted.
 DEFAULT_PLUGINS = [
     'tournament_access.py',
     'chat_rcon.py',
     'chat_rcon_acl.py',
     'lobby.py',
+    'match_restore.py',
     'match_restore_util.py',
     'match_restore_lab.py',
 ]
+
+# filename -> folder (relative to this script) that must be downloaded
+# alongside it. match_restore.py does `from restore import codec` etc., so it
+# needs the whole restore/ package on disk next to it, not just another
+# root-level .py `depends_on` could name.
+PACKAGE_FOLDERS = {
+    'match_restore.py': 'restore',
+}
 
 
 def _normalize_eol(data: bytes) -> bytes:
@@ -79,6 +91,23 @@ def _load_sidecar_meta(filename: str) -> dict:
     return out
 
 
+def _package_files(folder: str) -> dict:
+    """{"<folder>/<relpath>": sha256, ...} for every file under `folder`,
+    LF-normalized the same way the main .py's own hash is -- must match what
+    ui.plugin_repositories._is_safe_package_relpath will accept on the qlsm
+    side (POSIX-style relative paths, no leading dot)."""
+    root = ROOT / folder
+    out = {}
+    for path in sorted(root.rglob('*')):
+        if not path.is_file():
+            continue
+        if path.name in ('.DS_Store', 'Thumbs.db') or '__pycache__' in path.parts:
+            continue
+        relpath = f'{folder}/{path.relative_to(root).as_posix()}'
+        out[relpath] = _sha256_file(path, normalize_eol=True)
+    return out
+
+
 def _plugin_entries(existing: list) -> list:
     by_name = {
         e['filename']: e for e in existing
@@ -108,6 +137,9 @@ def _plugin_entries(existing: list) -> list:
         depends_on = meta.get('depends_on') or prev.get('depends_on')
         if depends_on:
             entry['depends_on'] = depends_on
+        folder = PACKAGE_FOLDERS.get(filename)
+        if folder:
+            entry['package_files'] = _package_files(folder)
         if not path.is_file():
             missing.append(filename)
             if prev.get('sha256'):

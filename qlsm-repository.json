@@ -12,10 +12,10 @@
       "runtime": "minqlx",
       "label": "Chat RCON",
       "description": "!rcon in chat \u2014 tiered ACL console passthrough for referees/admins. Pair with chat_rcon_acl.py. Registered at permission 0 but the handler enforces its own ref/admin tiers internally (qlx_chatRconRefPerm / qlx_chatRconAdminPerm).",
-      "sha256": "33aa75d8ebe5a7e841c0e70b70846f35660e4e3535de6afbbb2a2cfe13df7ea8",
       "depends_on": [
         "chat_rcon_acl.py"
-      ]
+      ],
+      "sha256": "33aa75d8ebe5a7e841c0e70b70846f35660e4e3535de6afbbb2a2cfe13df7ea8"
     },
     {
       "filename": "chat_rcon_acl.py",
@@ -30,6 +30,23 @@
       "label": "Lobby",
       "description": "Lobby instance plugin \u2014 auto-redirects players from a lobby server to the right destination match server.",
       "sha256": "d876a4ccdb30ed7cc5ef978405759bbf8aee2a8f43b255b7cd25003a844e5f63"
+    },
+    {
+      "filename": "match_restore.py",
+      "runtime": "minqlx",
+      "label": "Match Restore",
+      "description": "Checkpoint / restore \u2014 saves and restores full match state (player positions, health, armor, items, score, clock) at referee-triggered checkpoints.",
+      "depends_on": [
+        "match_restore_util.py"
+      ],
+      "package_files": {
+        "restore/__init__.py": "8e5773897c645d70d5c0382f0381ddd8827249197fdd7a21a5f96579f80cb89d",
+        "restore/codec.py": "9ddc26c8dbea9054f990758a7a242f849ce4786003587408e05996903b0e87be",
+        "restore/draft.py": "526d789ebcd2cb541bc944ec3375a601aac5657102d77e7a06e7beee9ab98f9d",
+        "restore/items.py": "2df810585f141ec16ed4fde1e9e15f36e7c8839cdd02af26d35c90754f8ffee9",
+        "restore/qlmatch.py": "d83fef044539c2b8c7b85623069821140e060ea7fcf168820c337a6d2f4c1d30"
+      },
+      "sha256": "af8acd3b94be1c52254f1818871f70c16d68051d2671c048f51c79ea5e51d061"
     },
     {
       "filename": "match_restore_util.py",
