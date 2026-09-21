@@ -6,7 +6,7 @@ that do **not** ship in the standard qlsm image / plugin pools.
 | Kind | What |
 |------|------|
 | Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `match_restore` family), native demo capture + telemetry for the `minqlxtended-patched` runtime |
-| Addons | `telemetry-relay`, `demo-stream`, `qlmatch-packer` |
+| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer` |
 
 Merged from the former local `minqlxtended-plugins` and `qlsm-addons` trees.
 
@@ -72,11 +72,47 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | Addon | Role |
 |-------|------|
 | `telemetry-relay` | Per-host relay → ql-stats-hub telemetry |
+| `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
 | `demo-stream` | Live POV demo stream screen + cvars |
 | `qlmatch-packer` | Host-side `.qlmatch` packer + Demos grouping hooks |
 
+qlsm's image ships **no** addon — install every one of these from this
+repository. `qlmatch-packer` extends `demo-management`'s screen, so it is only
+useful with it installed too.
+
 Framework docs: qlsm's `addons/README.md`, `addons/TRUST.md`, `addons/UI-GUIDE.md`.
 Addons run in-process with qlsm's full authority — only install what you trust.
+
+### Building an addon's UI
+
+`demo-management` ships a **tier-2** component: its own pre-built
+`ui/Panel.js` + `ui/Panel.css`, built from `ui-src/` with Vite. qlsm installs
+a zip and can never build anything, so the built files are committed; the
+sources and toolchain are not part of the package (`generate_manifest.py`
+skips them).
+
+```bash
+cd addons/demo-management
+npm install
+npm run build          # writes ui/Panel.js + ui/Panel.css
+cd ../.. && python generate_manifest.py
+```
+
+Re-run both after any change under `ui-src/`, or the package ships a stale
+screen.
+
+## Tests
+
+The addons here import qlsm's own modules (`ui.db`, `ui.models`,
+`ui.addons`), so their tests need a qlsm checkout. Keep one next to this repo
+or point `QLSM_REPO` at it; without one every test skips.
+
+```bash
+QLSM_REPO=/path/to/qlsm python -m pytest tests/ -q
+```
+
+Each addon installs into a temporary addon-packages volume for the run, which
+is also the only way qlsm can load one now.
 
 ## Layout
 
@@ -86,5 +122,7 @@ qlsm-extra/
   generate_manifest.py   # refresh hashes + rebuild packages/*.zip
   *.py / *.ql-plugin.json / restore/   # plugins (root = download URLs)
   addons/<id>/           # addon sources
+  addons/<id>/ui-src/    # tier-2 UI sources (built into ui/, not packaged)
   packages/<id>.zip      # installable addon packages
+  tests/                 # pytest suite, needs a qlsm checkout
 ```

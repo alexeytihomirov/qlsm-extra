@@ -7,3 +7,10 @@
 *.js text eol=lf
 *.mjs text eol=lf
 *.sh text eol=lf
+*.jsx text eol=lf
+*.css text eol=lf
+*.ini text eol=lf
+
+# Addon packages are archives: never touch their bytes, the repository index
+# carries a sha256 of exactly what is committed here.
+*.zip binary

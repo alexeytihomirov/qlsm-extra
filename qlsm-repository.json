@@ -114,9 +114,17 @@
   ],
   "addons": [
     {
+      "id": "demo-management",
+      "zip": "packages/demo-management.zip",
+      "sha256": "649d3b3b483bfd6ee3daa1da94e885a7f8e32b189bd3bb11548b4944af38d1a2",
+      "version": "1.5.0",
+      "label": "Demos",
+      "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog."
+    },
+    {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "97a7a4b3563e10a7bfbb74c18e1db51aa34d0445a603f710fa5dd6f8e6efdf60",
+      "sha256": "3c9500c52c74dd2f178a95087e2ca470be0c9aec421bfc64090a89d8ad1d7fb2",
       "version": "1.1.0",
       "label": "Live Demo Stream",
       "description": "Points an instance's sv_demoStream* cvars at the central demo-stream relay and registers its route with ql-stats-hub, so a spectator can watch a POV live. Unlike the telemetry relay there is nothing to install per host - the relay is one address for the whole cluster."
@@ -124,7 +132,7 @@
     {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "604c7ad932824632eb3e1bf9df5089f5037c044fd4411d4689f4ec439276afa5",
+      "sha256": "f83c847925c493335714042fea142c57a1373f718a5950d41c74cc0d3329f373",
       "version": "1.0.0",
       "label": "Qlmatch Packer",
       "description": "Deploys the external Node.js qlmatch-packer (+ Node 22 runtime) to every managed host after setup / \"Update Plugins\", and makes demo-management recognise the .qlmatch/.replay.json.gz files it produces (the .packer.log it also writes is deliberately never surfaced there). Cvars (qlx_qlmatchNameTemplate, qlx_qlmatchRcloneTargets) live on the demo_native_autorecord plugin's own manifest, editable from the Plugins tab -- this addon's own settings only control whether the replay sidecar shows up in the Demos widget."
@@ -132,7 +140,7 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "481dd9ee51096f2595c4b51fe07d0fd75cb3154024a5d56dd7cbda7a87c5134b",
+      "sha256": "ac33c34d4e0de397516a6138b1336d3642ce9e18b6045a546da70a3c7d0d16c2",
       "version": "1.2.0",
       "label": "Telemetry Relay",
       "description": "Forwards live match/player/pickup telemetry from each game instance to ql-stats-hub through a per-host relay sidecar."

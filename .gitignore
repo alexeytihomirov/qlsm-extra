@@ -1,0 +1,10 @@
+# Addon UI build tooling. The *built* output (addons/<id>/ui/Panel.js, .css)
+# IS committed -- qlsm installs an addon as a zip and cannot build anything --
+# but the toolchain that produces it is not.
+node_modules/
+package-lock.json
+
+# Test/runtime droppings
+__pycache__/
+*.pyc
+.pytest_cache/

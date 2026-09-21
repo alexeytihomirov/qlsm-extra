@@ -11,7 +11,11 @@ once qlsm could fetch more than a single bare `<name>.py` per entry).
 
 Addons: zip each directory under addons/<id>/ into packages/<id>.zip
 (with qlsm-addon.json at the archive root), then refresh that entry's
-version / sha256 / label / description from the addon's own manifest.
+version / sha256 / label / description from the addon's own manifest. Build
+inputs for a tier-2 component (ui-src/, node_modules/, vite.config.js,
+package.json) stay out of the archive -- see SKIP_DIRS/SKIP_FILES. Build the
+component first (`npm install && npm run build` in the addon dir) so the
+zip picks up a current ui/Panel.js.
 
 Run this (and commit the result) whenever a listed .py, package folder, or
 any addon source changes.
@@ -156,6 +160,17 @@ def _plugin_entries(existing: list) -> list:
     return entries, missing
 
 
+# Directories that belong in the repo but not in an installable package.
+# `ui-src` and `node_modules` are the build side of a tier-2 addon component:
+# qlsm installs a zip and can never build anything, so shipping the sources
+# and their toolchain would only make the download bigger and the install
+# checks (entry count, uncompressed size) harder to pass. The built result in
+# `ui/` is what qlsm actually serves.
+SKIP_DIRS = {'node_modules', 'ui-src', '__pycache__', '.git'}
+SKIP_FILES = {'.DS_Store', 'Thumbs.db', 'package.json', 'package-lock.json',
+              'vite.config.js'}
+
+
 def _zip_addon(addon_dir: Path, zip_path: Path) -> None:
     zip_path.parent.mkdir(parents=True, exist_ok=True)
     if zip_path.exists():
@@ -164,8 +179,9 @@ def _zip_addon(addon_dir: Path, zip_path: Path) -> None:
         for path in sorted(addon_dir.rglob('*')):
             if not path.is_file():
                 continue
-            # Skip local junk if any slips in
-            if path.name in ('.DS_Store', 'Thumbs.db') or '__pycache__' in path.parts:
+            if path.name in SKIP_FILES:
+                continue
+            if SKIP_DIRS.intersection(path.relative_to(addon_dir).parts):
                 continue
             arcname = path.relative_to(addon_dir).as_posix()
             zf.write(path, arcname)

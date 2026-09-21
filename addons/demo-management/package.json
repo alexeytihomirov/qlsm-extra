@@ -1,0 +1,15 @@
+{
+  "name": "qlsm-addon-demo-management-ui",
+  "private": true,
+  "version": "1.5.0",
+  "type": "module",
+  "description": "Build for the demo-management addon's tier-2 QLSM component (ui/Panel.js + ui/Panel.css).",
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.5",
+    "tailwindcss": "^4.1.5",
+    "vite": "^6.3.5"
+  }
+}

@@ -1,0 +1,227 @@
+/* Tailwind utilities for this bundle only.
+ *
+ * `source(none)` turns off Tailwind's automatic project scan and `@source`
+ * points it at this directory, so the output contains exactly the utilities
+ * these files use -- nothing from QLSM's own UI, and nothing from a stray
+ * file elsewhere in the repo. QLSM's compiled CSS cannot supply them: its
+ * Tailwind build only scans frontend-react/src, and this addon is not in it.
+ */
+@import "tailwindcss" source(none);
+@source "./";
+
+/* QLSM flips theme by putting `.dark` on an ancestor, not by prefers-color-scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+ * Theme classes copied from QLSM's index.css.
+ *
+ * These are plain classes there, not Tailwind utilities, so the Tailwind pass
+ * above cannot generate them. QLSM's own stylesheet does define them, and
+ * this addon would inherit them by accident -- but the styling contract an
+ * addon may rely on is the CSS *variables* (see qlsm's addons/UI-GUIDE.md),
+ * not core's class names. Every rule below is written against those
+ * variables, so the addon keeps looking right even if core renames a class.
+ * -------------------------------------------------------------------------*/
+.bg-theme-base { background-color: var(--surface-base); }
+.border-theme { border-color: var(--surface-border); }
+.border-theme-strong { border-color: var(--surface-border-strong); }
+.text-theme-primary { color: var(--text-primary); }
+.text-theme-secondary { color: var(--text-secondary); }
+.text-theme-muted { color: var(--text-muted); }
+.font-display { font-family: 'Rajdhani', system-ui, sans-serif; }
+.font-mono { font-family: 'Share Tech Mono', 'Consolas', monospace; }
+
+/* ---------------------------------------------------------------------------
+ * The screen's own chrome.
+ *
+ * Ported from the `logs-modal-*` rules in QLSM's index.css, which the Demos
+ * modal shared with the log viewers while it lived in core. Renamed rather
+ * than copied under the original names on purpose: identical selectors from
+ * two stylesheets would be one divergence away from this addon silently
+ * restyling QLSM's log modals.
+ * -------------------------------------------------------------------------*/
+.demos-addon-icon-wrapper {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-elevated);
+  border: 1.5px solid var(--surface-border-strong);
+  border-radius: 10px;
+  isolation: isolate;
+}
+
+.demos-addon-icon-glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 12px;
+  background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
+  opacity: 0;
+  filter: blur(16px);
+  transition: opacity 0.4s ease;
+}
+
+.dark .demos-addon-icon-glow { opacity: 0.3; }
+
+.demos-addon-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--accent-primary);
+  position: relative;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.dark .demos-addon-icon { filter: drop-shadow(0 0 8px var(--accent-primary)); }
+
+.demos-addon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-family: 'Rajdhani', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  background: var(--surface-elevated);
+  border: 1px solid var(--surface-border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.demos-addon-btn:hover:not(:disabled) {
+  background: var(--surface-base);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.dark .demos-addon-btn:hover:not(:disabled) { box-shadow: 0 0 16px rgba(0, 255, 157, 0.15); }
+
+.demos-addon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.demos-addon-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.demos-addon-close-btn:hover {
+  color: white;
+  border-color: var(--accent-danger);
+  background: var(--accent-danger);
+}
+
+.dark .demos-addon-close-btn:hover { box-shadow: 0 0 16px rgba(255, 51, 102, 0.2); }
+
+.demos-addon-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+}
+
+.demos-addon-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  padding: 24px;
+}
+
+.demos-addon-spinner-wrapper {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.demos-addon-spinner-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-primary);
+  opacity: 0.2;
+  animation: demos-addon-pulse-ring 2s ease-out infinite;
+}
+
+@keyframes demos-addon-pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.demos-addon-spinner {
+  width: 32px;
+  height: 32px;
+  color: var(--accent-primary);
+  animation: demos-addon-spin 1s linear infinite;
+}
+
+.dark .demos-addon-spinner { filter: drop-shadow(0 0 12px var(--accent-primary)); }
+
+@keyframes demos-addon-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.demos-addon-retry-btn {
+  margin-top: 12px;
+  padding: 10px 24px;
+  font-family: 'Rajdhani', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.demos-addon-retry-btn:hover { transform: translateY(-2px); }
+.dark .demos-addon-retry-btn { color: #000; box-shadow: 0 0 20px rgba(0, 255, 157, 0.3); }
+.dark .demos-addon-retry-btn:hover { box-shadow: 0 0 30px rgba(0, 255, 157, 0.5); }
+
+/* Below QLSM's lg breakpoint the header has to give up room -- same tightening
+ * core applies to its own modal chrome at this width. */
+@media (max-width: 1023px) {
+  .demos-addon-btn span { display: none; }
+
+  .demos-addon-icon-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+
+  .demos-addon-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* `demo-search-icon` is deliberately left undefined. It was undefined in
+ * QLSM's index.css too -- the magnifier is positioned entirely by the
+ * Tailwind classes next to it -- and inventing a rule here would change how
+ * the filter row looks rather than preserve it. Kept as a hook for later. */
