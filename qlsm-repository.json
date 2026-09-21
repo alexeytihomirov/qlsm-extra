@@ -92,8 +92,8 @@
     {
       "id": "demo-management",
       "zip": "packages/demo-management.zip",
-      "sha256": "649d3b3b483bfd6ee3daa1da94e885a7f8e32b189bd3bb11548b4944af38d1a2",
-      "version": "1.5.0",
+      "sha256": "6297339915270ada66d301170596a62f29f681a39bd29371516b41ecbd5b00f5",
+      "version": "1.5.1",
       "label": "Demos",
       "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog."
     },
@@ -116,7 +116,7 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "ac33c34d4e0de397516a6138b1336d3642ce9e18b6045a546da70a3c7d0d16c2",
+      "sha256": "40a59aed3c2774a029d83b7dd2c7d27ac95cc1fad41632b6b407d0099a60317d",
       "version": "1.2.0",
       "label": "Telemetry Relay",
       "description": "Forwards live match/player/pickup telemetry from each game instance to ql-stats-hub through a per-host relay sidecar."

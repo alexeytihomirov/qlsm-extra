@@ -1,6 +1,6 @@
 {
   "id": "demo-management",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "name": "Demos",
   "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog.",
   "scopes": ["global", "host", "instance"],
@@ -14,7 +14,7 @@
         "id": "demos",
         "label": "Demos",
         "icon": "film",
-        "component": "ui/Panel.js",
+        "component": "Panel.js",
         "renders": "modal"
       }
     ],

@@ -30,7 +30,9 @@ exactly this migration and kept its whole screen. Copy its `ui-src/` +
   component used to borrow from qlsm's `index.css`.
 * `ui-src/icons.jsx` -- the lucide glyphs core's `ctx.ui.Icon` allow-list
   does not carry, inlined instead of bundling lucide-react.
-* Manifest: `"component": "ui/Panel.js"`, `"renders": "modal"`, `ui_api: 3`.
+* Manifest: `"component": "Panel.js"` (relative to the addon's `ui/` dir --
+  do not prefix with `ui/` itself, that doubles up in the served asset URL),
+  `"renders": "modal"`, `ui_api: 3`.
   `renders: "modal"` means the component *is* the whole dialog, which is how
   a rich screen survives the move; `ctx.modal` carries open/close + the
   entity.

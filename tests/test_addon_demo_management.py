@@ -149,7 +149,7 @@ def test_the_manifest_mounts_the_addons_own_screen():
         manifest = json.load(f)
 
     entry = manifest['ui']['instance_menu'][0]
-    assert entry['component'] == 'ui/Panel.js'
+    assert entry['component'] == 'Panel.js'
     assert entry['renders'] == 'modal'
     assert not manifest['ui'].get('panels'), (
         'a declarative panel reappeared -- it must declare '
