@@ -326,6 +326,16 @@ def canonicalize(doc):
             p["pw"] = pw
         if row.get("dead") in (1, True, "1") or row.get("alive") is False:
             p["dead"] = 1
+            # Ms left on playerState_t.respawnTime at export time (engine level.time
+            # clock, not the checkpoint's own t_ms) - lets restore re-arm the real
+            # respawn deadline instead of the fresh delay is_alive=False's real
+            # slay_with_mod() starts counting from the restore moment.
+            ri = row.get("ri")
+            if ri is not None:
+                try:
+                    p["ri"] = max(0, int(ri))
+                except (TypeError, ValueError):
+                    pass
         if row.get("bot"):
             p["bot"] = 1
         out["players"].append(p)
