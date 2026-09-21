@@ -5,7 +5,7 @@ differs from the match_actions sketch in addons/README.md.
 """
 from urllib.parse import quote
 
-from ui.instance_demo_transport import demo_dir_for_instance, open_sftp, resolve_instance_and_host
+from .instance_demo_transport import demo_dir_for_instance, open_sftp, resolve_instance_and_host
 
 from .qlmatch_listing import _manifest_from_pack, qlmatch_sidecar_name
 

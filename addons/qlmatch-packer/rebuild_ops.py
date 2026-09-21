@@ -11,10 +11,10 @@ import posixpath
 import re
 import shlex
 
-from ui.instance_demo_transport import (
+from .instance_demo_transport import (
     demo_dir_for_instance, list_dir_entries, open_sftp, resolve_instance_and_host, run_remote_command,
 )
-from ui.stats_hub import read_cvars_from_text
+from .cvar_text import read_cvars_from_text
 
 from .qlmatch_listing import QLMATCH_FILENAME_RE, qlmatch_sidecar_name, read_qlmatch_manifest
 

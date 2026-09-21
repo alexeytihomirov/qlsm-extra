@@ -1,15 +1,15 @@
 """Live demo stream, as an addon.
 
-Unlike the telemetry-relay and demo-management ports, this one **adds** a UI
-rather than reproducing one: the built-in feature has two instance endpoints
-and two settings endpoints and no frontend whatsoever -- nothing in
-frontend-react references it. So there is no parity risk here, and a
-declarative panel is strictly more than what exists today.
+Unlike demo-management's port, this one **adds** a UI rather than
+reproducing one: the feature had two instance endpoints and two settings
+endpoints and no frontend whatsoever -- nothing in frontend-react references
+it. So there was no parity risk, and a declarative panel is strictly more
+than what existed before.
 
-Same migration rule as the other two: this delegates to
-`ui.demo_stream_settings` and `ui.task_logic.demo_stream_instance` instead of
-copying them, so the addon and the built-in endpoints cannot drift while both
-exist. The files move into this directory when core's copies are deleted.
+Owns the feature outright, like telemetry-relay: `.settings`, `.stats_hub`
+and `.instance_ops` are this addon's own, no longer core's -- core's four
+built-in demo-stream endpoints were deleted once this addon's endpoints fully
+replaced them (see addons/README.md in qlsm).
 """
 import uuid
 
@@ -33,7 +33,7 @@ def _instance_or_error(instance_id):
 @bp.route('/relay', methods=['GET'], endpoint='get_relay')
 @jwt_required()
 def get_relay():
-    from ui.demo_stream_settings import get_relay_host, get_relay_port
+    from .settings import get_relay_host, get_relay_port
 
     return jsonify({"data": {'host': get_relay_host() or '', 'port': get_relay_port() or ''}})
 
@@ -41,11 +41,9 @@ def get_relay():
 @bp.route('/relay', methods=['PUT'], endpoint='update_relay')
 @jwt_required()
 def update_relay():
-    """Cluster-wide relay address, stored under the same AppSetting keys the
-    built-in Settings endpoint uses -- one store, so the two cannot disagree
-    while both code paths exist."""
+    """Cluster-wide relay address."""
     from ui import db
-    from ui.demo_stream_settings import set_relay_host, set_relay_port
+    from .settings import set_relay_host, set_relay_port
 
     data = request.get_json(silent=True) or {}
     host = data.get('host', '')
@@ -65,12 +63,12 @@ def update_relay():
 @jwt_required()
 def get_stats_hub():
     """This addon's own stats-hub target - independent of telemetry-relay's,
-    see ui/stats_hub.py's module docstring for why they are not shared."""
-    from ui.stats_hub import get_stats_hub_ingest_token, get_stats_hub_url
+    see .stats_hub's module docstring for why they are not shared."""
+    from .settings import get_stats_hub_ingest_token, get_stats_hub_url
 
     return jsonify({"data": {
-        'url': get_stats_hub_url('demo_stream') or '',
-        'ingest_token': get_stats_hub_ingest_token('demo_stream') or '',
+        'url': get_stats_hub_url() or '',
+        'ingest_token': get_stats_hub_ingest_token() or '',
     }})
 
 
@@ -78,7 +76,7 @@ def get_stats_hub():
 @jwt_required()
 def update_stats_hub():
     from ui import db
-    from ui.stats_hub import set_stats_hub_ingest_token, set_stats_hub_url
+    from .settings import set_stats_hub_ingest_token, set_stats_hub_url
 
     data = request.get_json(silent=True) or {}
     url = data.get('url', '')
@@ -86,8 +84,8 @@ def update_stats_hub():
     if not isinstance(url, str) or not isinstance(token, str):
         return jsonify({"error": {"message": "url and ingest_token must be strings."}}), 400
 
-    set_stats_hub_url('demo_stream', url)
-    set_stats_hub_ingest_token('demo_stream', token)
+    set_stats_hub_url(url)
+    set_stats_hub_ingest_token(token)
     db.session.commit()
     return jsonify({"data": {'url': url.strip().rstrip('/'), 'ingest_token': token.strip()}})
 
@@ -95,7 +93,7 @@ def update_stats_hub():
 @bp.route('/instances/<int:instance_id>', methods=['GET'], endpoint='get_instance_stream')
 @jwt_required()
 def get_instance_stream(instance_id):
-    from ui.demo_stream_settings import is_instance_demo_stream_enabled
+    from .settings import is_instance_demo_stream_enabled
 
     instance, error = _instance_or_error(instance_id)
     if error:
@@ -108,7 +106,7 @@ def get_instance_stream(instance_id):
 def get_instance_stream_status(instance_id):
     """Badge for the panel: says why it cannot be switched on, before the
     operator tries and gets a task that fails somewhere they cannot see."""
-    from ui.demo_stream_settings import (
+    from .settings import (
         get_instance_demo_stream_token, is_instance_demo_stream_enabled, is_relay_configured,
     )
 
@@ -131,11 +129,11 @@ def get_instance_stream_status(instance_id):
 @jwt_required()
 def enable_instance_stream(instance_id):
     from ui.database import get_instance, update_instance
-    from ui.demo_stream_settings import is_relay_configured
+    from .settings import is_relay_configured
     from ui.models import InstanceStatus
     from ui.task_lock import acquire_lock, release_lock
     from ui.task_logic.job_failure_handlers import instance_job_failure_handler
-    from ui.tasks import enable_instance_demo_stream_task, enqueue_task
+    from ui.tasks import enqueue_task
 
     instance, error = _instance_or_error(instance_id)
     if error:
@@ -168,7 +166,7 @@ def enable_instance_stream(instance_id):
         }}), 409
     try:
         update_instance(instance.id, status=InstanceStatus.CONFIGURING)
-        enqueue_task(enable_instance_demo_stream_task, instance.id,
+        enqueue_task(TASKS['enable_instance_demo_stream'], instance.id,
                      lock_token=lock_token, on_failure=instance_job_failure_handler)
     except Exception as e:
         release_lock('instance', instance.id, lock_token)
@@ -179,17 +177,34 @@ def enable_instance_stream(instance_id):
     return jsonify({"message": f'Demo-stream enable queued for "{instance.name}".'}), 202
 
 
+# Set by register(); the enable_instance_stream endpoint enqueues through
+# this rather than through ui.tasks, which no longer knows demo-stream
+# exists.
+TASKS = {}
+
+
 def register(ctx):
     ctx.blueprint(bp)
 
+    @ctx.task(timeout=300, lock_scope='instance')
+    def enable_instance_demo_stream_task(instance_id):
+        """RQ task entry point for wiring an instance's sv_demoStream* cvars
+        at the central demo-stream relay and registering its route with
+        stats-hub."""
+        from .instance_ops import enable_instance_demo_stream_logic
+
+        return enable_instance_demo_stream_logic(instance_id)
+
+    TASKS['enable_instance_demo_stream'] = enable_instance_demo_stream_task
+
     @ctx.on('instance.delete')
     def forget_instance(instance_id):
-        """Drop the legacy AppSetting keys the shared logic still reads --
-        core's own AddonState cleanup does not know about them."""
-        from ui.demo_stream_settings import (
+        """Drop this addon's AppSetting keys -- core's own AddonState
+        cleanup does not know about them."""
+        from .settings import (
             set_instance_demo_stream_enabled, set_instance_demo_stream_token,
+            set_instance_server_id,
         )
-        from ui.stats_hub import set_instance_server_id
         set_instance_demo_stream_enabled(instance_id, False)
         set_instance_demo_stream_token(instance_id, None)
-        set_instance_server_id('demo_stream', instance_id, None)
+        set_instance_server_id(instance_id, None)

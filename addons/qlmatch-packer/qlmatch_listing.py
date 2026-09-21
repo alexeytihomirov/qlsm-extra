@@ -4,8 +4,9 @@ Moved out of demo-management's ansible_instance_demos.py when qlmatch-packer
 became its own addon: demo-management only knows raw .dm_91 by default (see
 its demo_management.file_kinds hook dispatch), everything that has to
 understand the .qlmatch zip's internal manifest.json lives here instead.
-Uses the same SFTP plumbing demo-management uses, now shared core-side (see
-ui/instance_demo_transport.py) since both addons need it.
+Uses the same SFTP plumbing demo-management uses, via this addon's own
+private copy (see .instance_demo_transport's docstring for why it is a copy
+and not shared).
 """
 import json
 import re
@@ -13,7 +14,7 @@ import zipfile
 
 import paramiko
 
-from ui.instance_demo_transport import (
+from .instance_demo_transport import (
     demo_dir_for_instance, fetch_files, list_dir_entries, open_sftp, resolve_instance_and_host,
 )
 from ui.task_logic.common import log
@@ -229,5 +230,5 @@ def list_instance_qlmatches(instance_id):
 
 def fetch_qlmatch_files(instance_id, filenames):
     """Fetch one or more .qlmatch/.replay.json.gz/.packer.log files from an
-    instance's demo dir into memory. See ui.instance_demo_transport.fetch_files."""
+    instance's demo dir into memory. See .instance_demo_transport.fetch_files."""
     return fetch_files(instance_id, filenames, QLMATCH_FILENAME_RE, MAX_QLMATCH_BATCH)
