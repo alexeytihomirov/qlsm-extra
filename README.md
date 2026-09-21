@@ -5,7 +5,7 @@ that do **not** ship in the standard qlsm image / plugin pools.
 
 | Kind | What |
 |------|------|
-| Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `match_restore` family) |
+| Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `match_restore` family), native demo capture + telemetry for the `minqlxtended-patched` runtime |
 | Addons | `telemetry-relay`, `demo-stream`, `qlmatch-packer` |
 
 Merged from the former local `minqlxtended-plugins` and `qlsm-addons` trees.
@@ -48,6 +48,21 @@ it. `generate_manifest.py` regenerates that list from `PACKAGE_FOLDERS`.
 
 These plugins assume qlsm's `minqlxtended-patched` runtime
 ([alexeytihomirov/minqlxtended](https://github.com/alexeytihomirov/minqlxtended)).
+
+### Native demo capture + telemetry (minqlxtended-patched only)
+
+| File | Loadable alone? |
+|------|-----------------|
+| `demo_native_manifest.py` | No — helper for `demo_native_autorecord.py` |
+| `demo_native_autorecord.py` | Yes — packs finished matches into `.qlmatch` (recording/cutting is the engine's own, via `sv_demoRecord`/`sv_demoCut`) |
+| `minqlx.py` | No — compat shim, drop into the pool so `import minqlx` resolves to `minqlxtended` for plugins that don't know about the fork (e.g. `ips.py`) |
+| `telemetry_unified_sched.py` | No — helper for `stream_telemetry_unified.py` |
+| `stats_hub_pause.py` | No — helper for `stream_telemetry_unified.py` |
+| `stream_telemetry_unified.py` | Yes — live match/player/pickup telemetry to `ql-telemetry-relay` |
+
+These six are specific to the `alexeytihomirov/minqlxtended` fork's native
+demo capture (`sv_demoRecord`/`sv_demoCut`) and stats-hub telemetry — not
+meaningful on a plain minqlx or upstream minqlxtended host.
 
 ## Addons
 

@@ -61,6 +61,55 @@
       "label": "Match Restore Lab",
       "description": "Optional lab/debug commands for match_restore \u2014 item-spawn timers, low-level item entity tools, manual match clock control, single-player state debug. Not used in a real tournament restore; requires match_restore to be loaded.",
       "sha256": "d48889e8d741559fbea3bf001e0aca39c3a132e1ed06b6ee65fa58a7e0b02e5c"
+    },
+    {
+      "filename": "demo_native_autorecord.py",
+      "runtime": "minqlxtended-patched",
+      "label": "Native Demo Match Packer",
+      "description": "Packages finished match demos into a .qlmatch. Recording and cutting are the engine's own now: set sv_demoRecord 1 (records every client, upstream semantics) and sv_demoCut 1 (the engine detects match start/end itself, cuts each POV to the match window and names the files after the match). This plugin only listens for demo_match_finalized and launches the external qlmatch-packer (deployed to /home/ql/qlmatch-packer/ by host setup / Update Plugins), which parses the POVs, builds the zip, renders the filename template and delivers via rclone. Requires a minqlxtended build from the fork's demo-match-capture branch at or past the demo-cut redesign (qlds_engine_flavor=minqlxtended, source=build).",
+      "depends_on": [
+        "demo_native_manifest.py"
+      ],
+      "sha256": "79bcac97769eb91f64938e76b991af30acea7a32daf3848cfcf0808dc7e26815"
+    },
+    {
+      "filename": "demo_native_manifest.py",
+      "runtime": "minqlxtended-patched",
+      "label": "\u26a0\ufe0f demo_native_autorecord helper \u2014 DO NOT ENABLE separately",
+      "description": "Support module for demo_native_autorecord.py (no minqlx.Plugin class of its own; pure manifest/window/zip-building helpers, no minqlx import). Must stay present as a file but is not itself a loadable plugin.",
+      "sha256": "4ebc7db7c7e9f1980654d2085b4e89d3ab9f6fbde82d1cd7b25000754966ca0d"
+    },
+    {
+      "filename": "minqlx.py",
+      "runtime": "minqlxtended-patched",
+      "label": "\u26a0\ufe0f minqlxtended compat shim \u2014 DO NOT ENABLE separately",
+      "description": "Lets plugins written for minqlx (e.g. ips.py) run unmodified on a minqlxtended-patched host by resolving `import minqlx` to the real minqlxtended module. Not a loadable plugin itself \u2014 has no minqlx.Plugin class. Only needed when the target host runs the minqlxtended-patched runtime.",
+      "sha256": "3a203c6480e33c9282856980959f5b2ba5a39dc6db896cbcd887be0ed212fef6"
+    },
+    {
+      "filename": "stream_telemetry_unified.py",
+      "runtime": "minqlxtended-patched",
+      "label": "Telemetry (Unified)",
+      "description": "Sends live match/player/pickup telemetry to the host's local ql-telemetry-relay sidecar for stats-hub ingestion. Low-priority frame hook \u2014 designed not to cost sv_fps. Enable + configure the relay from the host's Telemetry Relay panel, then reserve this instance's server_id there.",
+      "depends_on": [
+        "telemetry_unified_sched.py",
+        "stats_hub_pause.py"
+      ],
+      "sha256": "0bd4cac9372906bc347df380b9bc039decc6cd70b06f658fcc3ee6ca78ab21fa"
+    },
+    {
+      "filename": "telemetry_unified_sched.py",
+      "runtime": "minqlxtended-patched",
+      "label": "\u26a0\ufe0f telemetry helper \u2014 DO NOT ENABLE separately",
+      "description": "Pure scheduler/state-machine helper for stream_telemetry_unified.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin.",
+      "sha256": "be7823a6c7eee50328872430fbb1b754a6ea4afdbace3144fdc740bce711f4fe"
+    },
+    {
+      "filename": "stats_hub_pause.py",
+      "runtime": "minqlxtended-patched",
+      "label": "\u26a0\ufe0f telemetry helper \u2014 DO NOT ENABLE separately",
+      "description": "Support module for stream_telemetry_unified.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin.",
+      "sha256": "cc14474f6c2c0033646606ddcc9ec716372a9fa660fad087e46705fa456e3265"
     }
   ],
   "addons": [

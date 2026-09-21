@@ -1,0 +1,4 @@
+{
+  "label": "⚠️ demo_native_autorecord helper — DO NOT ENABLE separately",
+  "description": "Support module for demo_native_autorecord.py (no minqlx.Plugin class of its own; pure manifest/window/zip-building helpers, no minqlx import). Must stay present as a file but is not itself a loadable plugin."
+}

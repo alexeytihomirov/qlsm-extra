@@ -1,0 +1,4 @@
+{
+  "label": "⚠️ telemetry helper — DO NOT ENABLE separately",
+  "description": "Support module for stream_telemetry_unified.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin."
+}
