@@ -82,7 +82,7 @@ def _manifest_from_pack(sftp, demo_dir, filename, cache_key=None):
     the last being the basenames of the raw .dm_91 POV files this pack was
     built from (per manifest["demos"][*]["file"]), so callers can relate a
     pack back to its still-on-disk sources (packing copies them into the
-    zip, it never deletes the originals -- see demo_native_autorecord.py).
+    zip, it never deletes the originals -- see pack.mjs / rebuild_ops.py).
     """
     if cache_key is not None and cache_key in _MANIFEST_CACHE:
         return _MANIFEST_CACHE[cache_key], None

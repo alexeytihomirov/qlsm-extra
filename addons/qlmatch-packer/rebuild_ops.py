@@ -1,10 +1,11 @@
 """Rebuild logic for .qlmatch packs and their replay sidecars.
 
-Runs the same Node scripts demo_native_autorecord.py launches on the game
-host itself (pack.mjs / qlmatch-to-replay.mjs), but triggered by an operator
-from the qlsm UI instead of automatically on demo_match_finalized -- e.g.
-after a bug fix in vendor/qldemo's replay generation, to regenerate sidecars
-for matches that already finished and are just sitting on disk.
+Runs the Node scripts (pack.mjs / qlmatch-to-replay.mjs) over SSH on the game
+host, triggered by an operator from the qlsm UI -- there is no automatic
+trigger on demo_match_finalized (see qlmatch-packer's own assets/README.md).
+Also useful e.g. after a bug fix in vendor/qldemo's replay generation, to
+regenerate sidecars for matches that already finished and are just sitting
+on disk.
 """
 import os
 import posixpath
@@ -19,15 +20,11 @@ from .cvar_text import read_cvars_from_text
 from .qlmatch_listing import QLMATCH_FILENAME_RE, qlmatch_sidecar_name, read_qlmatch_manifest
 
 # Where the qlmatch-packer addon's host.payload_sync hook deploys the
-# external Node packer -- see playbooks/sync_qlmatch_packer.yml and
-# demo_native_manifest.py's QLMATCH_PACKER_SCRIPT (kept in sync by hand;
-# these are two different processes -- one in-QLDS-container, one in
-# qlsm's own Flask backend -- that cannot share a Python import).
+# external Node packer -- see playbooks/sync_qlmatch_packer.yml.
 PACKER_REMOTE_DIR = '/home/ql/qlmatch-packer'
 
-# Matches demo_native_autorecord.py's own 30-minute timeout on the packer
-# subprocess -- a manual rebuild over SSH exec should not time out sooner
-# than the automatic one already tolerates.
+# Generous ceiling for one pack.mjs run over SSH (parsing N POVs + zipping +
+# rclone uploads, whose own per-target rclone timeout is 10 min).
 REMOTE_NODE_TIMEOUT_SECONDS = 1800
 
 
@@ -58,9 +55,10 @@ def _read_manifest_or_raise(instance_id, filename):
 def _read_packer_cvars(instance):
     """(name_template, rclone_targets) from the instance's own server.cfg on
     qlsm's local disk (the config source of truth qlsm pushes to hosts) --
-    the same cvars demo_native_autorecord.py itself reads, so a manual
-    rebuild matches whatever the operator already configured on the Plugins
-    tab instead of falling back to the packer's bare defaults."""
+    the same two cvars pack.mjs itself reads, set by hand in server.cfg
+    (there is no Plugins-tab UI for them), so a rebuild matches whatever the
+    operator already configured instead of falling back to the packer's bare
+    defaults."""
     config_path = os.path.join('configs', instance.host.name, str(instance.id), 'server.cfg')
     try:
         with open(config_path, 'r', encoding='utf-8') as f:

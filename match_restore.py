@@ -1574,10 +1574,10 @@ class match_restore(minqlx.Plugin):
 
     def _qlmatch_demo_dir(self):
         """Same directory the .qlmatch packer and native demo capture write
-        to: fs_homepath/sv_demoDir, exactly like demo_native_autorecord.py's
-        own _demo_dir() (kept as a private copy — plugins don't share
-        instance state, and this is the one cvar pair minqlxtended's own
-        demo_match.c uses for its final_path construction, not a guess)."""
+        to: fs_homepath/sv_demoDir (kept as a private copy — plugins don't
+        share instance state, and this is the one cvar pair minqlxtended's
+        own demo_match.c uses for its final_path construction, not a
+        guess)."""
         homepath = (self.get_cvar("fs_homepath") or "").strip()
         subdir = (self.get_cvar("sv_demoDir") or "").strip() or "demos"
         if not homepath:

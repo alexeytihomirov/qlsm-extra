@@ -10,8 +10,9 @@ demo_management.file_kinds hook), and the external Bearer-token match API
 history for the old URL if an external caller still points at it).
 
 No settings/UI of its own: qlx_qlmatchNameTemplate / qlx_qlmatchRcloneTargets
-live on the demo_native_autorecord plugin's own manifest (Plugins tab), not
-here -- this addon only deploys the binary those cvars point at.
+are set by hand in an instance's server.cfg (no Plugins-tab UI for them --
+the plugin that used to own that manifest was retired) -- this addon only
+deploys the binary those cvars point at.
 """
 import io
 import uuid
@@ -280,9 +281,10 @@ def register(ctx):
         """Deploy the external qlmatch-packer (assets/) + its Node.js runtime
         to a host after a successful setup / plugin-update run.
 
-        demo_native_autorecord.py launches this as a separate process to
-        build the .qlmatch package for every finished native-demo match; see
-        playbooks/sync_qlmatch_packer.yml for the deploy itself.
+        Nothing auto-launches this on the host once deployed -- building a
+        .qlmatch pack is manual for now, via this addon's own rebuild action
+        (rebuild_ops.py). See playbooks/sync_qlmatch_packer.yml for the
+        deploy itself.
         """
         from ui.database import get_host
 

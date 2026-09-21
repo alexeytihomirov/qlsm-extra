@@ -1,4 +1,0 @@
-{
-  "label": "⚠️ minqlxtended compat shim — DO NOT ENABLE separately",
-  "description": "Lets plugins written for minqlx (e.g. ips.py) run unmodified on a minqlxtended-patched host by resolving `import minqlx` to the real minqlxtended module. Not a loadable plugin itself — has no minqlx.Plugin class. Only needed when the target host runs the minqlxtended-patched runtime."
-}

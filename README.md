@@ -5,7 +5,7 @@ that do **not** ship in the standard qlsm image / plugin pools.
 
 | Kind | What |
 |------|------|
-| Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `match_restore` family), native demo capture + telemetry for the `minqlxtended-patched` runtime |
+| Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `match_restore` family), live telemetry for the `minqlxtended` runtime |
 | Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer` |
 
 Merged from the former local `minqlxtended-plugins` and `qlsm-addons` trees.
@@ -49,20 +49,26 @@ it. `generate_manifest.py` regenerates that list from `PACKAGE_FOLDERS`.
 These plugins assume qlsm's `minqlxtended-patched` runtime
 ([alexeytihomirov/minqlxtended](https://github.com/alexeytihomirov/minqlxtended)).
 
-### Native demo capture + telemetry (minqlxtended-patched only)
+### Live telemetry (minqlxtended runtime)
 
 | File | Loadable alone? |
 |------|-----------------|
-| `demo_native_manifest.py` | No — helper for `demo_native_autorecord.py` |
-| `demo_native_autorecord.py` | Yes — packs finished matches into `.qlmatch` (recording/cutting is the engine's own, via `sv_demoRecord`/`sv_demoCut`) |
-| `minqlx.py` | No — compat shim, drop into the pool so `import minqlx` resolves to `minqlxtended` for plugins that don't know about the fork (e.g. `ips.py`) |
 | `telemetry_unified_sched.py` | No — helper for `stream_telemetry_unified.py` |
 | `stats_hub_pause.py` | No — helper for `stream_telemetry_unified.py` |
 | `stream_telemetry_unified.py` | Yes — live match/player/pickup telemetry to `ql-telemetry-relay` |
 
-These six are specific to the `alexeytihomirov/minqlxtended` fork's native
-demo capture (`sv_demoRecord`/`sv_demoCut`) and stats-hub telemetry — not
-meaningful on a plain minqlx or upstream minqlxtended host.
+These three only need the generic `minqlxtended` runtime, not the
+`alexeytihomirov/minqlxtended` fork specifically — nothing here touches the
+fork's native demo capture.
+
+Native per-match demo capture (`sv_demoRecord`/`sv_demoCut`) is the engine's
+own feature on that fork; this repo no longer ships a plugin to launch the
+`.qlmatch` packer automatically when a match finishes. Building a `.qlmatch`
+for a finished match is manual for now — use the qlmatch-packer addon's
+rebuild action from the Demos screen. A compat shim resolving a bare
+`import minqlx` to `minqlxtended` (for plugins like `ips.py` that don't know
+about the fork) was also dropped, since nothing in this repo needs it — add
+one back if a plugin like that is added here later.
 
 ## Addons
 

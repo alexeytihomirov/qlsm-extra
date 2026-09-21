@@ -46,7 +46,7 @@
         "restore/items.py": "2df810585f141ec16ed4fde1e9e15f36e7c8839cdd02af26d35c90754f8ffee9",
         "restore/qlmatch.py": "d83fef044539c2b8c7b85623069821140e060ea7fcf168820c337a6d2f4c1d30"
       },
-      "sha256": "af8acd3b94be1c52254f1818871f70c16d68051d2671c048f51c79ea5e51d061"
+      "sha256": "24be24d85bbe3cd949424d563a568443b314e7100a4aa5c5fa4eaade83edb36e"
     },
     {
       "filename": "match_restore_util.py",
@@ -63,32 +63,8 @@
       "sha256": "d48889e8d741559fbea3bf001e0aca39c3a132e1ed06b6ee65fa58a7e0b02e5c"
     },
     {
-      "filename": "demo_native_autorecord.py",
-      "runtime": "minqlxtended-patched",
-      "label": "Native Demo Match Packer",
-      "description": "Packages finished match demos into a .qlmatch. Recording and cutting are the engine's own now: set sv_demoRecord 1 (records every client, upstream semantics) and sv_demoCut 1 (the engine detects match start/end itself, cuts each POV to the match window and names the files after the match). This plugin only listens for demo_match_finalized and launches the external qlmatch-packer (deployed to /home/ql/qlmatch-packer/ by host setup / Update Plugins), which parses the POVs, builds the zip, renders the filename template and delivers via rclone. Requires a minqlxtended build from the fork's demo-match-capture branch at or past the demo-cut redesign (qlds_engine_flavor=minqlxtended, source=build).",
-      "depends_on": [
-        "demo_native_manifest.py"
-      ],
-      "sha256": "79bcac97769eb91f64938e76b991af30acea7a32daf3848cfcf0808dc7e26815"
-    },
-    {
-      "filename": "demo_native_manifest.py",
-      "runtime": "minqlxtended-patched",
-      "label": "\u26a0\ufe0f demo_native_autorecord helper \u2014 DO NOT ENABLE separately",
-      "description": "Support module for demo_native_autorecord.py (no minqlx.Plugin class of its own; pure manifest/window/zip-building helpers, no minqlx import). Must stay present as a file but is not itself a loadable plugin.",
-      "sha256": "4ebc7db7c7e9f1980654d2085b4e89d3ab9f6fbde82d1cd7b25000754966ca0d"
-    },
-    {
-      "filename": "minqlx.py",
-      "runtime": "minqlxtended-patched",
-      "label": "\u26a0\ufe0f minqlxtended compat shim \u2014 DO NOT ENABLE separately",
-      "description": "Lets plugins written for minqlx (e.g. ips.py) run unmodified on a minqlxtended-patched host by resolving `import minqlx` to the real minqlxtended module. Not a loadable plugin itself \u2014 has no minqlx.Plugin class. Only needed when the target host runs the minqlxtended-patched runtime.",
-      "sha256": "3a203c6480e33c9282856980959f5b2ba5a39dc6db896cbcd887be0ed212fef6"
-    },
-    {
       "filename": "stream_telemetry_unified.py",
-      "runtime": "minqlxtended-patched",
+      "runtime": "minqlxtended",
       "label": "Telemetry (Unified)",
       "description": "Sends live match/player/pickup telemetry to the host's local ql-telemetry-relay sidecar for stats-hub ingestion. Low-priority frame hook \u2014 designed not to cost sv_fps. Enable + configure the relay from the host's Telemetry Relay panel, then reserve this instance's server_id there.",
       "depends_on": [
@@ -99,14 +75,14 @@
     },
     {
       "filename": "telemetry_unified_sched.py",
-      "runtime": "minqlxtended-patched",
+      "runtime": "minqlxtended",
       "label": "\u26a0\ufe0f telemetry helper \u2014 DO NOT ENABLE separately",
       "description": "Pure scheduler/state-machine helper for stream_telemetry_unified.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin.",
       "sha256": "be7823a6c7eee50328872430fbb1b754a6ea4afdbace3144fdc740bce711f4fe"
     },
     {
       "filename": "stats_hub_pause.py",
-      "runtime": "minqlxtended-patched",
+      "runtime": "minqlxtended",
       "label": "\u26a0\ufe0f telemetry helper \u2014 DO NOT ENABLE separately",
       "description": "Support module for stream_telemetry_unified.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin.",
       "sha256": "cc14474f6c2c0033646606ddcc9ec716372a9fa660fad087e46705fa456e3265"
@@ -132,10 +108,10 @@
     {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "f83c847925c493335714042fea142c57a1373f718a5950d41c74cc0d3329f373",
+      "sha256": "8a7566925dab381dc74a73fe82fc99f8479a91d28153b55fee632e80831a9960",
       "version": "1.0.0",
       "label": "Qlmatch Packer",
-      "description": "Deploys the external Node.js qlmatch-packer (+ Node 22 runtime) to every managed host after setup / \"Update Plugins\", and makes demo-management recognise the .qlmatch/.replay.json.gz files it produces (the .packer.log it also writes is deliberately never surfaced there). Cvars (qlx_qlmatchNameTemplate, qlx_qlmatchRcloneTargets) live on the demo_native_autorecord plugin's own manifest, editable from the Plugins tab -- this addon's own settings only control whether the replay sidecar shows up in the Demos widget."
+      "description": "Deploys the external Node.js qlmatch-packer (+ Node 22 runtime) to every managed host after setup / \"Update Plugins\", and makes demo-management recognise the .qlmatch/.replay.json.gz files it produces (the .packer.log it also writes is deliberately never surfaced there). Cvars (qlx_qlmatchNameTemplate, qlx_qlmatchRcloneTargets) are read straight from an instance's server.cfg -- there is no Plugins-tab UI for them since the plugin that used to own that manifest was retired; set them by hand for now. This addon's own settings only control whether the replay sidecar shows up in the Demos widget."
     },
     {
       "id": "telemetry-relay",

@@ -16,12 +16,14 @@ section "Post-process (off the game thread) -> `.qlmatch`".
   after host setup and after the "Update Plugins" host action). Requires
   Node.js >= 22 (installed by the same playbook from NodeSource;
   `vendor/qldemo` uses `import ... with { type: "json" }`).
-- Launched by `demo_native_autorecord.py` (plugin pool) as a **separate
-  process** on `demo_match_finalized` — never on the QLDS game thread and
-  never inside the QLDS process. Output goes to
+- No automatic trigger right now — the plugin that used to launch this on
+  `demo_match_finalized` was retired (nothing in the plugin pool needed a
+  separate launcher for it). Build a pack by hand via the qlmatch-packer
+  addon's rebuild action from the Demos screen (`rebuild_ops.py`), which
+  runs this same script over SSH. Output goes to
   `<demo_dir>/<match_id>.packer.log`; if the packer (or node) is missing on
   the host, no `.qlmatch` is built for that match — only the raw `.dm_91`
-  files remain (there is no in-process fallback build anymore).
+  files remain (there is no in-process fallback build).
 - Configured per instance via plugin cvars (editable from the QLSM Plugins
   tab, delivered through server.cfg like every other setting):
   - `qlx_qlmatchNameTemplate` — output filename template (no extension)
