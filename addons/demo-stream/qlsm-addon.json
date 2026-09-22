@@ -1,6 +1,6 @@
 {
   "id": "demo-stream",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "name": "Live Demo Stream",
   "description": "Points an instance's sv_demoStream* cvars at the central demo-stream relay and registers its route with ql-stats-hub, so a spectator can watch a POV live. Unlike the telemetry relay there is nothing to install per host - the relay is one address for the whole cluster.",
   "scopes": ["global", "host", "instance"],

@@ -100,8 +100,8 @@
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "3c9500c52c74dd2f178a95087e2ca470be0c9aec421bfc64090a89d8ad1d7fb2",
-      "version": "1.1.0",
+      "sha256": "dc4bba1e2748aacf36f881b047bec8f0670a6270d8d3f5942da517cd7f4017f6",
+      "version": "1.1.1",
       "label": "Live Demo Stream",
       "description": "Points an instance's sv_demoStream* cvars at the central demo-stream relay and registers its route with ql-stats-hub, so a spectator can watch a POV live. Unlike the telemetry relay there is nothing to install per host - the relay is one address for the whole cluster."
     },
@@ -116,8 +116,8 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "40a59aed3c2774a029d83b7dd2c7d27ac95cc1fad41632b6b407d0099a60317d",
-      "version": "1.2.0",
+      "sha256": "12e8740c66201819c60791d38bbde8653cad3e6914fdf26b3afe8370257bc8de",
+      "version": "1.2.1",
       "label": "Telemetry Relay",
       "description": "Forwards live match/player/pickup telemetry from each game instance to ql-stats-hub through a per-host relay sidecar."
     }

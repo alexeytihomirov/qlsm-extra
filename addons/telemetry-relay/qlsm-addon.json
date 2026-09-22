@@ -1,6 +1,6 @@
 {
   "id": "telemetry-relay",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "name": "Telemetry Relay",
   "description": "Forwards live match/player/pickup telemetry from each game instance to ql-stats-hub through a per-host relay sidecar.",
   "scopes": ["global", "host", "instance"],
