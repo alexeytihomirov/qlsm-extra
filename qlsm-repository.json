@@ -41,12 +41,12 @@
       ],
       "package_files": {
         "restore/__init__.py": "8e5773897c645d70d5c0382f0381ddd8827249197fdd7a21a5f96579f80cb89d",
-        "restore/codec.py": "9ddc26c8dbea9054f990758a7a242f849ce4786003587408e05996903b0e87be",
+        "restore/codec.py": "bc4496b6ea0be9d048bc4fd5d2618d0586dfd655ffd1f3a48689f6967bf42ce2",
         "restore/draft.py": "526d789ebcd2cb541bc944ec3375a601aac5657102d77e7a06e7beee9ab98f9d",
         "restore/items.py": "2df810585f141ec16ed4fde1e9e15f36e7c8839cdd02af26d35c90754f8ffee9",
         "restore/qlmatch.py": "d83fef044539c2b8c7b85623069821140e060ea7fcf168820c337a6d2f4c1d30"
       },
-      "sha256": "24be24d85bbe3cd949424d563a568443b314e7100a4aa5c5fa4eaade83edb36e"
+      "sha256": "885a9c9daad5b2e965408c4e7ca10956edd415b0760599ff5d7a78fc4402b529"
     },
     {
       "filename": "match_restore_util.py",
@@ -92,7 +92,7 @@
     {
       "id": "demo-management",
       "zip": "packages/demo-management.zip",
-      "sha256": "6297339915270ada66d301170596a62f29f681a39bd29371516b41ecbd5b00f5",
+      "sha256": "e882d07bf6404b39ae2106743f2a99285ace9844887791f1798e8a61e35ce5c1",
       "version": "1.5.1",
       "label": "Demos",
       "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog."
@@ -100,15 +100,23 @@
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "dc4bba1e2748aacf36f881b047bec8f0670a6270d8d3f5942da517cd7f4017f6",
+      "sha256": "6ea82e6b768bc64c2dd7f933997846c54a7601694d45186a2effa9ded79b8c80",
       "version": "1.1.1",
       "label": "Live Demo Stream",
       "description": "Points an instance's sv_demoStream* cvars at the central demo-stream relay and registers its route with ql-stats-hub, so a spectator can watch a POV live. Unlike the telemetry relay there is nothing to install per host - the relay is one address for the whole cluster."
     },
     {
+      "id": "player-ranks",
+      "zip": "packages/player-ranks.zip",
+      "sha256": "61af40095e820df2bd17dc6a4bb775ba1b272ce25d0001f147f4aa75bc625fa8",
+      "version": "1.0.0",
+      "label": "Player Ranks",
+      "description": "Shows each connected player's external rating in Live Status. Sources: qlstats, Slipgate, Thunderdome elo-service, or the game server's own status data. Needs QLSM with ui_api 4 or newer."
+    },
+    {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "cf0f39235ec4c298777477fdcab04b3a3ec4af1fd953cd6664de948cc78fdf0b",
+      "sha256": "cfb625d68200f9b0b5b08c97b9699b29988dd500891a0dac3042e4010ca6bdcc",
       "version": "1.0.1",
       "label": "Qlmatch Packer",
       "description": "Deploys the external Node.js qlmatch-packer (+ Node 22 runtime) to every managed host after setup / \"Update Plugins\", and makes demo-management recognise the .qlmatch/.replay.json.gz files it produces (the .packer.log it also writes is deliberately never surfaced there). Cvars (qlx_qlmatchNameTemplate, qlx_qlmatchRcloneTargets) are read straight from an instance's server.cfg -- there is no Plugins-tab UI for them since the plugin that used to own that manifest was retired; set them by hand for now. This addon's own settings only control whether the replay sidecar shows up in the Demos widget."
@@ -116,7 +124,7 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "12e8740c66201819c60791d38bbde8653cad3e6914fdf26b3afe8370257bc8de",
+      "sha256": "395a565cd19d313a60dbc756b1954b5ba9fe03b846918ba1568670c913200d7b",
       "version": "1.2.1",
       "label": "Telemetry Relay",
       "description": "Forwards live match/player/pickup telemetry from each game instance to ql-stats-hub through a per-host relay sidecar."
