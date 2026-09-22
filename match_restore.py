@@ -2818,7 +2818,24 @@ class match_restore(minqlx.Plugin):
                 return False, items_failure_detail
         finally:
             if live_hud:
+                # live_hud is only still truthy here when we exited (return,
+                # or an uncaught exception) before the "hand off to the
+                # deferred _finish_restore_pause_kinematics re-pause" step
+                # above, which is the only thing that otherwise re-pauses.
+                # _restore_ensure_live_for_hud() had briefly unpaused an
+                # ALREADY-paused match (e.g. the operator is dialing in the
+                # right moment across several restore attempts) so the HUD
+                # would refresh - real bug, confirmed 2026-09-22: an attempt
+                # that failed validation (bad time, a player pairing miss)
+                # left the match live with no re-pause at all, so "one more
+                # restore to adjust the moment" silently unpaused the match.
                 self._restore_cancel_live_hud_hooks()
+                repause_ok, repause_detail = self._ensure_restore_paused(None)
+                if not repause_ok:
+                    self.logger.warning(
+                        "match_restore: re-pause after a failed restore attempt failed: %s",
+                        repause_detail,
+                    )
 
         summary_bits = []
         if phase in ("all", "time"):
