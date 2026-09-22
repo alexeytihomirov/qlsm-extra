@@ -853,13 +853,17 @@ def _player_xyz_at(positions_event, cn):
     return None
 
 
-def _respawned_by(events, cn, death_ms, target_ms):
-    """True if clientNum cn's positions show a teleport-sized jump (see
-    _RESPAWN_TELEPORT_MIN_DIST) anywhere between death_ms and target_ms -
-    the signature of the respawn. Seeds the comparison from the snapshot at
-    or just before death_ms (the frozen death-spot position) so a respawn
-    landing on the very first snapshot inside the window is still caught,
-    not just jumps between two snapshots both already inside it."""
+def _first_respawn_teleport_ms(events, cn, death_ms, upper_bound_ms=None):
+    """game_time_ms of the first teleport-sized jump (see
+    _RESPAWN_TELEPORT_MIN_DIST) clientNum cn's positions show at/after
+    death_ms - the signature of the respawn - or None if none is observed.
+    Bounded by upper_bound_ms when given (the death/respawn cross-check use,
+    "did they respawn by the restore target"), unbounded when None (the "ri"
+    use below, which needs the real eventual respawn moment regardless of
+    how far past the restore target it lands). Seeds the comparison from the
+    snapshot at or just before death_ms (the frozen death-spot position) so a
+    respawn landing on the very first snapshot after it is still caught, not
+    just jumps between two snapshots both already past it."""
     seed_event, seed_t = nearest_positions_event(events, death_ms)
     prev_xyz = _player_xyz_at(seed_event, cn) if seed_event is not None else None
     positions = sorted(
@@ -868,7 +872,9 @@ def _respawned_by(events, cn, death_ms, target_ms):
     )
     for ev in positions:
         t = _event_time_ms(ev)
-        if t is None or t > target_ms:
+        if t is None:
+            continue
+        if upper_bound_ms is not None and t > upper_bound_ms:
             continue
         if seed_t is not None and t <= seed_t:
             continue
@@ -878,9 +884,15 @@ def _respawned_by(events, cn, death_ms, target_ms):
         if prev_xyz is not None:
             dist = math.sqrt(sum((a - b) ** 2 for a, b in zip(xyz, prev_xyz)))
             if dist >= _RESPAWN_TELEPORT_MIN_DIST:
-                return True
+                return t
         prev_xyz = xyz
-    return False
+    return None
+
+
+def _respawned_by(events, cn, death_ms, target_ms):
+    """True if clientNum cn's positions show a teleport-sized jump anywhere
+    between death_ms and target_ms - see _first_respawn_teleport_ms."""
+    return _first_respawn_teleport_ms(events, cn, death_ms, upper_bound_ms=target_ms) is not None
 
 
 def _apply_death_overrides(players, events, target_ms):
@@ -889,15 +901,35 @@ def _apply_death_overrides(players, events, target_ms):
     (possibly stale-frozen) health build_player_rows read off the positions
     snapshot. Players with no recorded death are left untouched entirely -
     a legitimate rocket-jump/teleporter-pad position jump never triggers
-    this, since it never even looks up a death for them."""
+    this, since it never even looks up a death for them.
+
+    Also sets "ri" (ms left on the real respawn deadline, see codec.py) from
+    the recording's own eventual respawn teleport, found by re-running the
+    same scan with no upper bound - a qlmatch replay has no telemetry field
+    for the engine's actual respawnTime countdown (unlike a live !checkpoint
+    export), so this is the only ground truth available: the restore target
+    sits inside a real, already-recorded wait whose exact end this replay
+    already knows. Without it, match_restore.py's respawn-timer fix has
+    nothing to restore and every qlmatch-sourced dead player gets a full
+    fresh random g_respawn_delay_min/max window starting at restore time
+    instead of what was actually left - the ms-left value never left None,
+    real bug caught 2026-09-22 testing the exact case this fixes: a player
+    restored just after a death waited several seconds longer to respawn
+    than the recording did. If the recording ends before the real respawn
+    is ever observed, "ri" is left unset - same as before this fix - rather
+    than guess a delay this replay has no way to know.
+    """
     for row in players:
         death_ms = _last_death_ms(events, row["cid"], target_ms)
         if death_ms is None:
             continue
-        if _respawned_by(events, row["cid"], death_ms, target_ms):
+        if _first_respawn_teleport_ms(events, row["cid"], death_ms, upper_bound_ms=target_ms) is not None:
             continue
         row["h"] = 0
         row["dead"] = 1
+        real_respawn_ms = _first_respawn_teleport_ms(events, row["cid"], death_ms)
+        if real_respawn_ms is not None and real_respawn_ms > target_ms:
+            row["ri"] = real_respawn_ms - target_ms
 
 
 def build_checkpoint_doc(sidecar, target_ms, map_spawns_table, map_key, wall_now, window=None):

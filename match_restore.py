@@ -1588,7 +1588,7 @@ class match_restore(minqlx.Plugin):
         if not tail:
             self._reply(
                 player, channel,
-                "^1restore match^7: usage ^3match list [filter] [page]^7 | ^3match <N> <mm:ss>^7",
+                "^1restore match^7: usage ^3match list [filter] [page]^7 | ^3match <N> <mm:ss[.mmm]>^7",
             )
             return minqlx.Return.STOP_ALL
         head = str(tail[0]).strip().lower()
@@ -1660,7 +1660,7 @@ class match_restore(minqlx.Plugin):
         if len(tail) < 2:
             self._reply(
                 player, channel,
-                "^1restore match^7: usage ^3<N> <mm:ss>^7 (run ^3restore match list^7 first)",
+                "^1restore match^7: usage ^3<N> <mm:ss[.mmm]>^7 (run ^3restore match list^7 first)",
             )
             return minqlx.Return.STOP_ALL
         pack = restore_qlmatch.resolve_pack_by_index(self._qlmatch_list_cache, tail[0])

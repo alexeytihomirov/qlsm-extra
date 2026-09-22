@@ -44,9 +44,9 @@
         "restore/codec.py": "bc4496b6ea0be9d048bc4fd5d2618d0586dfd655ffd1f3a48689f6967bf42ce2",
         "restore/draft.py": "526d789ebcd2cb541bc944ec3375a601aac5657102d77e7a06e7beee9ab98f9d",
         "restore/items.py": "2df810585f141ec16ed4fde1e9e15f36e7c8839cdd02af26d35c90754f8ffee9",
-        "restore/qlmatch.py": "d83fef044539c2b8c7b85623069821140e060ea7fcf168820c337a6d2f4c1d30"
+        "restore/qlmatch.py": "8e721f8c82df00d787aa2ad91864c39092ab78240a1944e7efbab8c990049f8e"
       },
-      "sha256": "885a9c9daad5b2e965408c4e7ca10956edd415b0760599ff5d7a78fc4402b529"
+      "sha256": "885dcb44f76e285738e7bc8a162fc9b232d59e9f168556a7eaac27977413f781"
     },
     {
       "filename": "match_restore_util.py",
