@@ -6,7 +6,7 @@ that do **not** ship in the standard qlsm image / plugin pools.
 | Kind | What |
 |------|------|
 | Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `match_restore` family), live telemetry for the `minqlxtended` runtime |
-| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer` |
+| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `player-ranks` |
 
 Merged from the former local `minqlxtended-plugins` and `qlsm-addons` trees.
 
@@ -81,10 +81,25 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
 | `demo-stream` | Live POV demo stream screen + cvars |
 | `qlmatch-packer` | Host-side `.qlmatch` packer + Demos grouping hooks |
+| `player-ranks` | Adds an external rating column (qlstats / Slipgate / Thunderdome elo-service / the server's own status data) to Live Status. Needs qlsm `ui_api` 4 or newer. |
 
 qlsm's image ships **no** addon — install every one of these from this
 repository. `qlmatch-packer` extends `demo-management`'s screen, so it is only
 useful with it installed too.
+
+### player-ranks
+
+Per-instance "Ranks" tab picks one rating source; the chosen column then
+shows up in the instance's Live Status player table (a generic
+`live_status_columns` mount point qlsm's core provides, so this addon owns
+everything about what a rating means and where it comes from). Instances
+without a source configured, or whose configured source needs a key that
+isn't set, simply show no extra column -- this is normal, not a broken
+state. Per-source specifics (what a key changes, rated game types, caching)
+are in the field descriptions on the tab itself and in `qlsm-addon.json`.
+A third-party addon can add a further source via the `player_ranks.providers`
+hook without touching this addon's code (see qlsm's `addons/README.md`,
+"Cross-addon UI contribution").
 
 Framework docs: qlsm's `addons/README.md`, `addons/TRUST.md`, `addons/UI-GUIDE.md`.
 Addons run in-process with qlsm's full authority — only install what you trust.

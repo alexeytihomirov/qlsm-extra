@@ -1,0 +1,77 @@
+{
+  "id": "player-ranks",
+  "version": "1.0.0",
+  "name": "Player Ranks",
+  "description": "Shows each connected player's external rating in Live Status. Sources: qlstats, Slipgate, Thunderdome elo-service, or the game server's own status data. Needs QLSM with ui_api 4 or newer.",
+  "scopes": ["global", "instance"],
+  "ui_api": 4,
+
+  "settings": {
+    "global": [
+      { "key": "slipgate_api_key", "type": "secret", "label": "Slipgate API key (default)",
+        "description": "Used by instances that leave their own key blank. Optional -- without any key, Slipgate is still queried publicly, one request per player." },
+      { "key": "elo_service_api_key", "type": "secret", "label": "Thunderdome elo-service API key (default)",
+        "description": "Used by instances that leave their own key blank. This source returns nothing without a key, on any instance." }
+    ],
+    "instance": [
+      { "key": "provider", "type": "string", "label": "Rating source",
+        "description": "One of: qlstats, slipgate, elo_service, server_status. Blank = no column. Validated against the live source registry on save, not a fixed list here -- see the 'Ranks' tab for the actual picker." },
+      { "key": "base_url", "type": "string", "label": "Base URL",
+        "placeholder": "http://qlstats.net",
+        "description": "Ignored by 'From the game server's own status data'." },
+      { "key": "api_key", "type": "secret", "label": "API key / token override",
+        "description": "qlstats needs none. Slipgate: optional -- with a key, one bulk request covers the whole roster; without one, one public request per player. Thunderdome elo-service: required, nothing is returned without it. Leave blank to fall back to the installation-wide default set on the Addons page." },
+      { "key": "rating_system", "type": "select", "label": "qlstats rating system", "default": "elo",
+        "options": [ { "value": "elo", "label": "elo" }, { "value": "elo_b", "label": "elo_b" } ] },
+      { "key": "game_type", "type": "string", "label": "Game type / pool override",
+        "placeholder": "e.g. ffa_auto for Thunderdome elo-service",
+        "description": "Leave blank to use the server's live game type. qlstats/Slipgate only rate a fixed set of game types (duel/ffa/ca/tdm/ctf/ft/ad and a few Slipgate-only ones) -- an unrated type just means no query, not an error. Thunderdome elo-service has no such list; set this to the exact pool name (e.g. ffa_auto) it was configured with." }
+    ]
+  },
+
+  "ui": {
+    "icon": "gauge",
+
+    "instance_tabs": [
+      { "id": "ranks", "label": "Ranks", "icon": "gauge", "panel": "instance_ranks" }
+    ],
+    "settings_section": {
+      "label": "Player Ranks", "icon": "gauge", "panel": "global_keys"
+    },
+    "live_status_columns": [
+      { "id": "rating", "label": "Rating", "align": "right", "icon": "gauge",
+        "route": "GET instances/{instance_id}/ranks" }
+    ],
+
+    "panels": {
+      "instance_ranks": {
+        "kind": "form",
+        "description": "Pick a rating source for this instance and it appears as a column in Live Status. Left on 'None', no column is added. If server.cfg already carries qlx_balanceUrl or qlx_rankedServiceUrl, the first load here suggests matching values -- nothing is written until you hit Save.",
+        "load": "GET instances/{instance_id}/config",
+        "submit": "PUT instances/{instance_id}/config",
+        "fields": [
+          { "key": "provider", "type": "select", "label": "Rating source", "placeholder": "None",
+            "options": [
+              { "value": "qlstats",       "label": "qlstats", "icon_url": "logos/qlstats.svg" },
+              { "value": "slipgate",      "label": "Slipgate", "icon_url": "logos/slipgate.svg" },
+              { "value": "elo_service",   "label": "Thunderdome elo-service", "icon_url": "logos/elo_service.svg" },
+              { "value": "server_status", "label": "From the game server's own status data" }
+            ] },
+          { "key": "base_url", "type": "string", "label": "Base URL", "placeholder": "http://qlstats.net",
+            "description": "qlstats default: http://qlstats.net. Slipgate default: https://slipgate.gg. Thunderdome elo-service: required, no default (e.g. http://your-host:5002)." },
+          { "key": "api_key", "type": "secret", "label": "API key / token override",
+            "description": "qlstats: not needed. Slipgate: optional (bulk vs public per-player lookups). Thunderdome elo-service: required. Blank uses the installation-wide default from Settings." },
+          { "key": "rating_system", "type": "select", "label": "qlstats rating system", "default": "elo",
+            "options": [ { "value": "elo", "label": "elo" }, { "value": "elo_b", "label": "elo_b" } ] },
+          { "key": "game_type", "type": "string", "label": "Game type / pool override",
+            "placeholder": "e.g. ffa_auto",
+            "description": "Blank = use the server's live game type. Set this for Thunderdome elo-service pools like ffa_auto." }
+        ]
+      },
+      "global_keys": {
+        "kind": "form",
+        "description": "Installation-wide default API keys. An instance's own 'Ranks' tab can override either one."
+      }
+    }
+  }
+}
