@@ -65,22 +65,34 @@ def addon_id():
 
 
 @pytest.fixture
-def app(tmp_path, monkeypatch, addon_id):
-    """A qlsm app with exactly one addon installed, from the volume."""
+def addon_ids(request):
+    """Every addon to install for this test.
+
+    Defaults to the single one the module names, so the common case stays
+    `addon_id`. A test that needs two addons together -- one declaring an
+    extension point and the other contributing to it -- overrides this
+    instead.
+    """
+    return [request.getfixturevalue('addon_id')]
+
+
+@pytest.fixture
+def app(tmp_path, monkeypatch, addon_ids):
+    """A qlsm app with the named addons installed, from the volume."""
     from ui import create_app, db
     from ui.addons import registry
 
-    source = ADDONS_DIR / addon_id
-    assert source.is_dir(), f'no addon named {addon_id} in this repo'
-
     packages = tmp_path / 'addon-packages'
     packages.mkdir()
-    shutil.copytree(
-        source, packages / addon_id,
-        ignore=shutil.ignore_patterns('node_modules', 'ui-src', '__pycache__',
-                                      'package.json', 'package-lock.json',
-                                      'vite.config.js'),
-    )
+    for addon_id in addon_ids:
+        source = ADDONS_DIR / addon_id
+        assert source.is_dir(), f'no addon named {addon_id} in this repo'
+        shutil.copytree(
+            source, packages / addon_id,
+            ignore=shutil.ignore_patterns('node_modules', 'ui-src', '__pycache__',
+                                          'package.json', 'package-lock.json',
+                                          'vite.config.js'),
+        )
 
     # Installed-only: drop qlsm's bundled addons/ dir from the scan so a
     # stale copy there could never be what these tests exercise.

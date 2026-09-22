@@ -92,10 +92,10 @@
     {
       "id": "demo-management",
       "zip": "packages/demo-management.zip",
-      "sha256": "6297339915270ada66d301170596a62f29f681a39bd29371516b41ecbd5b00f5",
-      "version": "1.5.1",
+      "sha256": "734c86274f8f7ee1f1bc5f5f8cab49cbf3b4aee704490b8a7217c4e41d4fdd87",
+      "version": "1.6.0",
       "label": "Demos",
-      "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog."
+      "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons extend the recognised formats and add per-match actions through the two extension points this addon declares (file_kinds, match_groups). Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog."
     },
     {
       "id": "demo-stream",

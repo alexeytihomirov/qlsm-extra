@@ -1,14 +1,28 @@
 {
   "id": "demo-management",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "name": "Demos",
-  "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog.",
-  "scopes": ["global", "host", "instance"],
+  "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons extend the recognised formats and add per-match actions through the two extension points this addon declares (file_kinds, match_groups). Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog.",
+  "scopes": [
+    "global",
+    "host",
+    "instance"
+  ],
   "ui_api": 3,
-
+  "hooks": {
+    "file_kinds": {
+      "scope": "global",
+      "list": true,
+      "description": "Filename extensions to list and allow downloading alongside the raw .dm_91 files this addon recognises on its own. Contributors return a flat list of extensions without the leading dot, e.g. [\"qlmatch\"]."
+    },
+    "match_groups": {
+      "scope": "global",
+      "list": true,
+      "description": "Groups of files that belong to one match, so a pack and its sidecars read as a single row. Dispatched with (instance_id, demos) -- the flat file list already built -- and a contributor returns fully-resolved groups: [{group_id, label, member_names, addon_id, actions: [{id, label, icon, danger, action: {route, method, confirm}}]}]. Routes are relative to the CONTRIBUTING addon prefix; addon_id says which."
+    }
+  },
   "ui": {
     "icon": "film",
-
     "instance_menu": [
       {
         "id": "demos",
@@ -18,7 +32,6 @@
         "renders": "modal"
       }
     ],
-
     "panels": {}
   }
 }
