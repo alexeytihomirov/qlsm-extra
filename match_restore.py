@@ -2167,10 +2167,14 @@ class match_restore(minqlx.Plugin):
         return 0
 
     def _player_respawn_remaining_ms(self, player):
-        """Ms left on a dead player's playerState_t.respawnTime (engine level.time
-        clock, GameClient(n).ps.respawn_time - QL's own field, added on top of
-        stock Q3's playerState_t at +512, read-write per engine_fields.h). None
-        when unreadable (vm not ready, freed slot)."""
+        """Ms left on a dead player's gclient_t.respawnTime - the real respawn
+        gate the game module checks against level.time (GameClient(n).respawn_time,
+        offset +1252 on gclient_t per engine_fields.h GAMECLIENT_FIELDS; read-write).
+        Not the same field as GameClient(n).ps.respawn_time (playerState_t +512,
+        confirmed live 2026-09-22 to just be a HUD-facing mirror that reads back
+        0 during a real death - writing there has no effect on when the engine
+        actually lets the player respawn). None when unreadable (vm not ready,
+        freed slot)."""
         level_ms = self._native_map_time_ms()
         if level_ms is None:
             return None
@@ -2178,25 +2182,38 @@ class match_restore(minqlx.Plugin):
             client = minqlx.Entity(int(player.id)).client
             if client is None:
                 return None
-            respawn_at = int(client.ps.respawn_time)
+            respawn_at = int(client.respawn_time)
         except (AttributeError, TypeError, ValueError, minqlx.EngineStateError):
             return None
         return max(0, respawn_at - int(level_ms))
 
-    def _set_player_respawn_remaining_ms(self, target, remaining_ms):
-        """Overwrite respawnTime so a restored dead player becomes eligible to
-        respawn after the time already elapsed in the recorded match, not a
-        fresh full g_respawn_delay_min/max window starting at the restore
-        moment (target.is_alive=False slays for real via slay_with_mod(), and
-        the engine sets its own fresh deadline as part of that death)."""
+    def _compute_respawn_at_ms(self, respawn_in_ms):
+        """Absolute level.time deadline for `respawn_in_ms` from right now, or
+        None. Callers compute this ONCE per restore-apply and thread the
+        absolute value through to any delayed reassert - recomputing
+        `level.time + respawn_in_ms` again later (using a later "now") would
+        silently push the deadline further out by however long the reassert
+        waited, defeating the whole point of restoring the remaining time."""
+        if respawn_in_ms is None:
+            return None
         level_ms = self._native_map_time_ms()
         if level_ms is None:
-            return False
+            return None
+        return int(level_ms) + max(0, int(respawn_in_ms))
+
+    def _set_player_respawn_at_ms(self, target, respawn_at_ms):
+        """Overwrite gclient_t.respawnTime (see _player_respawn_remaining_ms)
+        with an absolute level.time deadline, so a restored dead player becomes
+        eligible to respawn after the time already elapsed in the recorded
+        match, not a fresh full g_respawn_delay_min/max window starting at the
+        restore moment (target.is_alive=False slays for real via
+        slay_with_mod(), and the engine sets its own fresh deadline as part of
+        that death)."""
         try:
             client = minqlx.Entity(int(target.id)).client
             if client is None:
                 return False
-            client.ps.respawn_time = int(level_ms) + max(0, int(remaining_ms))
+            client.respawn_time = int(respawn_at_ms)
         except (AttributeError, TypeError, ValueError, minqlx.EngineStateError) as exc:
             self.logger.warning(
                 "match_restore: set respawn_time cid=%s failed: %s",
@@ -3747,7 +3764,7 @@ class match_restore(minqlx.Plugin):
         hp = match_restore._int(payload.get("h", payload.get("health")))
         return hp is not None and hp <= 0
 
-    def _apply_player_dead_state(self, target, respawn_in_ms=None):
+    def _apply_player_dead_state(self, target, respawn_at_ms=None):
         try:
             target.is_alive = False
         except (AttributeError, TypeError, ValueError, minqlx.EngineStateError):
@@ -3763,16 +3780,20 @@ class match_restore(minqlx.Plugin):
         else:
             self._sync_health_hud_stat(target, 0)
         self._apply_dead_player_inventory(target)
-        if respawn_in_ms is not None:
+        if respawn_at_ms is not None:
             # Immediate best-effort write, same as the health reassert below:
             # is_alive=False's real slay_with_mod() may set its own fresh
             # respawnTime a frame after this call returns, stomping an
             # immediate write - _schedule_respawn_time_reassert is the safety
-            # net that makes it stick.
-            self._set_player_respawn_remaining_ms(target, respawn_in_ms)
-            self._schedule_respawn_time_reassert(target, respawn_in_ms)
+            # net that makes it stick. Both writes use the SAME absolute
+            # deadline computed once by the caller - recomputing "level.time +
+            # remaining" again inside the reassert would use a later "now" and
+            # silently push the deadline out by however long the reassert
+            # waited.
+            self._set_player_respawn_at_ms(target, respawn_at_ms)
+            self._schedule_respawn_time_reassert(target, respawn_at_ms)
 
-    def _schedule_respawn_time_reassert(self, target, remaining_ms, delay_sec=0.15):
+    def _schedule_respawn_time_reassert(self, target, respawn_at_ms, delay_sec=0.15):
         # Mirrors _schedule_health_reassert: live-tested pattern for this same
         # dead-player path, where the engine's own catch-up a frame later can
         # stomp values set immediately after target.is_alive = False.
@@ -3782,7 +3803,7 @@ class match_restore(minqlx.Plugin):
             def _reassert_main():
                 try:
                     if target is not None:
-                        self._set_player_respawn_remaining_ms(target, remaining_ms)
+                        self._set_player_respawn_at_ms(target, respawn_at_ms)
                 except (AttributeError, TypeError, ValueError) as exc:
                     self.logger.warning(
                         "match_restore: respawn_time reassert cid=%s failed: %s",
@@ -3794,7 +3815,7 @@ class match_restore(minqlx.Plugin):
 
         _reassert()
 
-    def _schedule_dead_state_reassert(self, target, respawn_in_ms=None, delay_sec=0.12):
+    def _schedule_dead_state_reassert(self, target, respawn_at_ms=None, delay_sec=0.12):
         # delay runs on a timer thread; hop back to the main thread for engine calls.
         @minqlx.delay(float(delay_sec))
         def _reassert():
@@ -3802,7 +3823,7 @@ class match_restore(minqlx.Plugin):
             def _reassert_main():
                 try:
                     if target is not None:
-                        self._apply_player_dead_state(target, respawn_in_ms=respawn_in_ms)
+                        self._apply_player_dead_state(target, respawn_at_ms=respawn_at_ms)
                 except (AttributeError, TypeError, ValueError) as exc:
                     self.logger.warning(
                         "match_restore: dead reassert cid=%s failed: %s",
@@ -3853,7 +3874,7 @@ class match_restore(minqlx.Plugin):
     def _apply_player_vitals(self, target, payload):
         """Apply hp/armor/loadout/ammo/weapon/score (run before kinematics pause)."""
         want_dead = self._infer_want_dead(payload)
-        respawn_in_ms = self._int(payload.get("ri"))
+        respawn_at_ms = self._compute_respawn_at_ms(self._int(payload.get("ri")))
         health = self._int(payload.get("h", payload.get("health")))
         armor = self._int(payload.get("a", payload.get("armor")))
         weapon = payload.get("w", payload.get("weapon", payload.get("active_weapon")))
@@ -3873,7 +3894,7 @@ class match_restore(minqlx.Plugin):
         ammo = payload.get("ammo", payload.get("am"))
         try:
             if want_dead:
-                self._apply_player_dead_state(target, respawn_in_ms=respawn_in_ms)
+                self._apply_player_dead_state(target, respawn_at_ms=respawn_at_ms)
             elif not target.is_alive:
                 target.is_alive = True
             if health is not None and not want_dead:
@@ -3923,7 +3944,7 @@ class match_restore(minqlx.Plugin):
         y = self._num(payload.get("y"))
         z = self._num(payload.get("z"))
         want_dead = self._infer_want_dead(payload)
-        respawn_in_ms = self._int(payload.get("ri"))
+        respawn_at_ms = self._compute_respawn_at_ms(self._int(payload.get("ri")))
         vx = self._num(payload.get("vx"))
         vy = self._num(payload.get("vy"))
         vz = self._num(payload.get("vz"))
@@ -3993,7 +4014,7 @@ class match_restore(minqlx.Plugin):
                 )
                 self._teleport_player(target, x, y, z, frames=pos_frames)
             if want_dead:
-                self._schedule_dead_state_reassert(target, respawn_in_ms=respawn_in_ms)
+                self._schedule_dead_state_reassert(target, respawn_at_ms=respawn_at_ms)
             return True, ", ".join(planned)
 
         if kinematics_only:
