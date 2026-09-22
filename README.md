@@ -6,7 +6,7 @@ that do **not** ship in the standard qlsm image / plugin pools.
 | Kind | What |
 |------|------|
 | Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `match_restore` family), live telemetry for the `minqlxtended` runtime |
-| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `player-ranks` |
+| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer` |
 
 Merged from the former local `minqlxtended-plugins` and `qlsm-addons` trees.
 
@@ -29,6 +29,30 @@ python generate_manifest.py
 ```
 
 and commit the updated `qlsm-repository.json` + `packages/*.zip`.
+
+### Manifest hash guard (pre-commit)
+
+If you change a packaged file and forget to re-run `generate_manifest.py`,
+`qlsm-repository.json` publishes a stale sha256 and Repositories sync/update
+fails hash checks on the client. A local pre-commit hook catches that before
+the commit lands.
+
+Enable once per clone (hooks are not auto-installed by git):
+
+```bash
+git config core.hooksPath hooks
+```
+
+The hook runs `check_manifest_hashes.py`: every `sha256` in
+`qlsm-repository.json` (plugin `.py`, `package_files`, addon zips) must match
+the file on disk. Mismatch → commit blocked; fix with
+`python generate_manifest.py` and stage the refreshed manifest (and zips).
+
+Manual check without committing:
+
+```bash
+python check_manifest_hashes.py
+```
 
 ## Plugins
 
@@ -81,25 +105,10 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
 | `demo-stream` | Live POV demo stream screen + cvars |
 | `qlmatch-packer` | Host-side `.qlmatch` packer + Demos grouping hooks |
-| `player-ranks` | Adds an external rating column (qlstats / Slipgate / Thunderdome elo-service / the server's own status data) to Live Status. Needs qlsm `ui_api` 4 or newer. |
 
 qlsm's image ships **no** addon — install every one of these from this
 repository. `qlmatch-packer` extends `demo-management`'s screen, so it is only
 useful with it installed too.
-
-### player-ranks
-
-Per-instance "Ranks" tab picks one rating source; the chosen column then
-shows up in the instance's Live Status player table (a generic
-`live_status_columns` mount point qlsm's core provides, so this addon owns
-everything about what a rating means and where it comes from). Instances
-without a source configured, or whose configured source needs a key that
-isn't set, simply show no extra column -- this is normal, not a broken
-state. Per-source specifics (what a key changes, rated game types, caching)
-are in the field descriptions on the tab itself and in `qlsm-addon.json`.
-A third-party addon can add a further source via the `player_ranks.providers`
-hook without touching this addon's code (see qlsm's `addons/README.md`,
-"Cross-addon UI contribution").
 
 Framework docs: qlsm's `addons/README.md`, `addons/TRUST.md`, `addons/UI-GUIDE.md`.
 Addons run in-process with qlsm's full authority — only install what you trust.
@@ -141,6 +150,8 @@ is also the only way qlsm can load one now.
 qlsm-extra/
   qlsm-repository.json   # plugins + addons index for qlsm Repositories
   generate_manifest.py   # refresh hashes + rebuild packages/*.zip
+  check_manifest_hashes.py  # verify manifest sha256 vs disk (pre-commit)
+  hooks/pre-commit       # blocks commit when hashes are stale
   *.py / *.ql-plugin.json / restore/   # plugins (root = download URLs)
   addons/<id>/           # addon sources
   addons/<id>/ui-src/    # tier-2 UI sources (built into ui/, not packaged)

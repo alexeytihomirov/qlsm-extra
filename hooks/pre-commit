@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Block commits when qlsm-repository.json sha256 values are stale vs disk.
+# Enable once per clone:  git config core.hooksPath hooks
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+
+# Prefer a real interpreter. On Windows, `python3` is often the Store stub
+# under WindowsApps (Permission denied); `python` is the installed one.
+pick_python() {
+    local candidate
+    for candidate in python python3; do
+        if ! command -v "$candidate" >/dev/null 2>&1; then
+            continue
+        fi
+        if "$candidate" -c "import sys" >/dev/null 2>&1; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+if ! py="$(pick_python)"; then
+    echo "pre-commit: no working python/python3; cannot verify qlsm-repository.json hashes." >&2
+    exit 1
+fi
+
+exec "$py" "$root/check_manifest_hashes.py"
