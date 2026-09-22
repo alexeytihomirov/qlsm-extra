@@ -116,8 +116,8 @@
     {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "cfb625d68200f9b0b5b08c97b9699b29988dd500891a0dac3042e4010ca6bdcc",
-      "version": "1.0.1",
+      "sha256": "d4f90455964b6d44ad4fbf6ec272576a50ca992dc69d64af03e674ab42b7bf81",
+      "version": "1.0.2",
       "label": "Qlmatch Packer",
       "description": "Deploys the external Node.js qlmatch-packer (+ Node 22 runtime) to every managed host after setup / \"Update Plugins\", and makes demo-management recognise the .qlmatch/.replay.json.gz files it produces (the .packer.log it also writes is deliberately never surfaced there). Cvars (qlx_qlmatchNameTemplate, qlx_qlmatchRcloneTargets) are read straight from an instance's server.cfg -- there is no Plugins-tab UI for them since the plugin that used to own that manifest was retired; set them by hand for now. This addon's own settings only control whether the replay sidecar shows up in the Demos widget."
     },

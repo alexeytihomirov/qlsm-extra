@@ -350,6 +350,17 @@ const DROP_LIFETIME_MS = 30000;
 // between. This grid is coarse enough to absorb snapshot rounding and fine
 // enough to keep two drops in the same room apart.
 const DROP_SPOT_GRID = 16;
+// LaunchItem() tosses the dropped weapon with real velocity+gravity, so it
+// stays TR_GRAVITY (airborne, position not yet settled) for a few hundred ms
+// after the death that produced it - real bug, confirmed on a bloodrun duel
+// repro: death at 19625ms, drop only settled (and thus only became visible
+// to build_drop_rows) at 20150ms, so a checkpoint restored at exactly 0:20
+// showed no rail at all even though the real match already had one on the
+// floor. Bounded lookback for how far back a settle can claim its airborne
+// entity slot was first seen - generous next to the observed 525ms case
+// without being so large a stale/reused slot from an unrelated earlier drop
+// gets misattributed; tighten if a real pack ever needs it lower.
+const DROP_AIRBORNE_LOOKBACK_MS = 3000;
 
 function dropSpotKey(itemId, x, y, z) {
   return [
@@ -363,13 +374,44 @@ function dropSpotKey(itemId, x, y, z) {
 class DroppedItemTracker {
   constructor() {
     this.live = new Map();
+    // entity number -> first gameTimeMs it was seen as an airborne (not yet
+    // TR_STATIONARY) modelindex2===1 item - see DROP_AIRBORNE_LOOKBACK_MS.
+    this.airborne = new Map();
+  }
+
+  /**
+   * Record that a dropped item's entity slot was seen still in flight this
+   * snapshot, so resolveDropMs() can backdate its eventual settle to the
+   * true toss moment instead of whenever it happened to stop moving.
+   */
+  trackAirborne(entNum, gameTimeMs) {
+    const seenAt = this.airborne.get(entNum);
+    if (seenAt == null || gameTimeMs < seenAt || gameTimeMs - seenAt > DROP_AIRBORNE_LOOKBACK_MS) {
+      this.airborne.set(entNum, gameTimeMs);
+    }
+  }
+
+  /**
+   * The true origin time for a drop settling now on entity slot entNum: the
+   * first airborne sighting if one was tracked recently enough to plausibly
+   * be the same toss, else just the settle time itself (no airborne frame
+   * was ever observed - PVS gap, or it was already stationary on its first
+   * sighting).
+   */
+  resolveDropMs(entNum, settleGameTimeMs) {
+    const seenAt = this.airborne.get(entNum);
+    this.airborne.delete(entNum);
+    if (seenAt != null && settleGameTimeMs - seenAt <= DROP_AIRBORNE_LOOKBACK_MS) {
+      return seenAt;
+    }
+    return settleGameTimeMs;
   }
 
   /**
    * Record a settled drop seen this snapshot. Returns the record when this is
    * the first sighting of a *new* drop (caller emits an event), else null.
    */
-  see(itemId, x, y, z, gameTimeMs) {
+  see(itemId, x, y, z, gameTimeMs, dropMs) {
     const key = dropSpotKey(itemId, x, y, z);
     const rec = this.live.get(key);
     // Nothing that has been gone longer than a drop can possibly live is the
@@ -378,7 +420,8 @@ class DroppedItemTracker {
       rec.lastSeen = gameTimeMs;
       return null;
     }
-    const fresh = { key, itemId, x, y, z, dropMs: gameTimeMs, lastSeen: gameTimeMs };
+    const originMs = dropMs != null && dropMs <= gameTimeMs ? dropMs : gameTimeMs;
+    const fresh = { key, itemId, x, y, z, dropMs: originMs, lastSeen: gameTimeMs };
     this.live.set(key, fresh);
     return fresh;
   }
@@ -970,14 +1013,18 @@ export function demoToReplay(parser, options = {}) {
         // one: that is the misnamed-spawn/false-pickup case the comment above
         // describes, now closed for good.
         if ((ent.modelindex2 | 0) === 1) {
-          if (ent.pos.trType !== TR_STATIONARY) continue;
+          if (ent.pos.trType !== TR_STATIONARY) {
+            if (gameTimeMs >= 0) droppedItems.trackAirborne(ent.number, gameTimeMs);
+            continue;
+          }
           const [dx, dy, dz] = entityOriginAt(ent, snap.serverTime);
           if (!isSaneWorldOrigin(dx, dy, dz)) continue;
           const itemId = ent.modelindex | 0;
           if (!itemId) continue;
           snapDrops.add(dropSpotKey(itemId, dx, dy, dz));
           if (gameTimeMs >= 0) {
-            const fresh = droppedItems.see(itemId, dx, dy, dz, gameTimeMs);
+            const dropMs = droppedItems.resolveDropMs(ent.number, gameTimeMs);
+            const fresh = droppedItems.see(itemId, dx, dy, dz, gameTimeMs, dropMs);
             if (fresh) newDrops.push(fresh);
           }
           continue;

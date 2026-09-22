@@ -99,6 +99,40 @@ test("an in-flight drop is ignored until it lands", () => {
   assert.equal(drops[0].z, 16);
 });
 
+test("a drop's timestamp is backdated to when it was first seen airborne, not when it landed", () => {
+  // Real bug (bloodrun duel repro): death at 19625ms, drop only settled (and
+  // so only became visible to restore/qlmatch.py's build_drop_rows) at
+  // 20150ms - a checkpoint restored at exactly 0:20 showed no rail at all
+  // even though the real match already had one on the floor.
+  const replay = demoToReplay(
+    fakeParser([
+      snap(T0, [itemEnt(300, 15, 100, 100, 400, { trType: TR_GRAVITY })]),
+      snap(T0 + 25, [itemEnt(300, 15, 100, 100, 300, { trType: TR_GRAVITY })]),
+      snap(T0 + 50, [itemEnt(300, 15, 100, 100, 16)]),
+    ]),
+    { mapTable: null },
+  );
+  const drops = dropEventsOf(replay);
+  assert.equal(drops.length, 1);
+  assert.equal(drops[0].game_time_ms, 0);
+  assert.equal(drops[0].drop_game_time_ms, 0);
+});
+
+test("an airborne sighting far too old to be the same toss does not backdate a later settle", () => {
+  const replay = demoToReplay(
+    fakeParser([
+      snap(T0, [itemEnt(300, 15, 100, 100, 400, { trType: TR_GRAVITY })]),
+      // Entity slot 300 goes quiet (picked up, freed) long enough that a
+      // later, unrelated drop reusing the same slot must not inherit T0.
+      snap(T0 + 5000, [itemEnt(300, 16, 200, 200, 16)]),
+    ]),
+    { mapTable: null },
+  );
+  const drops = dropEventsOf(replay);
+  assert.equal(drops.length, 1);
+  assert.equal(drops[0].game_time_ms, 5000);
+});
+
 test("a map-placed item is never mistaken for a drop", () => {
   const replay = demoToReplay(
     fakeParser([snap(T0, [itemEnt(80, 8, 784, -224, 81, { dropped: false })])]),
