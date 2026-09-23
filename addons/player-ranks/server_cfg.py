@@ -18,9 +18,10 @@ def _config_path(instance):
 
 
 def suggest_from_server_cfg(instance):
-    """Best-effort {provider, base_url, api_key, rating_system, game_type}
-    guess, or {} if server.cfg is missing or carries none of the cvars this
-    addon knows about. `rating_system` is left for the operator to confirm --
+    """Best-effort {<provider>_enabled, <provider>_base_url, ...} guess for
+    whichever single source server.cfg's cvars point at, or {} if server.cfg
+    is missing or carries none of the cvars this addon knows about.
+    `qlstats_rating_system` is left for the operator to confirm --
     qlx_balanceApi's own values ('elo'/'elo_b') line up, but nothing here
     validates that."""
     path = _config_path(instance)
@@ -35,10 +36,10 @@ def suggest_from_server_cfg(instance):
     elo_cvars = read_cvars_from_text(text, _ELO_SERVICE_CVARS)
     if elo_cvars.get('qlx_rankedServiceUrl'):
         return {
-            'provider': 'elo_service',
-            'base_url': elo_cvars['qlx_rankedServiceUrl'],
-            'api_key': elo_cvars.get('qlx_rankedApiKey') or '',
-            'game_type': elo_cvars.get('qlx_rankedPool') or '',
+            'elo_service_enabled': True,
+            'elo_service_base_url': elo_cvars['qlx_rankedServiceUrl'],
+            'elo_service_api_key': elo_cvars.get('qlx_rankedApiKey') or '',
+            'elo_service_game_type': elo_cvars.get('qlx_rankedPool') or '',
         }
 
     qlstats_cvars = read_cvars_from_text(text, _QLSTATS_CVARS)
@@ -47,9 +48,9 @@ def suggest_from_server_cfg(instance):
         if not url.startswith('http://') and not url.startswith('https://'):
             url = f'http://{url}'
         return {
-            'provider': 'qlstats',
-            'base_url': url,
-            'rating_system': qlstats_cvars.get('qlx_balanceApi') or 'elo',
+            'qlstats_enabled': True,
+            'qlstats_base_url': url,
+            'qlstats_rating_system': qlstats_cvars.get('qlx_balanceApi') or 'elo',
         }
 
     return {}

@@ -108,10 +108,10 @@
     {
       "id": "player-ranks",
       "zip": "packages/player-ranks.zip",
-      "sha256": "61af40095e820df2bd17dc6a4bb775ba1b272ce25d0001f147f4aa75bc625fa8",
-      "version": "1.0.0",
+      "sha256": "bf20eb894e0a55d578472c2fba56d495cecbe768b8af91f25df3230cbb2877e2",
+      "version": "2.0.0",
       "label": "Player Ranks",
-      "description": "Shows each connected player's external rating in Live Status. Sources: qlstats, Slipgate, Thunderdome elo-service, or the game server's own status data. Needs QLSM with ui_api 4 or newer."
+      "description": "Shows each connected player's external rating in Live Status. Sources: qlstats, Slipgate, Thunderdome elo-service, and the game server's own status data -- each can be shown or hidden independently, and every enabled source gets its own column. Needs QLSM with ui_api 4 or newer."
     },
     {
       "id": "qlmatch-packer",

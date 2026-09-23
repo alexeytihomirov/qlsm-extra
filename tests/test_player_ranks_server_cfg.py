@@ -57,10 +57,10 @@ def test_elo_service_cvars_are_suggested(tmp_path, monkeypatch):
     result = suggest_from_server_cfg(instance)
 
     assert result == {
-        'provider': 'elo_service',
-        'base_url': 'http://localhost:5002',
-        'api_key': 'secret-key',
-        'game_type': 'ffa_auto',
+        'elo_service_enabled': True,
+        'elo_service_base_url': 'http://localhost:5002',
+        'elo_service_api_key': 'secret-key',
+        'elo_service_game_type': 'ffa_auto',
     }
 
 
@@ -78,9 +78,9 @@ def test_qlstats_cvars_are_suggested_when_no_elo_service(tmp_path, monkeypatch):
     result = suggest_from_server_cfg(instance)
 
     assert result == {
-        'provider': 'qlstats',
-        'base_url': 'http://qlstats.net',
-        'rating_system': 'elo_b',
+        'qlstats_enabled': True,
+        'qlstats_base_url': 'http://qlstats.net',
+        'qlstats_rating_system': 'elo_b',
     }
 
 
@@ -96,7 +96,7 @@ def test_qlstats_url_already_has_scheme_is_left_alone(tmp_path, monkeypatch):
 
     result = suggest_from_server_cfg(instance)
 
-    assert result['base_url'] == 'https://qlstats.net'
+    assert result['qlstats_base_url'] == 'https://qlstats.net'
 
 
 def test_no_recognised_cvars_means_no_suggestion(tmp_path, monkeypatch):
