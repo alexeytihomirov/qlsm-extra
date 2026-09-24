@@ -1,13 +1,17 @@
 """Suggests a starting config for an instance's 'Ranks' tab from cvars its
-server.cfg already carries, if a plugin like balance.py or ranked.py wrote
-them there for its own purposes. Never writes anything -- server.cfg is the
-authority, not something this addon takes over.
+server.cfg already carries, if ranked.py wrote them there for its own
+purposes. Never writes anything -- server.cfg is the authority, not
+something this addon takes over.
+
+qlstats has no per-instance suggestion: it's an installation-wide switch now
+(settings.global, see backend.py), so there is no per-instance field left to
+suggest a value into. Only Thunderdome elo-service -- still genuinely
+per-instance -- gets suggested here.
 """
 import os
 
 from .cvar_text import read_cvars_from_text
 
-_QLSTATS_CVARS = ('qlx_balanceUrl', 'qlx_balanceApi')
 _ELO_SERVICE_CVARS = ('qlx_rankedServiceUrl', 'qlx_rankedApiKey', 'qlx_rankedPool')
 
 
@@ -18,12 +22,9 @@ def _config_path(instance):
 
 
 def suggest_from_server_cfg(instance):
-    """Best-effort {<provider>_enabled, <provider>_base_url, ...} guess for
-    whichever single source server.cfg's cvars point at, or {} if server.cfg
-    is missing or carries none of the cvars this addon knows about.
-    `qlstats_rating_system` is left for the operator to confirm --
-    qlx_balanceApi's own values ('elo'/'elo_b') line up, but nothing here
-    validates that."""
+    """Best-effort {elo_service_enabled, elo_service_base_url, ...} guess
+    from qlx_rankedServiceUrl and friends, or {} if server.cfg is missing or
+    doesn't carry it."""
     path = _config_path(instance)
     if not path:
         return {}
@@ -40,17 +41,6 @@ def suggest_from_server_cfg(instance):
             'elo_service_base_url': elo_cvars['qlx_rankedServiceUrl'],
             'elo_service_api_key': elo_cvars.get('qlx_rankedApiKey') or '',
             'elo_service_game_type': elo_cvars.get('qlx_rankedPool') or '',
-        }
-
-    qlstats_cvars = read_cvars_from_text(text, _QLSTATS_CVARS)
-    if qlstats_cvars.get('qlx_balanceUrl'):
-        url = qlstats_cvars['qlx_balanceUrl']
-        if not url.startswith('http://') and not url.startswith('https://'):
-            url = f'http://{url}'
-        return {
-            'qlstats_enabled': True,
-            'qlstats_base_url': url,
-            'qlstats_rating_system': qlstats_cvars.get('qlx_balanceApi') or 'elo',
         }
 
     return {}

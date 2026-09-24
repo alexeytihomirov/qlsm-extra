@@ -64,7 +64,10 @@ def test_elo_service_cvars_are_suggested(tmp_path, monkeypatch):
     }
 
 
-def test_qlstats_cvars_are_suggested_when_no_elo_service(tmp_path, monkeypatch):
+def test_qlstats_cvars_are_not_suggested_per_instance(tmp_path, monkeypatch):
+    """qlstats is an installation-wide switch now (settings.global) -- there
+    is no per-instance field left to suggest a value into, so qlx_balanceUrl
+    is deliberately ignored here even though it once mapped to a suggestion."""
     monkeypatch.chdir(tmp_path)
     cfg_dir = tmp_path / 'configs' / 'germany' / '42'
     cfg_dir.mkdir(parents=True)
@@ -75,28 +78,7 @@ def test_qlstats_cvars_are_suggested_when_no_elo_service(tmp_path, monkeypatch):
     )
     instance = _instance('germany', 42)
 
-    result = suggest_from_server_cfg(instance)
-
-    assert result == {
-        'qlstats_enabled': True,
-        'qlstats_base_url': 'http://qlstats.net',
-        'qlstats_rating_system': 'elo_b',
-    }
-
-
-def test_qlstats_url_already_has_scheme_is_left_alone(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    cfg_dir = tmp_path / 'configs' / 'germany' / '42'
-    cfg_dir.mkdir(parents=True)
-    (cfg_dir / 'server.cfg').write_text(
-        'set qlx_balanceUrl "https://qlstats.net"\n',
-        encoding='utf-8',
-    )
-    instance = _instance('germany', 42)
-
-    result = suggest_from_server_cfg(instance)
-
-    assert result['qlstats_base_url'] == 'https://qlstats.net'
+    assert suggest_from_server_cfg(instance) == {}
 
 
 def test_no_recognised_cvars_means_no_suggestion(tmp_path, monkeypatch):

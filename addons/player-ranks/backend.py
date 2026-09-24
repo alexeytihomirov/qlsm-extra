@@ -5,22 +5,24 @@ Core knows nothing about ratings -- it only renders whatever columns
 own per-provider route (addons/README.md). Everything about *what* a rating
 is, where it comes from, and how it's cached lives here.
 
-Each of the 4 built-in sources (qlstats, Slipgate, Thunderdome elo-service,
-server_status) has its own show/hide toggle and its own column -- an
-instance can show any combination at once, up to core's 3-contributed-
-columns cap. The 'Ranks' instance tab uses a custom load/submit rather than
-a managed panel: `update_instance_config` validates each enabled source's
-base_url shape before writing, and `get_instance_config` suggests values
-read from server.cfg the first time an instance is opened (server_cfg.py),
-before the tab has ever been saved -- neither is something the generic
-managed-panel machinery does for free.
+Two sources (qlstats, Slipgate) are installation-wide switches: their
+enabled/base_url/rating_system live in `settings.global` and apply to every
+instance identically, edited from the addon's own Settings-page panel
+(`global_sources`, a plain managed panel -- core's generic /state endpoint
+handles it, no route in this file). The other two (Thunderdome elo-service,
+server_status) genuinely vary per instance (a different service/pool per
+host is the normal case) and stay on the instance's own 'Ranks' tab, handled
+here: `update_instance_config` validates elo_service_base_url's shape before
+writing, and `get_instance_config` suggests values read from server.cfg the
+first time an instance is opened (server_cfg.py), before the tab has ever
+been saved.
 """
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required
 
 bp = Blueprint('player_ranks_addon', __name__)
 
-_URL_FIELDS = ('qlstats_base_url', 'slipgate_base_url', 'elo_service_base_url')
+_URL_FIELDS = ('elo_service_base_url',)
 
 
 def _instance_or_404(instance_id):
@@ -74,18 +76,8 @@ def update_instance_config(instance_id):
         if value and not (value.startswith('http://') or value.startswith('https://')):
             return jsonify({"error": {"message": f'"{field}" must start with http:// or https://'}}), 400
 
-    rating_system = (body.get('qlstats_rating_system') or 'elo').strip()
-    if rating_system not in ('elo', 'elo_b'):
-        return jsonify({"error": {"message": '"qlstats_rating_system" must be "elo" or "elo_b"'}}), 400
-
     payload = {
         'configured': True,
-        'qlstats_enabled': bool(body.get('qlstats_enabled')),
-        'qlstats_base_url': (body.get('qlstats_base_url') or '').strip(),
-        'qlstats_rating_system': rating_system,
-        'slipgate_enabled': bool(body.get('slipgate_enabled')),
-        'slipgate_base_url': (body.get('slipgate_base_url') or '').strip(),
-        'slipgate_api_key': body.get('slipgate_api_key') or '',
         'elo_service_enabled': bool(body.get('elo_service_enabled')),
         'elo_service_base_url': (body.get('elo_service_base_url') or '').strip(),
         'elo_service_api_key': body.get('elo_service_api_key') or '',

@@ -1,30 +1,30 @@
 {
   "id": "player-ranks",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "name": "Player Ranks",
-  "description": "Shows each connected player's external rating in Live Status. Sources: qlstats, Slipgate, Thunderdome elo-service, and the game server's own status data -- each can be shown or hidden independently, and every enabled source gets its own column. Needs QLSM with ui_api 4 or newer.",
+  "description": "Shows each connected player's external rating in Live Status. qlstats and Slipgate are installation-wide switches (same for every instance); Thunderdome elo-service and the game server's own status data are configured per instance. Each enabled source gets its own column. Needs QLSM with ui_api 4 or newer.",
   "scopes": ["global", "instance"],
   "ui_api": 4,
 
   "settings": {
     "global": [
-      { "key": "slipgate_api_key", "type": "secret", "label": "Slipgate API key (default)",
-        "description": "Used by instances that leave their own key blank. Optional -- without any key, Slipgate is still queried publicly, one request per player." },
+      { "key": "qlstats_enabled", "type": "bool", "label": "qlstats: show column (all instances)" },
+      { "key": "qlstats_base_url", "type": "string", "label": "qlstats: Base URL", "placeholder": "http://qlstats.net",
+        "description": "Blank defaults to http://qlstats.net." },
+      { "key": "qlstats_rating_system", "type": "select", "label": "qlstats: rating system", "default": "elo",
+        "options": [ { "value": "elo", "label": "elo" }, { "value": "elo_b", "label": "elo_b" } ] },
+
+      { "key": "slipgate_enabled", "type": "bool", "label": "Slipgate: show column (all instances)" },
+      { "key": "slipgate_base_url", "type": "string", "label": "Slipgate: Base URL", "placeholder": "https://slipgate.gg",
+        "description": "Blank defaults to https://slipgate.gg." },
+      { "key": "slipgate_api_key", "type": "secret", "label": "Slipgate: API key / token",
+        "description": "Optional -- with a key, one bulk request covers the whole roster; without one, one public request per player." },
+
       { "key": "elo_service_api_key", "type": "secret", "label": "Thunderdome elo-service API key (default)",
         "description": "Used by instances that leave their own key blank. This source returns nothing without a key, on any instance." }
     ],
     "instance": [
       { "key": "configured", "type": "bool", "label": "internal: has this instance's Ranks tab ever been saved" },
-
-      { "key": "qlstats_enabled", "type": "bool", "label": "qlstats: show column" },
-      { "key": "qlstats_base_url", "type": "string", "label": "qlstats: Base URL", "placeholder": "http://qlstats.net" },
-      { "key": "qlstats_rating_system", "type": "select", "label": "qlstats: rating system", "default": "elo",
-        "options": [ { "value": "elo", "label": "elo" }, { "value": "elo_b", "label": "elo_b" } ] },
-
-      { "key": "slipgate_enabled", "type": "bool", "label": "Slipgate: show column" },
-      { "key": "slipgate_base_url", "type": "string", "label": "Slipgate: Base URL", "placeholder": "https://slipgate.gg" },
-      { "key": "slipgate_api_key", "type": "secret", "label": "Slipgate: API key / token override",
-        "description": "Optional -- with a key, one bulk request covers the whole roster; without one, one public request per player. Blank falls back to the installation-wide default set on the Addons page." },
 
       { "key": "elo_service_enabled", "type": "bool", "label": "Thunderdome elo-service: show column" },
       { "key": "elo_service_base_url", "type": "string", "label": "Thunderdome elo-service: Base URL", "placeholder": "http://your-host:5002" },
@@ -45,7 +45,7 @@
       { "id": "ranks", "label": "Ranks", "icon": "gauge", "panel": "instance_ranks" }
     ],
     "settings_section": {
-      "label": "Player Ranks", "icon": "gauge", "panel": "global_keys"
+      "label": "Player Ranks", "icon": "gauge", "panel": "global_sources"
     },
     "live_status_columns": [
       { "id": "qlstats", "label": "qlstats", "align": "right", "icon_url": "logos/qlstats.svg",
@@ -61,22 +61,10 @@
     "panels": {
       "instance_ranks": {
         "kind": "form",
-        "description": "Turn on any combination of rating sources for this instance -- each one that's on gets its own column in Live Status (up to 3 addon-contributed columns are shown at once; extras are dropped, oldest declared first). If server.cfg already carries qlx_balanceUrl or qlx_rankedServiceUrl, the first load here suggests matching values for the matching source -- nothing is written until you hit Save.",
+        "description": "qlstats and Slipgate are switched on for the whole installation from Settings -> Addons -> Player Ranks, not here. This tab only covers what genuinely varies per instance: Thunderdome elo-service (a different service/pool per host is common) and the server's own status data. If server.cfg already carries qlx_rankedServiceUrl, the first load here suggests matching values -- nothing is written until you hit Save.",
         "load": "GET instances/{instance_id}/config",
         "submit": "PUT instances/{instance_id}/config",
         "fields": [
-          { "key": "qlstats_enabled", "type": "bool", "label": "qlstats: show column" },
-          { "key": "qlstats_base_url", "type": "string", "label": "qlstats: Base URL", "placeholder": "http://qlstats.net",
-            "description": "Blank defaults to http://qlstats.net." },
-          { "key": "qlstats_rating_system", "type": "select", "label": "qlstats: rating system", "default": "elo",
-            "options": [ { "value": "elo", "label": "elo" }, { "value": "elo_b", "label": "elo_b" } ] },
-
-          { "key": "slipgate_enabled", "type": "bool", "label": "Slipgate: show column" },
-          { "key": "slipgate_base_url", "type": "string", "label": "Slipgate: Base URL", "placeholder": "https://slipgate.gg",
-            "description": "Blank defaults to https://slipgate.gg." },
-          { "key": "slipgate_api_key", "type": "secret", "label": "Slipgate: API key / token override",
-            "description": "Optional -- with a key, one bulk request covers the whole roster; without one, one public request per player. Blank uses the installation-wide default from Settings." },
-
           { "key": "elo_service_enabled", "type": "bool", "label": "Thunderdome elo-service: show column" },
           { "key": "elo_service_base_url", "type": "string", "label": "Thunderdome elo-service: Base URL", "placeholder": "http://your-host:5002",
             "description": "Required -- no default." },
@@ -89,9 +77,9 @@
           { "key": "server_status_enabled", "type": "bool", "label": "From the game server's own status data: show column" }
         ]
       },
-      "global_keys": {
+      "global_sources": {
         "kind": "form",
-        "description": "Installation-wide default API keys. An instance's own 'Ranks' tab can override either one."
+        "description": "qlstats and Slipgate apply to every instance at once -- one switch, not one per server. Thunderdome elo-service and the server's own status data are still configured per instance, on that instance's own Ranks tab."
       }
     }
   }
