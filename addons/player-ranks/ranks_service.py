@@ -3,6 +3,13 @@ own show/hide toggle, resolve the game type, check the cache, call the
 provider, cache the result. See addons/README.md's live_status_columns
 contract for the response shape this builds and docs/superpowers/specs/2026-09-22-
 qlsm-player-rating-sources-design.md section 9.4 for the rules this follows.
+
+qlstats and Slipgate are installation-wide: their enabled/base_url/
+rating_system live in settings.global and are the same for every instance
+(2026-09-23 operator decision -- per-instance config for these two was pure
+friction, since qlstats.net/slipgate.gg and a rating system don't actually
+vary per server). Thunderdome elo-service and server_status stay per
+instance, resolved from settings.instance as before.
 """
 import json
 
@@ -13,7 +20,11 @@ from .providers import RateLimited, build_registry
 from .steam_ids import parse_steam_ids
 
 _PROVIDER_IDS = ('qlstats', 'slipgate', 'elo_service', 'server_status')
-_GLOBAL_KEY_FIELD = {'slipgate': 'slipgate_api_key', 'elo_service': 'elo_service_api_key'}
+_GLOBAL_PROVIDERS = {'qlstats', 'slipgate'}
+_API_KEY_FIELD = {
+    'slipgate': 'slipgate_api_key',
+    'elo_service': 'elo_service_api_key',
+}
 
 _NOT_CONFIGURED = {'data': {}, 'configured': False}
 _UNKNOWN_PROVIDER = {'data': {}, 'configured': False, 'reason': 'unknown_provider'}
@@ -40,7 +51,7 @@ def _read_status_blob(redis_client, host_id, instance_id):
 
 
 def _global_key_for(provider_id, global_cfg):
-    field = _GLOBAL_KEY_FIELD.get(provider_id)
+    field = _API_KEY_FIELD.get(provider_id)
     if not field:
         return None
     return (global_cfg.get(field) or '').strip() or None
@@ -63,7 +74,11 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
         return dict(_UNKNOWN_PROVIDER)
 
     addon_ctx = get_addon('player-ranks').ctx
-    cfg = addon_ctx.settings.get('instance', instance.id)
+    global_cfg = addon_ctx.settings.get('global', 0)
+    instance_cfg = addon_ctx.settings.get('instance', instance.id)
+    is_global = provider_id in _GLOBAL_PROVIDERS
+    cfg = global_cfg if is_global else instance_cfg
+
     if not cfg.get(f'{provider_id}_enabled'):
         return dict(_NOT_CONFIGURED)
 
@@ -72,8 +87,12 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     if entry is None:
         return dict(_UNKNOWN_PROVIDER)
 
-    global_cfg = addon_ctx.settings.get('global', 0)
-    api_key = (cfg.get(f'{provider_id}_api_key') or '').strip() or _global_key_for(provider_id, global_cfg)
+    if is_global:
+        # No per-instance override for a globally-configured source -- the
+        # key lives in settings.global alongside enabled/base_url.
+        api_key = _global_key_for(provider_id, global_cfg)
+    else:
+        api_key = (instance_cfg.get(f'{provider_id}_api_key') or '').strip() or _global_key_for(provider_id, global_cfg)
     if entry['requires_api_key'] and not api_key:
         return {'data': {}, 'configured': False, 'reason': 'missing_api_key'}
 
@@ -81,8 +100,8 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     status = _read_status_blob(redis_client, instance.host_id, instance.id)
     live_gametype = (status or {}).get('gametype')
     base_url = (cfg.get(f'{provider_id}_base_url') or '').strip() or None
-    rating_system = (cfg.get('qlstats_rating_system') or 'elo').strip()
-    game_type_override = (cfg.get('elo_service_game_type') or '').strip() if provider_id == 'elo_service' else ''
+    rating_system = (global_cfg.get('qlstats_rating_system') or 'elo').strip()
+    game_type_override = (instance_cfg.get('elo_service_game_type') or '').strip() if provider_id == 'elo_service' else ''
 
     provider = _instantiate(
         provider_id, entry, base_url, api_key, rating_system, (status or {}).get('players') or [],

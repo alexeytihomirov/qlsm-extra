@@ -92,7 +92,7 @@
     {
       "id": "demo-management",
       "zip": "packages/demo-management.zip",
-      "sha256": "e882d07bf6404b39ae2106743f2a99285ace9844887791f1798e8a61e35ce5c1",
+      "sha256": "9a612047d8beaaf6a3b40ab5994cfcd85d3457b970817428294c89e9c39217cc",
       "version": "1.5.1",
       "label": "Demos",
       "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog."
@@ -100,7 +100,7 @@
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "6ea82e6b768bc64c2dd7f933997846c54a7601694d45186a2effa9ded79b8c80",
+      "sha256": "7ff36fb3444becab63f23e54a4283b4aece4bbd37c1acdd7ac705766ed75ca6e",
       "version": "1.1.1",
       "label": "Live Demo Stream",
       "description": "Points an instance's sv_demoStream* cvars at the central demo-stream relay and registers its route with ql-stats-hub, so a spectator can watch a POV live. Unlike the telemetry relay there is nothing to install per host - the relay is one address for the whole cluster."
@@ -108,15 +108,15 @@
     {
       "id": "player-ranks",
       "zip": "packages/player-ranks.zip",
-      "sha256": "bf20eb894e0a55d578472c2fba56d495cecbe768b8af91f25df3230cbb2877e2",
-      "version": "2.0.0",
+      "sha256": "67a446aef5ca7ba09e420532fc63fd8413964538d189b5f6c9495c7935259df9",
+      "version": "3.0.0",
       "label": "Player Ranks",
-      "description": "Shows each connected player's external rating in Live Status. Sources: qlstats, Slipgate, Thunderdome elo-service, and the game server's own status data -- each can be shown or hidden independently, and every enabled source gets its own column. Needs QLSM with ui_api 4 or newer."
+      "description": "Shows each connected player's external rating in Live Status. qlstats and Slipgate are installation-wide switches (same for every instance); Thunderdome elo-service and the game server's own status data are configured per instance. Each enabled source gets its own column. Needs QLSM with ui_api 4 or newer."
     },
     {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "d4f90455964b6d44ad4fbf6ec272576a50ca992dc69d64af03e674ab42b7bf81",
+      "sha256": "674d6d075d5892c151ca020c5f36b241ec5180519d7488a565dbc670ef10b4c7",
       "version": "1.0.2",
       "label": "Qlmatch Packer",
       "description": "Deploys the external Node.js qlmatch-packer (+ Node 22 runtime) to every managed host after setup / \"Update Plugins\", and makes demo-management recognise the .qlmatch/.replay.json.gz files it produces (the .packer.log it also writes is deliberately never surfaced there). Cvars (qlx_qlmatchNameTemplate, qlx_qlmatchRcloneTargets) are read straight from an instance's server.cfg -- there is no Plugins-tab UI for them since the plugin that used to own that manifest was retired; set them by hand for now. This addon's own settings only control whether the replay sidecar shows up in the Demos widget."
@@ -124,7 +124,7 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "395a565cd19d313a60dbc756b1954b5ba9fe03b846918ba1568670c913200d7b",
+      "sha256": "b55461db3db06485e28408a8bcf57158f902ea4cda2ecf6cd8dbf36e3732a467",
       "version": "1.2.1",
       "label": "Telemetry Relay",
       "description": "Forwards live match/player/pickup telemetry from each game instance to ql-stats-hub through a per-host relay sidecar."
