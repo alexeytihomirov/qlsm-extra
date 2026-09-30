@@ -1,6 +1,6 @@
 {
   "id": "player-ranks",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "name": "Player Ranks",
   "description": "Shows each connected player's external rating in Live Status. qlstats and Slipgate are installation-wide switches (same for every instance); Thunderdome elo-service and the game server's own status data are configured per instance. Each enabled source gets its own column. Needs QLSM with ui_api 4 or newer.",
   "scopes": ["global", "instance"],
