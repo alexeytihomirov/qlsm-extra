@@ -103,8 +103,10 @@ class TestSlipgate:
 
     def test_display_is_used_verbatim_and_tier_name_goes_to_title(self):
         p = SlipgateProvider(base_url='http://sg.example', api_key='sg_test')
-        payload = [{'steam_id': '76561197993968023', 'found': True, 'display': 2561,
-                    'tier_name': 'Elite', 'mu': 25.1, 'provisional': False}]
+        payload = {'ok': True, 'game_type': 'duel', 'rating_set': 'A', 'players': [
+            {'steam_id': '76561197993968023', 'found': True, 'display': 2561,
+             'tier_name': 'Elite', 'mu': 25.1, 'provisional': False},
+        ]}
         with patch('providers.slipgate.requests.post', return_value=_resp(json_data=payload)):
             result = p.fetch_ratings(['76561197993968023'], 'duel')
         assert result['76561197993968023'] == {
@@ -113,7 +115,26 @@ class TestSlipgate:
 
     def test_unfound_player_is_skipped(self):
         p = SlipgateProvider(base_url='http://sg.example', api_key='sg_test')
-        payload = [{'steam_id': '76561197993968023', 'found': False, 'display': None}]
+        payload = {'ok': True, 'game_type': 'duel', 'rating_set': 'A', 'players': [
+            {'steam_id': '76561197993968023', 'found': False, 'display': None},
+        ]}
+        with patch('providers.slipgate.requests.post', return_value=_resp(json_data=payload)):
+            result = p.fetch_ratings(['76561197993968023'], 'duel')
+        assert result == {}
+
+    def test_bare_list_response_still_accepted(self):
+        # Older/alternate deployments may still reply with a bare list
+        # instead of the {"players": [...]} envelope -- both are accepted.
+        p = SlipgateProvider(base_url='http://sg.example', api_key='sg_test')
+        payload = [{'steam_id': '76561197993968023', 'found': True, 'display': 2561,
+                    'tier_name': 'Elite', 'mu': 25.1, 'provisional': False}]
+        with patch('providers.slipgate.requests.post', return_value=_resp(json_data=payload)):
+            result = p.fetch_ratings(['76561197993968023'], 'duel')
+        assert result['76561197993968023']['display'] == '2561'
+
+    def test_malformed_bulk_body_returns_empty_not_crash(self):
+        p = SlipgateProvider(base_url='http://sg.example', api_key='sg_test')
+        payload = {'ok': True, 'game_type': 'duel', 'rating_set': 'A'}  # no 'players' key
         with patch('providers.slipgate.requests.post', return_value=_resp(json_data=payload)):
             result = p.fetch_ratings(['76561197993968023'], 'duel')
         assert result == {}

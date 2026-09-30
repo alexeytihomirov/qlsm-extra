@@ -13,6 +13,12 @@ doc section 9.7). Three corrections to the original integration plan:
 - Slipgate rate-limits (429 + Retry-After) and that is not documented in the
   original plan; RateLimited carries the header value up to ranks_service
   rather than this adapter guessing a backoff.
+
+Re-checked against the live openapi.json 2026-09-30: `POST /ratings/bulk`
+now replies `{"ok", "game_type", "rating_set", "players": [...]}` rather than
+the bare list this file originally assumed, which silently dropped every
+bulk (keyed) response -- see BulkRatingsOut in the spec. `_fetch_bulk` below
+accepts either shape.
 """
 import requests
 
@@ -69,9 +75,15 @@ class SlipgateProvider(RankProvider):
             raise RateLimited(_retry_after_seconds(resp))
         try:
             resp.raise_for_status()
-            items = resp.json()
+            body = resp.json()
         except (requests.RequestException, ValueError):
             return {}
+        # Live response is {"ok", "game_type", "rating_set", "players": [...]},
+        # not a bare list -- confirmed against the current openapi.json
+        # (BulkRatingsOut), which is stricter than the bare-list shape this
+        # adapter's comment at the top of the file was originally verified
+        # against on 2026-09-22.
+        items = body.get('players') if isinstance(body, dict) else body
         if not isinstance(items, list):
             return {}
 
