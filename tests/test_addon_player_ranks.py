@@ -71,8 +71,8 @@ class FakeRedis:
         self.store[key] = value
 
     def keys(self, pattern):
-        prefix = pattern.rstrip('*')
-        return [k for k in self.store if k.startswith(prefix)]
+        import fnmatch
+        return [k for k in self.store if fnmatch.fnmatchcase(k, pattern)]
 
     def delete(self, *keys):
         for k in keys:
@@ -328,6 +328,26 @@ def test_ranks_calls_provider_with_resolved_data(client, auth, instance_id, host
     assert body['data'][STEAM_A] == {'display': '2181', 'title': 'duel, 13732 games'}
     assert STEAM_B not in body['data']
     assert stub_registry.calls == [((STEAM_A, STEAM_B), 'duel')]
+
+
+def test_ranks_finds_status_blob_even_if_instance_host_id_drifted(
+    client, auth, instance_id, stub_registry, fake_redis,
+):
+    """core's own /api/server-status reads server:status:* by the trailing
+    instance_id segment and never checks host_id -- this route must be
+    equally tolerant of a QLInstance.host_id that no longer matches whatever
+    host_id segment the status poller actually wrote (reassigned host, stale
+    row), or ratings silently go blank while core's own player list, built
+    from the same Redis data, keeps working fine."""
+    wrong_host_id = 999999
+    _set_status(fake_redis, host_id=wrong_host_id, instance_id=instance_id, gametype='duel')
+    stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
+    set_global(client, auth, qlstats_enabled=True)
+
+    resp = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
+                      query_string={'steam_ids': STEAM_A}, headers=auth)
+
+    assert resp.get_json()['data'][STEAM_A]['display'] == '2181'
 
 
 def test_two_providers_enabled_at_once_both_return_data(

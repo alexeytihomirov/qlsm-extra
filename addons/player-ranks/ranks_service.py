@@ -35,12 +35,28 @@ def _redis():
 
 
 def _read_status_blob(redis_client, host_id, instance_id):
-    if redis_client is None or host_id is None:
+    """The exact key first (cheap, no SCAN); falls back to a pattern match on
+    just the instance_id suffix if that misses. Mirrors what core's own
+    server_status_routes.py does (it iterates `server:status:*` and keys off
+    the trailing segment, never the host_id) -- an instance whose `host_id`
+    in the DB has drifted from what the poller wrote (reassigned host, stale
+    row) still shows up there, so this route should be equally tolerant
+    instead of going blind over a mismatch core itself doesn't care about."""
+    if redis_client is None:
         return None
-    try:
-        raw = redis_client.get(f'server:status:{host_id}:{instance_id}')
-    except Exception:
-        return None
+    raw = None
+    if host_id is not None:
+        try:
+            raw = redis_client.get(f'server:status:{host_id}:{instance_id}')
+        except Exception:
+            raw = None
+    if not raw:
+        try:
+            matches = redis_client.keys(f'server:status:*:{instance_id}')
+            if matches:
+                raw = redis_client.get(matches[0])
+        except Exception:
+            raw = None
     if not raw:
         return None
     try:
