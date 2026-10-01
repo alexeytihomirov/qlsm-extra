@@ -1,4 +1,4 @@
-"""Provider registry: the 4 built-in sources plus whatever a separately
+"""Provider registry: the 3 built-in sources plus whatever a separately
 distributed addon contributes through the player_ranks.providers hook
 (addons/README.md, "Cross-addon UI contribution").
 
@@ -7,7 +7,7 @@ is declared `type: string` in the manifest (not `select`) specifically so
 ctx.settings.set() does not statically constrain it, and
 update_instance_config() validates the write against build_registry() below
 -- the live merged registry, not a fixed list. The Ranks tab's own dropdown
-still only *offers* the 4 built-ins (a declarative select needs a fixed
+still only *offers* the 3 built-ins (a declarative select needs a fixed
 option list to render), so picking a contributed provider today means
 setting it through the API rather than that dropdown -- but nothing stops
 storing or fetch_ranks() from using it once set.
@@ -15,7 +15,6 @@ storing or fetch_ranks() from using it once set.
 from .base import RankProvider, RateLimited
 from .elo_service import ThunderdomeEloProvider
 from .qlstats import QlstatsProvider
-from .server_status import ServerStatusProvider
 from .slipgate import SlipgateProvider
 
 BUILTIN_PROVIDERS = {
@@ -33,11 +32,6 @@ BUILTIN_PROVIDERS = {
         'label': 'Thunderdome elo-service',
         'factory': ThunderdomeEloProvider,
         'requires_api_key': True,
-    },
-    'server_status': {
-        'label': "From the game server's own status data",
-        'factory': ServerStatusProvider,
-        'requires_api_key': False,
     },
 }
 

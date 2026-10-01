@@ -15,7 +15,6 @@ if str(ADDON_DIR) not in sys.path:
 from providers.base import RateLimited  # noqa: E402
 from providers.elo_service import ThunderdomeEloProvider  # noqa: E402
 from providers.qlstats import QlstatsProvider  # noqa: E402
-from providers.server_status import ServerStatusProvider  # noqa: E402
 from providers.slipgate import SlipgateProvider  # noqa: E402
 
 
@@ -217,19 +216,8 @@ class TestThunderdomeElo:
         assert mock_get.call_args.kwargs['headers'] == {'X-API-Key': 'key123'}
 
 
-# ---- server_status -------------------------------------------------------
+# ---- registry ------------------------------------------------------------
 
-class TestServerStatus:
-    def test_reads_rating_from_players_blob(self):
-        p = ServerStatusProvider(extra={'players': [
-            {'steam': '76561197993968023', 'rating': 1234},
-            {'steam': '76561197960287930'},  # no rating field
-        ]})
-        result = p.fetch_ratings(['76561197993968023', '76561197960287930'], 'duel')
-        assert result == {'76561197993968023': {
-            'rating': 1234.0, 'display': '1234', 'provisional': False, 'title': None,
-        }}
-
-    def test_no_players_blob_is_empty(self):
-        p = ServerStatusProvider()
-        assert p.fetch_ratings(['76561197993968023'], 'duel') == {}
+def test_server_status_source_is_gone():
+    from providers import BUILTIN_PROVIDERS
+    assert set(BUILTIN_PROVIDERS) == {'qlstats', 'slipgate', 'elo_service'}

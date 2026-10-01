@@ -8,7 +8,7 @@ qlstats and Slipgate are installation-wide: their enabled/base_url/
 rating_system live in settings.global and are the same for every instance
 (2026-09-23 operator decision -- per-instance config for these two was pure
 friction, since qlstats.net/slipgate.gg and a rating system don't actually
-vary per server). Thunderdome elo-service and server_status stay per
+vary per server). Thunderdome elo-service stays per
 instance, resolved from settings.instance as before.
 """
 import json
@@ -19,7 +19,7 @@ from .cache import TTL_NEGATIVE, TTL_SUCCESS, cache_key, get_cached, set_cached
 from .providers import RateLimited, build_registry
 from .steam_ids import parse_steam_ids
 
-_PROVIDER_IDS = ('qlstats', 'slipgate', 'elo_service', 'server_status')
+_PROVIDER_IDS = ('qlstats', 'slipgate', 'elo_service')
 _GLOBAL_PROVIDERS = {'qlstats', 'slipgate'}
 _API_KEY_FIELD = {
     'slipgate': 'slipgate_api_key',
@@ -73,12 +73,10 @@ def _global_key_for(provider_id, global_cfg):
     return (global_cfg.get(field) or '').strip() or None
 
 
-def _instantiate(provider_id, entry, base_url, api_key, rating_system, players_blob):
+def _instantiate(provider_id, entry, base_url, api_key, rating_system):
     extra = {}
     if provider_id == 'qlstats':
         extra['rating_system'] = rating_system
-    if provider_id == 'server_status':
-        extra['players'] = players_blob
     return entry['factory'](base_url=base_url, api_key=api_key, extra=extra)
 
 
@@ -119,9 +117,7 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     rating_system = (global_cfg.get('qlstats_rating_system') or 'elo').strip()
     game_type_override = (instance_cfg.get('elo_service_game_type') or '').strip() if provider_id == 'elo_service' else ''
 
-    provider = _instantiate(
-        provider_id, entry, base_url, api_key, rating_system, (status or {}).get('players') or [],
-    )
+    provider = _instantiate(provider_id, entry, base_url, api_key, rating_system)
     # Explicit override wins outright; otherwise the source's own mapping of
     # the live game type, or None ("don't query, not an error").
     resolved_game_type = game_type_override or (
@@ -177,13 +173,11 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
 
 # Icon for each source's stacked entry in the combined column (see
 # fetch_all_ranks) -- the same icon each source's old standalone column
-# header used to carry. server_status has no logo of its own, just core's
-# built-in icon set.
+# header used to carry.
 _ENTRY_ICON = {
     'qlstats': {'icon_url': 'logos/qlstats.svg'},
     'slipgate': {'icon_url': 'logos/slipgate.svg'},
     'elo_service': {'icon_url': 'logos/elo_service.svg'},
-    'server_status': {'icon': 'activity'},
 }
 
 

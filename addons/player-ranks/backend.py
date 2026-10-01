@@ -9,9 +9,9 @@ Two sources (qlstats, Slipgate) are installation-wide switches: their
 enabled/base_url/rating_system live in `settings.global` and apply to every
 instance identically, edited from the addon's own Settings-page panel
 (`global_sources`, a plain managed panel -- core's generic /state endpoint
-handles it, no route in this file). The other two (Thunderdome elo-service,
-server_status) genuinely vary per instance (a different service/pool per
-host is the normal case) and stay on the instance's own 'Ranks' tab, handled
+handles it, no route in this file). The third (Thunderdome elo-service)
+genuinely varies per instance (a different service/pool per
+host is the normal case) and stays on the instance's own 'Ranks' tab, handled
 here: `update_instance_config` validates elo_service_base_url's shape before
 writing, and `get_instance_config` suggests values read from server.cfg the
 first time an instance is opened (server_cfg.py), before the tab has ever
@@ -82,7 +82,6 @@ def update_instance_config(instance_id):
         'elo_service_base_url': (body.get('elo_service_base_url') or '').strip(),
         'elo_service_api_key': body.get('elo_service_api_key') or '',
         'elo_service_game_type': (body.get('elo_service_game_type') or '').strip(),
-        'server_status_enabled': bool(body.get('server_status_enabled')),
     }
 
     addon = get_addon('player-ranks')
