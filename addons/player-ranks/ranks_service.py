@@ -173,3 +173,56 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     payload = {'data': data, 'configured': True}
     set_cached(redis_client, key, payload, TTL_SUCCESS)
     return payload
+
+
+# Icon for each source's stacked entry in the combined column (see
+# fetch_all_ranks) -- the same icon each source's old standalone column
+# header used to carry. server_status has no logo of its own, just core's
+# built-in icon set.
+_ENTRY_ICON = {
+    'qlstats': {'icon_url': 'logos/qlstats.svg'},
+    'slipgate': {'icon_url': 'logos/slipgate.svg'},
+    'elo_service': {'icon_url': 'logos/elo_service.svg'},
+    'server_status': {'icon': 'activity'},
+}
+
+
+def fetch_all_ranks(instance, raw_steam_ids):
+    """The combined `.../ranks` route: every source in one request instead
+    of one request per source. Each per-player cell comes back as
+    `entries: [{display, title?, icon?, icon_url?}, ...]`, one entry per
+    source that actually has something to say about that player -- the
+    `live_status_columns` "stacked cell" variant (addons/README.md).
+
+    Reuses fetch_ranks() for each source so caching, per-source
+    enabled/key/game-type resolution and error handling stay exactly as
+    they are for the standalone per-provider route -- this just fans out to
+    all of them and reshapes the result, it doesn't duplicate any of that
+    logic.
+    """
+    any_configured = False
+    per_provider_data = {}
+    for provider_id in _PROVIDER_IDS:
+        result = fetch_ranks(instance, provider_id, raw_steam_ids)
+        if result.get('configured'):
+            any_configured = True
+        per_provider_data[provider_id] = result.get('data') or {}
+
+    if not any_configured:
+        return {'data': {}, 'configured': False}
+
+    data = {}
+    for steam_id in parse_steam_ids(raw_steam_ids):
+        entries = []
+        for provider_id in _PROVIDER_IDS:
+            cell = per_provider_data[provider_id].get(steam_id)
+            if not cell:
+                continue
+            entry = {'display': cell['display'], **_ENTRY_ICON.get(provider_id, {})}
+            if cell.get('title'):
+                entry['title'] = cell['title']
+            entries.append(entry)
+        if entries:
+            data[steam_id] = {'entries': entries}
+
+    return {'data': data, 'configured': True}
