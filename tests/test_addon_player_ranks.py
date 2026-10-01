@@ -188,7 +188,8 @@ def test_default_config_has_everything_off_and_is_not_suggested(client, auth, in
     assert body['elo_service_enabled'] is False
     assert body['qlstats_enabled'] is False
     assert body['slipgate_enabled'] is False
-    assert body['elo_service_display'] == 'sort_score'
+    assert body['elo_service_display'] == 'rank_label'
+    assert body['elo_service_game_type'] == 'ffa_auto'
     assert body['sources_saved'] is False
     assert 'server_status_enabled' not in body
     assert body['suggested'] is False
@@ -283,10 +284,10 @@ def test_config_save_with_one_checkbox_keeps_the_other_as_it_was_in_effect(clien
     assert loaded['slipgate_enabled'] is True  # frozen at what the default gave it
 
 
-def test_config_save_defaults_display_to_sort_score(client, auth, instance_id):
+def test_config_save_defaults_display_to_rank_label(client, auth, instance_id):
     client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={})
     loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
-    assert loaded['elo_service_display'] == 'sort_score'
+    assert loaded['elo_service_display'] == 'rank_label'
 
 
 def test_config_save_rejects_unknown_display(client, auth, instance_id):

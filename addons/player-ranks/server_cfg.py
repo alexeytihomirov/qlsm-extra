@@ -33,13 +33,15 @@ def suggest_from_server_cfg(instance):
     except OSError:
         return {}
 
+    from .providers.elo_service import DEFAULT_POOL
+
     elo_cvars = read_cvars_from_text(text, _ELO_SERVICE_CVARS)
     if elo_cvars.get('qlx_rankedServiceUrl'):
         return {
             'elo_service_enabled': True,
             'elo_service_base_url': elo_cvars['qlx_rankedServiceUrl'],
             'elo_service_api_key': elo_cvars.get('qlx_rankedApiKey') or '',
-            'elo_service_game_type': elo_cvars.get('qlx_rankedPool') or '',
+            'elo_service_game_type': elo_cvars.get('qlx_rankedPool') or DEFAULT_POOL,
         }
 
     return {}
