@@ -185,9 +185,12 @@ def test_default_config_has_everything_off_and_is_not_suggested(client, auth, in
     resp = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth)
     body = resp.get_json()['data']
     assert body['elo_service_enabled'] is False
+    assert body['qlstats_enabled'] is False
+    assert body['slipgate_enabled'] is False
+    assert body['elo_service_display'] == 'sort_score'
+    assert body['sources_saved'] is False
     assert 'server_status_enabled' not in body
     assert body['suggested'] is False
-    assert 'qlstats_enabled' not in body  # global now, not part of instance config
 
 
 def test_config_load_suggests_from_server_cfg_when_unsaved(client, auth, instance_id, app, tmp_path, monkeypatch):
