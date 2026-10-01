@@ -4,12 +4,12 @@ provider, cache the result. See addons/README.md's live_status_columns
 contract for the response shape this builds and docs/superpowers/specs/2026-09-22-
 qlsm-player-rating-sources-design.md section 9.4 for the rules this follows.
 
-qlstats and Slipgate are installation-wide: their enabled/base_url/
-rating_system live in settings.global and are the same for every instance
-(2026-09-23 operator decision -- per-instance config for these two was pure
-friction, since qlstats.net/slipgate.gg and a rating system don't actually
-vary per server). Thunderdome elo-service stays per
-instance, resolved from settings.instance as before.
+qlstats and Slipgate keep their connection details (base_url, rating system,
+key) in settings.global, since qlstats.net/slipgate.gg do not vary per
+server. Whether each is shown is per instance: an instance whose Ranks tab
+was saved by this version decides for itself; any other instance follows the
+installation-wide default (see _source_enabled). x76 (elo-service) is
+configured entirely per instance.
 """
 import json
 
@@ -73,10 +73,23 @@ def _global_key_for(provider_id, global_cfg):
     return (global_cfg.get(field) or '').strip() or None
 
 
-def _instantiate(provider_id, entry, base_url, api_key, rating_system):
+def _source_enabled(provider_id, global_cfg, instance_cfg):
+    """qlstats/Slipgate: an instance whose source checkboxes were never saved
+    follows the installation-wide default; once saved, its own checkbox
+    decides. `sources_saved` is needed because settings.get() fills a missing
+    bool with False, so "never saved" and "unticked" would look the same.
+    x76 is always per-instance."""
+    if provider_id in _GLOBAL_PROVIDERS and not instance_cfg.get('sources_saved'):
+        return bool(global_cfg.get(f'{provider_id}_enabled'))
+    return bool(instance_cfg.get(f'{provider_id}_enabled'))
+
+
+def _instantiate(provider_id, entry, base_url, api_key, rating_system, display):
     extra = {}
     if provider_id == 'qlstats':
         extra['rating_system'] = rating_system
+    if provider_id == 'elo_service':
+        extra['display'] = display
     return entry['factory'](base_url=base_url, api_key=api_key, extra=extra)
 
 
@@ -93,7 +106,7 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     is_global = provider_id in _GLOBAL_PROVIDERS
     cfg = global_cfg if is_global else instance_cfg
 
-    if not cfg.get(f'{provider_id}_enabled'):
+    if not _source_enabled(provider_id, global_cfg, instance_cfg):
         return dict(_NOT_CONFIGURED)
 
     registry = build_registry()
@@ -117,7 +130,8 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     rating_system = (global_cfg.get('qlstats_rating_system') or 'elo').strip()
     game_type_override = (instance_cfg.get('elo_service_game_type') or '').strip() if provider_id == 'elo_service' else ''
 
-    provider = _instantiate(provider_id, entry, base_url, api_key, rating_system)
+    display = (instance_cfg.get('elo_service_display') or 'sort_score').strip()
+    provider = _instantiate(provider_id, entry, base_url, api_key, rating_system, display)
     # Explicit override wins outright; otherwise the source's own mapping of
     # the live game type, or None ("don't query, not an error").
     resolved_game_type = game_type_override or (

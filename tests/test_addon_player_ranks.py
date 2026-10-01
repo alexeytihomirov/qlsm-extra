@@ -460,6 +460,68 @@ def test_disabling_one_provider_hides_only_its_own_column(
     assert elo_resp.get_json() == {'data': {}, 'configured': False}
 
 
+def _ranks(client, auth, instance_id, provider_id):
+    return client.get(f'{ADDON}/instances/{instance_id}/ranks/{provider_id}',
+                      query_string={'steam_ids': STEAM_A}, headers=auth).get_json()
+
+
+def test_saved_instance_can_turn_a_globally_enabled_source_off(
+    client, auth, instance_id, host_id, stub_registry, fake_redis,
+):
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    set_global(client, auth, qlstats_enabled=True)
+    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={'qlstats_enabled': False})
+
+    assert _ranks(client, auth, instance_id, 'qlstats') == {'data': {}, 'configured': False}
+
+
+def test_saved_instance_can_turn_a_globally_disabled_source_on(
+    client, auth, instance_id, host_id, stub_registry, fake_redis,
+):
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
+    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={'qlstats_enabled': True})
+
+    assert _ranks(client, auth, instance_id, 'qlstats')['data'][STEAM_A]['display'] == '2181'
+
+
+def test_instance_saved_by_an_older_version_still_follows_the_global_switch(
+    client, auth, app, instance_id, host_id, stub_registry, fake_redis,
+):
+    """0.2.0 stored `configured` but no source checkboxes. Such an instance
+    must keep its qlstats column after the update."""
+    from ui.addons import get_addon
+
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
+    set_global(client, auth, qlstats_enabled=True)
+    with app.app_context():
+        get_addon('player-ranks').ctx.settings.set('instance', instance_id, {'configured': True})
+
+    assert _ranks(client, auth, instance_id, 'qlstats')['data'][STEAM_A]['display'] == '2181'
+
+
+def test_x76_display_choice_reaches_the_provider(client, auth, instance_id, host_id, fake_redis):
+    class RecordingStub(StubProvider):
+        seen_extra = []
+
+        def __init__(self, base_url=None, api_key=None, extra=None):
+            super().__init__(base_url, api_key, extra)
+            type(self).seen_extra.append(extra)
+
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
+        'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
+        'elo_service_api_key': 'secret', 'elo_service_game_type': 'ffa_auto',
+        'elo_service_display': 'rank_label',
+    })
+    registry = {'elo_service': {'label': 'x76', 'factory': RecordingStub, 'requires_api_key': True}}
+    with patch('qlsm_addon_player_ranks.ranks_service.build_registry', return_value=registry):
+        _ranks(client, auth, instance_id, 'elo_service')
+
+    assert RecordingStub.seen_extra == [{'display': 'rank_label'}]
+
+
 def test_ranks_result_is_cached_between_calls(client, auth, instance_id, host_id, stub_registry, fake_redis):
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
     stub_registry.fixed_result = {STEAM_A: {'display': '1000'}}
