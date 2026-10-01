@@ -98,9 +98,27 @@ def update_instance_config(instance_id):
     return jsonify({"data": {**settings, "suggested": False}})
 
 
+@bp.route('/instances/<int:instance_id>/ranks', methods=['GET'], endpoint='get_instance_ranks_all')
+@jwt_required()
+def get_instance_ranks_all(instance_id):
+    """The column the UI actually fetches: every enabled source in one
+    request (addons/README.md's `entries` cell variant), instead of the
+    one-request-per-source `/ranks/<provider_id>` below."""
+    instance, error = _instance_or_404(instance_id)
+    if error:
+        return error
+
+    from .ranks_service import fetch_all_ranks
+
+    payload = fetch_all_ranks(instance, request.args.get('steam_ids', ''))
+    return jsonify(payload)
+
+
 @bp.route('/instances/<int:instance_id>/ranks/<provider_id>', methods=['GET'], endpoint='get_instance_ranks')
 @jwt_required()
 def get_instance_ranks(instance_id, provider_id):
+    """Kept for direct per-source debugging/testing; the live Rank column
+    uses the combined route above instead."""
     instance, error = _instance_or_404(instance_id)
     if error:
         return error

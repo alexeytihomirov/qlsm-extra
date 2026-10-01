@@ -443,3 +443,94 @@ def test_ranks_survives_provider_exception(client, auth, instance_id, host_id, f
 
     assert resp.status_code == 200
     assert resp.get_json() == {'data': {}, 'configured': True}
+
+
+# ---- /ranks (combined, every source in one request) ----------------------
+
+def test_ranks_all_requires_auth(client, instance_id):
+    assert client.get(f'{ADDON}/instances/{instance_id}/ranks').status_code == 401
+
+
+def test_ranks_all_unknown_instance_is_404(client, auth):
+    assert client.get(f'{ADDON}/instances/9999/ranks', headers=auth).status_code == 404
+
+
+def test_ranks_all_nothing_enabled_is_unconfigured(client, auth, instance_id):
+    resp = client.get(f'{ADDON}/instances/{instance_id}/ranks',
+                      query_string={'steam_ids': STEAM_A}, headers=auth)
+    assert resp.get_json() == {'data': {}, 'configured': False}
+
+
+def test_ranks_all_empty_steam_ids_is_configured_with_no_data(client, auth, instance_id, stub_registry):
+    set_global(client, auth, qlstats_enabled=True)
+    resp = client.get(f'{ADDON}/instances/{instance_id}/ranks', headers=auth)
+    assert resp.get_json() == {'data': {}, 'configured': True}
+    assert stub_registry.calls == []
+
+
+def test_ranks_all_one_source_wraps_it_as_a_single_entry(
+    client, auth, instance_id, host_id, stub_registry, fake_redis,
+):
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    stub_registry.fixed_result = {STEAM_A: {'display': '2181', 'title': 'duel, 13732 games'}}
+    set_global(client, auth, qlstats_enabled=True)
+
+    resp = client.get(f'{ADDON}/instances/{instance_id}/ranks',
+                      query_string={'steam_ids': STEAM_A}, headers=auth)
+
+    body = resp.get_json()
+    assert body['configured'] is True
+    assert body['data'][STEAM_A] == {'entries': [
+        {'display': '2181', 'title': 'duel, 13732 games', 'icon_url': 'logos/qlstats.svg'},
+    ]}
+
+
+def test_ranks_all_combines_two_sources_in_one_request_in_declared_order(
+    client, auth, instance_id, host_id, fake_redis,
+):
+    # qlstats from a stubbed provider, server_status from the real one
+    # reading the status blob directly -- two independently-configured
+    # sources answering for the same player, combined by one call to the
+    # combined route.
+    from qlsm_addon_player_ranks.providers.server_status import ServerStatusProvider
+
+    _set_status(
+        fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel',
+        players=[{'steam': STEAM_A, 'rating': 1600}],
+    )
+    StubProvider.calls = []
+    StubProvider.fixed_result = {STEAM_A: {'display': '2181', 'title': 'duel, 13732 games'}}
+    registry = {
+        'qlstats': {'label': 'qlstats', 'factory': StubProvider, 'requires_api_key': False},
+        'server_status': {'label': 'status', 'factory': ServerStatusProvider, 'requires_api_key': False},
+    }
+    set_global(client, auth, qlstats_enabled=True)
+    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth,
+              json={'server_status_enabled': True})
+
+    with patch('qlsm_addon_player_ranks.ranks_service.build_registry', return_value=registry):
+        resp = client.get(f'{ADDON}/instances/{instance_id}/ranks',
+                          query_string={'steam_ids': STEAM_A}, headers=auth)
+
+    body = resp.get_json()
+    assert body['configured'] is True
+    assert body['data'][STEAM_A]['entries'] == [
+        {'display': '2181', 'title': 'duel, 13732 games', 'icon_url': 'logos/qlstats.svg'},
+        {'display': '1600', 'icon': 'activity'},
+    ]
+    # One client request fanned out to both sources server-side -- the point
+    # of this route -- but each source is still asked exactly once.
+    assert StubProvider.calls == [((STEAM_A,), 'duel')]
+
+
+def test_ranks_all_skips_a_player_no_source_has_anything_for(
+    client, auth, instance_id, host_id, stub_registry, fake_redis,
+):
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    stub_registry.fixed_result = {}  # qlstats knows nobody
+    set_global(client, auth, qlstats_enabled=True)
+
+    resp = client.get(f'{ADDON}/instances/{instance_id}/ranks',
+                      query_string={'steam_ids': STEAM_A}, headers=auth)
+
+    assert resp.get_json() == {'data': {}, 'configured': True}
