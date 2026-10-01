@@ -64,6 +64,7 @@ def update_instance_config(instance_id):
     from ui.addons.settings import AddonSettingsError
 
     from .cache import invalidate_instance
+    from .providers.elo_service import DEFAULT_DISPLAY
 
     instance, error = _instance_or_404(instance_id)
     if error:
@@ -76,12 +77,26 @@ def update_instance_config(instance_id):
         if value and not (value.startswith('http://') or value.startswith('https://')):
             return jsonify({"error": {"message": f'"{field}" must start with http:// or https://'}}), 400
 
+    x76_enabled = bool(body.get('elo_service_enabled'))
+    x76_base_url = (body.get('elo_service_base_url') or '').strip()
+    x76_pool = (body.get('elo_service_game_type') or '').strip()
+    if x76_enabled and not x76_base_url:
+        return jsonify({"error": {"message": 'x76: Base URL is required when x76 is ticked'}}), 400
+    if x76_enabled and not x76_pool:
+        return jsonify({"error": {"message": "x76: pool is required when x76 is ticked (e.g. 'ffa_auto')"}}), 400
+
     payload = {
         'configured': True,
-        'elo_service_enabled': bool(body.get('elo_service_enabled')),
-        'elo_service_base_url': (body.get('elo_service_base_url') or '').strip(),
+        # Set on every save from this version on. Until it is set, qlstats and
+        # Slipgate follow the installation-wide defaults (ranks_service).
+        'sources_saved': True,
+        'qlstats_enabled': bool(body.get('qlstats_enabled')),
+        'slipgate_enabled': bool(body.get('slipgate_enabled')),
+        'elo_service_enabled': x76_enabled,
+        'elo_service_base_url': x76_base_url,
         'elo_service_api_key': body.get('elo_service_api_key') or '',
-        'elo_service_game_type': (body.get('elo_service_game_type') or '').strip(),
+        'elo_service_game_type': x76_pool,
+        'elo_service_display': body.get('elo_service_display') or DEFAULT_DISPLAY,
     }
 
     addon = get_addon('player-ranks')

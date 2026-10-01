@@ -226,6 +226,47 @@ def test_config_save_accepts_valid_values_and_round_trips(client, auth, instance
     assert loaded['suggested'] is False  # a saved config is never re-suggested
 
 
+def test_config_save_stores_source_checkboxes_and_display(client, auth, instance_id):
+    resp = client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
+        'qlstats_enabled': True, 'slipgate_enabled': False,
+        'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
+        'elo_service_game_type': 'ffa_auto', 'elo_service_display': 'rank_label',
+    })
+    assert resp.status_code == 200
+
+    loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+    assert loaded['qlstats_enabled'] is True
+    assert loaded['slipgate_enabled'] is False
+    assert loaded['elo_service_display'] == 'rank_label'
+    assert loaded['sources_saved'] is True
+
+
+def test_config_save_defaults_display_to_sort_score(client, auth, instance_id):
+    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={})
+    loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+    assert loaded['elo_service_display'] == 'sort_score'
+
+
+def test_config_save_rejects_unknown_display(client, auth, instance_id):
+    resp = client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth,
+                      json={'elo_service_display': 'mu'})
+    assert resp.status_code == 400
+
+
+def test_config_save_requires_base_url_when_x76_is_on(client, auth, instance_id):
+    resp = client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth,
+                      json={'elo_service_enabled': True, 'elo_service_game_type': 'ffa_auto'})
+    assert resp.status_code == 400
+    assert 'Base URL' in resp.get_json()['error']['message']
+
+
+def test_config_save_requires_pool_when_x76_is_on(client, auth, instance_id):
+    resp = client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth,
+                      json={'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example'})
+    assert resp.status_code == 400
+    assert 'pool' in resp.get_json()['error']['message']
+
+
 def test_saved_config_with_everything_off_is_no_longer_suggested(
     client, auth, instance_id, tmp_path, monkeypatch,
 ):
@@ -312,7 +353,8 @@ def test_ranks_unknown_provider_id_is_unconfigured_with_reason(client, auth, ins
 
 def test_ranks_missing_required_api_key_is_unconfigured_with_reason(client, auth, instance_id, stub_registry):
     client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth,
-              json={'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example'})
+              json={'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
+                    'elo_service_game_type': 'ffa_auto'})
     resp = client.get(f'{ADDON}/instances/{instance_id}/ranks/elo_service',
                       query_string={'steam_ids': STEAM_A}, headers=auth)
     body = resp.get_json()
@@ -378,8 +420,9 @@ def test_two_providers_enabled_at_once_both_return_data(
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
     set_global(client, auth, qlstats_enabled=True)
     client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
+        'qlstats_enabled': True,
         'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
-        'elo_service_api_key': 'secret',
+        'elo_service_api_key': 'secret', 'elo_service_game_type': 'duel',
     })
 
     stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
@@ -399,10 +442,12 @@ def test_disabling_one_provider_hides_only_its_own_column(
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
     set_global(client, auth, qlstats_enabled=True)
     client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
+        'qlstats_enabled': True,
         'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
-        'elo_service_api_key': 'secret',
+        'elo_service_api_key': 'secret', 'elo_service_game_type': 'duel',
     })
     client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
+        'qlstats_enabled': True,
         'elo_service_enabled': False,
     })
 
