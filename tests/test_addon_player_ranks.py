@@ -3,14 +3,15 @@ server.cfg prefill), each /ranks/<provider_id> route's contract
 (configured/reason, steam_ids validation, caching), all through a real qlsm
 app with the addon installed the way an operator would (see conftest.py).
 
-qlstats and Slipgate are installation-wide switches (settings.global, edited
-through core's generic /api/addons/player-ranks/state endpoint -- see
-set_global() below); Thunderdome elo-service and server_status stay
-per-instance, edited through this addon's own /instances/<id>/config.
+qlstats and Slipgate keep their connection details and default-on switches in
+settings.global (edited through core's generic
+/api/addons/player-ranks/state endpoint -- see set_global() below); which
+sources an instance shows, and all of x76, are per-instance, edited through
+this addon's own /instances/<id>/config.
 
 Provider network calls are stubbed via a fake entry in the provider registry
 rather than mocking `requests` here -- provider-specific HTTP behavior
-(qlstats' games<=0 rule, Slipgate's bulk vs public split, elo-service's
+(qlstats' games<=0 rule, Slipgate's bulk vs public split, x76's
 sort_score-or-mu) is covered directly in test_player_ranks_providers.py.
 """
 import json
@@ -141,7 +142,7 @@ def stub_registry():
     StubProvider.fixed_result = {}
     registry = {
         'qlstats': {'label': 'qlstats', 'factory': StubProvider, 'requires_api_key': False},
-        'elo_service': {'label': 'Thunderdome elo-service', 'factory': StubProvider, 'requires_api_key': True},
+        'elo_service': {'label': 'x76', 'factory': StubProvider, 'requires_api_key': True},
     }
     with patch('qlsm_addon_player_ranks.ranks_service.build_registry', return_value=registry):
         yield StubProvider
@@ -179,7 +180,7 @@ def test_ranks_unknown_instance_is_404(client, auth):
     assert client.get(f'{ADDON}/instances/9999/ranks/qlstats', headers=auth).status_code == 404
 
 
-# ---- config load/save (instance: elo_service + server_status only) -------
+# ---- config load/save (instance: source checkboxes + x76) -----------------
 
 def test_default_config_has_everything_off_and_is_not_suggested(client, auth, instance_id):
     resp = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth)

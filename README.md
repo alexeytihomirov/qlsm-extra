@@ -106,7 +106,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
 | `demo-stream` | Live POV demo stream screen + cvars |
 | `qlmatch-packer` | Host-side `.qlmatch` packer + Demos grouping hooks |
-| `player-ranks` | Adds external rating columns to Live Status. qlstats/Slipgate are one installation-wide switch each; Thunderdome elo-service/server-status are per instance. Needs qlsm `ui_api` 4 or newer. |
+| `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
 
 qlsm's image ships **no** addon — install every one of these from this
 repository. `qlmatch-packer` extends `demo-management`'s screen, so it is only
@@ -114,22 +114,24 @@ useful with it installed too.
 
 ### player-ranks
 
-Four rating sources, each its own column in Live Status (a generic
+Three rating sources, stacked in one Rank column in Live Status (a generic
 `live_status_columns` mount point qlsm's core provides, so this addon owns
 everything about what a rating means and where it comes from):
 
-- **qlstats** and **Slipgate** are installation-wide switches -- turn one on
-  from Settings -> Addons -> Player Ranks and it applies to every instance
-  identically, no per-server setup. There is nothing instance-specific about
-  either (same public service, same rating system for everyone).
-- **Thunderdome elo-service** and **the server's own status data** are
-  configured per instance, on that instance's own "Ranks" tab -- a different
-  elo-service host/pool per server is the normal case.
+- **qlstats** and **Slipgate** keep their connection details (base URL, key,
+  rating system) under Settings -> Addons -> Player Ranks, set once for the
+  installation. Each also has an "on by default" switch there.
+- **x76** (elo-service) is configured per instance: base URL, API key, pool,
+  and whether the column shows the score or the rank label.
+- **Which sources an instance shows** is chosen with checkboxes on that
+  instance's own "Ranks" tab. Until that tab is saved, qlstats and Slipgate
+  follow the "on by default" switches; once saved, the instance's own
+  checkboxes decide.
 
-A source that's off, or needs a key that isn't set, simply shows no extra
-column -- this is normal, not a broken state. Per-source specifics (what a
-key changes, rated game types, caching) are in the field descriptions on the
-relevant panel and in `qlsm-addon.json`. A third-party addon can add a
+A source that's off, or needs a key that isn't set, simply shows no line in
+the Rank column -- this is normal, not a broken state. Per-source specifics
+(what a key changes, rated game types, caching) are in the field descriptions
+on the relevant panel and in `qlsm-addon.json`. A third-party addon can add a
 further source via the `player_ranks.providers` hook without touching this
 addon's code (see qlsm's `addons/README.md`, "Cross-addon UI contribution").
 

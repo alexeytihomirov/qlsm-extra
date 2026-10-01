@@ -5,7 +5,7 @@ something this addon takes over.
 
 qlstats has no per-instance suggestion: it's an installation-wide switch now
 (settings.global, see backend.py), so there is no per-instance field left to
-suggest a value into. Only Thunderdome elo-service -- still genuinely
+suggest a value into. Only x76 (elo-service) -- still genuinely
 per-instance -- gets suggested here.
 """
 import os
