@@ -1,7 +1,6 @@
 """x76 (elo-service) adapter.
 
-Ported from qlsm's rank-provider work (ui/rank_providers/elo_service.py),
-which was verified against the ranked.py plugin:
+Matches the ranked.py plugin's own calls to the service:
 
   - bulk:   GET /players?ids=a,b,c&mode=<mode>  -> {steam_id: entry | null}
   - rating: sort_score or mu
@@ -10,15 +9,16 @@ which was verified against the ranked.py plugin:
 Python `or` and all: a 0 sort_score means "not computed yet", not "score is
 zero", so the fallback to mu is not optional.
 
-One request covers the whole roster. The previous per-player loop held a web
-worker for (players x timeout) whenever the service was unreachable.
+One request covers the whole roster, so an unreachable service costs one
+timeout rather than one per player.
 """
+import math
+
 import requests
 
 from .base import PROVIDER_TIMEOUT_SEC, RankProvider
 
-# extra['display']: which field the Live Status column shows.
-DISPLAY_FIELDS = ('sort_score', 'rank_label')
+# extra['display']: which field the Live Status column shows ('sort_score' or 'rank_label').
 DEFAULT_DISPLAY = 'sort_score'
 
 
@@ -63,6 +63,8 @@ class ThunderdomeEloProvider(RankProvider):
                 rating = float(value)
             except (TypeError, ValueError):
                 continue  # one bad value skips this player, not the source
+            if not math.isfinite(rating):
+                continue  # 'nan' / 'inf' parse as floats but are not ratings
             # A player with no label yet still gets the number, not a dash.
             label = entry.get('rank_label') if show_label else None
             display = label.strip() if isinstance(label, str) and label.strip() else f'{rating:g}'

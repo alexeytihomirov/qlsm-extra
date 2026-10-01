@@ -258,6 +258,12 @@ class TestX76:
             result = self._provider().fetch_ratings([self.A, self.B], 'ffa_auto')
         assert list(result) == [self.B]
 
+    def test_non_finite_value_skips_only_that_player(self):
+        payload = {self.A: {'sort_score': 'nan'}, self.B: {'sort_score': 1400}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider().fetch_ratings([self.A, self.B], 'ffa_auto')
+        assert list(result) == [self.B]
+
     def test_display_rank_label_shows_the_label(self):
         payload = {self.A: {'sort_score': 1500, 'rank_label': ' Gold II '}}
         with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
