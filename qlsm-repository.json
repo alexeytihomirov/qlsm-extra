@@ -108,10 +108,10 @@
     {
       "id": "player-ranks",
       "zip": "packages/player-ranks.zip",
-      "sha256": "f39ee4782f0798dc652547d0a060a4228ebb54fa917f4a3ddc9d68c2a04d534f",
-      "version": "0.2.0",
+      "sha256": "a169b2ceaee80f5bedc92c48d76b9ff15277e0740eb1773ab1b338b32d000f76",
+      "version": "0.3.0",
       "label": "Player Ranks",
-      "description": "Shows each connected player's external rating in Live Status. qlstats and Slipgate are installation-wide switches (same for every instance); Thunderdome elo-service and the game server's own status data are configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer."
+      "description": "Shows each connected player's external rating in Live Status. Pick the sources per instance on its Ranks tab: qlstats, Slipgate and x76. qlstats and Slipgate connection details are set once for the installation; x76 is configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer."
     },
     {
       "id": "qlmatch-packer",

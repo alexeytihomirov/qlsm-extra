@@ -3,10 +3,9 @@ server.cfg already carries, if ranked.py wrote them there for its own
 purposes. Never writes anything -- server.cfg is the authority, not
 something this addon takes over.
 
-qlstats has no per-instance suggestion: it's an installation-wide switch now
-(settings.global, see backend.py), so there is no per-instance field left to
-suggest a value into. Only Thunderdome elo-service -- still genuinely
-per-instance -- gets suggested here.
+Only x76 is suggested: it is the one source whose connection details
+(service URL, key, pool) live in server.cfg. qlstats and Slipgate have
+nothing instance-specific there to read.
 """
 import os
 

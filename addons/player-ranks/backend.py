@@ -5,17 +5,14 @@ Core knows nothing about ratings -- it only renders whatever columns
 own per-provider route (addons/README.md). Everything about *what* a rating
 is, where it comes from, and how it's cached lives here.
 
-Two sources (qlstats, Slipgate) are installation-wide switches: their
-enabled/base_url/rating_system live in `settings.global` and apply to every
-instance identically, edited from the addon's own Settings-page panel
-(`global_sources`, a plain managed panel -- core's generic /state endpoint
-handles it, no route in this file). The other two (Thunderdome elo-service,
-server_status) genuinely vary per instance (a different service/pool per
-host is the normal case) and stay on the instance's own 'Ranks' tab, handled
-here: `update_instance_config` validates elo_service_base_url's shape before
-writing, and `get_instance_config` suggests values read from server.cfg the
-first time an instance is opened (server_cfg.py), before the tab has ever
-been saved.
+qlstats and Slipgate keep their connection details in `settings.global`,
+edited from the addon's own Settings-page panel (`global_sources`, a plain
+managed panel -- core's generic /state endpoint handles it, no route in this
+file). Which sources an instance shows is chosen on the instance's own
+'Ranks' tab, handled here: `update_instance_config` validates the x76 fields
+before writing, and `get_instance_config` shows the installation-wide
+defaults until the tab is first saved, and suggests x76 values read from
+server.cfg (server_cfg.py) the first time an instance is opened.
 """
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required
@@ -43,17 +40,26 @@ def get_instance_config(instance_id):
     if error:
         return error
 
+    from .ranks_service import GLOBAL_PROVIDERS, source_enabled
+
     addon = get_addon('player-ranks')
     stored = addon.ctx.settings.get('instance', instance_id)
+    values = dict(stored)
+    # Show what is actually in effect: until this tab is saved, qlstats and
+    # Slipgate follow the installation-wide defaults.
+    global_cfg = addon.ctx.settings.get('global', 0)
+    for provider_id in GLOBAL_PROVIDERS:
+        values[f'{provider_id}_enabled'] = source_enabled(provider_id, global_cfg, stored)
+
     if stored.get('configured'):
-        return jsonify({"data": {**stored, "suggested": False}})
+        return jsonify({"data": {**values, "suggested": False}})
 
     from .server_cfg import suggest_from_server_cfg
 
     suggestion = suggest_from_server_cfg(instance)
     if not suggestion:
-        return jsonify({"data": {**stored, "suggested": False}})
-    return jsonify({"data": {**stored, **suggestion, "suggested": True}})
+        return jsonify({"data": {**values, "suggested": False}})
+    return jsonify({"data": {**values, **suggestion, "suggested": True}})
 
 
 @bp.route('/instances/<int:instance_id>/config', methods=['PUT'], endpoint='update_instance_config')
@@ -64,6 +70,8 @@ def update_instance_config(instance_id):
     from ui.addons.settings import AddonSettingsError
 
     from .cache import invalidate_instance
+    from .providers.elo_service import DEFAULT_DISPLAY
+    from .ranks_service import GLOBAL_PROVIDERS, source_enabled
 
     instance, error = _instance_or_404(instance_id)
     if error:
@@ -76,16 +84,40 @@ def update_instance_config(instance_id):
         if value and not (value.startswith('http://') or value.startswith('https://')):
             return jsonify({"error": {"message": f'"{field}" must start with http:// or https://'}}), 400
 
+    x76_enabled = bool(body.get('elo_service_enabled'))
+    x76_base_url = (body.get('elo_service_base_url') or '').strip()
+    x76_pool = (body.get('elo_service_game_type') or '').strip()
+    if x76_enabled and not x76_base_url:
+        return jsonify({"error": {"message": 'x76: Base URL is required when x76 is ticked'}}), 400
+    if x76_enabled and not x76_pool:
+        return jsonify({"error": {"message": "x76: pool is required when x76 is ticked (e.g. 'ffa_auto')"}}), 400
+
     payload = {
         'configured': True,
-        'elo_service_enabled': bool(body.get('elo_service_enabled')),
-        'elo_service_base_url': (body.get('elo_service_base_url') or '').strip(),
+        'elo_service_enabled': x76_enabled,
+        'elo_service_base_url': x76_base_url,
         'elo_service_api_key': body.get('elo_service_api_key') or '',
-        'elo_service_game_type': (body.get('elo_service_game_type') or '').strip(),
-        'server_status_enabled': bool(body.get('server_status_enabled')),
+        'elo_service_game_type': x76_pool,
+        'elo_service_display': body.get('elo_service_display') or DEFAULT_DISPLAY,
     }
 
     addon = get_addon('player-ranks')
+
+    # The qlstats/Slipgate checkboxes are only decided by a save that carries
+    # them. Before 0.3.0 this body was x76 fields only; a caller still sending
+    # just those must not switch the other two off, nor end the instance's
+    # follow-the-default state (`sources_saved` is one-way).
+    sent_flags = [f'{p}_enabled' for p in GLOBAL_PROVIDERS if f'{p}_enabled' in body]
+    if sent_flags:
+        stored = addon.ctx.settings.get('instance', instance_id)
+        global_cfg = addon.ctx.settings.get('global', 0)
+        for provider_id in GLOBAL_PROVIDERS:
+            key = f'{provider_id}_enabled'
+            # A checkbox this save does not carry keeps what was in effect,
+            # which until now may have been the installation-wide default.
+            payload[key] = bool(body[key]) if key in body else source_enabled(provider_id, global_cfg, stored)
+        payload['sources_saved'] = True
+
     try:
         settings = addon.ctx.settings.set('instance', instance_id, payload)
     except AddonSettingsError as e:

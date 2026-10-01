@@ -15,7 +15,6 @@ if str(ADDON_DIR) not in sys.path:
 from providers.base import RateLimited  # noqa: E402
 from providers.elo_service import ThunderdomeEloProvider  # noqa: E402
 from providers.qlstats import QlstatsProvider  # noqa: E402
-from providers.server_status import ServerStatusProvider  # noqa: E402
 from providers.slipgate import SlipgateProvider  # noqa: E402
 
 
@@ -66,11 +65,19 @@ class TestQlstats:
         p = QlstatsProvider()
         assert p.fetch_ratings(['76561197993968023'], None) == {}
 
-    def test_network_failure_returns_empty(self):
+    def test_network_failure_raises(self):
         import requests
         p = QlstatsProvider()
         with patch('providers.qlstats.requests.get', side_effect=requests.ConnectionError()):
-            assert p.fetch_ratings(['76561197993968023'], 'duel') == {}
+            with pytest.raises(requests.ConnectionError):
+                p.fetch_ratings(['76561197993968023'], 'duel')
+
+    def test_http_error_raises(self):
+        import requests
+        p = QlstatsProvider()
+        with patch('providers.qlstats.requests.get', return_value=_resp(status_code=500)):
+            with pytest.raises(requests.HTTPError):
+                p.fetch_ratings(['76561197993968023'], 'duel')
 
     def test_rating_system_defaults_to_elo_and_is_used_in_url(self):
         p = QlstatsProvider(base_url='http://qlstats.example')
@@ -88,6 +95,63 @@ class TestQlstats:
 # ---- slipgate --------------------------------------------------------
 
 class TestSlipgate:
+    def test_bulk_network_failure_raises(self):
+        import requests
+        p = SlipgateProvider(base_url='http://sg.example', api_key='sg_test')
+        with patch('providers.slipgate.requests.post', side_effect=requests.ConnectionError()):
+            with pytest.raises(requests.ConnectionError):
+                p.fetch_ratings(['76561197993968023'], 'duel')
+
+    def test_public_loop_stops_on_first_timeout(self):
+        import requests
+        p = SlipgateProvider(base_url='http://sg.example')
+        ids = ['76561197993968023', '76561197960287930', '76561197960287931']
+        with patch('providers.slipgate.requests.get', side_effect=requests.Timeout()) as mock_get:
+            with pytest.raises(requests.Timeout):
+                p.fetch_ratings(ids, 'duel')
+        assert mock_get.call_count == 1
+
+    def test_public_timeout_mid_loop_keeps_what_was_already_fetched(self):
+        import requests
+        p = SlipgateProvider(base_url='http://sg.example')
+        ids = ['76561197993968023', '76561197960287930', '76561197960287931']
+        found = _resp(json_data={'display': 1650, 'tier_name': 'Gold', 'mu': 18.0})
+        with patch('providers.slipgate.requests.get',
+                   side_effect=[found, requests.Timeout(), found]) as mock_get:
+            result = p.fetch_ratings(ids, 'duel')
+        # The rated player is kept; the loop stops at the timeout rather than
+        # making the third player wait out the same one.
+        assert list(result) == ['76561197993968023']
+        assert mock_get.call_count == 2
+
+    def test_public_http_error_skips_only_that_player(self):
+        p = SlipgateProvider(base_url='http://sg.example')
+        ids = ['76561197993968023', '76561197960287930', '76561197960287931']
+        found = _resp(json_data={'display': 1650, 'tier_name': 'Gold', 'mu': 18.0})
+        with patch('providers.slipgate.requests.get',
+                   side_effect=[found, _resp(status_code=500), found]) as mock_get:
+            result = p.fetch_ratings(ids, 'duel')
+        assert list(result) == ['76561197993968023', '76561197960287931']
+        assert mock_get.call_count == 3
+
+    def test_public_http_errors_for_everyone_still_raise(self):
+        """Nothing fetched and something failed is a failing source, not an
+        empty roster: it must reach ranks_service to be logged and cached briefly."""
+        import requests
+        p = SlipgateProvider(base_url='http://sg.example')
+        with patch('providers.slipgate.requests.get', return_value=_resp(status_code=500)):
+            with pytest.raises(requests.HTTPError):
+                p.fetch_ratings(['76561197993968023', '76561197960287930'], 'duel')
+
+    def test_public_404_does_not_stop_the_loop(self):
+        p = SlipgateProvider(base_url='http://sg.example')
+        found = _resp(json_data={'display': 1650, 'tier_name': 'Gold', 'mu': 18.0})
+        with patch('providers.slipgate.requests.get',
+                   side_effect=[_resp(status_code=404), found]) as mock_get:
+            result = p.fetch_ratings(['76561197993968023', '76561197960287930'], 'duel')
+        assert mock_get.call_count == 2
+        assert list(result) == ['76561197960287930']
+
     def test_gametype_aliases(self):
         p = SlipgateProvider()
         assert p.map_game_type('har') == 'harvester'
@@ -172,9 +236,15 @@ class TestSlipgate:
         assert exc_info.value.retry_after == 15
 
 
-# ---- elo_service -------------------------------------------------------
+# ---- x76 (elo-service) ---------------------------------------------
 
-class TestThunderdomeElo:
+class TestX76:
+    A = '76561197993968023'
+    B = '76561197960287930'
+
+    def _provider(self, **extra):
+        return ThunderdomeEloProvider(base_url='http://elo.example', api_key='key123', extra=extra)
+
     def test_map_game_type_is_identity(self):
         p = ThunderdomeEloProvider()
         assert p.map_game_type('ffa_auto') == 'ffa_auto'
@@ -183,53 +253,130 @@ class TestThunderdomeElo:
     def test_no_key_or_base_url_short_circuits_without_a_request(self):
         p = ThunderdomeEloProvider(base_url='http://elo.example')  # no api_key
         with patch('providers.elo_service.requests.get') as mock_get:
-            result = p.fetch_ratings(['76561197993968023'], 'ffa_auto')
+            result = p.fetch_ratings([self.A], 'ffa_auto')
         mock_get.assert_not_called()
         assert result == {}
 
-    def test_sort_score_or_mu_uses_python_or_semantics(self):
-        """sort_score=0 is falsy -- must fall back to mu, not report 0."""
-        p = ThunderdomeEloProvider(base_url='http://elo.example', api_key='key123')
-        payload = {'sort_score': 0, 'mu': 27.4, 'wins': 3, 'losses': 1}
-        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
-            result = p.fetch_ratings(['76561197993968023'], 'ffa_auto')
-        assert result['76561197993968023']['display'] == '27'
-        assert result['76561197993968023']['title'] == '3-1'
-
-    def test_sort_score_nonzero_is_preferred_over_mu(self):
-        p = ThunderdomeEloProvider(base_url='http://elo.example', api_key='key123')
-        payload = {'sort_score': 1500, 'mu': 27.4}
-        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
-            result = p.fetch_ratings(['76561197993968023'], 'ffa_auto')
-        assert result['76561197993968023']['display'] == '1500'
-
-    def test_404_means_no_record(self):
-        p = ThunderdomeEloProvider(base_url='http://elo.example', api_key='key123')
-        with patch('providers.elo_service.requests.get', return_value=_resp(status_code=404)):
-            result = p.fetch_ratings(['76561197993968023'], 'ffa_auto')
-        assert result == {}
-
-    def test_sends_api_key_header(self):
-        p = ThunderdomeEloProvider(base_url='http://elo.example', api_key='key123')
+    def test_one_bulk_request_for_the_whole_roster(self):
+        payload = {self.A: {'sort_score': 1500}, self.B: {'sort_score': 1400}}
         with patch('providers.elo_service.requests.get',
-                   return_value=_resp(json_data={'sort_score': 10})) as mock_get:
-            p.fetch_ratings(['76561197993968023'], 'ffa_auto')
+                   return_value=_resp(json_data=payload)) as mock_get:
+            result = self._provider().fetch_ratings([self.A, self.B], 'ffa_auto')
+        assert mock_get.call_count == 1
+        assert mock_get.call_args[0][0] == 'http://elo.example/players'
+        assert mock_get.call_args.kwargs['params'] == {'ids': f'{self.A},{self.B}', 'mode': 'ffa_auto'}
         assert mock_get.call_args.kwargs['headers'] == {'X-API-Key': 'key123'}
+        assert result[self.A]['display'] == '1500'
+        assert result[self.B]['display'] == '1400'
+
+    def test_sort_score_zero_falls_back_to_mu(self):
+        """sort_score=0 means "not computed yet" -- must fall back to mu."""
+        payload = {self.A: {'sort_score': 0, 'mu': 27.4, 'wins': 3, 'losses': 1}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider().fetch_ratings([self.A], 'ffa_auto')
+        assert result[self.A]['display'] == '27.4'
+        assert result[self.A]['rating'] == 27.4
+        assert result[self.A]['title'] == '3-1'
+
+    def test_null_entry_is_skipped(self):
+        payload = {self.A: None, self.B: {'sort_score': 1400}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider().fetch_ratings([self.A, self.B], 'ffa_auto')
+        assert list(result) == [self.B]
+
+    def test_malformed_value_skips_only_that_player(self):
+        payload = {self.A: {'sort_score': 'n/a'}, self.B: {'sort_score': 1400}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider().fetch_ratings([self.A, self.B], 'ffa_auto')
+        assert list(result) == [self.B]
+
+    def test_non_finite_value_skips_only_that_player(self):
+        payload = {self.A: {'sort_score': 'nan'}, self.B: {'sort_score': 1400}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider().fetch_ratings([self.A, self.B], 'ffa_auto')
+        assert list(result) == [self.B]
+
+    def test_display_rank_label_shows_the_label(self):
+        payload = {self.A: {'sort_score': 1500, 'rank_label': ' Gold II '}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider(display='rank_label').fetch_ratings([self.A], 'ffa_auto')
+        assert result[self.A]['display'] == 'Gold II'
+        assert result[self.A]['rating'] == 1500.0
+
+    def test_display_rank_label_falls_back_to_the_number_when_blank(self):
+        payload = {self.A: {'sort_score': 1500, 'rank_label': '  '}, self.B: {'sort_score': 1400}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider(display='rank_label').fetch_ratings([self.A, self.B], 'ffa_auto')
+        assert result[self.A]['display'] == '1500'
+        assert result[self.B]['display'] == '1400'
+
+    def test_default_display_ignores_the_label(self):
+        payload = {self.A: {'sort_score': 1500, 'rank_label': 'Gold II'}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider().fetch_ratings([self.A], 'ffa_auto')
+        assert result[self.A]['display'] == '1500'
+
+    def test_rank_label_carries_its_tier_color(self):
+        payload = {
+            self.A: {'sort_score': 1500, 'rank_label': 'Gold III'},
+            self.B: {'sort_score': 1900, 'rank_label': 'platinum IV'},
+        }
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider(display='rank_label').fetch_ratings([self.A, self.B], 'ffa_auto')
+        assert result[self.A]['color'] == 'yellow'
+        assert result[self.B]['color'] == 'cyan'  # tier match ignores case
+
+    @pytest.mark.parametrize('label,color', [
+        ('Nab', 'white'), ('Bronze II', 'yellow'), ('Silver I', 'white'), ('Gold III', 'yellow'),
+        ('Platinum IV', 'cyan'), ('Diamond I', 'blue'), ('Prism', 'magenta'), ('LIGHT', 'green'),
+    ])
+    def test_every_tier_has_a_color(self, label, color):
+        payload = {self.A: {'sort_score': 1500, 'rank_label': label}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider(display='rank_label').fetch_ratings([self.A], 'ffa_auto')
+        assert result[self.A]['color'] == color
+
+    def test_no_color_without_a_recognised_tier_label(self):
+        payload = {
+            self.A: {'sort_score': 1500, 'rank_label': 'Goldfish'},  # not the Gold tier
+            self.B: {'sort_score': 1400, 'rank_label': '  '},        # falls back to the number
+        }
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider(display='rank_label').fetch_ratings([self.A, self.B], 'ffa_auto')
+        assert result[self.A]['color'] is None
+        assert result[self.B]['color'] is None
+
+    def test_no_color_when_showing_the_score(self):
+        payload = {self.A: {'sort_score': 1500, 'rank_label': 'Gold III'}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider().fetch_ratings([self.A], 'ffa_auto')
+        assert result[self.A]['color'] is None
+
+    def test_404_means_no_ratings(self):
+        with patch('providers.elo_service.requests.get', return_value=_resp(status_code=404)):
+            assert self._provider().fetch_ratings([self.A], 'ffa_auto') == {}
+
+    def test_network_failure_raises(self):
+        import requests
+        with patch('providers.elo_service.requests.get', side_effect=requests.ConnectionError()):
+            with pytest.raises(requests.ConnectionError):
+                self._provider().fetch_ratings([self.A], 'ffa_auto')
+
+    def test_server_error_raises(self):
+        import requests
+        with patch('providers.elo_service.requests.get', return_value=_resp(status_code=500)):
+            with pytest.raises(requests.HTTPError):
+                self._provider().fetch_ratings([self.A], 'ffa_auto')
+
+    def test_ids_not_asked_for_are_ignored(self):
+        payload = {self.A: {'sort_score': 1500}, '76561197960287999': {'sort_score': 9}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider().fetch_ratings([self.A], 'ffa_auto')
+        assert list(result) == [self.A]
 
 
-# ---- server_status -------------------------------------------------------
+# ---- registry ------------------------------------------------------------
 
-class TestServerStatus:
-    def test_reads_rating_from_players_blob(self):
-        p = ServerStatusProvider(extra={'players': [
-            {'steam': '76561197993968023', 'rating': 1234},
-            {'steam': '76561197960287930'},  # no rating field
-        ]})
-        result = p.fetch_ratings(['76561197993968023', '76561197960287930'], 'duel')
-        assert result == {'76561197993968023': {
-            'rating': 1234.0, 'display': '1234', 'provisional': False, 'title': None,
-        }}
-
-    def test_no_players_blob_is_empty(self):
-        p = ServerStatusProvider()
-        assert p.fetch_ratings(['76561197993968023'], 'duel') == {}
+def test_server_status_source_is_gone():
+    from providers import BUILTIN_PROVIDERS
+    assert set(BUILTIN_PROVIDERS) == {'qlstats', 'slipgate', 'elo_service'}
