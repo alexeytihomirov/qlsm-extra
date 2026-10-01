@@ -29,7 +29,7 @@ BUILTIN_PROVIDERS = {
         'requires_api_key': False,
     },
     'elo_service': {
-        'label': 'Thunderdome elo-service',
+        'label': 'x76',
         'factory': ThunderdomeEloProvider,
         'requires_api_key': True,
     },
