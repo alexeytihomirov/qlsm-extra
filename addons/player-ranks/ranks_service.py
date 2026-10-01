@@ -8,7 +8,7 @@ qlstats and Slipgate keep their connection details (base_url, rating system,
 key) in settings.global, since qlstats.net/slipgate.gg do not vary per
 server. Whether each is shown is per instance: an instance whose Ranks tab
 was saved by this version decides for itself; any other instance follows the
-installation-wide default (see _source_enabled). x76 (elo-service) is
+installation-wide default (see source_enabled). x76 (elo-service) is
 configured entirely per instance.
 """
 import json
@@ -17,10 +17,13 @@ from flask import current_app
 
 from .cache import TTL_NEGATIVE, TTL_SUCCESS, cache_key, get_cached, set_cached
 from .providers import RateLimited, build_registry
+from .providers.elo_service import DEFAULT_DISPLAY
 from .steam_ids import parse_steam_ids
 
 _PROVIDER_IDS = ('qlstats', 'slipgate', 'elo_service')
-_GLOBAL_PROVIDERS = {'qlstats', 'slipgate'}
+# Sources whose connection details are installation-wide and whose on/off
+# state follows an installation-wide default until an instance saves its own.
+GLOBAL_PROVIDERS = ('qlstats', 'slipgate')
 _API_KEY_FIELD = {
     'slipgate': 'slipgate_api_key',
     'elo_service': 'elo_service_api_key',
@@ -73,13 +76,17 @@ def _global_key_for(provider_id, global_cfg):
     return (global_cfg.get(field) or '').strip() or None
 
 
-def _source_enabled(provider_id, global_cfg, instance_cfg):
+def source_enabled(provider_id, global_cfg, instance_cfg):
     """qlstats/Slipgate: an instance whose source checkboxes were never saved
     follows the installation-wide default; once saved, its own checkbox
     decides. `sources_saved` is needed because settings.get() fills a missing
     bool with False, so "never saved" and "unticked" would look the same.
-    x76 is always per-instance."""
-    if provider_id in _GLOBAL_PROVIDERS and not instance_cfg.get('sources_saved'):
+    x76 is always per-instance.
+
+    The one place this rule lives: fetch_ranks() uses it to decide what is
+    served, and backend.py uses it for what the Ranks tab shows and saves, so
+    the two cannot disagree."""
+    if provider_id in GLOBAL_PROVIDERS and not instance_cfg.get('sources_saved'):
         return bool(global_cfg.get(f'{provider_id}_enabled'))
     return bool(instance_cfg.get(f'{provider_id}_enabled'))
 
@@ -103,10 +110,10 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     addon_ctx = get_addon('player-ranks').ctx
     global_cfg = addon_ctx.settings.get('global', 0)
     instance_cfg = addon_ctx.settings.get('instance', instance.id)
-    is_global = provider_id in _GLOBAL_PROVIDERS
+    is_global = provider_id in GLOBAL_PROVIDERS
     cfg = global_cfg if is_global else instance_cfg
 
-    if not _source_enabled(provider_id, global_cfg, instance_cfg):
+    if not source_enabled(provider_id, global_cfg, instance_cfg):
         return dict(_NOT_CONFIGURED)
 
     registry = build_registry()
@@ -130,7 +137,7 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     rating_system = (global_cfg.get('qlstats_rating_system') or 'elo').strip()
     game_type_override = (instance_cfg.get('elo_service_game_type') or '').strip() if provider_id == 'elo_service' else ''
 
-    display = (instance_cfg.get('elo_service_display') or 'sort_score').strip()
+    display = (instance_cfg.get('elo_service_display') or DEFAULT_DISPLAY).strip()
     provider = _instantiate(provider_id, entry, base_url, api_key, rating_system, display)
     # Explicit override wins outright; otherwise the source's own mapping of
     # the live game type, or None ("don't query, not an error").

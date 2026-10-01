@@ -20,7 +20,6 @@ from flask_jwt_extended import jwt_required
 bp = Blueprint('player_ranks_addon', __name__)
 
 _URL_FIELDS = ('elo_service_base_url',)
-_GLOBAL_SOURCE_FLAGS = ('qlstats_enabled', 'slipgate_enabled')
 
 
 def _instance_or_404(instance_id):
@@ -41,15 +40,16 @@ def get_instance_config(instance_id):
     if error:
         return error
 
+    from .ranks_service import GLOBAL_PROVIDERS, source_enabled
+
     addon = get_addon('player-ranks')
     stored = addon.ctx.settings.get('instance', instance_id)
     values = dict(stored)
-    if not stored.get('sources_saved'):
-        # Show what is actually in effect: until this tab is saved, qlstats
-        # and Slipgate follow the installation-wide defaults.
-        global_cfg = addon.ctx.settings.get('global', 0)
-        for key in _GLOBAL_SOURCE_FLAGS:
-            values[key] = bool(global_cfg.get(key))
+    # Show what is actually in effect: until this tab is saved, qlstats and
+    # Slipgate follow the installation-wide defaults.
+    global_cfg = addon.ctx.settings.get('global', 0)
+    for provider_id in GLOBAL_PROVIDERS:
+        values[f'{provider_id}_enabled'] = source_enabled(provider_id, global_cfg, stored)
 
     if stored.get('configured'):
         return jsonify({"data": {**values, "suggested": False}})
@@ -71,6 +71,7 @@ def update_instance_config(instance_id):
 
     from .cache import invalidate_instance
     from .providers.elo_service import DEFAULT_DISPLAY
+    from .ranks_service import GLOBAL_PROVIDERS, source_enabled
 
     instance, error = _instance_or_404(instance_id)
     if error:
@@ -93,11 +94,6 @@ def update_instance_config(instance_id):
 
     payload = {
         'configured': True,
-        # Set on every save from this version on. Until it is set, qlstats and
-        # Slipgate follow the installation-wide defaults (ranks_service).
-        'sources_saved': True,
-        'qlstats_enabled': bool(body.get('qlstats_enabled')),
-        'slipgate_enabled': bool(body.get('slipgate_enabled')),
         'elo_service_enabled': x76_enabled,
         'elo_service_base_url': x76_base_url,
         'elo_service_api_key': body.get('elo_service_api_key') or '',
@@ -106,6 +102,22 @@ def update_instance_config(instance_id):
     }
 
     addon = get_addon('player-ranks')
+
+    # The qlstats/Slipgate checkboxes are only decided by a save that carries
+    # them. Before 0.3.0 this body was x76 fields only; a caller still sending
+    # just those must not switch the other two off, nor end the instance's
+    # follow-the-default state (`sources_saved` is one-way).
+    sent_flags = [f'{p}_enabled' for p in GLOBAL_PROVIDERS if f'{p}_enabled' in body]
+    if sent_flags:
+        stored = addon.ctx.settings.get('instance', instance_id)
+        global_cfg = addon.ctx.settings.get('global', 0)
+        for provider_id in GLOBAL_PROVIDERS:
+            key = f'{provider_id}_enabled'
+            # A checkbox this save does not carry keeps what was in effect,
+            # which until now may have been the installation-wide default.
+            payload[key] = bool(body[key]) if key in body else source_enabled(provider_id, global_cfg, stored)
+        payload['sources_saved'] = True
+
     try:
         settings = addon.ctx.settings.set('instance', instance_id, payload)
     except AddonSettingsError as e:

@@ -95,25 +95,39 @@ class SlipgateProvider(RankProvider):
 
     def _fetch_public(self, steam_ids, game_type):
         out = {}
+        last_error = None
         for steam_id in steam_ids:
-            # A connection error or timeout escapes on the first player: if
-            # the service is unreachable, the rest of the roster would each
-            # wait out the same timeout while a web worker is held.
-            resp = requests.get(
-                f'{self.base_url}/api/v1/players/{steam_id}/ratings/{game_type}',
-                timeout=PROVIDER_TIMEOUT_SEC,
-            )
+            try:
+                resp = requests.get(
+                    f'{self.base_url}/api/v1/players/{steam_id}/ratings/{game_type}',
+                    timeout=PROVIDER_TIMEOUT_SEC,
+                )
+            except requests.RequestException as e:
+                # Unreachable or timed out: stop here, because every player
+                # left would wait out the same timeout while a web worker is
+                # held. What was already fetched is still returned below.
+                last_error = e
+                break
             if resp.status_code == 429:
                 raise RateLimited(_retry_after_seconds(resp))
             if resp.status_code == 404:
                 continue
-            resp.raise_for_status()
-            data = resp.json()
+            try:
+                resp.raise_for_status()
+                data = resp.json()
+            except (requests.RequestException, ValueError) as e:
+                # One player's lookup failing says nothing about the next
+                # one, and an answered request costs no timeout: skip it.
+                last_error = e
+                continue
             if not isinstance(data, dict) or data.get('display') is None:
                 continue
             out[str(steam_id)] = _result(data)
+        if not out and last_error is not None:
+            # Nothing fetched and something failed is a failing source, not
+            # an empty roster: let ranks_service log it and cache it briefly.
+            raise last_error
         return out
-
 
 def _result(data):
     mu = data.get('mu')

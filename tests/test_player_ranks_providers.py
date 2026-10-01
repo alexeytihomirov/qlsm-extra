@@ -111,6 +111,38 @@ class TestSlipgate:
                 p.fetch_ratings(ids, 'duel')
         assert mock_get.call_count == 1
 
+    def test_public_timeout_mid_loop_keeps_what_was_already_fetched(self):
+        import requests
+        p = SlipgateProvider(base_url='http://sg.example')
+        ids = ['76561197993968023', '76561197960287930', '76561197960287931']
+        found = _resp(json_data={'display': 1650, 'tier_name': 'Gold', 'mu': 18.0})
+        with patch('providers.slipgate.requests.get',
+                   side_effect=[found, requests.Timeout(), found]) as mock_get:
+            result = p.fetch_ratings(ids, 'duel')
+        # The rated player is kept; the loop stops at the timeout rather than
+        # making the third player wait out the same one.
+        assert list(result) == ['76561197993968023']
+        assert mock_get.call_count == 2
+
+    def test_public_http_error_skips_only_that_player(self):
+        p = SlipgateProvider(base_url='http://sg.example')
+        ids = ['76561197993968023', '76561197960287930', '76561197960287931']
+        found = _resp(json_data={'display': 1650, 'tier_name': 'Gold', 'mu': 18.0})
+        with patch('providers.slipgate.requests.get',
+                   side_effect=[found, _resp(status_code=500), found]) as mock_get:
+            result = p.fetch_ratings(ids, 'duel')
+        assert list(result) == ['76561197993968023', '76561197960287931']
+        assert mock_get.call_count == 3
+
+    def test_public_http_errors_for_everyone_still_raise(self):
+        """Nothing fetched and something failed is a failing source, not an
+        empty roster: it must reach ranks_service to be logged and cached briefly."""
+        import requests
+        p = SlipgateProvider(base_url='http://sg.example')
+        with patch('providers.slipgate.requests.get', return_value=_resp(status_code=500)):
+            with pytest.raises(requests.HTTPError):
+                p.fetch_ratings(['76561197993968023', '76561197960287930'], 'duel')
+
     def test_public_404_does_not_stop_the_loop(self):
         p = SlipgateProvider(base_url='http://sg.example')
         found = _resp(json_data={'display': 1650, 'tier_name': 'Gold', 'mu': 18.0})

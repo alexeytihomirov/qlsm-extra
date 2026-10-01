@@ -242,6 +242,47 @@ def test_config_save_stores_source_checkboxes_and_display(client, auth, instance
     assert loaded['sources_saved'] is True
 
 
+def test_config_save_without_source_checkboxes_leaves_them_alone(
+    client, auth, instance_id, host_id, stub_registry, fake_redis,
+):
+    """A caller that only knows the x76 fields (the whole body before 0.3.0)
+    must not switch qlstats/Slipgate off or end the follow-the-default state."""
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
+    set_global(client, auth, qlstats_enabled=True)
+
+    resp = client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
+        'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
+        'elo_service_api_key': 'secret', 'elo_service_game_type': 'duel',
+    })
+    assert resp.status_code == 200
+
+    loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+    assert loaded['sources_saved'] is False
+    assert loaded['qlstats_enabled'] is True  # still the installation-wide default
+    assert loaded['elo_service_enabled'] is True
+    qlstats = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
+                         query_string={'steam_ids': STEAM_A}, headers=auth).get_json()
+    assert qlstats['data'][STEAM_A]['display'] == '2181'
+
+    # Still following the default: turning it off globally reaches this instance.
+    set_global(client, auth, qlstats_enabled=False)
+    qlstats = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
+                         query_string={'steam_ids': STEAM_A}, headers=auth).get_json()
+    assert qlstats == {'data': {}, 'configured': False}
+
+
+def test_config_save_with_one_checkbox_keeps_the_other_as_it_was_in_effect(client, auth, instance_id):
+    set_global(client, auth, qlstats_enabled=True, slipgate_enabled=True)
+
+    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={'qlstats_enabled': False})
+
+    loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+    assert loaded['sources_saved'] is True
+    assert loaded['qlstats_enabled'] is False
+    assert loaded['slipgate_enabled'] is True  # frozen at what the default gave it
+
+
 def test_config_save_defaults_display_to_sort_score(client, auth, instance_id):
     client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={})
     loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
