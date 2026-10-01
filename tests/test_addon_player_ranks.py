@@ -63,12 +63,14 @@ def host_id(host_and_instance_id):
 class FakeRedis:
     def __init__(self):
         self.store = {}
+        self.ttls = {}
 
     def get(self, key):
         return self.store.get(key)
 
     def setex(self, key, ttl, value):
         self.store[key] = value
+        self.ttls[key] = ttl
 
     def keys(self, pattern):
         import fnmatch
@@ -77,6 +79,21 @@ class FakeRedis:
     def delete(self, *keys):
         for k in keys:
             self.store.pop(k, None)
+            self.ttls.pop(k, None)
+
+
+@pytest.fixture(autouse=True)
+def fresh_addon_submodules(app):
+    """Each `app` replaces sys.modules['qlsm_addon_player_ranks'] with a new
+    module object, but its submodules stay cached from the previous test, so
+    the new parent has no `ranks_service` attribute and patch() cannot find
+    it. Drop the stale submodules and import against the current parent."""
+    import importlib
+    import sys
+
+    for name in [m for m in sys.modules if m.startswith('qlsm_addon_player_ranks.')]:
+        del sys.modules[name]
+    importlib.import_module('qlsm_addon_player_ranks.ranks_service')
 
 
 @pytest.fixture(autouse=True)
