@@ -703,6 +703,30 @@ def test_ranks_all_combines_two_sources_in_one_request_in_declared_order(
     assert X76Stub.calls == [((STEAM_A,), 'ffa_auto')]
 
 
+def test_a_source_color_reaches_the_cell_and_the_stacked_entry(
+    client, auth, instance_id, host_id, stub_registry, fake_redis,
+):
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    stub_registry.fixed_result = {
+        STEAM_A: {'display': 'Gold III', 'color': 'yellow'},
+        STEAM_B: {'display': '1400', 'color': None},
+    }
+    set_global(client, auth, qlstats_enabled=True)
+    ids = f'{STEAM_A},{STEAM_B}'
+
+    single = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
+                        query_string={'steam_ids': ids}, headers=auth).get_json()['data']
+    combined = client.get(f'{ADDON}/instances/{instance_id}/ranks',
+                          query_string={'steam_ids': ids}, headers=auth).get_json()['data']
+
+    assert single[STEAM_A] == {'display': 'Gold III', 'color': 'yellow'}
+    assert single[STEAM_B] == {'display': '1400'}  # no color key when there is none
+    assert combined[STEAM_A]['entries'] == [
+        {'display': 'Gold III', 'color': 'yellow', 'icon_url': 'logos/qlstats.svg'},
+    ]
+    assert combined[STEAM_B]['entries'] == [{'display': '1400', 'icon_url': 'logos/qlstats.svg'}]
+
+
 def test_ranks_all_skips_a_player_no_source_has_anything_for(
     client, auth, instance_id, host_id, stub_registry, fake_redis,
 ):

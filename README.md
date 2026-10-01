@@ -122,7 +122,10 @@ everything about what a rating means and where it comes from):
   rating system) under Settings -> Addons -> Player Ranks, set once for the
   installation. Each also has an "on by default" switch there.
 - **x76** (elo-service) is configured per instance: base URL, API key, pool,
-  and whether the column shows the score or the rank label.
+  and whether the column shows the score or the rank label. A rank label is
+  shown in its tier's in-game colour (yellow for Gold, cyan for Platinum, ...)
+  on a qlsm whose `live_status_columns` cell supports `color`; an older qlsm
+  shows the same label uncoloured.
 - **Which sources an instance shows** is chosen with checkboxes on that
   instance's own "Ranks" tab. Until that tab is saved, qlstats and Slipgate
   follow the "on by default" switches; once saved, the instance's own

@@ -178,6 +178,8 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
         cell = {'display': str(result['display'])}
         if result.get('title'):
             cell['title'] = str(result['title'])
+        if result.get('color'):
+            cell['color'] = str(result['color'])
         data[str(steam_id)] = cell
 
     payload = {'data': data, 'configured': True}
@@ -229,6 +231,8 @@ def fetch_all_ranks(instance, raw_steam_ids):
             entry = {'display': cell['display'], **_ENTRY_ICON.get(provider_id, {})}
             if cell.get('title'):
                 entry['title'] = cell['title']
+            if cell.get('color'):
+                entry['color'] = cell['color']
             entries.append(entry)
         if entries:
             data[steam_id] = {'entries': entries}

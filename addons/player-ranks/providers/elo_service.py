@@ -13,6 +13,7 @@ One request covers the whole roster, so an unreachable service costs one
 timeout rather than one per player.
 """
 import math
+import re
 
 import requests
 
@@ -20,6 +21,21 @@ from .base import PROVIDER_TIMEOUT_SEC, RankProvider
 
 # extra['display']: which field the Live Status column shows ('sort_score' or 'rank_label').
 DEFAULT_DISPLAY = 'sort_score'
+
+# A rank label ("Gold III") is shown in its tier's in-game ^N color. The
+# values are names from the fixed palette qlsm's live_status_columns cell
+# accepts (addons/README.md there), not CSS -- core picks the actual shade.
+TIER_COLORS = {
+    'nab': 'white', 'bronze': 'yellow', 'silver': 'white', 'gold': 'yellow',
+    'platinum': 'cyan', 'diamond': 'blue', 'prism': 'magenta', 'light': 'green',
+}
+_TIER_RE = re.compile(r'^(%s)\b' % '|'.join(TIER_COLORS), re.IGNORECASE)
+
+
+def _tier_color(label):
+    """The palette name for a rank label's tier, or None if it names no tier."""
+    match = _TIER_RE.match(label)
+    return TIER_COLORS[match.group(1).lower()] if match else None
 
 
 class ThunderdomeEloProvider(RankProvider):
@@ -67,7 +83,8 @@ class ThunderdomeEloProvider(RankProvider):
                 continue  # 'nan' / 'inf' parse as floats but are not ratings
             # A player with no label yet still gets the number, not a dash.
             label = entry.get('rank_label') if show_label else None
-            display = label.strip() if isinstance(label, str) and label.strip() else f'{rating:g}'
+            label = label.strip() if isinstance(label, str) else ''
+            display = label or f'{rating:g}'
             wins, losses = entry.get('wins'), entry.get('losses')
             title = f'{wins}-{losses}' if wins is not None and losses is not None else None
             out[steam_id] = {
@@ -75,5 +92,6 @@ class ThunderdomeEloProvider(RankProvider):
                 'display': display,
                 'provisional': False,
                 'title': title,
+                'color': _tier_color(label) if label else None,
             }
         return out

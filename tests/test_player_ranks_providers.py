@@ -284,6 +284,42 @@ class TestX76:
             result = self._provider().fetch_ratings([self.A], 'ffa_auto')
         assert result[self.A]['display'] == '1500'
 
+    def test_rank_label_carries_its_tier_color(self):
+        payload = {
+            self.A: {'sort_score': 1500, 'rank_label': 'Gold III'},
+            self.B: {'sort_score': 1900, 'rank_label': 'platinum IV'},
+        }
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider(display='rank_label').fetch_ratings([self.A, self.B], 'ffa_auto')
+        assert result[self.A]['color'] == 'yellow'
+        assert result[self.B]['color'] == 'cyan'  # tier match ignores case
+
+    @pytest.mark.parametrize('label,color', [
+        ('Nab', 'white'), ('Bronze II', 'yellow'), ('Silver I', 'white'), ('Gold III', 'yellow'),
+        ('Platinum IV', 'cyan'), ('Diamond I', 'blue'), ('Prism', 'magenta'), ('LIGHT', 'green'),
+    ])
+    def test_every_tier_has_a_color(self, label, color):
+        payload = {self.A: {'sort_score': 1500, 'rank_label': label}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider(display='rank_label').fetch_ratings([self.A], 'ffa_auto')
+        assert result[self.A]['color'] == color
+
+    def test_no_color_without_a_recognised_tier_label(self):
+        payload = {
+            self.A: {'sort_score': 1500, 'rank_label': 'Goldfish'},  # not the Gold tier
+            self.B: {'sort_score': 1400, 'rank_label': '  '},        # falls back to the number
+        }
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider(display='rank_label').fetch_ratings([self.A, self.B], 'ffa_auto')
+        assert result[self.A]['color'] is None
+        assert result[self.B]['color'] is None
+
+    def test_no_color_when_showing_the_score(self):
+        payload = {self.A: {'sort_score': 1500, 'rank_label': 'Gold III'}}
+        with patch('providers.elo_service.requests.get', return_value=_resp(json_data=payload)):
+            result = self._provider().fetch_ratings([self.A], 'ffa_auto')
+        assert result[self.A]['color'] is None
+
     def test_404_means_no_ratings(self):
         with patch('providers.elo_service.requests.get', return_value=_resp(status_code=404)):
             assert self._provider().fetch_ratings([self.A], 'ffa_auto') == {}

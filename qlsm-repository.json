@@ -108,7 +108,7 @@
     {
       "id": "player-ranks",
       "zip": "packages/player-ranks.zip",
-      "sha256": "b155f43b2f47c4685aa92c39ba17ee1ba5e6c1c67e6f98f33288b60a2edbc19d",
+      "sha256": "8f88ff1938c27dbea33b1d6b022ad5e4b0855f62916950241df00b0d914bf764",
       "version": "0.3.0",
       "label": "Player Ranks",
       "description": "Shows each connected player's external rating in Live Status. Pick the sources per instance on its Ranks tab: qlstats, Slipgate and x76. qlstats and Slipgate connection details are set once for the installation; x76 is configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer."
