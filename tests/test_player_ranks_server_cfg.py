@@ -89,3 +89,19 @@ def test_no_recognised_cvars_means_no_suggestion(tmp_path, monkeypatch):
     instance = _instance('germany', 42)
 
     assert suggest_from_server_cfg(instance) == {}
+
+
+def test_trailing_comment_with_quotes_is_not_part_of_the_value(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    cfg_dir = tmp_path / 'configs' / 'germany' / '42'
+    cfg_dir.mkdir(parents=True)
+    (cfg_dir / 'server.cfg').write_text(
+        'set qlx_rankedServiceUrl "http://localhost:5002" // elo-service\n'
+        'set qlx_rankedPool "ffa_auto"   // or "ranked_duel"\n',
+        encoding='utf-8',
+    )
+
+    result = suggest_from_server_cfg(_instance('germany', 42))
+
+    assert result['elo_service_base_url'] == 'http://localhost:5002'
+    assert result['elo_service_game_type'] == 'ffa_auto'
