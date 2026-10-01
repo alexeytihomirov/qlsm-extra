@@ -462,6 +462,26 @@ def test_ranks_survives_provider_exception(client, auth, instance_id, host_id, f
     assert resp.get_json() == {'data': {}, 'configured': True}
 
 
+def test_provider_failure_is_cached_with_the_short_ttl(client, auth, instance_id, host_id, fake_redis):
+    import requests
+
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    set_global(client, auth, qlstats_enabled=True)
+
+    class FailingProvider(StubProvider):
+        def fetch_ratings(self, steam_ids, game_type):
+            raise requests.ConnectionError('down')
+
+    registry = {'qlstats': {'label': 'qlstats', 'factory': FailingProvider, 'requires_api_key': False}}
+    with patch('qlsm_addon_player_ranks.ranks_service.build_registry', return_value=registry):
+        resp = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
+                          query_string={'steam_ids': STEAM_A}, headers=auth)
+
+    assert resp.get_json() == {'data': {}, 'configured': True}
+    rank_ttls = [ttl for key, ttl in fake_redis.ttls.items() if key.startswith('addon:player-ranks:')]
+    assert rank_ttls == [15]
+
+
 # ---- /ranks (combined, every source in one request) ----------------------
 
 def test_ranks_all_requires_auth(client, instance_id):

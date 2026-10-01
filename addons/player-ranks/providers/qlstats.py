@@ -38,14 +38,15 @@ class QlstatsProvider(RankProvider):
         if not steam_ids or not game_type:
             return {}
         ids_path = '+'.join(steam_ids)
-        try:
-            resp = requests.get(
-                f'{self.base_url}/{self.rating_system}/{ids_path}',
-                timeout=PROVIDER_TIMEOUT_SEC,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-        except (requests.RequestException, ValueError):
+        # No try/except: a failed call must escape so ranks_service logs it
+        # and caches the empty answer for TTL_NEGATIVE, not TTL_SUCCESS.
+        resp = requests.get(
+            f'{self.base_url}/{self.rating_system}/{ids_path}',
+            timeout=PROVIDER_TIMEOUT_SEC,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if not isinstance(data, dict):
             return {}
 
         wanted = set(steam_ids)

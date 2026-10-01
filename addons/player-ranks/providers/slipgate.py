@@ -62,27 +62,21 @@ class SlipgateProvider(RankProvider):
         return self._fetch_public(steam_ids, game_type)
 
     def _fetch_bulk(self, steam_ids, game_type):
-        try:
-            resp = requests.post(
-                f'{self.base_url}/api/v1/ratings/bulk',
-                json={'steam_ids': steam_ids, 'game_type': game_type},
-                headers={'Authorization': f'Bearer {self.api_key}'},
-                timeout=PROVIDER_TIMEOUT_SEC,
-            )
-        except requests.RequestException:
-            return {}
+        # No try/except around the call: see qlstats.py -- a failure must
+        # escape to ranks_service to be logged and negatively cached.
+        resp = requests.post(
+            f'{self.base_url}/api/v1/ratings/bulk',
+            json={'steam_ids': steam_ids, 'game_type': game_type},
+            headers={'Authorization': f'Bearer {self.api_key}'},
+            timeout=PROVIDER_TIMEOUT_SEC,
+        )
         if resp.status_code == 429:
             raise RateLimited(_retry_after_seconds(resp))
-        try:
-            resp.raise_for_status()
-            body = resp.json()
-        except (requests.RequestException, ValueError):
-            return {}
+        resp.raise_for_status()
+        body = resp.json()
         # Live response is {"ok", "game_type", "rating_set", "players": [...]},
         # not a bare list -- confirmed against the current openapi.json
-        # (BulkRatingsOut), which is stricter than the bare-list shape this
-        # adapter's comment at the top of the file was originally verified
-        # against on 2026-09-22.
+        # (BulkRatingsOut). A bare list is still accepted.
         items = body.get('players') if isinstance(body, dict) else body
         if not isinstance(items, list):
             return {}
@@ -102,22 +96,19 @@ class SlipgateProvider(RankProvider):
     def _fetch_public(self, steam_ids, game_type):
         out = {}
         for steam_id in steam_ids:
-            try:
-                resp = requests.get(
-                    f'{self.base_url}/api/v1/players/{steam_id}/ratings/{game_type}',
-                    timeout=PROVIDER_TIMEOUT_SEC,
-                )
-            except requests.RequestException:
-                continue
+            # A connection error or timeout escapes on the first player: if
+            # the service is unreachable, the rest of the roster would each
+            # wait out the same timeout while a web worker is held.
+            resp = requests.get(
+                f'{self.base_url}/api/v1/players/{steam_id}/ratings/{game_type}',
+                timeout=PROVIDER_TIMEOUT_SEC,
+            )
             if resp.status_code == 429:
                 raise RateLimited(_retry_after_seconds(resp))
             if resp.status_code == 404:
                 continue
-            try:
-                resp.raise_for_status()
-                data = resp.json()
-            except (requests.RequestException, ValueError):
-                continue
+            resp.raise_for_status()
+            data = resp.json()
             if not isinstance(data, dict) or data.get('display') is None:
                 continue
             out[str(steam_id)] = _result(data)

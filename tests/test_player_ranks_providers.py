@@ -65,11 +65,19 @@ class TestQlstats:
         p = QlstatsProvider()
         assert p.fetch_ratings(['76561197993968023'], None) == {}
 
-    def test_network_failure_returns_empty(self):
+    def test_network_failure_raises(self):
         import requests
         p = QlstatsProvider()
         with patch('providers.qlstats.requests.get', side_effect=requests.ConnectionError()):
-            assert p.fetch_ratings(['76561197993968023'], 'duel') == {}
+            with pytest.raises(requests.ConnectionError):
+                p.fetch_ratings(['76561197993968023'], 'duel')
+
+    def test_http_error_raises(self):
+        import requests
+        p = QlstatsProvider()
+        with patch('providers.qlstats.requests.get', return_value=_resp(status_code=500)):
+            with pytest.raises(requests.HTTPError):
+                p.fetch_ratings(['76561197993968023'], 'duel')
 
     def test_rating_system_defaults_to_elo_and_is_used_in_url(self):
         p = QlstatsProvider(base_url='http://qlstats.example')
@@ -87,6 +95,31 @@ class TestQlstats:
 # ---- slipgate --------------------------------------------------------
 
 class TestSlipgate:
+    def test_bulk_network_failure_raises(self):
+        import requests
+        p = SlipgateProvider(base_url='http://sg.example', api_key='sg_test')
+        with patch('providers.slipgate.requests.post', side_effect=requests.ConnectionError()):
+            with pytest.raises(requests.ConnectionError):
+                p.fetch_ratings(['76561197993968023'], 'duel')
+
+    def test_public_loop_stops_on_first_timeout(self):
+        import requests
+        p = SlipgateProvider(base_url='http://sg.example')
+        ids = ['76561197993968023', '76561197960287930', '76561197960287931']
+        with patch('providers.slipgate.requests.get', side_effect=requests.Timeout()) as mock_get:
+            with pytest.raises(requests.Timeout):
+                p.fetch_ratings(ids, 'duel')
+        assert mock_get.call_count == 1
+
+    def test_public_404_does_not_stop_the_loop(self):
+        p = SlipgateProvider(base_url='http://sg.example')
+        found = _resp(json_data={'display': 1650, 'tier_name': 'Gold', 'mu': 18.0})
+        with patch('providers.slipgate.requests.get',
+                   side_effect=[_resp(status_code=404), found]) as mock_get:
+            result = p.fetch_ratings(['76561197993968023', '76561197960287930'], 'duel')
+        assert mock_get.call_count == 2
+        assert list(result) == ['76561197960287930']
+
     def test_gametype_aliases(self):
         p = SlipgateProvider()
         assert p.map_game_type('har') == 'harvester'
