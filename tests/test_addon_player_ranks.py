@@ -281,6 +281,38 @@ def test_saved_config_with_everything_off_is_no_longer_suggested(
     assert loaded['suggested'] is False
 
 
+def test_unsaved_config_shows_the_global_defaults_as_ticked(client, auth, instance_id):
+    set_global(client, auth, qlstats_enabled=True)
+
+    body = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+
+    assert body['qlstats_enabled'] is True
+    assert body['slipgate_enabled'] is False
+    assert body['sources_saved'] is False
+
+
+def test_saved_config_shows_its_own_checkboxes_not_the_global_defaults(client, auth, instance_id):
+    set_global(client, auth, qlstats_enabled=True)
+    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={'qlstats_enabled': False})
+
+    body = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+
+    assert body['qlstats_enabled'] is False
+
+
+def test_config_saved_by_an_older_version_shows_the_global_defaults(client, auth, app, instance_id):
+    from ui.addons import get_addon
+
+    set_global(client, auth, slipgate_enabled=True)
+    with app.app_context():
+        get_addon('player-ranks').ctx.settings.set('instance', instance_id, {'configured': True})
+
+    body = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+
+    assert body['slipgate_enabled'] is True
+    assert body['suggested'] is False
+
+
 # ---- config load/save (global: qlstats + Slipgate) ------------------------
 
 def test_global_sources_default_off(client, auth):

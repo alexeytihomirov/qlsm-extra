@@ -5,17 +5,14 @@ Core knows nothing about ratings -- it only renders whatever columns
 own per-provider route (addons/README.md). Everything about *what* a rating
 is, where it comes from, and how it's cached lives here.
 
-Two sources (qlstats, Slipgate) are installation-wide switches: their
-enabled/base_url/rating_system live in `settings.global` and apply to every
-instance identically, edited from the addon's own Settings-page panel
-(`global_sources`, a plain managed panel -- core's generic /state endpoint
-handles it, no route in this file). The third (Thunderdome elo-service)
-genuinely varies per instance (a different service/pool per
-host is the normal case) and stays on the instance's own 'Ranks' tab, handled
-here: `update_instance_config` validates elo_service_base_url's shape before
-writing, and `get_instance_config` suggests values read from server.cfg the
-first time an instance is opened (server_cfg.py), before the tab has ever
-been saved.
+qlstats and Slipgate keep their connection details in `settings.global`,
+edited from the addon's own Settings-page panel (`global_sources`, a plain
+managed panel -- core's generic /state endpoint handles it, no route in this
+file). Which sources an instance shows is chosen on the instance's own
+'Ranks' tab, handled here: `update_instance_config` validates the x76 fields
+before writing, and `get_instance_config` shows the installation-wide
+defaults until the tab is first saved, and suggests x76 values read from
+server.cfg (server_cfg.py) the first time an instance is opened.
 """
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required
@@ -23,6 +20,7 @@ from flask_jwt_extended import jwt_required
 bp = Blueprint('player_ranks_addon', __name__)
 
 _URL_FIELDS = ('elo_service_base_url',)
+_GLOBAL_SOURCE_FLAGS = ('qlstats_enabled', 'slipgate_enabled')
 
 
 def _instance_or_404(instance_id):
@@ -45,15 +43,23 @@ def get_instance_config(instance_id):
 
     addon = get_addon('player-ranks')
     stored = addon.ctx.settings.get('instance', instance_id)
+    values = dict(stored)
+    if not stored.get('sources_saved'):
+        # Show what is actually in effect: until this tab is saved, qlstats
+        # and Slipgate follow the installation-wide defaults.
+        global_cfg = addon.ctx.settings.get('global', 0)
+        for key in _GLOBAL_SOURCE_FLAGS:
+            values[key] = bool(global_cfg.get(key))
+
     if stored.get('configured'):
-        return jsonify({"data": {**stored, "suggested": False}})
+        return jsonify({"data": {**values, "suggested": False}})
 
     from .server_cfg import suggest_from_server_cfg
 
     suggestion = suggest_from_server_cfg(instance)
     if not suggestion:
-        return jsonify({"data": {**stored, "suggested": False}})
-    return jsonify({"data": {**stored, **suggestion, "suggested": True}})
+        return jsonify({"data": {**values, "suggested": False}})
+    return jsonify({"data": {**values, **suggestion, "suggested": True}})
 
 
 @bp.route('/instances/<int:instance_id>/config', methods=['PUT'], endpoint='update_instance_config')
