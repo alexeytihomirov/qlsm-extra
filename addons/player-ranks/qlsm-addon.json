@@ -1,6 +1,6 @@
 {
   "id": "player-ranks",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "name": "Player Ranks",
   "description": "Shows each connected player's external rating in Live Status. Pick the sources per instance on its Ranks tab: qlstats, Slipgate and x76. qlstats and Slipgate connection details are set once for the installation; x76 is configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer.",
   "scopes": ["global", "instance"],
@@ -36,9 +36,9 @@
       { "key": "elo_service_base_url", "type": "string", "label": "x76: Base URL", "placeholder": "http://your-host:5002" },
       { "key": "elo_service_api_key", "type": "secret", "label": "x76: API key override",
         "description": "Blank falls back to the installation-wide default set on the Addons page." },
-      { "key": "elo_service_game_type", "type": "string", "label": "x76: pool",
+      { "key": "elo_service_game_type", "type": "string", "label": "x76: pool", "default": "ffa_auto",
         "placeholder": "e.g. ffa_auto" },
-      { "key": "elo_service_display", "type": "select", "label": "x76: show", "default": "sort_score",
+      { "key": "elo_service_display", "type": "select", "label": "x76: show", "default": "rank_label",
         "options": [ { "value": "sort_score", "label": "Score (sort_score)" }, { "value": "rank_label", "label": "Rank label" } ] }
     ]
   },
@@ -72,10 +72,10 @@
             "description": "Required when x76 is ticked -- no default." },
           { "key": "elo_service_api_key", "type": "secret", "label": "x76: API key override",
             "description": "Blank uses the installation-wide default from Settings. x76 returns nothing without a key." },
-          { "key": "elo_service_game_type", "type": "string", "label": "x76: pool",
+          { "key": "elo_service_game_type", "type": "string", "label": "x76: pool", "default": "ffa_auto",
             "placeholder": "e.g. ffa_auto",
             "description": "Required when x76 is ticked. The exact pool name the service was configured with." },
-          { "key": "elo_service_display", "type": "select", "label": "x76: show", "default": "sort_score",
+          { "key": "elo_service_display", "type": "select", "label": "x76: show", "default": "rank_label",
             "options": [ { "value": "sort_score", "label": "Score (sort_score)" }, { "value": "rank_label", "label": "Rank label" } ],
             "description": "A player with no rank label yet still shows the score." }
         ]

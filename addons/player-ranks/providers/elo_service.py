@@ -20,7 +20,9 @@ import requests
 from .base import PROVIDER_TIMEOUT_SEC, RankProvider
 
 # extra['display']: which field the Live Status column shows ('sort_score' or 'rank_label').
-DEFAULT_DISPLAY = 'sort_score'
+DEFAULT_DISPLAY = 'rank_label'
+# The pool an instance's Ranks tab starts with (the manifest's default too).
+DEFAULT_POOL = 'ffa_auto'
 
 # A rank label ("Gold III") is shown in its tier's in-game ^N color. The
 # values are names from the fixed palette qlsm's live_status_columns cell
