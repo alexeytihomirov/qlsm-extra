@@ -1,6 +1,6 @@
 {
   "id": "player-ranks",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "name": "Player Ranks",
   "description": "Shows each connected player's external rating in Live Status. Pick the sources per instance on its Ranks tab: qlstats, Slipgate and x76. qlstats and Slipgate connection details are set once for the installation; x76 is configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer.",
   "scopes": ["global", "instance"],
@@ -12,8 +12,8 @@
         "description": "Applies to instances whose Ranks tab has not been saved yet. A saved Ranks tab decides for itself." },
       { "key": "qlstats_base_url", "type": "string", "label": "qlstats: Base URL", "placeholder": "http://qlstats.net",
         "description": "Blank defaults to http://qlstats.net." },
-      { "key": "qlstats_rating_system", "type": "select", "label": "qlstats: rating system", "default": "elo",
-        "options": [ { "value": "elo", "label": "elo" }, { "value": "elo_b", "label": "elo_b" } ] },
+      { "key": "qlstats_rating_system", "type": "string", "label": "qlstats: rating path", "default": "elo", "placeholder": "elo",
+        "description": "The API path ratings are fetched from. Use the same value as qlx_balanceApi on your servers, e.g. elo, elo_b or elo/bn, so Live Status matches !elo. Blank means elo." },
 
       { "key": "slipgate_enabled", "type": "bool", "label": "Slipgate: on by default",
         "description": "Applies to instances whose Ranks tab has not been saved yet. A saved Ranks tab decides for itself." },
