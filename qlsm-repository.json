@@ -122,6 +122,14 @@
       "description": "Deploys the external Node.js qlmatch-packer (+ Node 22 runtime) to every managed host after setup / \"Update Plugins\", and makes demo-management recognise the .qlmatch/.replay.json.gz files it produces (the .packer.log it also writes is deliberately never surfaced there). Cvars (qlx_qlmatchNameTemplate, qlx_qlmatchRcloneTargets) are read straight from an instance's server.cfg -- there is no Plugins-tab UI for them since the plugin that used to own that manifest was retired; set them by hand for now. This addon's own settings only control whether the replay sidecar shows up in the Demos widget."
     },
     {
+      "id": "runtime-source",
+      "zip": "packages/runtime-source.zip",
+      "sha256": "71e7e0693ff312c178431de03d3c73033a21803004e5bec460b360211b1dddd7",
+      "version": "1.0.0",
+      "label": "Runtime Source",
+      "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins. Enable it for a host, enter the repository and a commit, then run Re-run Host Setup. Needs a QLSM whose host setup passes host.setup extra-vars on every provider and reads the minqlxtended_git_repo playbook var."
+    },
+    {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
       "sha256": "788132f09a27f2c7a7e5236984763f3c12956412cda348e9b644a7c5eea9c2a2",

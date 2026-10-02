@@ -1,0 +1,35 @@
+{
+  "id": "runtime-source",
+  "version": "1.0.0",
+  "name": "Runtime Source",
+  "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins. Enable it for a host, enter the repository and a commit, then run Re-run Host Setup. Needs a QLSM whose host setup passes host.setup extra-vars on every provider and reads the minqlxtended_git_repo playbook var.",
+  "scopes": ["global", "host"],
+  "ui_api": 1,
+
+  "settings": {
+    "host": [
+      { "key": "git_repo", "type": "string", "label": "Repository URL",
+        "placeholder": "https://github.com/you/minqlxtended.git",
+        "description": "An https:// git URL without credentials. Must stay plugin-compatible with minqlxtended: the host keeps the minqlxtended plugin pool, paths and presets." },
+      { "key": "git_version", "type": "string", "label": "Commit, tag or branch",
+        "placeholder": "full commit hash recommended",
+        "description": "Pin a commit: a branch builds whatever it holds on the day setup runs. Leave both fields blank to build the commit QLSM pins." }
+    ]
+  },
+
+  "ui": {
+    "icon": "puzzle",
+
+    "host_menu": [
+      { "id": "source", "label": "Runtime Source", "icon": "puzzle", "panel": "host_source" }
+    ],
+
+    "panels": {
+      "host_source": {
+        "kind": "form",
+        "description": "Where this host's minqlxtended is built from. Takes effect on the next Re-run Host Setup, not on save. Ignored on a minqlx host.",
+        "status": { "load": "GET hosts/{host_id}/status" }
+      }
+    }
+  }
+}

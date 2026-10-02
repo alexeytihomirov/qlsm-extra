@@ -106,6 +106,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
 | `demo-stream` | Live POV demo stream screen + cvars |
 | `qlmatch-packer` | Host-side `.qlmatch` packer + Demos grouping hooks |
+| `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enable, enter repository + commit, then **Re-run Host Setup**. Needs a qlsm whose `host.setup` hook fires on every provider and whose `setup_host.yml` reads `minqlxtended_git_repo`. |
 | `player-ranks` | Adds external rating columns to Live Status. qlstats/Slipgate are one installation-wide switch each; Thunderdome elo-service/server-status are per instance. Needs qlsm `ui_api` 4 or newer. |
 
 qlsm's image ships **no** addon — install every one of these from this
