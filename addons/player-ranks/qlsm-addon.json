@@ -1,6 +1,6 @@
 {
   "id": "player-ranks",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "name": "Player Ranks",
   "description": "Shows each connected player's external rating in Live Status. Pick the sources per instance on its Ranks tab: qlstats, Slipgate and x76. qlstats and Slipgate connection details are set once for the installation; x76 is configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer.",
   "scopes": ["global", "instance"],
