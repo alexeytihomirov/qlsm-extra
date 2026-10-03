@@ -92,10 +92,10 @@
     {
       "id": "demo-management",
       "zip": "packages/demo-management.zip",
-      "sha256": "e2bb6a72f42263cfcc9a6ff8b6161b86210f0504830bfb27f16764611eb04bb4",
-      "version": "1.5.1",
+      "sha256": "6be66328ecf633c1ec429f06342fd770b1267b481ef2f67b7337057ef9d53443",
+      "version": "1.6.0",
       "label": "Demos",
-      "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog."
+      "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row labelled with its map, mode, players and length (from the match's {match_id}.meta.json, else the engine's filenames), and filters by date preset, map, mode and pack state. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog."
     },
     {
       "id": "demo-stream",
@@ -116,8 +116,8 @@
     {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "49703033d9b4eb9a5a8c27eb76e2723e331fad7940201b47e72d752eda830fe8",
-      "version": "1.0.2",
+      "sha256": "f82be2871e776c8582a6859fe909d27efc0de9c0b60a70ffa3e7ea85cf4776e8",
+      "version": "1.1.0",
       "label": "Qlmatch Packer",
       "description": "Deploys the external Node.js qlmatch-packer (+ Node 22 runtime) to every managed host after setup / \"Update Plugins\", and makes demo-management recognise the .qlmatch/.replay.json.gz files it produces (the .packer.log it also writes is deliberately never surfaced there). Cvars (qlx_qlmatchNameTemplate, qlx_qlmatchRcloneTargets) are read straight from an instance's server.cfg -- there is no Plugins-tab UI for them since the plugin that used to own that manifest was retired; set them by hand for now. This addon's own settings only control whether the replay sidecar shows up in the Demos widget."
     },

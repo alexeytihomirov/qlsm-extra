@@ -1,5 +1,5 @@
 """Clusters a listing's files into the matches they belong to, from the engine's
-own filenames alone.
+own filenames and the match metas demo_meta.py reads.
 
 This is deliberately NOT the same thing as the demo_management.match_groups
 hook (which another addon implements when it knows how to do something WITH a
@@ -11,36 +11,25 @@ demo_match_id_now / demo_build_pov_name), and a plain sv_demoRecord capture
 that belongs to no match is named "%Y%m%d-%H%M%S_..." instead, which cannot
 collide with it.
 
-So "everything whose name starts with the same match_id token" IS the match,
+So "everything whose name starts with the same match_id token" IS the match
+(plus whatever a match's .meta.json claims by name -- see demo_meta.py),
 and it needs no knowledge of file formats: the per-POV .dm_91 files group with
 each other, and with whatever sidecars another addon contributed to the
 listing, without this module having to know that .qlmatch or .packer.log
 exist. Before this, four POVs of one duel were four unrelated rows.
 """
-import re
-
 ADDON_ID = 'demo-management'
-
-# The match_id token as demo_match.c mints it, anchored at the start of the
-# name: 8 digits, "T", 6 digits, "Z". The separator after it is required so
-# "20260917T174655Z_bloodrun..." matches while a (hypothetical) longer stamp
-# does not half-match.
-_MATCH_ID_RE = re.compile(r'\A(\d{8}T\d{6}Z)[._]')
-
-# A per-POV demo as demo_build_pov_name() writes it:
-# "{match_id}_{map}_p{slot}_{name}_{seg_time}_{seg_id}.dm_91". Only used to
-# recover the map name for the row label - membership is the match_id alone.
-_POV_RE = re.compile(r'\A\d{8}T\d{6}Z_([A-Za-z0-9_-]+?)_p\d+_.*\.dm_91\Z')
-
-
-def _match_id_of(name):
-    found = _MATCH_ID_RE.match(name)
-    return found.group(1) if found else None
 
 
 def build_raw_match_groups(demos, claimed_names):
     """One group per match_id seen in `demos`, minus anything an addon already
     grouped.
+
+    Membership is the `match_id` demo_meta.annotate() put on each file: the
+    engine's "<match_id>_" prefix, or a "{match_id}.meta.json" claiming the
+    file by name - which is how a .qlmatch whose name came from
+    qlx_qlmatchNameTemplate (and so may carry no match id at all) still lands
+    in its match.
 
     `claimed_names` is the set of filenames already covered by a
     demo_management.match_groups contributor. A match with even one claimed
@@ -53,7 +42,7 @@ def build_raw_match_groups(demos, claimed_names):
     """
     by_match = {}
     for demo in demos:
-        match_id = _match_id_of(demo['name'])
+        match_id = demo.get('match_id')
         if match_id:
             by_match.setdefault(match_id, []).append(demo)
 
@@ -66,13 +55,7 @@ def build_raw_match_groups(demos, claimed_names):
         if any(m['name'] in claimed_names for m in members):
             continue
 
-        map_name = ''
-        for member in members:
-            found = _POV_RE.match(member['name'])
-            if found:
-                map_name = found.group(1)
-                break
-
+        map_name = next((m['map'] for m in members if m.get('map')), '')
         groups.append({
             'group_id': match_id,
             'label': f'{map_name} — {match_id}' if map_name else match_id,

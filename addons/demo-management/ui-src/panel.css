@@ -225,3 +225,62 @@
  * QLSM's index.css too -- the magnifier is positioned entirely by the
  * Tailwind classes next to it -- and inventing a rule here would change how
  * the filter row looks rather than preserve it. Kept as a hook for later. */
+
+/* ---------------------------------------------------------------------------
+ * Match rows: kind badges, the date-preset switch, day headers.
+ * -------------------------------------------------------------------------*/
+.demos-addon-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  font-family: 'Share Tech Mono', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--surface-border-strong);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.demos-addon-badge-primary { color: var(--accent-primary); border-color: var(--accent-primary); }
+.demos-addon-badge-info { color: var(--accent-info); border-color: var(--accent-info); }
+.demos-addon-badge-warning { color: var(--accent-warning); border-color: var(--accent-warning); }
+
+.demos-addon-segmented {
+  display: inline-flex;
+  border: 1px solid var(--surface-border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.demos-addon-segmented button {
+  padding: 5px 10px;
+  font-family: 'Rajdhani', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  background: var(--surface-base);
+  border: none;
+  border-left: 1px solid var(--surface-border);
+  cursor: pointer;
+}
+
+.demos-addon-segmented button:first-child { border-left: none; }
+.demos-addon-segmented button:hover { color: var(--text-primary); }
+
+.demos-addon-segmented button.is-active {
+  color: var(--accent-primary);
+  background: var(--surface-elevated);
+  box-shadow: inset 0 -2px 0 var(--accent-primary);
+}
+
+.demos-addon-thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  /* The modal panel's own surface, so rows scroll under an opaque header. */
+  background: var(--surface-overlay);
+}
+
+.demos-addon-day-row td { border-bottom: 1px solid var(--surface-border-strong); }

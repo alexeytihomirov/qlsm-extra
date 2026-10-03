@@ -68,6 +68,24 @@ filename template differs, or `!restore match` will not find it.
 (`MATCH_REPLAY_GENERATOR_VERSION` in `vendor/qldemo/match-to-replay.js`) so
 stale sidecars can be detected and regenerated after upgrades.
 
+
+## Match meta
+
+After the pack, `pack.mjs` also writes `{match_id}.meta.json` into the demo
+dir (always the demo dir, even with `--out-dir`): map, gametype, length,
+roster with teams, which `.dm_91` files are this match's POVs and which
+`.qlmatch` is its pack. demo-management's Demos screen reads it to label the
+match and to tie a pack to its match when `qlx_qlmatchNameTemplate` gave it a
+name without the match id in front. It is named after the match id, never
+the template, and written to `.{match_id}.meta.json.part` then renamed, so a
+reader never sees half a file and a full rebuild simply replaces it.
+
+It only labels files - the directory listing still decides what exists, so
+deleting a match's files (`rm <demo_dir>/<match_id>*`) takes the meta with
+it, and a leftover meta whose files are gone is ignored. A failure to write
+it is logged and never fails the pack; packs from before this file existed
+are labelled from their `manifest.json` (read once, then cached in Redis).
+Format: demo-management's `demo_meta.py`.
 ## Filename template placeholders
 
 Every substitution is stripped of QL color codes and sanitized to

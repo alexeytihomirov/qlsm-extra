@@ -3,6 +3,11 @@ import {
     X, RefreshCw, Film, AlertCircle, FolderOpen, Download, Search, ChevronRight, ChevronDown,
 } from './icons';
 import { fillPath, parseRoute } from './panelRoute';
+import {
+    DATE_PRESETS, KIND_FILTERS, SORTS,
+    buildRows, filterRows, sortRows, facets, packingInUse, playersLabel, dayKey,
+    formatBytes, formatDuration, formatTime, formatFull, formatDayLabel, formatAgo,
+} from './demoRows';
 
 // Modal chrome is core's, read off the runtime kit rather than imported:
 // this file is built into a standalone bundle that ships with the addon and
@@ -20,26 +25,10 @@ const { Modal } = ui;
  * remote QLDS instance. Ground truth is the demos/ directory on disk
  * (fs_homepath/sv_demoDir) fetched directly over SFTP, so the result
  * reflects what the engine actually wrote, not what a plugin or cvar
- * claims.
+ * claims. Each match comes back as one row labelled from its
+ * "{match_id}.meta.json" (map, mode, players, length) or, failing that,
+ * from the engine's own filenames.
  */
-
-function formatBytes(bytes) {
-    if (!Number.isFinite(bytes)) return '—';
-    if (bytes < 1024) return `${bytes} B`;
-    const units = ['KB', 'MB', 'GB'];
-    let value = bytes / 1024;
-    let unitIndex = 0;
-    while (value >= 1024 && unitIndex < units.length - 1) {
-        value /= 1024;
-        unitIndex += 1;
-    }
-    return `${value.toFixed(1)} ${units[unitIndex]}`;
-}
-
-function formatMtime(mtime) {
-    if (!Number.isFinite(mtime)) return '—';
-    return new Date(mtime * 1000).toLocaleString();
-}
 
 function triggerBlobDownload(blob, filename) {
     const url = window.URL.createObjectURL(blob);
@@ -54,22 +43,75 @@ function triggerBlobDownload(blob, filename) {
 
 const PAGE_SIZE = 50;
 
+// The last listing per instance, kept for this page's lifetime: reopening
+// the screen shows it at once and refreshes behind it, instead of a spinner
+// for however long the remote listing takes.
+const listingCache = new Map();
+
+// Filters survive closing the screen (per browser, not per instance - "only
+// this week's duels" is how an operator looks at every server).
+const FILTERS_KEY = 'qlsm.demo-management.filters.v1';
+const DEFAULT_FILTERS = {
+    text: '', datePreset: 'all', dateFrom: '', dateTo: '', map: '', gametype: '', kind: 'all', sort: 'newest',
+};
+
+function loadFilters() {
+    try {
+        const saved = JSON.parse(window.localStorage.getItem(FILTERS_KEY) || '{}');
+        return { ...DEFAULT_FILTERS, ...saved, text: '' };
+    } catch {
+        return { ...DEFAULT_FILTERS };
+    }
+}
+
+function saveFilters(filters) {
+    try {
+        const { text, ...rest } = filters;
+        window.localStorage.setItem(FILTERS_KEY, JSON.stringify(rest));
+    } catch {
+        // Private window / blocked storage: filters just don't persist.
+    }
+}
+
+const nowSeconds = () => Date.now() / 1000;
+
+const inputClass = 'py-1.5 px-2 text-sm font-mono rounded-md bg-theme-base border border-theme-strong '
+    + 'text-theme-primary focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]';
+const iconButtonClass = 'p-1.5 rounded-md text-theme-muted hover:text-theme-primary hover:bg-black/[0.04] '
+    + 'dark:hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed';
+
+function Badge({ children, tone = 'muted', title }) {
+    return <span className={`demos-addon-badge demos-addon-badge-${tone}`} title={title}>{children}</span>;
+}
+
+function KindBadges({ kinds, packing }) {
+    return (
+        <>
+            {kinds.pov > 0 && <Badge title="Per-player .dm_91 demos">{kinds.pov} POV</Badge>}
+            {kinds.pack > 0 && <Badge tone="primary" title=".qlmatch pack">pack</Badge>}
+            {kinds.replay > 0 && <Badge tone="info" title="Merged .replay.json.gz">replay</Badge>}
+            {packing && kinds.pov > 0 && kinds.pack === 0 && (
+                <Badge tone="warning" title="Raw POVs without a .qlmatch pack - packing may have failed">not packed</Badge>
+            )}
+        </>
+    );
+}
+
 function ViewDemosModal({ isOpen, onClose, instance, api }) {
     const [demos, setDemos] = React.useState([]);
-    // Match groups (e.g. a .qlmatch pack + its replay sidecar) contributed
-    // by another addon via the demo_management.match_groups
-    // hook -- see ui/addons/hooks.py. Empty when no such addon is enabled;
-    // this component never assumes it exists.
+    // Match groups: demo-management's own (clustered by match id) plus any
+    // another addon contributed via the demo_management.match_groups hook
+    // (e.g. qlmatch-packer, with its rebuild actions) -- see
+    // ui/addons/hooks.py. Each carries an `info` the backend assembled.
     const [matches, setMatches] = React.useState([]);
+    const [fetchedAt, setFetchedAt] = React.useState(null);
+    const [timing, setTiming] = React.useState(null);
     const [isLoading, setIsLoading] = React.useState(false);
+    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [error, setError] = React.useState(null);
-    // Space-separated terms, ANDed together -- lets "dm17 alex" match a
-    // filename that encodes both a map and a match/player name without a
-    // second dedicated field (demo entries carry no separate `map` field).
-    const [filterText, setFilterText] = React.useState('');
-    const [dateFrom, setDateFrom] = React.useState('');
-    const [dateTo, setDateTo] = React.useState('');
+    const [filters, setFilters] = React.useState(loadFilters);
     const [page, setPage] = React.useState(1);
+    const [now, setNow] = React.useState(nowSeconds);
     const [selected, setSelected] = React.useState(() => new Set());
     const [downloadingNames, setDownloadingNames] = React.useState(() => new Set());
     const [isBatchDownloading, setIsBatchDownloading] = React.useState(false);
@@ -81,36 +123,56 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
     const [busyGroupActionKey, setBusyGroupActionKey] = React.useState(null);
     const [groupActionError, setGroupActionError] = React.useState(null);
 
+    const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
+    React.useEffect(() => saveFilters(filters), [filters]);
+
+    const applyListing = (data) => {
+        setDemos(data.demos || []);
+        setMatches(Array.isArray(data.matches) ? data.matches : []);
+        setFetchedAt(data.fetched_at || nowSeconds());
+        setTiming(data.timing_ms || null);
+    };
+
     const fetchDemos = React.useCallback(async () => {
         if (!instance?.id) return;
+        const cached = listingCache.get(instance.id);
 
-        setIsLoading(true);
+        // With something already on screen, refresh behind it rather than
+        // blanking the table for the length of a remote listing.
+        if (cached) setIsRefreshing(true);
+        else setIsLoading(true);
         setError(null);
 
         try {
             const data = await api.list(instance.id);
-            setDemos(data.demos || []);
-            setMatches(Array.isArray(data.matches) ? data.matches : []);
+            listingCache.set(instance.id, data);
+            applyListing(data);
         } catch (err) {
             console.error('Error listing demos:', err);
             setError(err?.message || err?.error?.message || 'Failed to list demos from the remote server.');
-            setDemos([]);
-            setMatches([]);
+            if (!cached) {
+                setDemos([]);
+                setMatches([]);
+            }
         } finally {
             setIsLoading(false);
+            setIsRefreshing(false);
+            setNow(nowSeconds());
         }
     }, [instance?.id]);
 
     React.useEffect(() => {
         if (isOpen && instance?.id) {
+            const cached = listingCache.get(instance.id);
+            if (cached) applyListing(cached);
             fetchDemos();
         } else {
             setDemos([]);
             setMatches([]);
+            setFetchedAt(null);
+            setTiming(null);
             setError(null);
-            setFilterText('');
-            setDateFrom('');
-            setDateTo('');
+            setFilters((prev) => ({ ...prev, text: '' }));
             setPage(1);
             setSelected(new Set());
             setDownloadingNames(new Set());
@@ -121,102 +183,30 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
         }
     }, [isOpen, instance?.id, fetchDemos]);
 
-    const filterTerms = React.useMemo(
-        () => filterText.trim().toLowerCase().split(/\s+/).filter(Boolean),
-        [filterText],
-    );
-    const matchesTerms = React.useCallback(
-        (name) => {
-            const lower = name.toLowerCase();
-            return filterTerms.every((term) => lower.includes(term));
-        },
-        [filterTerms],
-    );
-
-    // dateTo is inclusive of the whole day it names, so a demo recorded at
-    // 23:59 on the end date still matches.
-    const dateFromTs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() / 1000 : null;
-    const dateToTs = dateTo ? new Date(`${dateTo}T00:00:00`).getTime() / 1000 + 86400 : null;
-    const matchesDateRange = React.useCallback(
-        (mtime) => (dateFromTs === null || mtime >= dateFromTs) && (dateToTs === null || mtime < dateToTs),
-        [dateFromTs, dateToTs],
-    );
-
-    const filteredDemos = React.useMemo(
-        () => demos.filter((d) => matchesTerms(d.name) && matchesDateRange(d.mtime || 0)),
-        [demos, matchesTerms, matchesDateRange],
-    );
-
-    // Drop any selected filenames that no longer exist after a refresh/filter
-    // change, so "Download selected (N)" never counts a stale name.
+    // Keeps "updated 3 min ago" and the Today/Yesterday headers honest while
+    // the screen stays open.
     React.useEffect(() => {
-        const visible = new Set(filteredDemos.map((d) => d.name));
-        setSelected((prev) => {
-            const next = new Set([...prev].filter((name) => visible.has(name)));
-            return next.size === prev.size ? prev : next;
-        });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [demos]);
+        if (!isOpen) return undefined;
+        const timer = window.setInterval(() => setNow(nowSeconds()), 30000);
+        return () => window.clearInterval(timer);
+    }, [isOpen]);
 
-    const allFilteredSelected = filteredDemos.length > 0
-        && filteredDemos.every((d) => selected.has(d.name));
+    const allRows = React.useMemo(() => buildRows(demos, matches), [demos, matches]);
+    const facetValues = React.useMemo(() => facets(allRows), [allRows]);
+    const packing = React.useMemo(() => packingInUse(allRows), [allRows]);
+    const displayRows = React.useMemo(
+        () => sortRows(filterRows(allRows, filters, now), filters.sort),
+        [allRows, filters, now],
+    );
 
-    const toggleSelectAll = () => {
-        setSelected((prev) => {
-            if (allFilteredSelected) {
-                const next = new Set(prev);
-                filteredDemos.forEach((d) => next.delete(d.name));
-                return next;
-            }
-            const next = new Set(prev);
-            filteredDemos.forEach((d) => next.add(d.name));
-            return next;
+    const totals = React.useMemo(() => {
+        const sum = (rows) => ({
+            matches: rows.filter((r) => r.type === 'group').length,
+            files: rows.reduce((n, r) => n + r.members.length, 0),
+            size: rows.reduce((n, r) => n + r.size, 0),
         });
-    };
-
-    const toggleSelectOne = (name) => {
-        setSelected((prev) => {
-            const next = new Set(prev);
-            if (next.has(name)) next.delete(name);
-            else next.add(name);
-            return next;
-        });
-    };
-
-    // Rows to render: a group's own files clustered under one header (with
-    // whatever the contributing addon offered as actions), everything else
-    // as a plain standalone row -- same shape the flat list always had.
-    // Grouping and filtering both key off `demos`, not `filteredDemos`: a
-    // group is shown if ANY of its member filenames matches the filter, so
-    // typing part of a match id does not split its pack from its sidecar.
-    //
-    // Groups and standalone files are then sorted together, newest first, by
-    // the newest file each row holds. Listing every group ahead of every loose
-    // file (which is what building the two lists back to back used to do) put
-    // last week's packed match above this evening's recording.
-    const displayRows = React.useMemo(() => {
-        const demoByName = new Map(demos.map((d) => [d.name, d]));
-        const grouped = new Set();
-        matches.forEach((m) => (m.member_names || []).forEach((n) => grouped.add(n)));
-
-        const rows = [];
-        matches.forEach((group) => {
-            const members = (group.member_names || [])
-                .map((name) => demoByName.get(name))
-                .filter(Boolean);
-            if (!members.length) return;
-            if (!members.some((d) => matchesTerms(d.name) && matchesDateRange(d.mtime || 0))) return;
-            members.sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
-            rows.push({ type: 'group', group, members, mtime: members[0].mtime || 0 });
-        });
-        demos.forEach((demo) => {
-            if (grouped.has(demo.name)) return;
-            if (!matchesTerms(demo.name) || !matchesDateRange(demo.mtime || 0)) return;
-            rows.push({ type: 'demo', demo, mtime: demo.mtime || 0 });
-        });
-        rows.sort((a, b) => b.mtime - a.mtime);
-        return rows;
-    }, [demos, matches, matchesTerms, matchesDateRange]);
+        return { all: sum(allRows), shown: sum(displayRows) };
+    }, [allRows, displayRows]);
 
     const totalPages = Math.max(1, Math.ceil(displayRows.length / PAGE_SIZE));
     const pagedRows = React.useMemo(
@@ -231,21 +221,50 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
     }, [totalPages]);
     React.useEffect(() => {
         setPage(1);
-    }, [filterTerms, dateFromTs, dateToTs]);
+    }, [filters]);
 
+    // Selection follows what is visible: drop files and groups a refresh or
+    // a filter change hid, so "Download selected (N)" never counts a stale
+    // name.
+    const visibleNames = React.useMemo(
+        () => new Set(displayRows.flatMap((r) => r.members.map((d) => d.name))),
+        [displayRows],
+    );
     const visibleGroupIds = React.useMemo(
         () => new Set(displayRows.filter((r) => r.type === 'group').map((r) => r.group.group_id)),
         [displayRows],
     );
-
-    // Drop any selected group id no longer visible after a refresh/filter
-    // change, mirroring the equivalent effect for file selection above.
     React.useEffect(() => {
+        setSelected((prev) => {
+            const next = new Set([...prev].filter((name) => visibleNames.has(name)));
+            return next.size === prev.size ? prev : next;
+        });
         setSelectedGroupIds((prev) => {
             const next = new Set([...prev].filter((id) => visibleGroupIds.has(id)));
             return next.size === prev.size ? prev : next;
         });
-    }, [visibleGroupIds]);
+    }, [visibleNames, visibleGroupIds]);
+
+    const allVisibleSelected = visibleNames.size > 0 && [...visibleNames].every((n) => selected.has(n));
+
+    const toggleSelectAll = () => {
+        if (allVisibleSelected) {
+            setSelected(new Set());
+            setSelectedGroupIds(new Set());
+        } else {
+            setSelected(new Set(visibleNames));
+            setSelectedGroupIds(new Set(visibleGroupIds));
+        }
+    };
+
+    const toggleSelectOne = (name) => {
+        setSelected((prev) => {
+            const next = new Set(prev);
+            if (next.has(name)) next.delete(name);
+            else next.add(name);
+            return next;
+        });
+    };
 
     // Bulk buttons: one per action `id` shared by every currently-selected
     // group that offers a `bulk` route for it (e.g. "Rebuild sidecar" on 3
@@ -372,6 +391,199 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
         }
     };
 
+    const filtersActive = filters.text || filters.datePreset !== 'all' || filters.map
+        || filters.gametype || filters.kind !== 'all';
+    const resetFilters = () => setFilters((prev) => ({ ...DEFAULT_FILTERS, sort: prev.sort }));
+    const showDayHeaders = filters.sort === 'newest' || filters.sort === 'oldest';
+    const hasData = demos.length > 0;
+    const listingSeconds = timing && Number.isFinite(timing.total_ms)
+        ? ((timing.total_ms + (timing.hooks_ms || 0)) / 1000).toFixed(1)
+        : null;
+
+    const downloadButton = (name) => (
+        <button
+            onClick={() => downloadOne(name)}
+            disabled={downloadingNames.has(name)}
+            title={`Download ${name}`}
+            aria-label={`Download ${name}`}
+            className={iconButtonClass}
+        >
+            <Download className={`h-4 w-4 ${downloadingNames.has(name) ? 'animate-pulse' : ''}`} strokeWidth={2} />
+        </button>
+    );
+
+    const renderWhen = (row) => (
+        <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap" title={formatFull(row.when)}>
+            {showDayHeaders ? formatTime(row.when) : `${formatDayLabel(row.when, now)}, ${formatTime(row.when)}`}
+        </td>
+    );
+
+    const renderFileRow = (demo, nested) => (
+        <tr key={demo.name} className="border-b border-theme/50 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+            <td className="py-2 pr-2">
+                <input
+                    type="checkbox"
+                    checked={selected.has(demo.name)}
+                    onChange={() => toggleSelectOne(demo.name)}
+                    aria-label={`Select ${demo.name}`}
+                />
+            </td>
+            <td className={`py-2 pr-4 font-mono break-all ${nested ? 'pl-6 text-xs text-theme-secondary' : 'text-theme-primary'}`}>
+                <div>{demo.name}</div>
+                {nested && demo.pov?.player && (
+                    <div className="text-theme-muted">
+                        {demo.pov.slot !== null && demo.pov.slot !== undefined ? `slot ${demo.pov.slot} · ` : ''}
+                        {demo.pov.player}
+                    </div>
+                )}
+            </td>
+            <td className="py-2 pr-4" />
+            <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap">{formatBytes(demo.size)}</td>
+            <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap" title={formatFull(demo.mtime)}>
+                {nested ? formatTime(demo.mtime) : ''}
+            </td>
+            <td className="py-2 pr-2">{downloadButton(demo.name)}</td>
+        </tr>
+    );
+
+    const renderLooseRow = (row) => {
+        const { demo, info } = row;
+        return (
+            <tr key={row.key} className="border-b border-theme/50 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+                <td className="py-2 pr-2">
+                    <input
+                        type="checkbox"
+                        checked={selected.has(demo.name)}
+                        onChange={() => toggleSelectOne(demo.name)}
+                        aria-label={`Select ${demo.name}`}
+                    />
+                </td>
+                <td className="py-2 pr-4">
+                    <div className="font-mono text-theme-primary break-all">{demo.name}</div>
+                    {(info.map || demo.pov?.player) && (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-theme-muted">
+                            {info.map && <span className="text-theme-secondary">{info.map}</span>}
+                            {demo.pov?.player && <span>· {demo.pov.player}</span>}
+                            <KindBadges kinds={row.kinds} packing={false} />
+                        </div>
+                    )}
+                </td>
+                <td className="py-2 pr-4" />
+                <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap">{formatBytes(demo.size)}</td>
+                {renderWhen(row)}
+                <td className="py-2 pr-2">{downloadButton(demo.name)}</td>
+            </tr>
+        );
+    };
+
+    const renderGroupRow = (row) => {
+        const { group, members, info } = row;
+        const isExpanded = expandedGroupIds.has(group.group_id);
+        const players = playersLabel(info);
+        return (
+            <React.Fragment key={row.key}>
+                <tr className="border-b border-theme/50 bg-black/[0.02] dark:bg-white/[0.03]">
+                    <td className="py-2 pr-2 align-top">
+                        <input
+                            type="checkbox"
+                            checked={selectedGroupIds.has(group.group_id)}
+                            onChange={() => toggleSelectGroup(row)}
+                            aria-label={`Select match ${group.label}`}
+                        />
+                    </td>
+                    <td className="py-2 pr-4">
+                        <button
+                            onClick={() => toggleExpandGroup(group.group_id)}
+                            aria-expanded={isExpanded}
+                            title={isExpanded ? 'Hide the files in this match' : 'Show the files in this match'}
+                            className="flex items-start gap-1.5 text-left hover:text-[var(--accent-primary)]"
+                        >
+                            {isExpanded
+                                ? <ChevronDown className="mt-0.5 h-4 w-4 flex-shrink-0" strokeWidth={2} />
+                                : <ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0" strokeWidth={2} />}
+                            <span className="min-w-0">
+                                <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                    <span className="font-display text-base font-bold text-theme-primary">
+                                        {info.map || group.label}
+                                    </span>
+                                    {info.gametype && <Badge tone="primary">{info.gametype}</Badge>}
+                                    {players && <span className="text-sm text-theme-secondary">{players}</span>}
+                                </span>
+                                <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-theme-muted">
+                                    <span className="font-mono">{info.match_id || group.group_id}</span>
+                                    <span>·</span>
+                                    <span>{members.length} file{members.length === 1 ? '' : 's'}</span>
+                                    <KindBadges kinds={row.kinds} packing={packing} />
+                                </span>
+                            </span>
+                        </button>
+                    </td>
+                    <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap">
+                        {formatDuration(info.duration_ms)}
+                    </td>
+                    <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap">{formatBytes(row.size)}</td>
+                    {renderWhen(row)}
+                    <td className="py-2 pr-2">
+                        <div className="flex items-center gap-1">
+                            {(group.actions || []).map((action) => {
+                                const busyKey = `${action.id}:${group.group_id}`;
+                                return (
+                                    <button
+                                        key={action.id}
+                                        onClick={() => runGroupAction(group, action)}
+                                        disabled={busyGroupActionKey !== null}
+                                        title={action.label}
+                                        aria-label={`${action.label} for ${group.label}`}
+                                        className={iconButtonClass}
+                                        style={action.danger ? { color: 'var(--accent-danger)' } : undefined}
+                                    >
+                                        <RefreshCw
+                                            className={`h-4 w-4 ${busyGroupActionKey === busyKey ? 'animate-spin' : ''}`}
+                                            strokeWidth={2}
+                                        />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </td>
+                </tr>
+                {isExpanded && members.map((demo) => renderFileRow(demo, true))}
+            </React.Fragment>
+        );
+    };
+
+    const renderRows = () => {
+        const out = [];
+        let lastDay = null;
+        pagedRows.forEach((row) => {
+            if (showDayHeaders) {
+                const day = dayKey(row.when);
+                if (day !== lastDay) {
+                    lastDay = day;
+                    const sameDay = displayRows.filter((r) => dayKey(r.when) === day);
+                    const dayMatches = sameDay.filter((r) => r.type === 'group').length;
+                    const dayLoose = sameDay.length - dayMatches;
+                    const daySummary = [
+                        dayMatches > 0 ? `${dayMatches} match${dayMatches === 1 ? '' : 'es'}` : null,
+                        dayLoose > 0 ? `${dayLoose} file${dayLoose === 1 ? '' : 's'}` : null,
+                    ].filter(Boolean).join(' · ');
+                    out.push(
+                        <tr key={`day-${day}`} className="demos-addon-day-row">
+                            <td colSpan={6} className="pt-4 pb-1.5">
+                                <span className="font-display text-sm font-bold uppercase tracking-wide text-theme-primary">
+                                    {formatDayLabel(row.when, now)}
+                                </span>
+                                <span className="ml-2 text-xs font-mono text-theme-muted">{daySummary}</span>
+                            </td>
+                        </tr>,
+                    );
+                }
+            }
+            out.push(row.type === 'group' ? renderGroupRow(row) : renderLooseRow(row));
+        });
+        return out;
+    };
+
     return (
         <Modal
             isOpen={isOpen}
@@ -389,6 +601,15 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
                     Demos
                     <span className="mt-0.5 block font-mono text-xs font-normal normal-case tracking-normal text-theme-secondary">
                         {instance?.name} <span className="text-theme-muted">•</span> Port {instance?.port} <span className="text-theme-muted">•</span> demos/ on disk
+                        {fetchedAt && (
+                            <>
+                                {' '}<span className="text-theme-muted">•</span>{' '}
+                                <span title={timing ? `Listing timings (ms): ${JSON.stringify(timing)}` : undefined}>
+                                    {isRefreshing ? 'refreshing…' : `updated ${formatAgo(fetchedAt, now)}`}
+                                    {listingSeconds && !isRefreshing ? ` in ${listingSeconds}s` : ''}
+                                </span>
+                            </>
+                        )}
                     </span>
                 </>
             )}
@@ -396,10 +617,10 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
                 <>
                     <button
                         onClick={fetchDemos}
-                        disabled={isLoading}
+                        disabled={isLoading || isRefreshing}
                         className="demos-addon-btn"
                     >
-                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} strokeWidth={2} />
+                        <RefreshCw className={`h-4 w-4 ${isLoading || isRefreshing ? 'animate-spin' : ''}`} strokeWidth={2} />
                         <span>Refresh</span>
                     </button>
                     <button
@@ -412,63 +633,138 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
             )}
         >
             <div className="flex h-full flex-col">
-                {!isLoading && !error && demos.length > 0 && (
-                    <div className="flex flex-shrink-0 items-center gap-3 border-b border-theme pb-3 mb-3">
-                        <div className="relative flex-1 max-w-xs">
-                            <Search className="demo-search-icon absolute top-1/2 -translate-y-1/2 text-theme-muted" />
-                            <input
-                                type="text"
-                                value={filterText}
-                                onChange={(e) => setFilterText(e.target.value)}
-                                placeholder="Filter by filename (space-separated terms)..."
-                                className="w-full pl-8 pr-3 py-1.5 text-sm font-mono rounded-md bg-theme-base border border-theme-strong text-theme-primary placeholder:text-theme-muted focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
-                            />
+                {!isLoading && hasData && (
+                    <div className="flex flex-shrink-0 flex-col gap-2 border-b border-theme pb-3 mb-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="relative min-w-[12rem] flex-1 max-w-xs">
+                                <Search className="demo-search-icon absolute top-1/2 -translate-y-1/2 text-theme-muted" />
+                                <input
+                                    type="text"
+                                    value={filters.text}
+                                    onChange={(e) => setFilter('text', e.target.value)}
+                                    placeholder="Map, player, file name..."
+                                    aria-label="Filter demos"
+                                    className={`w-full pl-8 pr-3 ${inputClass} placeholder:text-theme-muted`}
+                                />
+                            </div>
+                            <div className="demos-addon-segmented" role="group" aria-label="Recorded">
+                                {DATE_PRESETS.map((preset) => (
+                                    <button
+                                        key={preset.id}
+                                        onClick={() => setFilter('datePreset', preset.id)}
+                                        aria-pressed={filters.datePreset === preset.id}
+                                        className={filters.datePreset === preset.id ? 'is-active' : ''}
+                                    >
+                                        {preset.label}
+                                    </button>
+                                ))}
+                            </div>
+                            {filters.datePreset === 'custom' && (
+                                <div className="flex items-center gap-1.5">
+                                    <input
+                                        type="date"
+                                        value={filters.dateFrom}
+                                        onChange={(e) => setFilter('dateFrom', e.target.value)}
+                                        max={filters.dateTo || undefined}
+                                        aria-label="Recorded from date"
+                                        className={inputClass}
+                                    />
+                                    <span className="text-theme-muted text-xs">to</span>
+                                    <input
+                                        type="date"
+                                        value={filters.dateTo}
+                                        onChange={(e) => setFilter('dateTo', e.target.value)}
+                                        min={filters.dateFrom || undefined}
+                                        aria-label="Recorded to date"
+                                        className={inputClass}
+                                    />
+                                </div>
+                            )}
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <input
-                                type="date"
-                                value={dateFrom}
-                                onChange={(e) => setDateFrom(e.target.value)}
-                                max={dateTo || undefined}
-                                aria-label="Recorded from date"
-                                className="py-1.5 px-2 text-sm font-mono rounded-md bg-theme-base border border-theme-strong text-theme-primary focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
-                            />
-                            <span className="text-theme-muted text-xs">to</span>
-                            <input
-                                type="date"
-                                value={dateTo}
-                                onChange={(e) => setDateTo(e.target.value)}
-                                min={dateFrom || undefined}
-                                aria-label="Recorded to date"
-                                className="py-1.5 px-2 text-sm font-mono rounded-md bg-theme-base border border-theme-strong text-theme-primary focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
-                            />
-                        </div>
-                        <span className="text-xs font-mono text-theme-muted whitespace-nowrap">
-                            {filteredDemos.length} of {demos.length}
-                        </span>
-                        <div className="flex-1" />
-                        {bulkGroupActions.map((entry) => (
+                        <div className="flex flex-wrap items-center gap-2">
+                            {facetValues.maps.length > 0 && (
+                                <select
+                                    value={filters.map}
+                                    onChange={(e) => setFilter('map', e.target.value)}
+                                    aria-label="Map"
+                                    className={inputClass}
+                                >
+                                    <option value="">All maps</option>
+                                    {facetValues.maps.map(({ value, count }) => (
+                                        <option key={value} value={value}>{value} ({count})</option>
+                                    ))}
+                                </select>
+                            )}
+                            {facetValues.gametypes.length > 0 && (
+                                <select
+                                    value={filters.gametype}
+                                    onChange={(e) => setFilter('gametype', e.target.value)}
+                                    aria-label="Game type"
+                                    className={inputClass}
+                                >
+                                    <option value="">All modes</option>
+                                    {facetValues.gametypes.map(({ value, count }) => (
+                                        <option key={value} value={value}>{value} ({count})</option>
+                                    ))}
+                                </select>
+                            )}
+                            <select
+                                value={filters.kind}
+                                onChange={(e) => setFilter('kind', e.target.value)}
+                                aria-label="Show"
+                                className={inputClass}
+                            >
+                                {KIND_FILTERS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+                            </select>
+                            <select
+                                value={filters.sort}
+                                onChange={(e) => setFilter('sort', e.target.value)}
+                                aria-label="Sort"
+                                className={inputClass}
+                            >
+                                {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                            </select>
+                            {filtersActive && (
+                                <button onClick={resetFilters} className="text-xs font-mono text-theme-muted underline hover:text-theme-primary">
+                                    reset
+                                </button>
+                            )}
+                            <span className="text-xs font-mono text-theme-muted whitespace-nowrap" title={`${totals.all.files} files, ${formatBytes(totals.all.size)} on disk`}>
+                                {filtersActive
+                                    ? `${totals.shown.matches} of ${totals.all.matches} matches · ${totals.shown.files} of ${totals.all.files} files`
+                                    : `${totals.all.matches} matches · ${totals.all.files} files`}
+                                {` · ${formatBytes(filtersActive ? totals.shown.size : totals.all.size)}`}
+                            </span>
+                            <div className="flex-1" />
+                            {bulkGroupActions.map((entry) => (
+                                <button
+                                    key={entry.action.id}
+                                    onClick={() => runBulkGroupAction(entry)}
+                                    disabled={busyGroupActionKey !== null}
+                                    className="demos-addon-btn disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    <RefreshCw
+                                        className={`h-4 w-4 ${busyGroupActionKey === `bulk:${entry.action.id}` ? 'animate-spin' : ''}`}
+                                        strokeWidth={2}
+                                    />
+                                    <span>{entry.action.label} ({entry.qlmatchNames.length})</span>
+                                </button>
+                            ))}
                             <button
-                                key={entry.action.id}
-                                onClick={() => runBulkGroupAction(entry)}
-                                disabled={busyGroupActionKey !== null}
+                                onClick={downloadSelected}
+                                disabled={selected.size === 0 || isBatchDownloading}
                                 className="demos-addon-btn disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                <RefreshCw
-                                    className={`h-4 w-4 ${busyGroupActionKey === `bulk:${entry.action.id}` ? 'animate-spin' : ''}`}
-                                    strokeWidth={2}
-                                />
-                                <span>{entry.action.label} ({entry.qlmatchNames.length})</span>
+                                <Download className={`h-4 w-4 ${isBatchDownloading ? 'animate-pulse' : ''}`} strokeWidth={2} />
+                                <span>Download selected {selected.size > 0 ? `(${selected.size})` : ''}</span>
                             </button>
-                        ))}
-                        <button
-                            onClick={downloadSelected}
-                            disabled={selected.size === 0 || isBatchDownloading}
-                            className="demos-addon-btn disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            <Download className={`h-4 w-4 ${isBatchDownloading ? 'animate-pulse' : ''}`} strokeWidth={2} />
-                            <span>Download selected {selected.size > 0 ? `(${selected.size})` : ''}</span>
-                        </button>
+                        </div>
+                    </div>
+                )}
+
+                {error && hasData && (
+                    <div className="flex-shrink-0 pb-2 text-sm text-center" style={{ color: 'var(--accent-danger)' }}>
+                        Refresh failed: {error} Showing the previous listing.
                     </div>
                 )}
 
@@ -492,7 +788,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
                             </div>
                             <p className="font-mono text-sm text-theme-secondary uppercase tracking-wide">Listing demos on remote server...</p>
                         </div>
-                    ) : error ? (
+                    ) : error && !hasData ? (
                         <div className="demos-addon-error-state">
                             <AlertCircle className="h-10 w-10 mb-4" style={{ color: 'var(--accent-danger)' }} strokeWidth={2} />
                             <p className="font-display text-lg font-bold uppercase tracking-wide" style={{ color: 'var(--accent-danger)' }}>Error Listing Demos</p>
@@ -504,7 +800,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
                                 Try Again
                             </button>
                         </div>
-                    ) : demos.length === 0 ? (
+                    ) : !hasData ? (
                         <div className="demos-addon-empty-state">
                             <FolderOpen className="h-10 w-10 mb-4 text-theme-muted" strokeWidth={2} />
                             <p className="font-display text-base font-bold uppercase tracking-wide text-theme-primary">No demos found</p>
@@ -518,147 +814,34 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
                     ) : displayRows.length === 0 ? (
                         <div className="demos-addon-empty-state">
                             <Search className="h-10 w-10 mb-4 text-theme-muted" strokeWidth={2} />
-                            <p className="text-sm text-theme-secondary">No demos match "{filterText}".</p>
+                            <p className="text-sm text-theme-secondary">No demos match these filters.</p>
+                            <button onClick={resetFilters} className="demos-addon-btn">Reset filters</button>
                         </div>
                     ) : (
                         <table className="w-full text-sm">
-                            <thead>
+                            <thead className="demos-addon-thead">
                                 <tr className="text-left text-theme-muted uppercase text-xs tracking-wide border-b border-theme">
                                     <th className="py-2 pr-2 w-8">
                                         <input
                                             type="checkbox"
-                                            checked={allFilteredSelected}
+                                            checked={allVisibleSelected}
                                             onChange={toggleSelectAll}
-                                            aria-label="Select all demos"
+                                            aria-label="Select all shown demos"
                                         />
                                     </th>
-                                    <th className="py-2 pr-4 font-medium">File</th>
-                                    <th className="py-2 pr-4 font-medium">Size</th>
-                                    <th className="py-2 pr-4 font-medium">Recorded</th>
-                                    <th className="py-2 pr-2 w-10" />
+                                    <th className="py-2 pr-4 font-medium">Match / file</th>
+                                    <th className="py-2 pr-4 font-medium w-20">Length</th>
+                                    <th className="py-2 pr-4 font-medium w-24">Size</th>
+                                    <th className="py-2 pr-4 font-medium w-40">Started</th>
+                                    <th className="py-2 pr-2 w-20" />
                                 </tr>
                             </thead>
-                            <tbody>
-                                {pagedRows.map((row) => {
-                                    if (row.type === 'demo') {
-                                        return (
-                                            <tr key={row.demo.name} className="border-b border-theme/50 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-                                                <td className="py-2 pr-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selected.has(row.demo.name)}
-                                                        onChange={() => toggleSelectOne(row.demo.name)}
-                                                        aria-label={`Select ${row.demo.name}`}
-                                                    />
-                                                </td>
-                                                <td className="py-2 pr-4 font-mono text-theme-primary break-all">{row.demo.name}</td>
-                                                <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap">{formatBytes(row.demo.size)}</td>
-                                                <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap">{formatMtime(row.demo.mtime)}</td>
-                                                <td className="py-2 pr-2">
-                                                    <button
-                                                        onClick={() => downloadOne(row.demo.name)}
-                                                        disabled={downloadingNames.has(row.demo.name)}
-                                                        title={`Download ${row.demo.name}`}
-                                                        aria-label={`Download ${row.demo.name}`}
-                                                        className="p-1.5 rounded-md text-theme-muted hover:text-theme-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed"
-                                                    >
-                                                        <Download className={`h-4 w-4 ${downloadingNames.has(row.demo.name) ? 'animate-pulse' : ''}`} strokeWidth={2} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    }
-
-                                    const { group, members } = row;
-                                    const isExpanded = expandedGroupIds.has(group.group_id);
-                                    const newest = members[0];
-                                    const totalSize = members.reduce((sum, d) => sum + (d.size || 0), 0);
-                                    return (
-                                        <React.Fragment key={`group-${group.group_id}`}>
-                                            <tr className="border-b border-theme/50 bg-black/[0.02] dark:bg-white/[0.03]">
-                                                <td className="py-2 pr-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedGroupIds.has(group.group_id)}
-                                                        onChange={() => toggleSelectGroup(row)}
-                                                        aria-label={`Select match ${group.label}`}
-                                                    />
-                                                </td>
-                                                <td className="py-2 pr-4 font-mono text-theme-primary break-all">
-                                                    <button
-                                                        onClick={() => toggleExpandGroup(group.group_id)}
-                                                        aria-expanded={isExpanded}
-                                                        title={isExpanded ? 'Hide the files in this match' : 'Show the files in this match'}
-                                                        className="flex items-center gap-1.5 text-left hover:text-[var(--accent-primary)]"
-                                                    >
-                                                        {isExpanded
-                                                            ? <ChevronDown className="h-4 w-4 flex-shrink-0" strokeWidth={2} />
-                                                            : <ChevronRight className="h-4 w-4 flex-shrink-0" strokeWidth={2} />}
-                                                        <span>{group.label}</span>
-                                                        <span className="text-theme-muted">({members.length} file{members.length === 1 ? '' : 's'})</span>
-                                                    </button>
-                                                </td>
-                                                <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap">{formatBytes(totalSize)}</td>
-                                                <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap">{formatMtime(newest.mtime)}</td>
-                                                <td className="py-2 pr-2">
-                                                    <div className="flex items-center gap-1">
-                                                        {(group.actions || []).map((action) => {
-                                                            const busyKey = `${action.id}:${group.group_id}`;
-                                                            return (
-                                                                <button
-                                                                    key={action.id}
-                                                                    onClick={() => runGroupAction(group, action)}
-                                                                    disabled={busyGroupActionKey !== null}
-                                                                    title={action.label}
-                                                                    aria-label={`${action.label} for ${group.label}`}
-                                                                    className="p-1.5 rounded-md text-theme-muted hover:text-theme-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed"
-                                                                    style={action.danger ? { color: 'var(--accent-danger)' } : undefined}
-                                                                >
-                                                                    <RefreshCw
-                                                                        className={`h-4 w-4 ${busyGroupActionKey === busyKey ? 'animate-spin' : ''}`}
-                                                                        strokeWidth={2}
-                                                                    />
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            {isExpanded && members.map((demo) => (
-                                                <tr key={demo.name} className="border-b border-theme/50 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-                                                    <td className="py-2 pr-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selected.has(demo.name)}
-                                                            onChange={() => toggleSelectOne(demo.name)}
-                                                            aria-label={`Select ${demo.name}`}
-                                                        />
-                                                    </td>
-                                                    <td className="py-2 pr-4 pl-6 font-mono text-theme-secondary break-all text-xs">{demo.name}</td>
-                                                    <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap">{formatBytes(demo.size)}</td>
-                                                    <td className="py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap">{formatMtime(demo.mtime)}</td>
-                                                    <td className="py-2 pr-2">
-                                                        <button
-                                                            onClick={() => downloadOne(demo.name)}
-                                                            disabled={downloadingNames.has(demo.name)}
-                                                            title={`Download ${demo.name}`}
-                                                            aria-label={`Download ${demo.name}`}
-                                                            className="p-1.5 rounded-md text-theme-muted hover:text-theme-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed"
-                                                        >
-                                                            <Download className={`h-4 w-4 ${downloadingNames.has(demo.name) ? 'animate-pulse' : ''}`} strokeWidth={2} />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </tbody>
+                            <tbody>{renderRows()}</tbody>
                         </table>
                     )}
                 </div>
 
-                {!isLoading && !error && displayRows.length > 0 && totalPages > 1 && (
+                {!isLoading && displayRows.length > 0 && totalPages > 1 && (
                     <div className="flex flex-shrink-0 items-center justify-center gap-3 border-t border-theme pt-3 mt-3">
                         <button
                             onClick={() => setPage((p) => Math.max(1, p - 1))}

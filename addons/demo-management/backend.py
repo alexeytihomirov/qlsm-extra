@@ -17,6 +17,7 @@ knows anything about the .qlmatch format specifically.
 """
 import io
 import re
+import time
 import zipfile
 
 from flask import Blueprint, current_app, jsonify, request, send_file
@@ -41,38 +42,57 @@ def _instance_or_error(instance_id):
 def list_demos(instance_id):
     from ui.addons import dispatch
 
-    from .ansible_instance_demos import list_instance_demos
+    from .ansible_instance_demos import list_instance_listing
+    from .demo_meta import merge_info
     from .raw_match_groups import build_raw_match_groups
 
     instance, error = _instance_or_error(instance_id)
     if error:
         return error
 
-    success, demos, error_msg = list_instance_demos(instance_id)
+    success, listing, error_msg = list_instance_listing(instance_id)
     if not success:
         current_app.logger.error(f'Addon demo-management: list failed for {instance_id}: {error_msg}')
         return jsonify({"error": {"message": error_msg}}), 500
+    demos, infos, timing = listing['demos'], listing['infos'], listing['timing']
 
     # Addon-owned extension point (demo_management.match_groups, see
     # ui/addons/hooks.py): another addon may know how to cluster some of
     # these files into a logical "match" and offer ACTIONS on it (e.g.
     # qlmatch-packer's Rebuild buttons), which is the part this addon stays
     # ignorant of, same as it already is for file_kinds.
+    started = time.monotonic()
     try:
         matches = dispatch('demo_management.match_groups', 0, instance_id, demos)
     except Exception as e:
         current_app.logger.warning(f'demo_management.match_groups hook skipped: {e}')
         matches = []
+    timing['hooks_ms'] = round((time.monotonic() - started) * 1000)
 
-    # The clustering itself needs no addon: the engine's own filenames say
-    # which match a file belongs to (see raw_match_groups). So every match the
-    # hook did not claim still shows up as one row rather than one row per POV
-    # -- which is what a duel's four POVs used to be, and what they still are
-    # whenever the packer could not run.
+    # The clustering itself needs no addon: the engine's own filenames (and
+    # any match meta) say which match a file belongs to (see
+    # raw_match_groups). So every match the hook did not claim still shows up
+    # as one row rather than one row per POV -- which is what a duel's four
+    # POVs used to be, and what they still are whenever the packer could not
+    # run.
     claimed = {name for group in matches for name in group.get('member_names') or []}
     matches = list(matches) + build_raw_match_groups(demos, claimed)
 
-    return jsonify({"data": {"demos": demos, "matches": matches, "instance_name": instance.name}})
+    # One `info` per row: what this addon learned from the match's meta file
+    # or the engine's filenames, gaps filled from whatever the contributing
+    # addon knew (qlmatch-packer reads it out of an older pack's manifest).
+    for group in matches:
+        group['info'] = merge_info(infos.get(group.get('group_id')), group.get('info'))
+
+    current_app.logger.info(f'Addon demo-management: listed {instance_id}: {timing}')
+
+    return jsonify({"data": {
+        "demos": demos,
+        "matches": matches,
+        "instance_name": instance.name,
+        "fetched_at": time.time(),
+        "timing_ms": timing,
+    }})
 
 
 @bp.route('/instances/<int:instance_id>/demos/download', methods=['GET'], endpoint='download_demo')
