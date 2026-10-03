@@ -221,9 +221,11 @@ def annotate(demos, metas):
       started_at  ISO UTC, from the match id
       map         from the meta, else from an engine-named POV
       pov         {"slot", "player"} for a per-POV demo, when known
+      match_source  "meta" or "filename" - where its match's info came from
 
     info per match: match_id, started_at, map, gametype, duration_ms,
-    players, source ("meta" or "filename"). Only matches that still have at
+    players, source ("meta" or "filename"). Without a meta the players are
+    the names on the match's POV files and the gametype is unknown here. Only matches that still have at
     least one listed file get one.
     """
     claimed = {}
@@ -273,6 +275,11 @@ def annotate(demos, metas):
             infos[match_id] = info
         if not info['map'] and parsed_pov:
             info['map'] = parsed_pov[0]
+        # No meta: the POVs' own filenames still say who played.
+        if info['source'] == 'filename' and parsed_pov and parsed_pov[2]:
+            if all(p['name'] != parsed_pov[2] for p in info['players']):
+                info['players'].append({'name': parsed_pov[2], 'team': ''})
+        demo['match_source'] = info['source']
         if info['map']:
             demo['map'] = info['map']
 

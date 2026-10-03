@@ -37,7 +37,8 @@ def groups_mod(app, monkeypatch):
 
 def test_a_pack_already_tied_to_its_match_opens_no_sftp(groups_mod):
     demos = [
-        {'name': 'duel_alex.qlmatch', 'size': 9, 'mtime': 2.0, 'match_id': MATCH, 'map': 'bloodrun'},
+        {'name': 'duel_alex.qlmatch', 'size': 9, 'mtime': 2.0, 'match_id': MATCH, 'map': 'bloodrun',
+         'match_source': 'meta'},
         {'name': POV, 'size': 5, 'mtime': 1.0, 'match_id': MATCH, 'map': 'bloodrun'},
         {'name': f'{MATCH}_bloodrun.replay.json.gz', 'size': 3, 'mtime': 2.0, 'match_id': MATCH},
     ]
@@ -87,3 +88,21 @@ def test_a_pack_that_cannot_be_resolved_stays_a_plain_row(groups_mod):
          patch(f'{MODULE}.open_sftp', return_value=(MagicMock(), MagicMock())), \
          patch(f'{MODULE}._manifest_from_pack', return_value=(None, 'bad zip')):
         assert groups_mod.build_match_groups(1, demos) == []
+
+
+def test_a_match_id_named_pack_without_a_meta_still_gets_its_gametype_and_roster(groups_mod):
+    """Its name already says which match it is, but no filename carries the
+    gametype - that comes out of the pack's manifest (read once, then cached)."""
+    pack = f'{MATCH}_bloodrun.qlmatch'
+    demos = [
+        {'name': pack, 'size': 9, 'mtime': 2.0, 'match_id': MATCH, 'map': 'bloodrun', 'match_source': 'filename'},
+        {'name': POV, 'size': 5, 'mtime': 1.0, 'match_id': MATCH, 'map': 'bloodrun', 'match_source': 'filename'},
+    ]
+    manifest = {'match_id': MATCH, 'map': 'bloodrun', 'raw_demo_names': [POV],
+                'gametype': '4', 'pov_names': ['^1al^7ex']}
+    with patch(f'{MODULE}._resolve_legacy', return_value={pack: manifest}):
+        [group] = groups_mod.build_match_groups(1, demos)
+
+    assert sorted(group['member_names']) == sorted([pack, POV])
+    assert group['info']['gametype'] == 'ca'
+    assert group['info']['players'] == [{'name': 'alex', 'team': ''}]

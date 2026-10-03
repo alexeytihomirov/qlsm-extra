@@ -634,7 +634,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
   const renderWhen = (row) => /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-4 font-mono text-theme-secondary whitespace-nowrap", title: formatFull(row.when) }, showDayHeaders ? formatTime(row.when) : `${formatDayLabel(row.when, now)}, ${formatTime(row.when)}`);
   const renderFileRow = (demo, nested) => {
     var _a;
-    return /* @__PURE__ */ React.createElement("tr", { key: demo.name, className: "border-b border-theme/50 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-2" }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("tr", { key: demo.name, className: "border-b border-theme/50 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 pl-2 pr-2" }, /* @__PURE__ */ React.createElement(
       "input",
       {
         type: "checkbox",
@@ -647,7 +647,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
   const renderLooseRow = (row) => {
     var _a, _b;
     const { demo, info } = row;
-    return /* @__PURE__ */ React.createElement("tr", { key: row.key, className: "border-b border-theme/50 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-2" }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("tr", { key: row.key, className: "border-b border-theme/50 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 pl-2 pr-2" }, /* @__PURE__ */ React.createElement(
       "input",
       {
         type: "checkbox",
@@ -661,7 +661,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
     const { group, members, info } = row;
     const isExpanded = expandedGroupIds.has(group.group_id);
     const players = playersLabel(info);
-    return /* @__PURE__ */ React.createElement(React.Fragment, { key: row.key }, /* @__PURE__ */ React.createElement("tr", { className: "border-b border-theme/50 bg-black/[0.02] dark:bg-white/[0.03]" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-2 align-top" }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement(React.Fragment, { key: row.key }, /* @__PURE__ */ React.createElement("tr", { className: "border-b border-theme/50 bg-black/[0.02] dark:bg-white/[0.03]" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 pl-2 pr-2 align-top" }, /* @__PURE__ */ React.createElement(
       "input",
       {
         type: "checkbox",
@@ -675,7 +675,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
         onClick: () => toggleExpandGroup(group.group_id),
         "aria-expanded": isExpanded,
         title: isExpanded ? "Hide the files in this match" : "Show the files in this match",
-        className: "flex items-start gap-1.5 text-left hover:text-[var(--accent-primary)]"
+        className: "flex items-start gap-1.5 text-left text-theme-primary hover:text-[var(--accent-primary)]"
       },
       isExpanded ? /* @__PURE__ */ React.createElement(ChevronDown, { className: "mt-0.5 h-4 w-4 flex-shrink-0", strokeWidth: 2 }) : /* @__PURE__ */ React.createElement(ChevronRight, { className: "mt-0.5 h-4 w-4 flex-shrink-0", strokeWidth: 2 }),
       /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "flex flex-wrap items-center gap-x-2 gap-y-0.5" }, /* @__PURE__ */ React.createElement("span", { className: "font-display text-base font-bold text-theme-primary" }, info.map || group.label), info.gametype && /* @__PURE__ */ React.createElement(Badge, { tone: "primary" }, info.gametype), players && /* @__PURE__ */ React.createElement("span", { className: "text-sm text-theme-secondary" }, players)), /* @__PURE__ */ React.createElement("span", { className: "mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-theme-muted" }, /* @__PURE__ */ React.createElement("span", { className: "font-mono" }, info.match_id || group.group_id), /* @__PURE__ */ React.createElement("span", null, "·"), /* @__PURE__ */ React.createElement("span", null, members.length, " file", members.length === 1 ? "" : "s"), /* @__PURE__ */ React.createElement(KindBadges, { kinds: row.kinds, packing })))
@@ -718,7 +718,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
             dayLoose > 0 ? `${dayLoose} file${dayLoose === 1 ? "" : "s"}` : null
           ].filter(Boolean).join(" · ");
           out.push(
-            /* @__PURE__ */ React.createElement("tr", { key: `day-${day}`, className: "demos-addon-day-row" }, /* @__PURE__ */ React.createElement("td", { colSpan: 6, className: "pt-4 pb-1.5" }, /* @__PURE__ */ React.createElement("span", { className: "font-display text-sm font-bold uppercase tracking-wide text-theme-primary" }, formatDayLabel(row.when, now)), /* @__PURE__ */ React.createElement("span", { className: "ml-2 text-xs font-mono text-theme-muted" }, daySummary)))
+            /* @__PURE__ */ React.createElement("tr", { key: `day-${day}`, className: "demos-addon-day-row" }, /* @__PURE__ */ React.createElement("td", { colSpan: 6, className: "pl-2 pt-3 pb-1.5" }, /* @__PURE__ */ React.createElement("span", { className: "font-display text-sm font-bold uppercase tracking-wide text-theme-primary" }, formatDayLabel(row.when, now)), /* @__PURE__ */ React.createElement("span", { className: "ml-2 text-xs font-mono text-theme-muted" }, daySummary)))
           );
         }
       }
@@ -862,7 +862,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
         className: "demos-addon-retry-btn"
       },
       "Try Again"
-    )) : !hasData ? /* @__PURE__ */ React.createElement("div", { className: "demos-addon-empty-state" }, /* @__PURE__ */ React.createElement(FolderOpen, { className: "h-10 w-10 mb-4 text-theme-muted", strokeWidth: 2 }), /* @__PURE__ */ React.createElement("p", { className: "font-display text-base font-bold uppercase tracking-wide text-theme-primary" }, "No demos found"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-theme-secondary mt-2 max-w-md text-center" }, `No .dm_91, .qlmatch or .replay.json.gz files in this instance's demos/ directory. Recording needs sv_demoRecord 1 (add sv_demoCut 1 for match-cut demos and .qlmatch packing) — check View MinQLX Logs / View Server Logs for "demo:" lines after a manual test.`)) : displayRows.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "demos-addon-empty-state" }, /* @__PURE__ */ React.createElement(Search, { className: "h-10 w-10 mb-4 text-theme-muted", strokeWidth: 2 }), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-theme-secondary" }, "No demos match these filters."), /* @__PURE__ */ React.createElement("button", { onClick: resetFilters, className: "demos-addon-btn" }, "Reset filters")) : /* @__PURE__ */ React.createElement("table", { className: "w-full text-sm" }, /* @__PURE__ */ React.createElement("thead", { className: "demos-addon-thead" }, /* @__PURE__ */ React.createElement("tr", { className: "text-left text-theme-muted uppercase text-xs tracking-wide border-b border-theme" }, /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-2 w-8" }, /* @__PURE__ */ React.createElement(
+    )) : !hasData ? /* @__PURE__ */ React.createElement("div", { className: "demos-addon-empty-state" }, /* @__PURE__ */ React.createElement(FolderOpen, { className: "h-10 w-10 mb-4 text-theme-muted", strokeWidth: 2 }), /* @__PURE__ */ React.createElement("p", { className: "font-display text-base font-bold uppercase tracking-wide text-theme-primary" }, "No demos found"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-theme-secondary mt-2 max-w-md text-center" }, `No .dm_91, .qlmatch or .replay.json.gz files in this instance's demos/ directory. Recording needs sv_demoRecord 1 (add sv_demoCut 1 for match-cut demos and .qlmatch packing) — check View MinQLX Logs / View Server Logs for "demo:" lines after a manual test.`)) : displayRows.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "demos-addon-empty-state" }, /* @__PURE__ */ React.createElement(Search, { className: "h-10 w-10 mb-4 text-theme-muted", strokeWidth: 2 }), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-theme-secondary" }, "No demos match these filters."), /* @__PURE__ */ React.createElement("button", { onClick: resetFilters, className: "demos-addon-btn" }, "Reset filters")) : /* @__PURE__ */ React.createElement("table", { className: "w-full text-sm" }, /* @__PURE__ */ React.createElement("thead", { className: "demos-addon-thead" }, /* @__PURE__ */ React.createElement("tr", { className: "text-left text-theme-muted uppercase text-xs tracking-wide" }, /* @__PURE__ */ React.createElement("th", { className: "py-2 pl-2 pr-2 w-10" }, /* @__PURE__ */ React.createElement(
       "input",
       {
         type: "checkbox",

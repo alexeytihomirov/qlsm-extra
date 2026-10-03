@@ -275,12 +275,25 @@
   box-shadow: inset 0 -2px 0 var(--accent-primary);
 }
 
+/* Two sticky layers: the column header, and under it the header of whichever
+ * day is being scrolled through. Every day row sticks at the same offset, so
+ * the next day's row slides up and covers the previous one - the list always
+ * says which day you are looking at. Lines are box-shadows, not borders: a
+ * collapsed table border stays behind when its cell goes sticky. */
 .demos-addon-thead th {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 3;
+  height: 34px;
   /* The modal panel's own surface, so rows scroll under an opaque header. */
   background: var(--surface-overlay);
+  box-shadow: inset 0 -1px 0 var(--surface-border);
 }
 
-.demos-addon-day-row td { border-bottom: 1px solid var(--surface-border-strong); }
+.demos-addon-day-row td {
+  position: sticky;
+  top: 34px;
+  z-index: 2;
+  background: var(--surface-overlay);
+  box-shadow: inset 0 -1px 0 var(--surface-border-strong);
+}

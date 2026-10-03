@@ -420,7 +420,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
 
     const renderFileRow = (demo, nested) => (
         <tr key={demo.name} className="border-b border-theme/50 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-            <td className="py-2 pr-2">
+            <td className="py-2 pl-2 pr-2">
                 <input
                     type="checkbox"
                     checked={selected.has(demo.name)}
@@ -450,7 +450,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
         const { demo, info } = row;
         return (
             <tr key={row.key} className="border-b border-theme/50 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-                <td className="py-2 pr-2">
+                <td className="py-2 pl-2 pr-2">
                     <input
                         type="checkbox"
                         checked={selected.has(demo.name)}
@@ -483,7 +483,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
         return (
             <React.Fragment key={row.key}>
                 <tr className="border-b border-theme/50 bg-black/[0.02] dark:bg-white/[0.03]">
-                    <td className="py-2 pr-2 align-top">
+                    <td className="py-2 pl-2 pr-2 align-top">
                         <input
                             type="checkbox"
                             checked={selectedGroupIds.has(group.group_id)}
@@ -496,7 +496,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
                             onClick={() => toggleExpandGroup(group.group_id)}
                             aria-expanded={isExpanded}
                             title={isExpanded ? 'Hide the files in this match' : 'Show the files in this match'}
-                            className="flex items-start gap-1.5 text-left hover:text-[var(--accent-primary)]"
+                            className="flex items-start gap-1.5 text-left text-theme-primary hover:text-[var(--accent-primary)]"
                         >
                             {isExpanded
                                 ? <ChevronDown className="mt-0.5 h-4 w-4 flex-shrink-0" strokeWidth={2} />
@@ -569,7 +569,7 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
                     ].filter(Boolean).join(' · ');
                     out.push(
                         <tr key={`day-${day}`} className="demos-addon-day-row">
-                            <td colSpan={6} className="pt-4 pb-1.5">
+                            <td colSpan={6} className="pl-2 pt-3 pb-1.5">
                                 <span className="font-display text-sm font-bold uppercase tracking-wide text-theme-primary">
                                     {formatDayLabel(row.when, now)}
                                 </span>
@@ -820,8 +820,8 @@ function ViewDemosModal({ isOpen, onClose, instance, api }) {
                     ) : (
                         <table className="w-full text-sm">
                             <thead className="demos-addon-thead">
-                                <tr className="text-left text-theme-muted uppercase text-xs tracking-wide border-b border-theme">
-                                    <th className="py-2 pr-2 w-8">
+                                <tr className="text-left text-theme-muted uppercase text-xs tracking-wide">
+                                    <th className="py-2 pl-2 pr-2 w-10">
                                         <input
                                             type="checkbox"
                                             checked={allVisibleSelected}

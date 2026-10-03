@@ -1,7 +1,7 @@
 {
   "name": "qlsm-addon-demo-management-ui",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.6.1",
   "type": "module",
   "description": "Build for the demo-management addon's tier-2 QLSM component (ui/Panel.js + ui/Panel.css).",
   "scripts": {

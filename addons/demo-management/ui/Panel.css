@@ -402,10 +402,6 @@
     width: calc(var(--spacing) * 5);
   }
 
-  .w-8 {
-    width: calc(var(--spacing) * 8);
-  }
-
   .w-10 {
     width: calc(var(--spacing) * 10);
   }
@@ -564,10 +560,6 @@
     padding-top: calc(var(--spacing) * 3);
   }
 
-  .pt-4 {
-    padding-top: calc(var(--spacing) * 4);
-  }
-
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
   }
@@ -590,6 +582,10 @@
 
   .pb-3 {
     padding-bottom: calc(var(--spacing) * 3);
+  }
+
+  .pl-2 {
+    padding-left: calc(var(--spacing) * 2);
   }
 
   .pl-6 {
@@ -1073,14 +1069,20 @@
 }
 
 .demos-addon-thead th {
-  z-index: 1;
+  z-index: 3;
   background: var(--surface-overlay);
+  height: 34px;
+  box-shadow: inset 0 -1px 0 var(--surface-border);
   position: sticky;
   top: 0;
 }
 
 .demos-addon-day-row td {
-  border-bottom: 1px solid var(--surface-border-strong);
+  z-index: 2;
+  background: var(--surface-overlay);
+  box-shadow: inset 0 -1px 0 var(--surface-border-strong);
+  position: sticky;
+  top: 34px;
 }
 
 @property --tw-translate-x {

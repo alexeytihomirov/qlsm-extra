@@ -81,8 +81,15 @@ def list_demos(instance_id):
     # One `info` per row: what this addon learned from the match's meta file
     # or the engine's filenames, gaps filled from whatever the contributing
     # addon knew (qlmatch-packer reads it out of an older pack's manifest).
+    # A meta outranks everything; without one, what the contributing addon
+    # read out of the pack (real names, gametype) outranks names recovered
+    # from sanitised filenames.
     for group in matches:
-        group['info'] = merge_info(infos.get(group.get('group_id')), group.get('info'))
+        own, theirs = infos.get(group.get('group_id')), group.get('info')
+        if own and own.get('source') == 'meta':
+            group['info'] = merge_info(own, theirs)
+        else:
+            group['info'] = merge_info(theirs, own)
 
     current_app.logger.info(f'Addon demo-management: listed {instance_id}: {timing}')
 

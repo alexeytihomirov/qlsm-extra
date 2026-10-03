@@ -117,7 +117,7 @@ def test_annotate_falls_back_to_the_engine_filename_without_a_meta(meta_mod):
     assert 'match_id' not in plain
     assert infos == {MATCH: {
         'match_id': MATCH, 'started_at': '2026-09-17T17:46:55Z', 'map': 'bloodrun',
-        'gametype': None, 'duration_ms': None, 'players': [], 'source': 'filename',
+        'gametype': None, 'duration_ms': None, 'players': [{'name': 'steemorol  69pixels', 'team': ''}], 'source': 'filename',
     }}
 
 
