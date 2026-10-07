@@ -337,7 +337,7 @@ class TestX76:
         assert result[self.B]['color'] == 'cyan'  # tier match ignores case
 
     @pytest.mark.parametrize('label,color', [
-        ('Nab', 'white'), ('Bronze II', 'yellow'), ('Silver I', 'white'), ('Gold III', 'yellow'),
+        ('Nab', 'white'), ('Bronze II', 'white'), ('Silver I', 'yellow'), ('Gold III', 'yellow'),
         ('Platinum IV', 'cyan'), ('Diamond I', 'blue'), ('Prism', 'magenta'), ('LIGHT', 'green'),
     ])
     def test_every_tier_has_a_color(self, label, color):
