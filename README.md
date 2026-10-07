@@ -62,6 +62,7 @@ python check_manifest_hashes.py
 | `tournament_access.py` | Yes |
 | `chat_rcon.py` + `chat_rcon_acl.py` | Yes, both together |
 | `lobby.py` | Yes |
+| `referee_call.py` | Yes - `!call` for players; the call itself travels as chat through `stream_telemetry_unified` |
 | `match_restore_util.py` | No — helper for `match_restore.py` |
 | `match_restore_lab.py` | Optional add-on to `match_restore.py` |
 | `match_restore.py` + `restore/` | Yes together — downloads as one entry |

@@ -86,6 +86,13 @@
       "label": "\u26a0\ufe0f telemetry helper \u2014 DO NOT ENABLE separately",
       "description": "Support module for stream_telemetry_unified.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin.",
       "sha256": "cc14474f6c2c0033646606ddcc9ec716372a9fa660fad087e46705fa456e3265"
+    },
+    {
+      "filename": "referee_call.py",
+      "runtime": "minqlxtended",
+      "label": "Referee Call",
+      "description": "Adds the !call chat command (usable by spectators). It only answers the caller; the call itself travels as an ordinary chat line through stream_telemetry_unified, which forwards it to the stats hub as a referee ticket. One call per player per 60 seconds. Needs stream_telemetry_unified enabled for the call to reach the referees.",
+      "sha256": "19bb92b5a16b1dfa1dcc0713894667258f28e502ced110eff92f00059ee1c8a1"
     }
   ],
   "addons": [
