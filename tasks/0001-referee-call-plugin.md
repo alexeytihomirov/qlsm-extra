@@ -1,7 +1,7 @@
 ---
 id: qlsm-extra-0001
 title: referee_call plugin - !call answers the caller
-status: in-progress
+status: blocked
 created: 2026-10-07
 updated: 2026-10-07
 verified:
@@ -25,9 +25,11 @@ related: [root-0008, docs/superpowers/specs/2026-10-07-tickets-and-referee-calls
 
 ## Журнал
 - 2026-10-07 - created, plugin implemented in worktree `feature/referee-call`, not merged, not deployed
+- 2026-10-07 - слито в `main` и запушено: `1830e5b` (`git ls-remote`)
+- 2026-10-07 - blocked: плагин не установлен на серверы - это делается в интерфейсе qlsm (Repositories -> Sync, скачать `referee_call`, добавить в список плагинов нужных экземпляров), оператор выбирает серверы
 
 ## Результат
-Ветка `feature/referee-call` (не влита, не запушена).
+Плагин в `main` (`1830e5b`), на серверы не установлен.
 
 ## Как проверить
 Включить `referee_call` и `stream_telemetry_unified` на сервере, написать `!call` в чате (и зрителем): ответ приходит только вызвавшему; повтор в течение 60 секунд даёт "Please wait N s before calling again."; строка `!call` видна в потоке чата телеметрии.
