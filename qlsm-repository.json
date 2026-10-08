@@ -71,7 +71,7 @@
         "telemetry_unified_sched.py",
         "stats_hub_pause.py"
       ],
-      "sha256": "5565d926c6f4aceff252d0cf0246b666de04a9648833e31910a09a42c66d9534"
+      "sha256": "de928097de8220bacbffb79d89a5722076d1dd863f81118b81600b7635aa653a"
     },
     {
       "filename": "telemetry_unified_sched.py",
@@ -85,7 +85,7 @@
       "runtime": "minqlxtended",
       "label": "\u26a0\ufe0f telemetry helper \u2014 DO NOT ENABLE separately",
       "description": "Support module for stream_telemetry_unified.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin.",
-      "sha256": "cc14474f6c2c0033646606ddcc9ec716372a9fa660fad087e46705fa456e3265"
+      "sha256": "ab5805507a4f19930c25a5905a548b26a57ec679132bef3789b7d552140c5b0b"
     },
     {
       "filename": "referee_call.py",
@@ -131,8 +131,8 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "788132f09a27f2c7a7e5236984763f3c12956412cda348e9b644a7c5eea9c2a2",
-      "version": "1.2.1",
+      "sha256": "b77b44b5a0a15004129a25acd0a227e5dc229769571637ed90ac552a23f84d5d",
+      "version": "1.3.0",
       "label": "Telemetry Relay",
       "description": "Forwards live match/player/pickup telemetry from each game instance to ql-stats-hub through a per-host relay sidecar."
     }

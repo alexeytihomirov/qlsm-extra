@@ -550,6 +550,9 @@ class stream_telemetry_unified(minqlx.Plugin):
         return positions, items, session
 
     def _on_map(self, mapname, factory):
+        # A new map is never paused: a pause that was on when the map changed must not leak into it.
+        if stats_hub_pause is not None:
+            stats_hub_pause.reset_pause_state()
         if self._logged_active or not self._any_enabled():
             return minqlx.Return.NONE
         self._logged_active = True

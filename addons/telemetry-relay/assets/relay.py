@@ -263,6 +263,7 @@ def load_config() -> None:
             "game_port": int(row.get("game_port") or 0),
             "server_id": sid,
             "server_name": str(row.get("server_name") or "").strip(),
+            "server_address": str(row.get("server_address") or "").strip(),
         }
     try:
         timeout_sec = float(data.get("timeout_sec") or 2.0)
@@ -325,6 +326,10 @@ def _enrich_forward_body(raw: bytes, payload: dict[str, Any], route: dict[str, s
     route_name = str(route.get("server_name") or "").strip()
     if route_name and not str(data.get("server_name") or "").strip():
         data["server_name"] = route_name
+
+    route_address = str(route.get("server_address") or "").strip()
+    if route_address:
+        data["server_address"] = route_address
 
     route_sid = str(route.get("server_id") or "").strip()
     if route_sid.isdigit() and int(route_sid) > 0:

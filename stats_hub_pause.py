@@ -4,7 +4,14 @@
 # We combine cvar probes, minqlx game flags (when present), and explicit rcon
 # pause/unpause commands observed via client_command.
 
+import time
+
+# Set only by an explicit pause command (note_client_command), cleared by unpause or a reset.
 _PAUSE_LATCH = False
+# When the engine itself last reported a pause (time.monotonic()), else None.
+_RAW_SEEN_AT = None
+# The engine signal must stay off this long before a pause it reported counts as lifted.
+RAW_RELEASE_S = 2.0
 
 
 def set_pause_latch(active):
@@ -72,17 +79,25 @@ def accept_console_pause(raw_ok, match_state):
     return True
 
 
-def paused_active(plugin):
-    """Return True when the match should be treated as paused for stats-hub."""
-    global _PAUSE_LATCH
-    if any(
-        _cvar_truthy(plugin, name) for name in ("sv_paused", "cl_paused", "g_paused")
-    ) or _game_paused(plugin):
-        _PAUSE_LATCH = True
+def paused_active(plugin, now=None):
+    """Return True when the match should be treated as paused for stats-hub.
+
+    A pause the engine reports (a player's `timeout`, a pause that does flip the cvars) lasts as
+    long as the engine reports it: it must not set the command latch, or `timein` would never
+    lift it (seen on production: a server "paused" for the hub long after the game went on).
+    """
+    global _RAW_SEEN_AT
+    now = time.monotonic() if now is None else now
+    if raw_paused(plugin):
+        _RAW_SEEN_AT = now
         return True
     # QL minqlx !pause often leaves sv_paused at 0 — keep explicit latch until !unpause.
     if _PAUSE_LATCH:
         return True
+    if _RAW_SEEN_AT is not None:
+        if now - _RAW_SEEN_AT < RAW_RELEASE_S:
+            return True
+        _RAW_SEEN_AT = None
     return False
 
 
@@ -135,4 +150,6 @@ def note_client_command(cmd, player=None, plugin=None):
 
 
 def reset_pause_state():
+    global _RAW_SEEN_AT
     set_pause_latch(False)
+    _RAW_SEEN_AT = None
