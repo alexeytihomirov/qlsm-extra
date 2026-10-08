@@ -149,6 +149,19 @@ except ImportError:
     )
 
 
+# Commands the site acts on (referee calls, pause requests). A player may type them into the
+# console instead of the chat; they then arrive as a bare client command, not as `say`, and no
+# chat line exists to forward. Only these are forwarded: other commands can carry secrets.
+_FORWARDED_COMMANDS = ("!call", "!pause", "!timeout")
+
+
+def forwarded_command(cmd):
+    """The command line to forward as a `command` session event, or None."""
+    text = (cmd or "").strip()
+    head = text.split(None, 1)[0].lower() if text else ""
+    return text if head in _FORWARDED_COMMANDS else None
+
+
 class stream_telemetry_unified(minqlx.Plugin):
     _COLOR_RE = re.compile(r"\^[0-9a-zA-Z]")
     # Fixed address of the per-host ql-telemetry-relay sidecar (loopback
@@ -607,6 +620,10 @@ class stream_telemetry_unified(minqlx.Plugin):
                     self._enqueue_session(
                         "tell", player, text=parts[2].strip(), meta={"target": parts[1]}
                     )
+            else:
+                line = forwarded_command(cmd)
+                if line is not None:
+                    self._enqueue_session("command", player, text=line)
         return minqlx.Return.NONE
 
     def handle_frame(self):

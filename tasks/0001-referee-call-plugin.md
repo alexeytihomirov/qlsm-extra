@@ -1,9 +1,9 @@
 ---
 id: qlsm-extra-0001
 title: referee_call plugin - !call answers the caller
-status: blocked
+status: in-progress
 created: 2026-10-07
-updated: 2026-10-07
+updated: 2026-10-08
 verified:
 depends_on: []
 related: [root-0008, docs/superpowers/specs/2026-10-07-tickets-and-referee-calls-design.md]
@@ -27,6 +27,7 @@ related: [root-0008, docs/superpowers/specs/2026-10-07-tickets-and-referee-calls
 - 2026-10-07 - created, plugin implemented in worktree `feature/referee-call`, not merged, not deployed
 - 2026-10-07 - слито в `main` и запушено: `1830e5b` (`git ls-remote`)
 - 2026-10-07 - blocked: плагин не установлен на серверы - это делается в интерфейсе qlsm (Repositories -> Sync, скачать `referee_call`, добавить в список плагинов нужных экземпляров), оператор выбирает серверы
+- 2026-10-08 - оператор поставил плагин на тестовый сервер и написал `!call`: ответ пришел, обращение нет. Причина по логу сервера: строка пришла прямой консольной командой `!call cyber loh` (канал `client_command`), а `stream_telemetry_unified` пересылал в хаб только `say`. Исправлено: `!call`, `!pause`, `!timeout`, набранные в консоли, уходят событием сессии вида `command` (остальные команды не пересылаются: в них бывают секреты, например `!rcon`). 223 passed
 
 ## Результат
 Плагин в `main` (`1830e5b`), на серверы не установлен.
