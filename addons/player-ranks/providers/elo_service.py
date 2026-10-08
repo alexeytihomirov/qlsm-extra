@@ -27,8 +27,11 @@ DEFAULT_POOL = 'ffa_auto'
 # A rank label ("Gold III") is shown in its tier's in-game ^N color. The
 # values are names from the fixed palette qlsm's live_status_columns cell
 # accepts (addons/README.md there), not CSS -- core picks the actual shade.
+# Mirrors TIER_COLOURS in the ranked and rankcolors plugins (qlsm_plugins), so
+# the Rank column and the in-game names agree: two pairs share a colour, Nab and
+# Bronze are white, Silver and Gold are yellow.
 TIER_COLORS = {
-    'nab': 'white', 'bronze': 'yellow', 'silver': 'white', 'gold': 'yellow',
+    'nab': 'white', 'bronze': 'white', 'silver': 'yellow', 'gold': 'yellow',
     'platinum': 'cyan', 'diamond': 'blue', 'prism': 'magenta', 'light': 'green',
 }
 _TIER_RE = re.compile(r'^(%s)\b' % '|'.join(TIER_COLORS), re.IGNORECASE)
