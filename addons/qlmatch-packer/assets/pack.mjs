@@ -287,6 +287,47 @@ function renderName(template, ctx) {
   return safe.slice(0, 180) || ctx.match_id;
 }
 
+// "{match_id}.meta.json" next to the demos: what demo-management's Demos
+// listing reads to label this match (map, gametype, players, which files are
+// its POVs and its pack) without opening the zip, and the only thing that
+// ties a pack to its match once qlx_qlmatchNameTemplate has named it
+// something without the match id in front. Format and its rules live in
+// demo-management's demo_meta.py. One file per match, named after the match
+// id (never the template), written to a hidden temp name and renamed into
+// place: a reader sees the old meta or the new one, never half of either,
+// and a full rebuild simply replaces it. A failure only costs the labels -
+// the listing falls back to parsing the engine's own filenames - so it is
+// logged, never fatal to the pack.
+function writeMatchMeta(args, { mapName, gametype, window, players, entries, packName }) {
+  const startedFrom = Number.isFinite(window?.game_start_server_time) && window.game_start_server_time > 0
+    ? window.game_start_server_time
+    : window?.start_server_time;
+  const duration = Number.isFinite(window?.end_server_time) && Number.isFinite(startedFrom)
+    ? window.end_server_time - startedFrom
+    : null;
+  const meta = {
+    format: "qlsm-demo-meta",
+    version: 1,
+    match_id: args.matchId,
+    map: mapName,
+    gametype,
+    duration_ms: duration > 0 ? duration : null,
+    players: players.map((p) => ({ name: stripColors(p.name), team: String(p.team ?? "") })),
+    povs: entries.map((e) => ({ file: e.base, client_num: e.clientNum, name: stripColors(e.name) })),
+    pack: packName,
+    written_at: new Date().toISOString(),
+  };
+  const finalPath = join(args.dir, `${args.matchId}.meta.json`);
+  const tmpPath = join(args.dir, `.${args.matchId}.meta.json.part`);
+  try {
+    writeFileSync(tmpPath, JSON.stringify(meta, null, 2) + "\n");
+    renameSync(tmpPath, finalPath);
+    log(`wrote ${finalPath}`);
+  } catch (err) {
+    console.error(`packer: match meta ${finalPath} FAILED (${err.message || err}) — pack is intact`);
+  }
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!existsSync(args.dir) || !statSync(args.dir).isDirectory()) fail(5, "not a directory:", args.dir);
@@ -412,6 +453,7 @@ function main() {
   renameSync(partPath, outPath);
   const size = statSync(outPath).size;
   log(`wrote ${outPath} (${entries.length} POV(s), ${size} bytes, gametype ${ctx.gametype})`);
+  writeMatchMeta(args, { mapName, gametype: ctx.gametype, window, players, entries, packName: outDir === args.dir ? outName : null });
 
   // Replay sidecar: merge the N POVs into one deduplicated replay-v2 JSON
   // ({match_id}_{map}.replay.json.gz next to the pack, never inside the zip

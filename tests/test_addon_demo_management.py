@@ -25,6 +25,16 @@ from conftest import auth_headers, make_user
 ADDON = '/api/addons/demo-management'
 
 
+def _fake_listing(demos, metas=None):
+    """What list_instance_listing returns for `demos`, labelled the way the
+    real one labels them - the SSH half is what gets patched out, not the
+    match_id/map annotation the grouping below depends on."""
+    from qlsm_addon_demo_management.demo_meta import annotate
+    rows = [dict(d) for d in demos]
+    infos = annotate(rows, metas or {})
+    return True, {'demos': rows, 'infos': infos, 'timing': {}}, None
+
+
 @pytest.fixture
 def addon_id():
     return 'demo-management'
@@ -70,8 +80,8 @@ def test_unknown_instance_is_404(client, auth):
 def test_listing_returns_rows_under_the_key_the_manifest_declares(client, auth, instance_id):
     """The manifest says `rows: "demos"`; if the payload key ever changed the
     table would silently render empty."""
-    with patch('qlsm_addon_demo_management.ansible_instance_demos.list_instance_demos',
-               return_value=(True, DEMOS, None)):
+    with patch('qlsm_addon_demo_management.ansible_instance_demos.list_instance_listing',
+               return_value=_fake_listing(DEMOS)):
         resp = client.get(f'{ADDON}/instances/{instance_id}/demos', headers=auth)
 
     assert resp.status_code == 200
@@ -81,7 +91,7 @@ def test_listing_returns_rows_under_the_key_the_manifest_declares(client, auth, 
 
 
 def test_listing_surfaces_a_backend_failure(client, auth, instance_id):
-    with patch('qlsm_addon_demo_management.ansible_instance_demos.list_instance_demos',
+    with patch('qlsm_addon_demo_management.ansible_instance_demos.list_instance_listing',
                return_value=(False, None, 'ssh down')):
         resp = client.get(f'{ADDON}/instances/{instance_id}/demos', headers=auth)
 
@@ -233,8 +243,8 @@ POVS = [
 
 
 def _listing(client, auth, instance_id, demos):
-    with patch('qlsm_addon_demo_management.ansible_instance_demos.list_instance_demos',
-               return_value=(True, demos, None)):
+    with patch('qlsm_addon_demo_management.ansible_instance_demos.list_instance_listing',
+               return_value=_fake_listing(demos)):
         resp = client.get(f'{ADDON}/instances/{instance_id}/demos', headers=auth)
     assert resp.status_code == 200
     return resp.get_json()['data']
@@ -276,8 +286,8 @@ def test_grouping_leaves_a_match_another_addon_claimed_alone(client, auth, insta
     # backend.py imports dispatch inside the view, so the patch has to land on
     # ui.addons, not on a module attribute of the addon.
     with patch('ui.addons.dispatch', return_value=[claimed]):
-        with patch('qlsm_addon_demo_management.ansible_instance_demos.list_instance_demos',
-                   return_value=(True, POVS, None)):
+        with patch('qlsm_addon_demo_management.ansible_instance_demos.list_instance_listing',
+                   return_value=_fake_listing(POVS)):
             resp = client.get(f'{ADDON}/instances/{instance_id}/demos', headers=auth)
 
     groups = resp.get_json()['data']['matches']

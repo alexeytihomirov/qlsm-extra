@@ -4,12 +4,12 @@ provider, cache the result. See addons/README.md's live_status_columns
 contract for the response shape this builds and docs/superpowers/specs/2026-09-22-
 qlsm-player-rating-sources-design.md section 9.4 for the rules this follows.
 
-qlstats and Slipgate are installation-wide: their enabled/base_url/
-rating_system live in settings.global and are the same for every instance
-(2026-09-23 operator decision -- per-instance config for these two was pure
-friction, since qlstats.net/slipgate.gg and a rating system don't actually
-vary per server). Thunderdome elo-service and server_status stay per
-instance, resolved from settings.instance as before.
+qlstats and Slipgate keep their connection details (base_url, rating system,
+key) in settings.global, since qlstats.net/slipgate.gg do not vary per
+server. Whether each is shown is per instance: an instance whose Ranks tab
+was saved by this version decides for itself; any other instance follows the
+installation-wide default (see source_enabled). x76 (elo-service) is
+configured entirely per instance.
 """
 import json
 
@@ -17,10 +17,13 @@ from flask import current_app
 
 from .cache import TTL_NEGATIVE, TTL_SUCCESS, cache_key, get_cached, set_cached
 from .providers import RateLimited, build_registry
+from .providers.elo_service import DEFAULT_DISPLAY
 from .steam_ids import parse_steam_ids
 
-_PROVIDER_IDS = ('qlstats', 'slipgate', 'elo_service', 'server_status')
-_GLOBAL_PROVIDERS = {'qlstats', 'slipgate'}
+_PROVIDER_IDS = ('qlstats', 'slipgate', 'elo_service')
+# Sources whose connection details are installation-wide and whose on/off
+# state follows an installation-wide default until an instance saves its own.
+GLOBAL_PROVIDERS = ('qlstats', 'slipgate')
 _API_KEY_FIELD = {
     'slipgate': 'slipgate_api_key',
     'elo_service': 'elo_service_api_key',
@@ -73,12 +76,27 @@ def _global_key_for(provider_id, global_cfg):
     return (global_cfg.get(field) or '').strip() or None
 
 
-def _instantiate(provider_id, entry, base_url, api_key, rating_system, players_blob):
+def source_enabled(provider_id, global_cfg, instance_cfg):
+    """qlstats/Slipgate: an instance whose source checkboxes were never saved
+    follows the installation-wide default; once saved, its own checkbox
+    decides. `sources_saved` is needed because settings.get() fills a missing
+    bool with False, so "never saved" and "unticked" would look the same.
+    x76 is always per-instance.
+
+    The one place this rule lives: fetch_ranks() uses it to decide what is
+    served, and backend.py uses it for what the Ranks tab shows and saves, so
+    the two cannot disagree."""
+    if provider_id in GLOBAL_PROVIDERS and not instance_cfg.get('sources_saved'):
+        return bool(global_cfg.get(f'{provider_id}_enabled'))
+    return bool(instance_cfg.get(f'{provider_id}_enabled'))
+
+
+def _instantiate(provider_id, entry, base_url, api_key, rating_system, display):
     extra = {}
     if provider_id == 'qlstats':
         extra['rating_system'] = rating_system
-    if provider_id == 'server_status':
-        extra['players'] = players_blob
+    if provider_id == 'elo_service':
+        extra['display'] = display
     return entry['factory'](base_url=base_url, api_key=api_key, extra=extra)
 
 
@@ -92,10 +110,10 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     addon_ctx = get_addon('player-ranks').ctx
     global_cfg = addon_ctx.settings.get('global', 0)
     instance_cfg = addon_ctx.settings.get('instance', instance.id)
-    is_global = provider_id in _GLOBAL_PROVIDERS
+    is_global = provider_id in GLOBAL_PROVIDERS
     cfg = global_cfg if is_global else instance_cfg
 
-    if not cfg.get(f'{provider_id}_enabled'):
+    if not source_enabled(provider_id, global_cfg, instance_cfg):
         return dict(_NOT_CONFIGURED)
 
     registry = build_registry()
@@ -119,9 +137,8 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     rating_system = (global_cfg.get('qlstats_rating_system') or 'elo').strip()
     game_type_override = (instance_cfg.get('elo_service_game_type') or '').strip() if provider_id == 'elo_service' else ''
 
-    provider = _instantiate(
-        provider_id, entry, base_url, api_key, rating_system, (status or {}).get('players') or [],
-    )
+    display = (instance_cfg.get('elo_service_display') or DEFAULT_DISPLAY).strip()
+    provider = _instantiate(provider_id, entry, base_url, api_key, rating_system, display)
     # Explicit override wins outright; otherwise the source's own mapping of
     # the live game type, or None ("don't query, not an error").
     resolved_game_type = game_type_override or (
@@ -168,6 +185,8 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
         cell = {'display': str(result['display'])}
         if result.get('title'):
             cell['title'] = str(result['title'])
+        if result.get('color'):
+            cell['color'] = str(result['color'])
         data[str(steam_id)] = cell
 
     payload = {'data': data, 'configured': True}
@@ -177,13 +196,11 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
 
 # Icon for each source's stacked entry in the combined column (see
 # fetch_all_ranks) -- the same icon each source's old standalone column
-# header used to carry. server_status has no logo of its own, just core's
-# built-in icon set.
+# header used to carry.
 _ENTRY_ICON = {
     'qlstats': {'icon_url': 'logos/qlstats.svg'},
     'slipgate': {'icon_url': 'logos/slipgate.svg'},
     'elo_service': {'icon_url': 'logos/elo_service.svg'},
-    'server_status': {'icon': 'activity'},
 }
 
 
@@ -221,6 +238,8 @@ def fetch_all_ranks(instance, raw_steam_ids):
             entry = {'display': cell['display'], **_ENTRY_ICON.get(provider_id, {})}
             if cell.get('title'):
                 entry['title'] = cell['title']
+            if cell.get('color'):
+                entry['color'] = cell['color']
             entries.append(entry)
         if entries:
             data[steam_id] = {'entries': entries}

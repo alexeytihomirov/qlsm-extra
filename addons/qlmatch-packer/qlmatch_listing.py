@@ -52,8 +52,62 @@ MAX_QLMATCH_BATCH = 200
 # pack skips the remote SFTP open + zip read entirely -- with dozens of
 # packs that open was the dominant cost of the Demos list, since each one is
 # its own network round trip on top of the directory listing itself.
+#
+# Two layers: this process's dict, then Redis (same key), so a QLSM restart
+# or redeploy no longer means re-reading every pack on the first listing.
 _MANIFEST_CACHE = {}
 _MANIFEST_CACHE_MAX = 4000
+_REDIS_PREFIX = 'qlsm:qlmatch-packer:manifest:v2'
+_REDIS_TTL_SECONDS = 30 * 24 * 3600
+
+
+def _redis():
+    try:
+        from flask import current_app
+        return current_app.extensions.get('redis')
+    except Exception:
+        return None
+
+
+def _redis_key(cache_key):
+    return _REDIS_PREFIX + ':' + ':'.join(str(part) for part in cache_key)
+
+
+def cached_manifest(cache_key):
+    """The cached manifest summary for `cache_key`, or None - never touches
+    the remote host, so a caller can decide whether it needs an SFTP session
+    at all before opening one."""
+    if cache_key in _MANIFEST_CACHE:
+        return _MANIFEST_CACHE[cache_key]
+    client = _redis()
+    if client is None:
+        return None
+    try:
+        value = client.get(_redis_key(cache_key))
+    except Exception as exc:
+        log.warning(f"qlmatch manifest cache read skipped: {exc}")
+        return None
+    if not value:
+        return None
+    try:
+        result = json.loads(value)
+    except ValueError:
+        return None
+    _remember(cache_key, result, to_redis=False)
+    return result
+
+
+def _remember(cache_key, result, to_redis=True):
+    if len(_MANIFEST_CACHE) >= _MANIFEST_CACHE_MAX:
+        _MANIFEST_CACHE.clear()
+    _MANIFEST_CACHE[cache_key] = result
+    client = _redis() if to_redis else None
+    if client is None:
+        return
+    try:
+        client.set(_redis_key(cache_key), json.dumps(result), ex=_REDIS_TTL_SECONDS)
+    except Exception as exc:
+        log.warning(f"qlmatch manifest cache write skipped: {exc}")
 
 
 def qlmatch_sidecar_name(match_id, map_name):
@@ -78,14 +132,17 @@ def _manifest_from_pack(sftp, demo_dir, filename, cache_key=None):
     on the next call instead of sticking.
 
     Returns a tuple: (manifest: dict or None, error_msg: str or None) where
-    manifest is {"match_id": str, "map": str, "raw_demo_names": list[str]} --
-    the last being the basenames of the raw .dm_91 POV files this pack was
+    manifest is {"match_id": str, "map": str, "raw_demo_names": list[str],
+    "gametype": str (the numeric g_gametype), "pov_names": list[str]} --
+    raw_demo_names being the basenames of the raw .dm_91 POV files this pack was
     built from (per manifest["demos"][*]["file"]), so callers can relate a
     pack back to its still-on-disk sources (packing copies them into the
     zip, it never deletes the originals -- see pack.mjs / rebuild_ops.py).
     """
-    if cache_key is not None and cache_key in _MANIFEST_CACHE:
-        return _MANIFEST_CACHE[cache_key], None
+    if cache_key is not None:
+        hit = cached_manifest(cache_key)
+        if hit is not None:
+            return hit, None
 
     try:
         with sftp.open(f"{demo_dir}/{filename}", 'rb') as fh:
@@ -110,16 +167,21 @@ def _manifest_from_pack(sftp, demo_dir, filename, cache_key=None):
         return None, "manifest.json missing match_id or map."
 
     raw_demo_names = []
+    pov_names = []
     for entry in manifest.get('demos') or []:
         file_field = entry.get('file') if isinstance(entry, dict) else None
         if isinstance(file_field, str) and file_field:
             raw_demo_names.append(file_field.rsplit('/', 1)[-1])
+        name = entry.get('name') if isinstance(entry, dict) else None
+        if isinstance(name, str) and name and name not in pov_names:
+            pov_names.append(name)
 
-    result = {'match_id': match_id, 'map': map_name, 'raw_demo_names': raw_demo_names}
+    result = {
+        'match_id': match_id, 'map': map_name, 'raw_demo_names': raw_demo_names,
+        'gametype': str(manifest.get('gametype') or ''), 'pov_names': pov_names,
+    }
     if cache_key is not None:
-        if len(_MANIFEST_CACHE) >= _MANIFEST_CACHE_MAX:
-            _MANIFEST_CACHE.clear()
-        _MANIFEST_CACHE[cache_key] = result
+        _remember(cache_key, result)
     return result, None
 
 

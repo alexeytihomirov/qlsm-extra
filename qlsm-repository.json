@@ -71,7 +71,7 @@
         "telemetry_unified_sched.py",
         "stats_hub_pause.py"
       ],
-      "sha256": "0bd4cac9372906bc347df380b9bc039decc6cd70b06f658fcc3ee6ca78ab21fa"
+      "sha256": "de928097de8220bacbffb79d89a5722076d1dd863f81118b81600b7635aa653a"
     },
     {
       "filename": "telemetry_unified_sched.py",
@@ -85,17 +85,24 @@
       "runtime": "minqlxtended",
       "label": "\u26a0\ufe0f telemetry helper \u2014 DO NOT ENABLE separately",
       "description": "Support module for stream_telemetry_unified.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin.",
-      "sha256": "cc14474f6c2c0033646606ddcc9ec716372a9fa660fad087e46705fa456e3265"
+      "sha256": "ab5805507a4f19930c25a5905a548b26a57ec679132bef3789b7d552140c5b0b"
+    },
+    {
+      "filename": "referee_call.py",
+      "runtime": "minqlxtended",
+      "label": "Referee Call",
+      "description": "Adds the !call chat command (usable by spectators). It only answers the caller; the call itself travels as an ordinary chat line through stream_telemetry_unified, which forwards it to the stats hub as a referee ticket. One call per player per 60 seconds. Needs stream_telemetry_unified enabled for the call to reach the referees.",
+      "sha256": "19bb92b5a16b1dfa1dcc0713894667258f28e502ced110eff92f00059ee1c8a1"
     }
   ],
   "addons": [
     {
       "id": "demo-management",
       "zip": "packages/demo-management.zip",
-      "sha256": "e2bb6a72f42263cfcc9a6ff8b6161b86210f0504830bfb27f16764611eb04bb4",
-      "version": "1.5.1",
+      "sha256": "0a9d839829a6d5ad044e7cf4ca427cba3e9de8eb69c3e670de9b06f778f0dfd9",
+      "version": "1.6.1",
       "label": "Demos",
-      "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog."
+      "description": "Lists and downloads the server-side demo files an instance recorded, newest first, with every file of one match collapsed into a single row labelled with its map, mode, players and length (from the match's {match_id}.meta.json, else the engine's filenames), and filters by date preset, map, mode and pack state. Recognises raw .dm_91 by default; other addons (e.g. qlmatch-packer) extend the recognised formats via the demo_management.file_kinds hook and add per-match actions via demo_management.match_groups. Needs QLSM with ui_api 3 or newer - the screen is the addon's own component and renders its whole dialog."
     },
     {
       "id": "demo-stream",
@@ -108,16 +115,16 @@
     {
       "id": "player-ranks",
       "zip": "packages/player-ranks.zip",
-      "sha256": "f39ee4782f0798dc652547d0a060a4228ebb54fa917f4a3ddc9d68c2a04d534f",
-      "version": "0.2.0",
+      "sha256": "0493f86dfed935d621a66e8760cf8a37da6c8e1f8d22fbfabf760e8af9b9e48b",
+      "version": "0.3.2",
       "label": "Player Ranks",
-      "description": "Shows each connected player's external rating in Live Status. qlstats and Slipgate are installation-wide switches (same for every instance); Thunderdome elo-service and the game server's own status data are configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer."
+      "description": "Shows each connected player's external rating in Live Status. Pick the sources per instance on its Ranks tab: qlstats, Slipgate and x76. qlstats and Slipgate connection details are set once for the installation; x76 is configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer."
     },
     {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "49703033d9b4eb9a5a8c27eb76e2723e331fad7940201b47e72d752eda830fe8",
-      "version": "1.0.2",
+      "sha256": "bd2ab711be6558e8b5e4ba46239250d3426484967c0b13a961f880921c6ffe19",
+      "version": "1.1.1",
       "label": "Qlmatch Packer",
       "description": "Deploys the external Node.js qlmatch-packer (+ Node 22 runtime) to every managed host after setup / \"Update Plugins\", and makes demo-management recognise the .qlmatch/.replay.json.gz files it produces (the .packer.log it also writes is deliberately never surfaced there). Cvars (qlx_qlmatchNameTemplate, qlx_qlmatchRcloneTargets) are read straight from an instance's server.cfg -- there is no Plugins-tab UI for them since the plugin that used to own that manifest was retired; set them by hand for now. This addon's own settings only control whether the replay sidecar shows up in the Demos widget."
     },
@@ -132,8 +139,8 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "788132f09a27f2c7a7e5236984763f3c12956412cda348e9b644a7c5eea9c2a2",
-      "version": "1.2.1",
+      "sha256": "b77b44b5a0a15004129a25acd0a227e5dc229769571637ed90ac552a23f84d5d",
+      "version": "1.3.0",
       "label": "Telemetry Relay",
       "description": "Forwards live match/player/pickup telemetry from each game instance to ql-stats-hub through a per-host relay sidecar."
     }

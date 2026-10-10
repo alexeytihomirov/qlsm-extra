@@ -1,0 +1,4 @@
+{
+  "label": "Referee Call",
+  "description": "Adds the !call chat command (usable by spectators). It only answers the caller; the call itself travels as an ordinary chat line through stream_telemetry_unified, which forwards it to the stats hub as a referee ticket. One call per player per 60 seconds. Needs stream_telemetry_unified enabled for the call to reach the referees."
+}

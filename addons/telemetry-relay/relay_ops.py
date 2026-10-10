@@ -41,13 +41,16 @@ _RELAY_HEALTH_TIMEOUT_SEC = 3
 
 
 def build_relay_routes_for_host(host_id):
-    """{"<server_id>": {"telemetry": "<stats-hub>/api/ingest/telemetry", "server_name": ...}}
+    """{"<server_id>": {"telemetry": "<stats-hub>/api/ingest/telemetry", "server_name": ...,
+    "server_address": "<host ip>:<game port>"}}
     for every instance on this host that already has a reserved server_id,
     targeting this host's effective (override or global) stats-hub URL."""
     stats_hub_url = get_effective_stats_hub_url(host_id)
     if not stats_hub_url:
         return {}
     routes = {}
+    host = db.session.get(Host, host_id)
+    host_ip = (host.ip_address or '').strip() if host else ''
     for instance in QLInstance.query.filter_by(host_id=host_id).all():
         server_id = get_instance_server_id(instance.id)
         if not server_id:
@@ -55,6 +58,8 @@ def build_relay_routes_for_host(host_id):
         routes[str(server_id)] = {
             'telemetry': f'{stats_hub_url}/api/ingest/telemetry',
             'server_name': instance.name,
+            # Where players connect; stats-hub hands it to its consumers (a "connect" link).
+            'server_address': f'{host_ip}:{instance.port}' if host_ip else '',
         }
     return routes
 

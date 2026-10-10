@@ -13,6 +13,7 @@ qlmatch-packer's are free to diverge from here on.
 """
 import logging
 import os
+import shlex
 import stat as stat_module
 
 import paramiko
@@ -120,6 +121,81 @@ def run_remote_command(host, command, timeout=SSH_IO_TIMEOUT_SECONDS):
         return exit_status, stdout_text, stderr_text
     finally:
         client.close()
+
+
+def read_small_files(client, directory, names, max_bytes, timeout=SSH_IO_TIMEOUT_SECONDS):
+    """Read several small files from one directory in ONE remote exec.
+
+    Over SFTP each file is its own open/read/close - three round trips, paid
+    sequentially - so reading N metas costs N x 3 x RTT. One `cat` loop on
+    the host costs one round trip whatever N is. Reuses the caller's
+    already-connected client: no second SSH handshake.
+
+    Every name MUST already be validated against a strict filename regex by
+    the caller; they are shell-quoted here as a second line of defence. Each
+    file is printed as "<name>\\0<bytes>\\0" (a NUL can occur in neither a
+    filename nor JSON), capped at max_bytes, and a file that vanished between
+    the listing and this read is skipped rather than failing the batch.
+
+    Returns {name: bytes}.
+    """
+    if not names:
+        return {}
+    quoted = ' '.join(shlex.quote(name) for name in names)
+    command = (
+        f"cd {shlex.quote(directory)} && for f in {quoted}; do "
+        f"[ -f \"$f\" ] || continue; printf '%s\\0' \"$f\"; "
+        f"head -c {int(max_bytes)} \"$f\"; printf '\\0'; done"
+    )
+    _stdin, stdout, _stderr = client.exec_command(command, timeout=timeout)
+    data = stdout.read()
+    stdout.channel.recv_exit_status()
+
+    parts = data.split(b'\0')
+    wanted = set(names)
+    files = {}
+    for raw_name, body in zip(parts[0::2], parts[1::2]):
+        name = raw_name.decode('utf-8', errors='replace')
+        if name in wanted:
+            files[name] = body
+    return files
+
+
+def list_dir_entries_bytes(client, directory, timeout=SSH_IO_TIMEOUT_SECONDS):
+    """Regular files directly under `directory`, listed with one remote
+    `find` and decoded per name.
+
+    The fallback for when SFTP's listdir_attr cannot be used: paramiko
+    decodes every filename in a directory as strict UTF-8 while reading it,
+    so ONE name in another encoding (a player name written as CP1251 bytes,
+    say) raises UnicodeDecodeError and loses the whole listing. Here each
+    name is decoded on its own and an undecodable one is skipped - it could
+    not be requested back by name anyway.
+
+    Returns (entries, skipped) where entries are {"name", "size", "mtime"}
+    dicts and skipped is how many names were not valid UTF-8.
+    """
+    command = (
+        f"find {shlex.quote(directory)} -mindepth 1 -maxdepth 1 -type f "
+        "-printf '%f\\0%s\\0%T@\\0' 2>/dev/null; true"
+    )
+    _stdin, stdout, _stderr = client.exec_command(command, timeout=timeout)
+    data = stdout.read()
+    stdout.channel.recv_exit_status()
+
+    parts = data.split(b'\0')
+    entries, skipped = [], 0
+    for i in range(0, len(parts) - 2, 3):
+        raw_name, raw_size, raw_mtime = parts[i], parts[i + 1], parts[i + 2]
+        try:
+            name = raw_name.decode('utf-8')
+            size = int(raw_size)
+            mtime = float(raw_mtime)
+        except (UnicodeDecodeError, ValueError):
+            skipped += 1
+            continue
+        entries.append({'name': name, 'size': size, 'mtime': mtime})
+    return entries, skipped
 
 
 def list_dir_entries(sftp, demo_dir, filename_re):

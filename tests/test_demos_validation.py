@@ -98,7 +98,7 @@ def _mock_ssh_client(sftp):
 
 def test_missing_instance_returns_404_before_task_logic(client, app):
     _, token = _make_instance(app)
-    with patch(f'{FETCH_MODULE}.list_instance_demos') as mock_list:
+    with patch(f'{FETCH_MODULE}.list_instance_listing') as mock_list:
         resp = _get_demos(client, 999999, token)
     assert resp.status_code == 404
     mock_list.assert_not_called()
@@ -106,30 +106,31 @@ def test_missing_instance_returns_404_before_task_logic(client, app):
 
 def test_missing_host_returns_400_before_task_logic(client, app):
     instance_id, token = _make_instance_without_host(app)
-    with patch(f'{FETCH_MODULE}.list_instance_demos') as mock_list:
+    with patch(f'{FETCH_MODULE}.list_instance_listing') as mock_list:
         resp = _get_demos(client, instance_id, token)
     assert resp.status_code == 400
     mock_list.assert_not_called()
 
 
-@patch(f'{FETCH_MODULE}.list_instance_demos',
-       return_value=(True, [{'name': 'a.dm_91', 'size': 100, 'mtime': 1.0}], None))
+@patch(f'{FETCH_MODULE}.list_instance_listing',
+       return_value=(True, {'demos': [{'name': 'a.dm_91', 'size': 100, 'mtime': 1.0, 'kind': 'pov'}],
+                            'infos': {}, 'timing': {'total_ms': 5}}, None))
 def test_list_request_returns_demos(mock_list, client, app):
     instance_id, token = _make_instance(app)
     resp = _get_demos(client, instance_id, token)
     assert resp.status_code == 200
-    # `matches` came with the qlmatch-packer split (256e2dd) and this
-    # exact-dict assertion was not updated with it; a single ungrouped file
-    # yields no match, so it is empty here.
-    assert resp.get_json()['data'] == {
-        'demos': [{'name': 'a.dm_91', 'size': 100, 'mtime': 1.0}],
-        'matches': [],
-        'instance_name': 'demo-inst',
-    }
+    data = resp.get_json()['data']
+    # A single ungrouped file yields no match, so `matches` is empty here.
+    assert data['demos'] == [{'name': 'a.dm_91', 'size': 100, 'mtime': 1.0, 'kind': 'pov'}]
+    assert data['matches'] == []
+    assert data['instance_name'] == 'demo-inst'
+    assert isinstance(data['fetched_at'], float)
+    assert data['timing_ms']['total_ms'] == 5
+    assert 'hooks_ms' in data['timing_ms']
     mock_list.assert_called_once_with(instance_id)
 
 
-@patch(f'{FETCH_MODULE}.list_instance_demos', return_value=(False, [], 'boom'))
+@patch(f'{FETCH_MODULE}.list_instance_listing', return_value=(False, None, 'boom'))
 def test_list_failure_returns_500(mock_list, client, app):
     instance_id, token = _make_instance(app)
     resp = _get_demos(client, instance_id, token)

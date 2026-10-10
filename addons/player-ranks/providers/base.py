@@ -28,9 +28,10 @@ class RankProvider(ABC):
     @abstractmethod
     def fetch_ratings(self, steam_ids, game_type):
         """{steam_id(str): {'rating': float|None, 'display': str,
-        'provisional': bool, 'title': str|None}} for whichever of
-        `steam_ids` the source knows about. Missing players are simply
-        absent from the dict, not an error."""
+        'provisional': bool, 'title': str|None, 'color': str|None}} for
+        whichever of `steam_ids` the source knows about. Missing players are
+        simply absent from the dict, not an error. `color`, when set, is a
+        name from the palette qlsm's live_status_columns cell accepts."""
 
 
 class RateLimited(Exception):
