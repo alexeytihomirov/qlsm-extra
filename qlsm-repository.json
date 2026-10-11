@@ -104,8 +104,8 @@
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "19ab209aa5436ea6d4b78327cf422acc750eae327666e52fd77fdd67064e75e3",
-      "version": "1.1.1",
+      "sha256": "28d688472314ae157face2e57f7f4a1e33c0595604568e1872593226296bf1cc",
+      "version": "1.1.2",
       "label": "Live Demo Stream (experimental)",
       "description": "Experimental, not yet verified end to end. Lets a spectator watch a player's view live: points an instance's sv_demoStream cvars at the central demo-stream relay and registers the instance with ql-stats-hub. Set the relay address and the stats-hub in Settings, then enable each instance from its Live Demo Stream menu entry, which restarts it. Needs a game server build that supports the sv_demoStream cvars."
     },
@@ -136,8 +136,8 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "50eb2871bb588d1bed1fc5c5a2025f97b62214ae9dd2c58a9792bb2b26e380dd",
-      "version": "1.3.0",
+      "sha256": "74299c60a37fdcece49c65c21bcb195618ab20c698146866e30a220f0e18af83",
+      "version": "1.3.1",
       "label": "Telemetry Relay",
       "description": "Sends live telemetry from game instances (player positions, item pickups, match events) to ql-stats-hub through a relay on each host. Set the stats-hub URL and ingest token in Settings, turn the relay on per host (host menu, Telemetry Relay), then enable each instance on its Telemetry tab. The instances need the stream_telemetry_unified plugin."
     }

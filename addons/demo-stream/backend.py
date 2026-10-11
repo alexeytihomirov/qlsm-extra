@@ -165,8 +165,10 @@ def enable_instance_stream(instance_id):
             "message": f'Another operation is running on instance "{instance.name}".'
         }}), 409
     try:
+        previous_status = instance.status.value
         update_instance(instance.id, status=InstanceStatus.CONFIGURING)
         enqueue_task(TASKS['enable_instance_demo_stream'], instance.id,
+                     previous_status=previous_status,
                      lock_token=lock_token, on_failure=instance_job_failure_handler)
     except Exception as e:
         release_lock('instance', instance.id, lock_token)
@@ -187,13 +189,13 @@ def register(ctx):
     ctx.blueprint(bp)
 
     @ctx.task(timeout=300, lock_scope='instance')
-    def enable_instance_demo_stream_task(instance_id):
+    def enable_instance_demo_stream_task(instance_id, previous_status=None):
         """RQ task entry point for wiring an instance's sv_demoStream* cvars
         at the central demo-stream relay and registering its route with
         stats-hub."""
         from .instance_ops import enable_instance_demo_stream_logic
 
-        return enable_instance_demo_stream_logic(instance_id)
+        return enable_instance_demo_stream_logic(instance_id, previous_status=previous_status)
 
     TASKS['enable_instance_demo_stream'] = enable_instance_demo_stream_task
 

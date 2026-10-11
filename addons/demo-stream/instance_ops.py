@@ -27,7 +27,7 @@ import requests
 from flask import current_app
 
 from ui import db
-from ui.models import QLInstance
+from ui.models import InstanceStatus, QLInstance
 from .settings import (
     get_effective_stats_hub_ingest_token,
     get_effective_stats_hub_url,
@@ -59,24 +59,38 @@ def _register_route(host_id, server_id, server_name, token):
     resp.raise_for_status()
 
 
-def _finish(instance, ok, message):
+def _status_after_failure(previous_status):
+    """The status a failed enable goes back to: the one the endpoint saw
+    before it set CONFIGURING, or ERROR when that is missing or invalid (the
+    same outcome as core's instance_job_failure_handler)."""
+    try:
+        return InstanceStatus(previous_status)
+    except ValueError:
+        return InstanceStatus.ERROR
+
+
+def _finish(instance, ok, message, previous_status=None):
     if instance is not None:
         instance.logs = f"{message}\n{instance.logs or ''}"
+        if not ok and instance.status == InstanceStatus.CONFIGURING:
+            instance.status = _status_after_failure(previous_status)
         db.session.commit()
     return ok, message
 
 
-def enable_instance_demo_stream_logic(instance_id):
+def enable_instance_demo_stream_logic(instance_id, previous_status=None):
     """Returns (ok: bool, message: str)."""
     instance = db.session.get(QLInstance, instance_id)
-    if not instance or not instance.host:
+    if not instance:
         return False, "Instance or associated host not found."
+    if not instance.host:
+        return _finish(instance, False, "Instance or associated host not found.", previous_status)
 
     host_id = instance.host_id
     if not is_relay_configured():
-        return _finish(instance, False, "Configure the demo-stream relay host/port in Settings first.")
+        return _finish(instance, False, "Configure the demo-stream relay host/port in Settings first.", previous_status)
     if not is_stats_hub_configured_for_host(host_id):
-        return _finish(instance, False, "Configure the stats-hub URL/ingest token (globally or for this host) in Settings first.")
+        return _finish(instance, False, "Configure the stats-hub URL/ingest token (globally or for this host) in Settings first.", previous_status)
 
     server_id = get_instance_server_id(instance.id)
     if server_id is None:
@@ -86,7 +100,7 @@ def enable_instance_demo_stream_logic(instance_id):
             current_app.logger.error(
                 f"Failed to reserve stats-hub server_id for instance {instance.id}: {exc}"
             )
-            return _finish(instance, False, f"Could not reserve a server_id from stats-hub: {exc}")
+            return _finish(instance, False, f"Could not reserve a server_id from stats-hub: {exc}", previous_status)
         set_instance_server_id(instance.id, server_id)
         db.session.commit()
 
@@ -100,7 +114,7 @@ def enable_instance_demo_stream_logic(instance_id):
         current_app.logger.error(
             f"Failed to register demo-stream route for instance {instance.id}: {exc}"
         )
-        return _finish(instance, False, f"Could not register the demo-stream route with stats-hub: {exc}")
+        return _finish(instance, False, f"Could not register the demo-stream route with stats-hub: {exc}", previous_status)
 
     set_instance_demo_stream_token(instance.id, token)
     db.session.commit()
@@ -136,7 +150,8 @@ def enable_instance_demo_stream_logic(instance_id):
     )
     if not job:
         return _finish(
-            instance, False, f"server_id {server_id} reserved and route registered, but queuing the config apply/restart failed."
+            instance, False, f"server_id {server_id} reserved and route registered, but queuing the config apply/restart failed.",
+            previous_status,
         )
 
     return _finish(

@@ -246,8 +246,10 @@ def enable_instance_telemetry(instance_id):
             "message": f'Another operation is running on instance "{instance.name}".'
         }}), 409
     try:
+        previous_status = instance.status.value
         update_instance(instance.id, status=InstanceStatus.CONFIGURING)
         enqueue_task(TASKS['enable_instance_telemetry'], instance.id,
+                     previous_status=previous_status,
                      lock_token=lock_token, on_failure=instance_job_failure_handler)
     except Exception as e:
         release_lock('instance', instance.id, lock_token)
@@ -281,11 +283,11 @@ def register(ctx):
         return configure_host_telemetry_relay_logic(host_id, enabled)
 
     @ctx.task(timeout=300, lock_scope='instance')
-    def enable_instance_telemetry_task(instance_id):
+    def enable_instance_telemetry_task(instance_id, previous_status=None):
         """Reserve a stats-hub server_id and wire the instance's cvars."""
         from .instance_ops import enable_instance_telemetry_logic
 
-        return enable_instance_telemetry_logic(instance_id)
+        return enable_instance_telemetry_logic(instance_id, previous_status=previous_status)
 
     TASKS['configure_host_relay'] = configure_host_relay
     TASKS['enable_instance_telemetry'] = enable_instance_telemetry_task
