@@ -36,6 +36,7 @@ RESULT_OK = "ok"
 RESULT_DENY = "deny"
 RESULT_DISABLED = "disabled"
 RESULT_USAGE = "usage"
+RESULT_MULTI_COMMAND = "multi"
 
 
 def parse_csv(raw: str | None, defaults: Sequence[str]) -> Set[str]:
@@ -100,7 +101,7 @@ def evaluate_acl(
     """Decide whether to run a chat-rcon line.
 
     Returns (result, reason, normalized_full_line).
-    result ∈ {ok, deny, disabled, usage}.
+    result is one of ok, deny, disabled, usage, multi.
 
     player_is_none: console/RCON invoke — skip whitelist; still apply admin deny.
     perm_level ignored when player_is_none (treated as admin path).
@@ -108,9 +109,14 @@ def evaluate_acl(
     if not enabled:
         return RESULT_DISABLED, "chat-rcon disabled", ""
 
+    # idTech3 splits a console line on ";" and newlines, so anything after the first
+    # command would bypass both the referee allow-list and the admin deny-list.
+    if any(sep in str(cmd_line or "") for sep in (";", "\n", "\r")):
+        return RESULT_MULTI_COMMAND, "denied: one command per line", ""
+
     full, first_cf, second_cf = normalize_command_line(cmd_line)
     if not first_cf:
-        return RESULT_USAGE, "usage: !rcon <command> [args…]", ""
+        return RESULT_USAGE, "usage: !rcon <command> [args...]", ""
 
     ref_set = (
         {t.casefold() for t in ref_commands}

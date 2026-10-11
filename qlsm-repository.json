@@ -12,14 +12,14 @@
       "runtime": "minqlxtended",
       "label": "Chat RCON",
       "description": "Lets referees and admins run server console commands from chat with !rcon <command>. Referees (permission level Referee Permission Level and up) may run only the Referee-Allowed Commands; admins (Admin Permission Level and up) may run anything except the Admin-Denied Commands. Takes over the stock !rcon while enabled, and every use is written to the server log.",
-      "sha256": "33aa75d8ebe5a7e841c0e70b70846f35660e4e3535de6afbbb2a2cfe13df7ea8"
+      "sha256": "a01adbc752724128ef9e26ca1c3591e0a2b14319fc814926adeae1d8b137ef08"
     },
     {
       "filename": "chat_rcon_acl.py",
       "runtime": "minqlxtended",
       "label": "\u26a0\ufe0f chat_rcon test copy - not a plugin, do not enable",
       "description": "A copy of chat_rcon's permission rules that this repository's tests import. chat_rcon.py has the same rules built in and does not need this file on a server.",
-      "sha256": "03d7de7b272a062d59b62b607531aabd68d2db8c05f99a35ac62d4149e0361b2"
+      "sha256": "fd016c20fa696d40900a8ed4b6480d9904fe0ea9b0efac4c50c92d893d739614"
     },
     {
       "filename": "lobby.py",

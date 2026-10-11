@@ -40,22 +40,23 @@ RESULT_OK = "ok"
 RESULT_DENY = "deny"
 RESULT_DISABLED = "disabled"
 RESULT_USAGE = "usage"
+RESULT_MULTI_COMMAND = "multi"
 
 
 def parse_csv(raw, defaults):
     if raw is None:
-        return set(t.lower() for t in defaults)
+        return set(t.casefold() for t in defaults)
     text = str(raw).strip()
     if not text:
-        return set(t.lower() for t in defaults)
+        return set(t.casefold() for t in defaults)
     parts = []
     for chunk in text.replace(";", ",").split(","):
         for token in chunk.split():
-            t = token.strip().lower()
+            t = token.strip().casefold()
             if t:
                 parts.append(t)
     if not parts:
-        return set(t.lower() for t in defaults)
+        return set(t.casefold() for t in defaults)
     return set(parts)
 
 
@@ -72,7 +73,7 @@ def normalize_command_line(raw):
     second = ""
     if rest:
         second = rest.split(None, 1)[0]
-    return full, first.lower(), second.lower()
+    return full, first.casefold(), second.casefold()
 
 
 def _denied_by_admin_list(first_cf, second_cf, deny):
@@ -98,18 +99,23 @@ def evaluate_acl(
     if not enabled:
         return RESULT_DISABLED, "chat-rcon disabled", ""
 
+    # idTech3 splits a console line on ";" and newlines, so anything after the first
+    # command would bypass both the referee allow-list and the admin deny-list.
+    if any(sep in str(cmd_line or "") for sep in (";", "\n", "\r")):
+        return RESULT_MULTI_COMMAND, "denied: one command per line", ""
+
     full, first_cf, second_cf = normalize_command_line(cmd_line)
     if not first_cf:
         return RESULT_USAGE, "usage: !rcon <command> [args...]", ""
 
     if ref_commands is not None:
-        ref_set = set(t.lower() for t in ref_commands)
+        ref_set = set(t.casefold() for t in ref_commands)
     else:
-        ref_set = set(t.lower() for t in DEFAULT_REF_COMMANDS)
+        ref_set = set(t.casefold() for t in DEFAULT_REF_COMMANDS)
     if admin_deny is not None:
-        deny_set = set(t.lower() for t in admin_deny)
+        deny_set = set(t.casefold() for t in admin_deny)
     else:
-        deny_set = set(t.lower() for t in DEFAULT_ADMIN_DENY)
+        deny_set = set(t.casefold() for t in DEFAULT_ADMIN_DENY)
     deny_set = set(deny_set)
     deny_set.add("rconpassword")
 
