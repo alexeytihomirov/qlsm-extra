@@ -1,0 +1,226 @@
+---
+# Idempotent rollout of the file forwarder to a game host: rclone, the install
+# SFTP key, the rclone remote, forwarder.conf, forwarder.sh, the systemd
+# service + timer. Extravars come from backend.py (config_render.playbook_vars
+# plus ff_private_key_file).
+#
+# The private key is NOT an extravar (qlsm's ansible runner logs the whole
+# extravars JSON). It arrives as a 0600 file on the qlsm side, whose path is
+# ff_private_key_file, and is installed with `copy: src=`. Every task that
+# touches the key or the rclone config carries no_log: true.
+#
+# rclone: the distribution package when its version is >= 1.63, otherwise
+# rclone's own .deb from downloads.rclone.org. The sftp option names this
+# playbook writes are checked against `rclone help backend sftp` on the host.
+
+- name: Deploy the file forwarder
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  vars:
+    fwd_min_rclone: "1.63"
+    fwd_home: /home/ql
+    fwd_dir: /home/ql/file-forwarder
+    fwd_key: /home/ql/.ssh/id_ed25519_qldemos
+    fwd_known_hosts: /home/ql/.ssh/known_hosts_qldemos
+
+  tasks:
+    - name: Check installed rclone version
+      command: rclone version
+      register: fwd_rclone_cur
+      changed_when: false
+      failed_when: false
+
+    - name: Work out the installed rclone version
+      set_fact:
+        fwd_rclone_cur_ver: "{{ (fwd_rclone_cur.stdout | default('') | regex_findall('([0-9]+[.][0-9]+)') | first | default('0')) if fwd_rclone_cur.rc == 0 else '0' }}"
+
+    - name: Look up the distribution rclone candidate
+      shell: "apt-cache policy rclone | sed -n 's/^ *Candidate: *//p'"
+      register: fwd_rclone_cand
+      changed_when: false
+      failed_when: false
+      when: fwd_rclone_cur_ver is version(fwd_min_rclone, '<')
+
+    - name: Work out the distribution rclone version
+      set_fact:
+        fwd_rclone_cand_ver: "{{ fwd_rclone_cand.stdout | default('') | trim | regex_findall('([0-9]+[.][0-9]+)') | first | default('0') }}"
+      when: fwd_rclone_cur_ver is version(fwd_min_rclone, '<')
+
+    - name: Install rclone from the distribution
+      apt:
+        update_cache: yes
+        name: rclone
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      when:
+        - fwd_rclone_cur_ver is version(fwd_min_rclone, '<')
+        - fwd_rclone_cand_ver is version(fwd_min_rclone, '>=')
+
+    - name: Find the dpkg architecture
+      command: dpkg --print-architecture
+      register: fwd_arch
+      changed_when: false
+      when:
+        - fwd_rclone_cur_ver is version(fwd_min_rclone, '<')
+        - fwd_rclone_cand_ver is version(fwd_min_rclone, '<')
+
+    - name: Download rclone's own .deb (distribution rclone is too old)
+      get_url:
+        url: "https://downloads.rclone.org/rclone-current-linux-{{ fwd_arch.stdout | trim }}.deb"
+        dest: /tmp/rclone-current.deb
+        mode: "0644"
+      when:
+        - fwd_rclone_cur_ver is version(fwd_min_rclone, '<')
+        - fwd_rclone_cand_ver is version(fwd_min_rclone, '<')
+
+    - name: Install rclone's own .deb
+      apt:
+        deb: /tmp/rclone-current.deb
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      when:
+        - fwd_rclone_cur_ver is version(fwd_min_rclone, '<')
+        - fwd_rclone_cand_ver is version(fwd_min_rclone, '<')
+
+    - name: Read the sftp backend options of the installed rclone
+      command: rclone help backend sftp
+      register: fwd_sftp_help
+      changed_when: false
+
+    - name: Check the sftp option names this playbook writes exist
+      assert:
+        that:
+          - "item in fwd_sftp_help.stdout"
+        fail_msg: "The installed rclone has no sftp option {{ item }}; the rclone config written by this addon would be wrong."
+      loop:
+        - "--sftp-host"
+        - "--sftp-user"
+        - "--sftp-key-file"
+        - "--sftp-known-hosts-file"
+        - "--sftp-shell-type"
+        - "--sftp-md5sum-command"
+        - "--sftp-sha1sum-command"
+
+    - name: Create the ssh directory
+      file:
+        path: /home/ql/.ssh
+        state: directory
+        owner: ql
+        group: ql
+        mode: "0700"
+
+    - name: Install the SFTP private key
+      copy:
+        src: "{{ ff_private_key_file }}"
+        dest: "{{ fwd_key }}"
+        owner: ql
+        group: ql
+        mode: "0600"
+      no_log: true
+
+    - name: Install known_hosts for the VPS
+      copy:
+        content: "{{ ff_known_hosts }}"
+        dest: "{{ fwd_known_hosts }}"
+        owner: ql
+        group: ql
+        mode: "0644"
+
+    - name: Create the rclone config directory
+      file:
+        path: /home/ql/.config/rclone
+        state: directory
+        owner: ql
+        group: ql
+        mode: "0700"
+
+    - name: Write the rclone config for the VPS remote
+      copy:
+        dest: /home/ql/.config/rclone/rclone.conf
+        owner: ql
+        group: ql
+        mode: "0600"
+        content: |
+          [{{ ff_remote_name }}]
+          type = sftp
+          host = {{ ff_vps_host }}
+          user = {{ ff_sftp_user }}
+          key_file = {{ fwd_key }}
+          known_hosts_file = {{ fwd_known_hosts }}
+          shell_type = none
+          md5sum_command = none
+          sha1sum_command = none
+      no_log: true
+
+    - name: Create the addon and state directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: ql
+        group: ql
+        mode: "0755"
+      loop:
+        - "{{ fwd_dir }}"
+        - /home/ql/.forwarder-state
+
+    - name: Install forwarder.sh
+      copy:
+        src: "{{ playbook_dir }}/../assets/forwarder.sh"
+        dest: "{{ fwd_dir }}/forwarder.sh"
+        owner: ql
+        group: ql
+        mode: "0755"
+
+    - name: Install forwarder.conf
+      copy:
+        content: "{{ ff_conf_text }}"
+        dest: "{{ fwd_dir }}/forwarder.conf"
+        owner: ql
+        group: ql
+        mode: "0644"
+
+    - name: Write the VERSION file
+      copy:
+        content: "{{ ff_version }}\n"
+        dest: "{{ fwd_dir }}/VERSION"
+        owner: ql
+        group: ql
+        mode: "0644"
+
+    - name: Install the systemd service
+      copy:
+        src: "{{ playbook_dir }}/../assets/file-forwarder.service"
+        dest: /etc/systemd/system/file-forwarder.service
+        owner: root
+        group: root
+        mode: "0644"
+      register: fwd_service_unit
+
+    - name: Install the systemd timer (interval from the settings)
+      template:
+        src: "{{ playbook_dir }}/../assets/file-forwarder.timer"
+        dest: /etc/systemd/system/file-forwarder.timer
+        owner: root
+        group: root
+        mode: "0644"
+      register: fwd_timer_unit
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+      when: fwd_service_unit.changed or fwd_timer_unit.changed
+
+    - name: Enable and start the timer
+      systemd:
+        name: file-forwarder.timer
+        enabled: yes
+        state: started
+
+    - name: Restart the timer after a unit or interval change
+      systemd:
+        name: file-forwarder.timer
+        state: restarted
+      when: fwd_service_unit.changed or fwd_timer_unit.changed

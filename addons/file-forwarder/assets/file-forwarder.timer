@@ -1,0 +1,10 @@
+[Unit]
+Description=File forwarder timer
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec={{ ff_interval_minutes }}min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

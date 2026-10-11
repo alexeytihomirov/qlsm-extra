@@ -1,0 +1,32 @@
+---
+# Read-only status of the file forwarder on a host. Prints exactly three lines
+# the backend parses (FF_VERSION=, FF_TIMER=, FF_LAST_RUN=). Nothing under
+# the ssh directory or the rclone config is ever read or printed.
+
+- name: File forwarder status
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  tasks:
+    - name: Read the installed version
+      shell: cat /home/ql/file-forwarder/VERSION 2>/dev/null || true
+      register: fwd_version
+      changed_when: false
+
+    - name: Read the timer state
+      shell: systemctl is-active file-forwarder.timer || true
+      register: fwd_timer
+      changed_when: false
+
+    - name: Read the last run line
+      shell: cat /home/ql/.forwarder-state/last-run 2>/dev/null | tail -n 1 || true
+      register: fwd_last_run
+      changed_when: false
+
+    - name: Report
+      debug:
+        msg:
+          - "FF_VERSION={{ fwd_version.stdout | trim }}"
+          - "FF_TIMER={{ fwd_timer.stdout | trim }}"
+          - "FF_LAST_RUN={{ fwd_last_run.stdout | trim }}"

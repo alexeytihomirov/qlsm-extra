@@ -1,0 +1,41 @@
+---
+# Runs forwarder.sh once on a host as the QLDS user ("Sync now" and "Sync now
+# and delete delivered"). ff_mode is run or purge. The script's output and the
+# last-run line are printed before the play fails on a non-zero exit, so the
+# backend still sees the summary of a partly failed run.
+
+- name: Run the file forwarder now
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  tasks:
+    - name: Check the mode
+      assert:
+        that:
+          - ff_mode is defined
+          - ff_mode in ['run', 'purge']
+        fail_msg: "ff_mode must be 'run' or 'purge'"
+
+    - name: Run forwarder.sh
+      command: "/bin/sh /home/ql/file-forwarder/forwarder.sh {{ ff_mode }}"
+      become_user: ql
+      environment:
+        FORWARDER_CONF: /home/ql/file-forwarder/forwarder.conf
+      register: fwd_result
+      changed_when: false
+      failed_when: false
+
+    - name: Read the last run line
+      shell: cat /home/ql/.forwarder-state/last-run 2>/dev/null | tail -n 1 || true
+      register: fwd_last_run
+      changed_when: false
+
+    - name: Show the output
+      debug:
+        msg: "{{ (fwd_result.stdout_lines | default([])) + (fwd_result.stderr_lines | default([])) + ['last-run: ' + (fwd_last_run.stdout | trim)] }}"
+
+    - name: Fail when forwarder.sh failed
+      fail:
+        msg: "forwarder.sh {{ ff_mode }} exited {{ fwd_result.rc }}"
+      when: fwd_result.rc != 0

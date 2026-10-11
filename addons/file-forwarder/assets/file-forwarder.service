@@ -1,0 +1,10 @@
+[Unit]
+Description=File forwarder: ship demo files to the site VPS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ql
+Environment=FORWARDER_CONF=/home/ql/file-forwarder/forwarder.conf
+ExecStart=/bin/sh /home/ql/file-forwarder/forwarder.sh run
