@@ -43,12 +43,13 @@ UI: декларативная форма (`kind: form`) имеет один sub
 - 2026-10-11 - решение: поле `string` - тип `number` в форме qlsm не допускает пустого значения
 - 2026-10-11 - решение: 404 хаба с `detail: "unknown server_id"` -> 409 "нет маршрута, сохраните Live Demo Stream ещё раз"; любой другой 404/405 -> 502 с обеими причинами (старый хаб либо нет маршрута)
 - 2026-10-11 - эндпоинты, манифест 1.3.0, README, пакет пересобран; `tests/`: 457 passed; `check_manifest_hashes.py` чисто. Против живого хаба не проверялось: API хаба ещё в работе
+- 2026-10-11 - правки по ревью: вызовы хаба не следуют редиректам (3xx -> 502 с указанием проверить URL хаба); PUT сверяет состояние из ответа хаба с запрошенным (несовпадение -> 502); тело 200 от хаба разбирается строго (bool/строка/NaN -> "Unexpected stats-hub answer"); значение показывается через repr, без потери знаков; PUT с телом не-объектом -> 400 вместо 500
 
 ## Результат
 
 Ветка `feat/demo-stream-delay` (не слита, не запушена).
 
-- `addons/demo-stream/stats_hub.py`: `get_server_delay`, `set_server_delay`, `HubDelayError` (таймаут 5 с; токен не попадает ни в сообщения, ни в лог)
+- `addons/demo-stream/stats_hub.py`: `get_server_delay`, `set_server_delay`, `HubDelayError` (таймаут 5 с, без редиректов; токен не попадает ни в сообщения, ни в лог)
 - `addons/demo-stream/backend.py`: `GET/PUT instances/<id>/delay`, `GET instances/<id>/delay/status`
 - `addons/demo-stream/qlsm-addon.json`: 1.3.0, пункт меню "Demo Stream Delay", панель `instance_delay`
 - `README.md`, `qlsm-repository.json`, `packages/demo-stream.zip`
