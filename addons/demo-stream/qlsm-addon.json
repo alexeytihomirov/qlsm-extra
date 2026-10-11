@@ -1,14 +1,17 @@
 {
   "id": "demo-stream",
-  "version": "1.1.2",
+  "version": "1.2.1",
   "name": "Live Demo Stream (experimental)",
-  "description": "Experimental, not yet verified end to end. Lets a spectator watch a player's view live: points an instance's sv_demoStream cvars at the central demo-stream relay and registers the instance with ql-stats-hub. Set the relay address and the stats-hub in Settings, then enable each instance from its Live Demo Stream menu entry, which restarts it. Needs a game server build that supports the sv_demoStream cvars.",
+  "description": "Experimental, not yet verified end to end. Lets a spectator watch a player's view live: points an instance's sv_demoStream cvars at the central demo-stream relay and registers the instance with ql-stats-hub. The relay is one address for the whole cluster, but each game host runs a stunnel client that carries the stream to stats-hub over TLS with the hub's certificate pinned. Set the relay address and the stats-hub in Settings, turn on the tunnel from each host's Demo Stream Tunnel menu entry, then enable each instance from its Live Demo Stream menu entry, which restarts it. Needs a game server build that supports the sv_demoStream cvars.",
   "scopes": ["global", "host", "instance"],
   "ui_api": 1,
 
   "ui": {
     "icon": "share",
 
+    "host_menu": [
+      { "id": "demo-stream-tunnel", "label": "Demo Stream Tunnel", "icon": "share", "panel": "host_tunnel" }
+    ],
     "instance_menu": [
       { "id": "demo-stream", "label": "Live Demo Stream", "icon": "share", "panel": "instance_stream" }
     ],
@@ -18,9 +21,20 @@
     ],
 
     "panels": {
+      "host_tunnel": {
+        "kind": "form",
+        "description": "Installs stunnel on this host and pins the stats-hub TLS certificate, so instances stream to 127.0.0.1 and the tunnel carries it to the relay over TLS. Changing the port re-runs the setup; re-enable streaming on each instance afterwards so its server.cfg picks up the new port. After the hub's certificate changes, save this panel again with Enabled to re-pin it.",
+        "load": "GET hosts/{host_id}",
+        "submit": "PUT hosts/{host_id}",
+        "fields": [
+          { "key": "enabled", "type": "bool", "label": "Enabled", "default": false, "description": "Installs and starts the tunnel on this host." },
+          { "key": "local_port", "type": "string", "label": "Local port", "placeholder": "27999", "description": "Port the tunnel listens on at 127.0.0.1. Leave blank for 27999." }
+        ]
+      },
+
       "instance_stream": {
         "kind": "form",
-        "description": "Wires sv_demoStream* into this instance's server.cfg and registers its per-instance token with stats-hub. Requires the relay address set below. Applies config and restarts the instance.",
+        "description": "Wires sv_demoStream* into this instance's server.cfg and registers its per-instance token with stats-hub. Requires the relay address set below and the Demo Stream Tunnel enabled on this instance's host. Applies config and restarts the instance.",
         "load": "GET instances/{instance_id}",
         "submit": "POST instances/{instance_id}/enable",
         "status": { "load": "GET instances/{instance_id}/status" },
@@ -36,7 +50,7 @@
         "submit": "PUT relay",
         "fields": [
           { "key": "host", "type": "string", "label": "Relay host", "placeholder": "stats.example or 10.0.0.5", "description": "Hostname or IP the game servers can reach." },
-          { "key": "port", "type": "string", "label": "Relay port", "placeholder": "7788", "description": "TCP ingest port (STATS_HUB_DEMO_STREAM_TCP_PORT on the stats-hub side)." }
+          { "key": "port", "type": "string", "label": "Relay port", "placeholder": "27999", "description": "TLS ingest port of stats-hub (STATS_HUB_DEMO_STREAM_TCP_PORT on the stats-hub side)." }
         ]
       },
 

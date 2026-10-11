@@ -1,5 +1,5 @@
 ---
-id: qlsm-extra-0002
+id: qlsm-extra-0003
 title: Review fixes: descriptions in English and the seven ranked bugs
 status: in-progress
 created: 2026-10-11

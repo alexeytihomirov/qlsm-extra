@@ -1,11 +1,20 @@
 """Enables the live demo stream feature (sv_demoStream) for a single QL
-instance: reserve a server_id from the demo stream's own stats-hub target
-(independent of telemetry's - see .stats_hub's module docstring, the two
-features may not even be the same stats-hub cluster), generate a
-per-instance secret token, register {token -> server_id} with ql-stats-hub's
-"Live demo stream" contour, point the instance's sv_demoStream* cvars at the
-central relay, and apply+restart (same mechanism the Plugins tab config-save
-flow already uses).
+instance: take a server_id (telemetry's, when it has one and points at the same
+stats-hub; else one reserved from the demo stream's own stats-hub target -
+see .stats_hub's module docstring, the two features may not be the same
+stats-hub cluster), generate a per-instance secret token, register
+{token -> server_id} with ql-stats-hub's "Live demo stream" contour, point the
+instance's sv_demoStream* cvars at the host's local stunnel (127.0.0.1, see
+below) and apply+restart (same mechanism the Plugins tab config-save flow
+already uses).
+
+The instance does not talk to the relay directly: the engine speaks plain TCP,
+the hub requires TLS, so sv_demoStreamHost/Port point at the host's local
+stunnel client (127.0.0.1:<host tunnel port>, set up by tunnel_ops.py), and the
+host tunnel must be enabled first. The server_id is shared with telemetry when
+telemetry already has one for the instance (telemetry's `stats_hub_server_id:`
+key is only ever read here, never written); otherwise this addon reserves its
+own and keeps it in `demo_stream_stats_hub_server_id:`.
 
 Moved here from qlsm core's ui/task_logic/demo_stream_instance.py once this
 feature's own endpoints fully replaced core's built-in ones (see settings.py
@@ -33,8 +42,10 @@ from .settings import (
     get_effective_stats_hub_url,
     get_instance_demo_stream_token,
     get_instance_server_id,
-    get_relay_host,
-    get_relay_port,
+    get_host_tunnel_port,
+    get_telemetry_server_id,
+    get_telemetry_stats_hub_url,
+    is_host_tunnel_enabled,
     is_relay_configured,
     is_stats_hub_configured_for_host,
     reserve_server_id,
@@ -45,6 +56,11 @@ from .settings import (
 )
 
 _ROUTES_TIMEOUT_SEC = 10
+
+TUNNEL_REQUIRED_MESSAGE = (
+    "Enable the Demo Stream Tunnel on this instance's host first "
+    "(Hosts -> Demo Stream Tunnel). Plain TCP to the relay is no longer configured."
+)
 
 
 def _register_route(host_id, server_id, server_name, token):
@@ -78,6 +94,31 @@ def _finish(instance, ok, message, previous_status=None):
     return ok, message
 
 
+def _resolve_server_id(instance, host_id):
+    """Telemetry's server_id when it has one (one identity per instance across
+    both features, only when both addons use the same stats-hub), else this addon's own, else a fresh reservation.
+
+    A new reservation is stored only under this addon's own key: telemetry's
+    key is cleared by its config_applied hook when telemetry is not configured,
+    so a write there would be lost. Raises what reserve_server_id raises."""
+    telemetry_id = get_telemetry_server_id(instance.id)
+    telemetry_url = get_telemetry_stats_hub_url(host_id)
+    own_url = (get_effective_stats_hub_url(host_id) or '').rstrip('/')
+    # An id is only meaningful on the hub that issued it.
+    if telemetry_id is not None and telemetry_url and telemetry_url == own_url:
+        if get_instance_server_id(instance.id) != telemetry_id:
+            set_instance_server_id(instance.id, telemetry_id)
+            db.session.commit()
+        return telemetry_id
+
+    server_id = get_instance_server_id(instance.id)
+    if server_id is None:
+        server_id = reserve_server_id(instance.name, host_id)
+        set_instance_server_id(instance.id, server_id)
+        db.session.commit()
+    return server_id
+
+
 def enable_instance_demo_stream_logic(instance_id, previous_status=None):
     """Returns (ok: bool, message: str)."""
     instance = db.session.get(QLInstance, instance_id)
@@ -92,17 +133,16 @@ def enable_instance_demo_stream_logic(instance_id, previous_status=None):
     if not is_stats_hub_configured_for_host(host_id):
         return _finish(instance, False, "Configure the stats-hub URL/ingest token (globally or for this host) in Settings first.", previous_status)
 
-    server_id = get_instance_server_id(instance.id)
-    if server_id is None:
-        try:
-            server_id = reserve_server_id(instance.name, host_id)
-        except (requests.RequestException, ValueError, KeyError) as exc:
-            current_app.logger.error(
-                f"Failed to reserve stats-hub server_id for instance {instance.id}: {exc}"
-            )
-            return _finish(instance, False, f"Could not reserve a server_id from stats-hub: {exc}", previous_status)
-        set_instance_server_id(instance.id, server_id)
-        db.session.commit()
+    if not is_host_tunnel_enabled(host_id):
+        return _finish(instance, False, TUNNEL_REQUIRED_MESSAGE, previous_status)
+
+    try:
+        server_id = _resolve_server_id(instance, host_id)
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        current_app.logger.error(
+            f"Failed to reserve stats-hub server_id for instance {instance.id}: {exc}"
+        )
+        return _finish(instance, False, f"Could not reserve a server_id from stats-hub: {exc}", previous_status)
 
     token = get_instance_demo_stream_token(instance.id)
     if not token:
@@ -128,8 +168,8 @@ def enable_instance_demo_stream_logic(instance_id, previous_status=None):
 
     text = upsert_cvars_in_text(text, {
         'sv_demoStream': '1',
-        'sv_demoStreamHost': get_relay_host(),
-        'sv_demoStreamPort': get_relay_port(),
+        'sv_demoStreamHost': '127.0.0.1',
+        'sv_demoStreamPort': get_host_tunnel_port(host_id),
         'sv_demoStreamToken': token,
     })
     os.makedirs(os.path.dirname(config_path), exist_ok=True)

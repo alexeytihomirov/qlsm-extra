@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, pytest, minqlxtended plugin API (stubbed), qlsm addon framework (Flask, RQ, SQLAlchemy) from the QLSM checkout.
 
-**Spec:** No separate spec document. The controller's brief for task `tasks/0002-review-fixes-descriptions-in-english-and-the-sev.md` is the spec; where the code differs from the brief, see "Plan notes" at the end.
+**Spec:** No separate spec document. The controller's brief for task `tasks/0003-review-fixes-descriptions-in-english-and-the-sev.md` is the spec; where the code differs from the brief, see "Plan notes" at the end.
 
 Repository: `C:/Users/hellp/orca/workspaces/qlsm/qlsm-extra-review` (worktree, branch `fix/review-2026-10-11`, base origin/main f74474b). QLSM checkout for the addon framework: `C:/Users/hellp/orca/workspaces/qlsm/QLSM`.
 
@@ -44,7 +44,7 @@ Repository: `C:/Users/hellp/orca/workspaces/qlsm/qlsm-extra-review` (worktree, b
 | `tournament_access.py`, `tournament_access.ql-plugin.json` | Task 7 |
 | `addons/qlmatch-packer/rebuild_tasks.py` | Task 8 |
 | `addons/telemetry-relay/{instance_ops,backend}.py`, `addons/demo-stream/{instance_ops,backend}.py` | Task 9 |
-| `tasks/0002-review-fixes-descriptions-in-english-and-the-sev.md` | Task 10 |
+| `tasks/0003-review-fixes-descriptions-in-english-and-the-sev.md` | Task 10 |
 
 ---
 
@@ -998,7 +998,7 @@ git commit -m "telemetry-relay, demo-stream: reset instance status when enabling
 ### Task 10: Close out
 
 **Files:**
-- Modify: `tasks/0002-review-fixes-descriptions-in-english-and-the-sev.md` (currently untracked in this worktree)
+- Modify: `tasks/0003-review-fixes-descriptions-in-english-and-the-sev.md` (currently untracked in this worktree)
 
 **Interfaces:**
 - Consumes: the commits of Tasks A-I.
@@ -1026,7 +1026,7 @@ Expected: `Updated qlsm-repository.json: 11 plugins, 6 addons.`; `all sha256 has
 - [ ] **Step 3: Commit**
 
 ```bash
-git add tasks/0002-review-fixes-descriptions-in-english-and-the-sev.md
+git add tasks/0003-review-fixes-descriptions-in-english-and-the-sev.md
 git commit -m "tasks: 0002 review fixes done"
 ```
 

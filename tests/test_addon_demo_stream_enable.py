@@ -56,7 +56,8 @@ def test_unreachable_stats_hub_restores_the_previous_status(app, monkeypatch):
     ops = importlib.import_module('qlsm_addon_demo_stream.instance_ops')
     monkeypatch.setattr(ops, 'is_relay_configured', lambda: True)
     monkeypatch.setattr(ops, 'is_stats_hub_configured_for_host', lambda host_id: True)
-    monkeypatch.setattr(ops, 'get_instance_server_id', lambda instance_id: 7)
+    monkeypatch.setattr(ops, 'is_host_tunnel_enabled', lambda host_id: True)
+    monkeypatch.setattr(ops, '_resolve_server_id', lambda instance, host_id: 7)
     monkeypatch.setattr(ops, 'get_instance_demo_stream_token', lambda instance_id: 'tok')
 
     def down(*a, **k):
@@ -72,6 +73,7 @@ def test_unreachable_stats_hub_restores_the_previous_status(app, monkeypatch):
 def test_enable_endpoint_passes_the_previous_status(app, client, monkeypatch):
     settings = importlib.import_module('qlsm_addon_demo_stream.settings')
     monkeypatch.setattr(settings, 'is_relay_configured', lambda: True)
+    monkeypatch.setattr(settings, 'is_host_tunnel_enabled', lambda host_id: True)
     import ui.task_lock
     import ui.tasks
     monkeypatch.setattr(ui.task_lock, 'acquire_lock', lambda *a, **k: True)

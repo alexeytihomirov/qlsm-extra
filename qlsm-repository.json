@@ -104,10 +104,10 @@
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "00de662a1d6991d3b524b9e37180684658f4788b5e8cd370b6741d1eb65e1c46",
-      "version": "1.1.2",
+      "sha256": "9808a55b364aa52dd302d4b00487705354f0ffb327e2e76f36356d9233ce082b",
+      "version": "1.2.1",
       "label": "Live Demo Stream (experimental)",
-      "description": "Experimental, not yet verified end to end. Lets a spectator watch a player's view live: points an instance's sv_demoStream cvars at the central demo-stream relay and registers the instance with ql-stats-hub. Set the relay address and the stats-hub in Settings, then enable each instance from its Live Demo Stream menu entry, which restarts it. Needs a game server build that supports the sv_demoStream cvars."
+      "description": "Experimental, not yet verified end to end. Lets a spectator watch a player's view live: points an instance's sv_demoStream cvars at the central demo-stream relay and registers the instance with ql-stats-hub. The relay is one address for the whole cluster, but each game host runs a stunnel client that carries the stream to stats-hub over TLS with the hub's certificate pinned. Set the relay address and the stats-hub in Settings, turn on the tunnel from each host's Demo Stream Tunnel menu entry, then enable each instance from its Live Demo Stream menu entry, which restarts it. Needs a game server build that supports the sv_demoStream cvars."
     },
     {
       "id": "player-ranks",

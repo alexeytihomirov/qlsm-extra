@@ -104,7 +104,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 |-------|------|
 | `telemetry-relay` | Per-host relay that forwards `stream_telemetry_unified` data to ql-stats-hub; enable per host, then per instance on its Telemetry tab |
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
-| `demo-stream` | Experimental: live POV demo stream through a central relay |
+| `demo-stream` | Experimental: live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub |
 | `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen |
 | `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enable, enter repository + commit, then **Re-run Host Setup**. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
@@ -112,6 +112,11 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 qlsm's image ships **no** addon — install every one of these from this
 repository. `qlmatch-packer` extends `demo-management`'s screen, so it is only
 useful with it installed too.
+
+**demo-stream 1.2.0:** the stream now goes through a per-host stunnel TLS
+tunnel (Hosts -> Demo Stream Tunnel). Instances enabled under 1.1.1 still point
+straight at the relay over plain TCP and must be re-enabled (Live Demo Stream
+tab) after the host tunnel is on.
 
 ### player-ranks
 

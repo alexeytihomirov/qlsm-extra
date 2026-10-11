@@ -90,6 +90,107 @@ def update_stats_hub():
     return jsonify({"data": {'url': url.strip().rstrip('/'), 'ingest_token': token.strip()}})
 
 
+def _host_or_404(host_id):
+    from ui.database import get_host
+
+    host = get_host(host_id)
+    if not host:
+        return None, (jsonify({"error": {"message": "Host not found"}}), 404)
+    return host, None
+
+
+@bp.route('/hosts/<int:host_id>', methods=['GET'], endpoint='get_host_tunnel')
+@jwt_required()
+def get_host_tunnel(host_id):
+    from .settings import get_host_tunnel_port, is_host_tunnel_enabled
+
+    _, error = _host_or_404(host_id)
+    if error:
+        return error
+    return jsonify({"data": {
+        'enabled': is_host_tunnel_enabled(host_id),
+        'local_port': get_host_tunnel_port(host_id),
+    }})
+
+
+@bp.route('/hosts/<int:host_id>', methods=['PUT'], endpoint='update_host_tunnel')
+@jwt_required()
+def update_host_tunnel(host_id):
+    """Stores the local port, then installs/removes the host's stunnel client.
+    Enabled-and-wanted always re-queues (the playbook is idempotent), which is
+    what lets a port edit reach a tunnel that is already running."""
+    from ui import db
+    from ui.database import update_host
+    from ui.models import HostStatus
+    from ui.task_lock import acquire_lock, release_lock
+    from ui.task_logic.job_failure_handlers import host_job_failure_handler
+    from ui.tasks import enqueue_task
+    from .settings import (
+        DEFAULT_TUNNEL_PORT, is_host_tunnel_enabled, is_relay_configured,
+        set_host_tunnel_port,
+    )
+    from .tunnel_ops import TunnelCertError, fetch_hub_tls_cert
+
+    host, error = _host_or_404(host_id)
+    if error:
+        return error
+
+    data = request.get_json(silent=True) or {}
+    port = data.get('local_port', '')
+    # 1024 and up: the tunnel runs as user ql and cannot bind privileged ports.
+    if not isinstance(port, str) or (
+            port.strip() and not (port.strip().isascii() and port.strip().isdigit()
+                                  and 1024 <= int(port.strip()) <= 65535)):
+        return jsonify({"error": {"message": "local_port must be a port number (1024-65535)."}}), 400
+
+    port = port.strip() or DEFAULT_TUNNEL_PORT
+    wanted = bool(data.get('enabled', False))
+
+    if not wanted and not is_host_tunnel_enabled(host_id):
+        # Nothing is installed, so there is nothing to wait for: just remember
+        # the port. Otherwise the port is stored only once the playbook succeeds.
+        set_host_tunnel_port(host_id, port)
+        db.session.commit()
+        return jsonify({"data": {'enabled': False, 'local_port': port},
+                        "message": "Tunnel settings saved."})
+
+    cert_pem = ''
+    if wanted:
+        if not is_relay_configured():
+            return jsonify({"error": {
+                "message": "Set the demo-stream relay host and port in Settings first."
+            }}), 409
+        try:
+            cert_pem = fetch_hub_tls_cert(host_id)
+        except TunnelCertError as exc:
+            return jsonify({"error": {"message": str(exc)}}), 409
+
+    if host.status != HostStatus.ACTIVE:
+        return jsonify({"error": {
+            "message": f"Host must be ACTIVE to change the tunnel. Current state: {host.status.value}"
+        }}), 400
+
+    lock_token = str(uuid.uuid4())
+    if not acquire_lock('host', host.id, lock_token, ttl=360):
+        return jsonify({"error": {
+            "message": f'Another operation is running on host "{host.name}". Please wait for it to complete.'
+        }}), 409
+    try:
+        update_host(host.id, status=HostStatus.CONFIGURING)
+        enqueue_task(TASKS['configure_host_tunnel'], host.id, wanted, port, cert_pem,
+                     lock_token=lock_token, on_failure=host_job_failure_handler)
+    except Exception as e:
+        release_lock('host', host.id, lock_token)
+        current_app.logger.error(f'Addon demo-stream: failed to queue host {host_id}: {e}',
+                                 exc_info=True)
+        return jsonify({"error": {"message": "Failed to initiate tunnel configuration"}}), 500
+
+    return jsonify({
+        "data": {'enabled': wanted, 'local_port': port},
+        "message": "Demo stream tunnel configuration started.",
+    }), 202
+
+
 @bp.route('/instances/<int:instance_id>', methods=['GET'], endpoint='get_instance_stream')
 @jwt_required()
 def get_instance_stream(instance_id):
@@ -107,7 +208,8 @@ def get_instance_stream_status(instance_id):
     """Badge for the panel: says why it cannot be switched on, before the
     operator tries and gets a task that fails somewhere they cannot see."""
     from .settings import (
-        get_instance_demo_stream_token, is_instance_demo_stream_enabled, is_relay_configured,
+        get_instance_demo_stream_token, is_host_tunnel_enabled,
+        is_instance_demo_stream_enabled, is_relay_configured,
     )
 
     instance, error = _instance_or_error(instance_id)
@@ -116,6 +218,8 @@ def get_instance_stream_status(instance_id):
 
     if not is_relay_configured():
         return jsonify({"data": {'ok': False, 'label': 'Relay address not set'}})
+    if not is_host_tunnel_enabled(instance.host_id):
+        return jsonify({"data": {'ok': False, 'label': 'Tunnel not enabled on host'}})
     if not is_instance_demo_stream_enabled(instance.id):
         return jsonify({"data": {'ok': False, 'label': 'Not streaming'}})
     has_token = bool(get_instance_demo_stream_token(instance.id))
@@ -129,7 +233,8 @@ def get_instance_stream_status(instance_id):
 @jwt_required()
 def enable_instance_stream(instance_id):
     from ui.database import get_instance, update_instance
-    from .settings import is_relay_configured
+    from .instance_ops import TUNNEL_REQUIRED_MESSAGE
+    from .settings import is_host_tunnel_enabled, is_relay_configured
     from ui.models import InstanceStatus
     from ui.task_lock import acquire_lock, release_lock
     from ui.task_logic.job_failure_handlers import instance_job_failure_handler
@@ -151,6 +256,9 @@ def enable_instance_stream(instance_id):
         return jsonify({"error": {
             "message": "Set the demo-stream relay host and port in Settings first."
         }}), 409
+
+    if not is_host_tunnel_enabled(instance.host_id):
+        return jsonify({"error": {"message": TUNNEL_REQUIRED_MESSAGE}}), 400
 
     busy = [InstanceStatus.DEPLOYING, InstanceStatus.CONFIGURING, InstanceStatus.RESTARTING,
             InstanceStatus.DELETING, InstanceStatus.STOPPING, InstanceStatus.STARTING]
@@ -198,6 +306,22 @@ def register(ctx):
         return enable_instance_demo_stream_logic(instance_id, previous_status=previous_status)
 
     TASKS['enable_instance_demo_stream'] = enable_instance_demo_stream_task
+
+    @ctx.task(timeout=300, lock_scope='host')
+    def configure_host_tunnel_task(host_id, enabled, port, cert_pem):
+        """RQ task entry point for installing/removing a host's stunnel client."""
+        from .tunnel_ops import configure_host_demo_stream_tunnel_logic
+
+        return configure_host_demo_stream_tunnel_logic(host_id, enabled, port, cert_pem)
+
+    TASKS['configure_host_tunnel'] = configure_host_tunnel_task
+
+    @ctx.on('host.delete')
+    def forget_host(host_id):
+        """Drop the host's tunnel AppSetting keys."""
+        from .settings import set_host_tunnel_enabled, set_host_tunnel_port
+        set_host_tunnel_enabled(host_id, False)
+        set_host_tunnel_port(host_id, '')
 
     @ctx.on('instance.delete')
     def forget_instance(instance_id):
