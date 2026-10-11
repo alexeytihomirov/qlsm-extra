@@ -51,10 +51,31 @@ def test_sync_no_log_on_every_key_and_rclone_config_task():
     touched = 0
     for task in _tasks('sync_file_forwarder.yml'):
         text = json.dumps(task)
-        if 'ff_private_key_file' in text or 'rclone.conf' in text:
+        writes_conf = any(m in task for m in ('copy', 'template', 'command', 'shell', 'lineinfile')) and             ('rclone.conf' in text or 'fwd_rclone_conf' in text) and 'RCLONE_CONFIG' not in text
+        if 'ff_private_key_file' in text or writes_conf:
             touched += 1
             assert task.get('no_log') is True, f'task without no_log: {task.get("name")}'
     assert touched >= 2  # the key task and the rclone config task
+
+
+def test_sync_never_touches_the_user_global_rclone_config():
+    text = (PLAYBOOKS / 'sync_file_forwarder.yml').read_text(encoding='utf-8')
+    assert '.config/rclone' not in text
+    assert 'fwd_rclone_conf: /home/ql/file-forwarder/rclone.conf' in text
+    assert text.count('RCLONE_CONFIG: "{{ fwd_rclone_conf }}"') >= 1
+
+
+def test_sync_downloads_rclone_deb_safely():
+    tasks = _tasks('sync_file_forwarder.yml')
+    blocks = [t for t in tasks if 'block' in t]
+    assert blocks and 'always' in blocks[0]  # cleanup also on failure
+    gets = [t2 for t in blocks for t2 in t['block'] if 'get_url' in t2]
+    assert len(gets) == 1
+    args = gets[0]['get_url']
+    assert not str(args['dest']).startswith('/tmp/')
+    assert args['force'] in (True, 'yes')
+    assert str(args['checksum']).startswith('sha256:https://downloads.rclone.org/')
+    assert any('tempfile' in t2 for t in blocks for t2 in t['block'])
 
 
 def test_unit_assets():
@@ -64,6 +85,7 @@ def test_unit_assets():
     assert 'Type=oneshot' in service
     assert 'ExecStart=/bin/sh /home/ql/file-forwarder/forwarder.sh run' in service
     assert 'FORWARDER_CONF=/home/ql/file-forwarder/forwarder.conf' in service
+    assert 'Environment=RCLONE_CONFIG=/home/ql/file-forwarder/rclone.conf' in service
     assert 'Persistent=true' in timer
     assert 'OnBootSec=2min' in timer
     assert 'OnUnitActiveSec={{ ff_interval_minutes }}min' in timer
@@ -87,7 +109,7 @@ def test_ansible_syntax_check(name):
 
 def test_status_prints_three_lines_and_never_touches_ssh():
     text = (PLAYBOOKS / 'status_file_forwarder.yml').read_text(encoding='utf-8')
-    for marker in ('FF_VERSION=', 'FF_TIMER=', 'FF_LAST_RUN='):
+    for marker in ('FF_VERSION=', 'FF_TIMER=', 'FF_LAST_RUN=', 'FF_RCLONE='):
         assert marker in text
     assert '.ssh' not in text
     assert 'rclone.conf' not in text
@@ -103,6 +125,7 @@ def test_run_asserts_mode_before_running():
     text = (PLAYBOOKS / 'run_forwarder.yml').read_text(encoding='utf-8')
     assert 'forwarder.sh {{ ff_mode }}' in text
     assert 'FORWARDER_CONF' in text
+    assert 'RCLONE_CONFIG: /home/ql/file-forwarder/rclone.conf' in text
     assert 'last-run' in text
 
 
@@ -117,8 +140,9 @@ def test_every_extravar_is_provided_by_the_backend():
     provided = set(config_render.playbook_vars({'sftp_private_key': 'x'}))
     provided.discard('ff_private_key')  # backend turns it into a file path
     backend = (ADDON / 'backend.py').read_text(encoding='utf-8')
-    for extra in ('ff_private_key_file', 'ff_mode'):
-        assert extra in backend, f'backend no longer passes {extra}'
+    for extra, assignment in (('ff_private_key_file', "variables['ff_private_key_file'] ="),
+                              ('ff_mode', "{'ff_mode':")):
+        assert assignment in backend, f'backend no longer passes {extra}'
         provided.add(extra)
 
     used = set()

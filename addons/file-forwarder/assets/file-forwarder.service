@@ -6,5 +6,6 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 User=ql
+Environment=RCLONE_CONFIG=/home/ql/file-forwarder/rclone.conf
 Environment=FORWARDER_CONF=/home/ql/file-forwarder/forwarder.conf
 ExecStart=/bin/sh /home/ql/file-forwarder/forwarder.sh run

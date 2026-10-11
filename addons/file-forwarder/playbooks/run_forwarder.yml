@@ -21,6 +21,7 @@
       command: "/bin/sh /home/ql/file-forwarder/forwarder.sh {{ ff_mode }}"
       become_user: ql
       environment:
+        RCLONE_CONFIG: /home/ql/file-forwarder/rclone.conf
         FORWARDER_CONF: /home/ql/file-forwarder/forwarder.conf
       register: fwd_result
       changed_when: false

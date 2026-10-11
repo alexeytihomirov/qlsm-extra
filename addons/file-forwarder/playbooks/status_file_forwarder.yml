@@ -24,9 +24,15 @@
       register: fwd_last_run
       changed_when: false
 
+    - name: Read the rclone version
+      shell: rclone version 2>/dev/null | head -n 1 || true
+      register: fwd_rclone
+      changed_when: false
+
     - name: Report
       debug:
         msg:
           - "FF_VERSION={{ fwd_version.stdout | trim }}"
           - "FF_TIMER={{ fwd_timer.stdout | trim }}"
           - "FF_LAST_RUN={{ fwd_last_run.stdout | trim }}"
+          - "FF_RCLONE={{ fwd_rclone.stdout | trim }}"

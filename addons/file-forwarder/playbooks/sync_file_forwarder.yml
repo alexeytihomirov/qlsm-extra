@@ -7,7 +7,8 @@
 # The private key is NOT an extravar (qlsm's ansible runner logs the whole
 # extravars JSON). It arrives as a 0600 file on the qlsm side, whose path is
 # ff_private_key_file, and is installed with `copy: src=`. Every task that
-# touches the key or the rclone config carries no_log: true.
+# touches the key or the rclone config carries no_log: true. rclone uses its own
+# config, /home/ql/file-forwarder/rclone.conf (RCLONE_CONFIG); the user-global rclone config is never touched.
 #
 # rclone: the distribution package when its version is >= 1.63, otherwise
 # rclone's own .deb from downloads.rclone.org. The sftp option names this
@@ -20,10 +21,15 @@
 
   vars:
     fwd_min_rclone: "1.63"
+    fwd_rclone_arch_names:
+      amd64: amd64
+      arm64: arm64
     fwd_home: /home/ql
     fwd_dir: /home/ql/file-forwarder
     fwd_key: /home/ql/.ssh/id_ed25519_qldemos
     fwd_known_hosts: /home/ql/.ssh/known_hosts_qldemos
+    # Dedicated rclone config: the operator's own rclone config is never touched.
+    fwd_rclone_conf: /home/ql/file-forwarder/rclone.conf
 
   tasks:
     - name: Check installed rclone version
@@ -67,26 +73,61 @@
         - fwd_rclone_cur_ver is version(fwd_min_rclone, '<')
         - fwd_rclone_cand_ver is version(fwd_min_rclone, '<')
 
-    - name: Download rclone's own .deb (distribution rclone is too old)
-      get_url:
-        url: "https://downloads.rclone.org/rclone-current-linux-{{ fwd_arch.stdout | trim }}.deb"
-        dest: /tmp/rclone-current.deb
-        mode: "0644"
+    - name: Install rclone's own .deb (distribution rclone is too old)
       when:
         - fwd_rclone_cur_ver is version(fwd_min_rclone, '<')
         - fwd_rclone_cand_ver is version(fwd_min_rclone, '<')
+      block:
+        - name: Map the dpkg architecture to rclone's name
+          assert:
+            that:
+              - (fwd_arch.stdout | trim) in fwd_rclone_arch_names
+            fail_msg: "No rclone .deb mapping for dpkg architecture '{{ fwd_arch.stdout | trim }}' (only amd64 and arm64); install rclone >= {{ fwd_min_rclone }} by hand."
 
-    - name: Install rclone's own .deb
-      apt:
-        deb: /tmp/rclone-current.deb
-      environment:
-        DEBIAN_FRONTEND: noninteractive
-      when:
-        - fwd_rclone_cur_ver is version(fwd_min_rclone, '<')
-        - fwd_rclone_cand_ver is version(fwd_min_rclone, '<')
+        - name: Ask rclone which version is current
+          uri:
+            url: https://downloads.rclone.org/version.txt
+            return_content: yes
+          register: fwd_rclone_current
+
+        - name: Read the current rclone version
+          set_fact:
+            fwd_rclone_new: "{{ fwd_rclone_current.content | regex_findall('v[0-9]+[.][0-9]+[.][0-9]+') | first }}"
+            fwd_rclone_deb_arch: "{{ fwd_rclone_arch_names[fwd_arch.stdout | trim] }}"
+
+        - name: Create a root-only download directory
+          tempfile:
+            state: directory
+            prefix: ff-rclone-
+          register: fwd_dl_dir
+
+        - name: Download rclone's .deb and verify it against SHA256SUMS
+          get_url:
+            url: "https://downloads.rclone.org/{{ fwd_rclone_new }}/rclone-{{ fwd_rclone_new }}-linux-{{ fwd_rclone_deb_arch }}.deb"
+            dest: "{{ fwd_dl_dir.path }}/rclone-{{ fwd_rclone_new }}-linux-{{ fwd_rclone_deb_arch }}.deb"
+            checksum: "sha256:https://downloads.rclone.org/{{ fwd_rclone_new }}/SHA256SUMS"
+            owner: root
+            group: root
+            mode: "0600"
+            force: yes
+          register: fwd_rclone_deb
+
+        - name: Install rclone's own .deb
+          apt:
+            deb: "{{ fwd_rclone_deb.dest }}"
+          environment:
+            DEBIAN_FRONTEND: noninteractive
+      always:
+        - name: Remove the download directory
+          file:
+            path: "{{ fwd_dl_dir.path }}"
+            state: absent
+          when: fwd_dl_dir is defined and fwd_dl_dir.path is defined
 
     - name: Read the sftp backend options of the installed rclone
       command: rclone help backend sftp
+      environment:
+        RCLONE_CONFIG: "{{ fwd_rclone_conf }}"
       register: fwd_sftp_help
       changed_when: false
 
@@ -129,17 +170,20 @@
         group: ql
         mode: "0644"
 
-    - name: Create the rclone config directory
+    - name: Create the addon and state directories
       file:
-        path: /home/ql/.config/rclone
+        path: "{{ item }}"
         state: directory
         owner: ql
         group: ql
-        mode: "0700"
+        mode: "0755"
+      loop:
+        - "{{ fwd_dir }}"
+        - /home/ql/.forwarder-state
 
     - name: Write the rclone config for the VPS remote
       copy:
-        dest: /home/ql/.config/rclone/rclone.conf
+        dest: "{{ fwd_rclone_conf }}"
         owner: ql
         group: ql
         mode: "0600"
@@ -154,17 +198,6 @@
           md5sum_command = none
           sha1sum_command = none
       no_log: true
-
-    - name: Create the addon and state directories
-      file:
-        path: "{{ item }}"
-        state: directory
-        owner: ql
-        group: ql
-        mode: "0755"
-      loop:
-        - "{{ fwd_dir }}"
-        - /home/ql/.forwarder-state
 
     - name: Install forwarder.sh
       copy:
