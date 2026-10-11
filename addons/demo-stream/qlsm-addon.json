@@ -23,7 +23,7 @@
     "panels": {
       "host_tunnel": {
         "kind": "form",
-        "description": "Installs stunnel on this host and pins the stats-hub TLS certificate, so instances stream to 127.0.0.1 and the tunnel carries it to the relay over TLS. Changing the port re-runs the setup; re-enable streaming on each instance afterwards so its server.cfg picks up the new port.",
+        "description": "Installs stunnel on this host and pins the stats-hub TLS certificate, so instances stream to 127.0.0.1 and the tunnel carries it to the relay over TLS. Changing the port re-runs the setup; re-enable streaming on each instance afterwards so its server.cfg picks up the new port. After the hub's certificate changes, save this panel again with Enabled to re-pin it.",
         "load": "GET hosts/{host_id}",
         "submit": "PUT hosts/{host_id}",
         "fields": [

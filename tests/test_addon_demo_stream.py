@@ -67,13 +67,13 @@ def test_tunnel_settings_use_the_spec_keys(app, host_id):
 
 def test_telemetry_server_id_reads_telemetry_key(app, instance_id):
     with app.app_context():
-        from qlsm_addon_demo_stream.settings import (
-            get_telemetry_server_id, set_telemetry_server_id)
+        from qlsm_addon_demo_stream.settings import get_telemetry_server_id
         assert get_telemetry_server_id(instance_id) is None
-        db.session.add(AppSetting(key=f'stats_hub_server_id:{instance_id}', value='42'))
+        row = AppSetting(key=f'stats_hub_server_id:{instance_id}', value='42')
+        db.session.add(row)
         db.session.commit()
         assert get_telemetry_server_id(instance_id) == 42
-        set_telemetry_server_id(instance_id, None)
+        db.session.delete(row)
         db.session.commit()
         assert get_telemetry_server_id(instance_id) is None
 
@@ -210,6 +210,7 @@ def test_unit_runs_as_ql_and_restarts_always():
     assert 'Restart=always' in lines
     exec_start = [l for l in lines if l.startswith('ExecStart=')]
     assert len(exec_start) == 1
+    assert exec_start[0].startswith('ExecStart=/usr/bin/stunnel4 ')
     assert exec_start[0].endswith(' /home/ql/demo-stream-tunnel/stunnel.conf')
     assert 'WantedBy=multi-user.target' in lines
 
@@ -283,12 +284,12 @@ def test_put_unknown_host_404(client, auth):
     assert resp.status_code == 404
 
 
-@pytest.mark.parametrize('bad', ['0', '70000', '27 999', 'abc', 27999])
+@pytest.mark.parametrize('bad', ['0', '1023', '65536', '70000', '27 999', 'abc', 27999])
 def test_put_rejects_bad_port(app, client, auth, host_id, bad):
     resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': False, 'local_port': bad},
                       headers=auth)
     assert resp.status_code == 400
-    assert resp.get_json()['error']['message'] == 'local_port must be a port number (1-65535).'
+    assert resp.get_json()['error']['message'] == 'local_port must be a port number (1024-65535).'
     with app.app_context():
         from qlsm_addon_demo_stream.settings import get_host_tunnel_port
         assert get_host_tunnel_port(host_id) == '27999'
@@ -370,13 +371,16 @@ def test_put_port_change_on_enabled_tunnel_requeues_playbook(app, client, auth, 
     assert enqueue.call_args.args[1:] == (host_id, True, '28001', PEM)
 
 
-def test_put_disable_when_already_off_saves_only(client, auth, host_id):
+def test_put_disable_when_already_off_saves_only(app, client, auth, host_id):
     with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert') as fetch, \
             patch('ui.tasks.enqueue_task') as enqueue:
         resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': False, 'local_port': '28002'},
                           headers=auth)
     assert resp.status_code == 200
     assert resp.get_json()['data'] == {'enabled': False, 'local_port': '28002'}
+    with app.app_context():
+        from qlsm_addon_demo_stream.settings import get_host_tunnel_port
+        assert get_host_tunnel_port(host_id) == '28002'
     enqueue.assert_not_called()
     fetch.assert_not_called()
 
@@ -470,6 +474,7 @@ def test_enable_reuses_telemetry_server_id(app, host_id, instance_id, tmp_path, 
     monkeypatch.chdir(tmp_path)
     with app.app_context():
         _setup_enable(host_id, instance_id)
+        _set_key('stats_hub_url', 'https://stats.example')
         _set_key(f'stats_hub_server_id:{instance_id}', '42')
         with patch('qlsm_addon_demo_stream.instance_ops.reserve_server_id') as reserve:
             (ok, _msg), route = _run_enable(instance_id)
@@ -485,6 +490,7 @@ def test_enable_prefers_telemetry_server_id_over_own(app, host_id, instance_id, 
     with app.app_context():
         _setup_enable(host_id, instance_id)
         _set_key(f'demo_stream_stats_hub_server_id:{instance_id}', '7')
+        _set_key('stats_hub_url', 'https://stats.example/')
         _set_key(f'stats_hub_server_id:{instance_id}', '42')
         (ok, _msg), route = _run_enable(instance_id)
         assert ok is True
@@ -526,3 +532,130 @@ def test_manifest_declares_host_tunnel_panel():
     assert next(f for f in p['fields'] if f['key'] == 'local_port')['placeholder'] == '27999'
     relay_port = next(f for f in m['ui']['panels']['relay_settings']['fields'] if f['key'] == 'port')
     assert relay_port['placeholder'] == '27999'
+
+
+# ---- Final review fix wave ----------------------------------------------
+
+def test_enable_does_not_reuse_telemetry_id_from_a_different_hub(app, host_id, instance_id,
+                                                                 tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with app.app_context():
+        _setup_enable(host_id, instance_id)
+        _set_key('stats_hub_url', 'https://other-hub.example')
+        _set_key(f'stats_hub_server_id:{instance_id}', '42')
+        with patch('qlsm_addon_demo_stream.instance_ops.reserve_server_id',
+                   return_value=99) as reserve:
+            (ok, _msg), route = _run_enable(instance_id)
+        assert ok is True
+        reserve.assert_called_once()
+        assert route.call_args.args[1] == 99
+
+
+def test_enable_telemetry_host_override_url_is_compared(app, host_id, instance_id,
+                                                        tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with app.app_context():
+        _setup_enable(host_id, instance_id)
+        _set_key('stats_hub_url', 'https://other-hub.example')
+        _set_key(f'telemetry_relay_host_stats_hub_url:{host_id}', 'https://stats.example')
+        _set_key(f'stats_hub_server_id:{instance_id}', '42')
+        (ok, _msg), route = _run_enable(instance_id)
+        assert ok is True
+        assert route.call_args.args[1] == 42
+
+
+def test_put_boundary_ports_accepted(app, client, auth, host_id):
+    for good in ('1024', '65535'):
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': False, 'local_port': good},
+                          headers=auth)
+        assert resp.status_code == 200
+        with app.app_context():
+            from qlsm_addon_demo_stream.settings import get_host_tunnel_port
+            assert get_host_tunnel_port(host_id) == good
+
+
+def _store_port(host_id, port):
+    from qlsm_addon_demo_stream.settings import set_host_tunnel_port
+    set_host_tunnel_port(host_id, port)
+    db.session.commit()
+
+
+def _stored_port(host_id):
+    from qlsm_addon_demo_stream.settings import get_host_tunnel_port
+    return get_host_tunnel_port(host_id)
+
+
+def test_put_409_keeps_old_port(app, client, auth, host_id):
+    with app.app_context():
+        _store_port(host_id, '28000')
+    resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': '28001'},
+                      headers=auth)  # no relay configured
+    assert resp.status_code == 409
+    with app.app_context():
+        assert _stored_port(host_id) == '28000'
+
+
+def test_put_400_non_active_keeps_old_port(app, client, auth, host_id):
+    with app.app_context():
+        _set_relay_and_hub()
+        _store_port(host_id, '28000')
+        db.session.get(Host, host_id).status = HostStatus.ERROR
+        db.session.commit()
+    with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert', return_value=PEM):
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': '28001'},
+                          headers=auth)
+    assert resp.status_code == 400
+    with app.app_context():
+        assert _stored_port(host_id) == '28000'
+
+
+def test_put_enable_does_not_store_port_before_playbook_and_uses_lock_ttl_360(
+        app, client, auth, host_id):
+    with app.app_context():
+        _set_relay_and_hub()
+        _store_port(host_id, '28000')
+    with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert', return_value=PEM), \
+            patch('ui.task_lock.acquire_lock', return_value=True) as lock, \
+            patch('ui.tasks.enqueue_task'):
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': '28001'},
+                          headers=auth)
+    assert resp.status_code == 202
+    assert lock.call_args.kwargs['ttl'] == 360
+    with app.app_context():
+        assert _stored_port(host_id) == '28000'
+
+
+def test_playbook_failure_keeps_old_port_and_success_stores_new(app, host_id):
+    with app.app_context():
+        from qlsm_addon_demo_stream.tunnel_ops import configure_host_demo_stream_tunnel_logic
+        _store_port(host_id, '28000')
+        with patch('qlsm_addon_demo_stream.tunnel_ops._run_host_ansible_playbook',
+                   return_value=(False, '', 'boom')):
+            configure_host_demo_stream_tunnel_logic(host_id, True, '28001', PEM)
+        assert _stored_port(host_id) == '28000'
+        with patch('qlsm_addon_demo_stream.tunnel_ops._run_host_ansible_playbook',
+                   return_value=(True, '', '')):
+            configure_host_demo_stream_tunnel_logic(host_id, True, '28001', PEM)
+        assert _stored_port(host_id) == '28001'
+
+
+def test_playbook_waits_for_the_listener_when_enabled():
+    waits = [t for t in _playbook_tasks() if 'ansible.builtin.wait_for' in t]
+    assert len(waits) == 1
+    args = waits[0]['ansible.builtin.wait_for']
+    assert args['host'] == '127.0.0.1'
+    assert 'demo_stream_tunnel_port' in str(args['port'])
+    assert args['timeout'] == 15
+    enable_block = next(t for t in _playbook_tasks() if t.get('block') and 'when' in t)
+    assert waits[0] in enable_block['block']
+
+
+def test_manifest_panel_mentions_repinning():
+    import json
+    m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
+    assert 'certificate changes' in m['ui']['panels']['host_tunnel']['description']
+
+
+def test_gitattributes_pins_j2_to_lf():
+    root = ADDONS_DIR.parent
+    assert '*.j2 text eol=lf' in (root / '.gitattributes').read_text(encoding='utf-8').splitlines()

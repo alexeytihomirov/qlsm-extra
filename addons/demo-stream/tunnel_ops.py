@@ -24,6 +24,7 @@ from .settings import (
     get_relay_host,
     get_relay_port,
     set_host_tunnel_enabled,
+    set_host_tunnel_port,
 )
 
 _CERT_PATH = '/api/demo-stream/tls-cert'
@@ -87,6 +88,7 @@ def configure_host_demo_stream_tunnel_logic(host_id, enabled, port, cert_pem):
 
     if success:
         set_host_tunnel_enabled(host_id, enabled)
+        set_host_tunnel_port(host_id, port)
         host.status = HostStatus.ACTIVE
         line = (f"Demo stream tunnel enabled on port {port}." if enabled
                 else "Demo stream tunnel disabled.")

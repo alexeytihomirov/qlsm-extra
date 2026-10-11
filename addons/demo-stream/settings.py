@@ -17,9 +17,9 @@ Two kinds of state, all in AppSetting:
 - Global: the central relay's TCP ingest address (host:port) every QLDS
   instance's sv_demoStreamHost/sv_demoStreamPort point at - see
   ql-stats-hub's "Live demo stream" contour (STATS_HUB_DEMO_STREAM_TCP_HOST/
-  PORT on that side). This is one address for the whole cluster, not
-  per-host like the telemetry relay sidecar (that one's a local process on
-  each game host; this one has nothing local to install).
+  PORT on that side). This is one address for the whole cluster; the host
+  side is a local stunnel client per game host (the tunnel keys below) that
+  wraps the engine's plain TCP in TLS to it.
 - Per instance (key suffixed `:<instance_id>`): whether sv_demoStream is
   wired into this instance's server.cfg, and the per-instance secret token
   generated once and registered with stats-hub's
@@ -32,10 +32,11 @@ database's current demo-stream settings.
 
 The host tunnel (a local stunnel client that wraps the engine's plain TCP in
 TLS to stats-hub) adds per-host keys `demo_stream_tunnel_enabled:<host_id>` and
-`demo_stream_tunnel_port:<host_id>`. The telemetry server_id is read directly
-from telemetry's own `stats_hub_server_id:<instance_id>` key, because the
-shared core `ui/stats_hub.py` no longer exists; that key name must stay in step
-with `addons/telemetry-relay/stats_hub.py`.
+`demo_stream_tunnel_port:<host_id>`. The telemetry server_id and stats-hub URL
+are read directly from telemetry's own keys (`stats_hub_server_id:<instance_id>`,
+`stats_hub_url`, `telemetry_relay_host_stats_hub_url:<host_id>`), because the
+shared core `ui/stats_hub.py` no longer exists; those names must stay in step
+with `addons/telemetry-relay/stats_hub.py`. They are never written from here.
 """
 from ui import db
 from ui.models import AppSetting
@@ -122,6 +123,8 @@ DEFAULT_TUNNEL_PORT = '27999'
 _TUNNEL_ENABLED_PREFIX = 'demo_stream_tunnel_enabled:'
 _TUNNEL_PORT_PREFIX = 'demo_stream_tunnel_port:'
 _TELEMETRY_SERVER_ID_PREFIX = 'stats_hub_server_id:'
+_TELEMETRY_URL_KEY = 'stats_hub_url'
+_TELEMETRY_HOST_URL_PREFIX = 'telemetry_relay_host_stats_hub_url:'
 
 
 def is_host_tunnel_enabled(host_id):
@@ -145,6 +148,9 @@ def get_telemetry_server_id(instance_id):
     return int(value) if value else None
 
 
-def set_telemetry_server_id(instance_id, server_id):
-    _set(f'{_TELEMETRY_SERVER_ID_PREFIX}{instance_id}',
-         str(int(server_id)) if server_id else None)
+def get_telemetry_stats_hub_url(host_id):
+    """The stats-hub URL telemetry-relay effectively uses for this host (its
+    per-host override, else its global one). Read-only: these are telemetry's
+    keys and must stay in step with addons/telemetry-relay/stats_hub.py."""
+    return (_get(f'{_TELEMETRY_HOST_URL_PREFIX}{host_id}') or _get(_TELEMETRY_URL_KEY) or '') \
+        .rstrip('/') or None

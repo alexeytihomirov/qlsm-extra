@@ -88,6 +88,12 @@
             state: started
             daemon_reload: yes
 
+        - name: Wait for the tunnel to listen (systemd reports started before stunnel binds)
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ demo_stream_tunnel_port | int }}"
+            timeout: 15
+
     - name: Check whether the tunnel unit is installed
       ansible.builtin.stat:
         path: /etc/systemd/system/ql-demo-stream-tunnel.service

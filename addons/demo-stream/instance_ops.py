@@ -1,11 +1,12 @@
 """Enables the live demo stream feature (sv_demoStream) for a single QL
-instance: reserve a server_id from the demo stream's own stats-hub target
-(independent of telemetry's - see .stats_hub's module docstring, the two
-features may not even be the same stats-hub cluster), generate a
-per-instance secret token, register {token -> server_id} with ql-stats-hub's
-"Live demo stream" contour, point the instance's sv_demoStream* cvars at the
-central relay -- through the host's local stunnel, see below -- and apply+restart (same mechanism the Plugins tab config-save
-flow already uses).
+instance: take a server_id (telemetry's, when it has one and points at the same
+stats-hub; else one reserved from the demo stream's own stats-hub target -
+see .stats_hub's module docstring, the two features may not be the same
+stats-hub cluster), generate a per-instance secret token, register
+{token -> server_id} with ql-stats-hub's "Live demo stream" contour, point the
+instance's sv_demoStream* cvars at the host's local stunnel (127.0.0.1, see
+below) and apply+restart (same mechanism the Plugins tab config-save flow
+already uses).
 
 The instance does not talk to the relay directly: the engine speaks plain TCP,
 the hub requires TLS, so sv_demoStreamHost/Port point at the host's local
@@ -43,6 +44,7 @@ from .settings import (
     get_instance_server_id,
     get_host_tunnel_port,
     get_telemetry_server_id,
+    get_telemetry_stats_hub_url,
     is_host_tunnel_enabled,
     is_relay_configured,
     is_stats_hub_configured_for_host,
@@ -82,13 +84,16 @@ def _finish(instance, ok, message):
 
 def _resolve_server_id(instance, host_id):
     """Telemetry's server_id when it has one (one identity per instance across
-    both features), else this addon's own, else a fresh reservation.
+    both features, only when both addons use the same stats-hub), else this addon's own, else a fresh reservation.
 
     A new reservation is stored only under this addon's own key: telemetry's
     key is cleared by its config_applied hook when telemetry is not configured,
     so a write there would be lost. Raises what reserve_server_id raises."""
     telemetry_id = get_telemetry_server_id(instance.id)
-    if telemetry_id is not None:
+    telemetry_url = get_telemetry_stats_hub_url(host_id)
+    own_url = (get_effective_stats_hub_url(host_id) or '').rstrip('/')
+    # An id is only meaningful on the hub that issued it.
+    if telemetry_id is not None and telemetry_url and telemetry_url == own_url:
         if get_instance_server_id(instance.id) != telemetry_id:
             set_instance_server_id(instance.id, telemetry_id)
             db.session.commit()

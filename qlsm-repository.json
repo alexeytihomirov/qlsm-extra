@@ -100,7 +100,7 @@
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "55a3eff3652a90c70864670f8c83432dac291cc1c0221dd650c2b5dec9340eee",
+      "sha256": "54e76c4115d29369e739d8f5dddbbd48a88ce60b2368db09aae5fca42dc6da03",
       "version": "1.2.0",
       "label": "Live Demo Stream",
       "description": "Points an instance's sv_demoStream* cvars at the central demo-stream relay and registers its route with ql-stats-hub, so a spectator can watch a POV live. The relay is one address for the whole cluster, but each game host runs a stunnel client (set up from the host's Demo Stream Tunnel panel) that carries the stream to stats-hub over TLS with the hub's certificate pinned."

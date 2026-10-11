@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 User=ql
 Group=ql
-ExecStart=/usr/bin/stunnel /home/ql/demo-stream-tunnel/stunnel.conf
+ExecStart=/usr/bin/stunnel4 /home/ql/demo-stream-tunnel/stunnel.conf
 Restart=always
 RestartSec=5
 

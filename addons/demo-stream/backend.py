@@ -126,7 +126,7 @@ def update_host_tunnel(host_id):
     from ui.task_logic.job_failure_handlers import host_job_failure_handler
     from ui.tasks import enqueue_task
     from .settings import (
-        get_host_tunnel_port, is_host_tunnel_enabled, is_relay_configured,
+        DEFAULT_TUNNEL_PORT, is_host_tunnel_enabled, is_relay_configured,
         set_host_tunnel_port,
     )
     from .tunnel_ops import TunnelCertError, fetch_hub_tls_cert
@@ -137,17 +137,20 @@ def update_host_tunnel(host_id):
 
     data = request.get_json(silent=True) or {}
     port = data.get('local_port', '')
+    # 1024 and up: the tunnel runs as user ql and cannot bind privileged ports.
     if not isinstance(port, str) or (
             port.strip() and not (port.strip().isascii() and port.strip().isdigit()
-                                  and 1 <= int(port.strip()) <= 65535)):
-        return jsonify({"error": {"message": "local_port must be a port number (1-65535)."}}), 400
+                                  and 1024 <= int(port.strip()) <= 65535)):
+        return jsonify({"error": {"message": "local_port must be a port number (1024-65535)."}}), 400
 
-    set_host_tunnel_port(host_id, port)
-    db.session.commit()
-    port = get_host_tunnel_port(host_id)
+    port = port.strip() or DEFAULT_TUNNEL_PORT
     wanted = bool(data.get('enabled', False))
 
     if not wanted and not is_host_tunnel_enabled(host_id):
+        # Nothing is installed, so there is nothing to wait for: just remember
+        # the port. Otherwise the port is stored only once the playbook succeeds.
+        set_host_tunnel_port(host_id, port)
+        db.session.commit()
         return jsonify({"data": {'enabled': False, 'local_port': port},
                         "message": "Tunnel settings saved."})
 
@@ -168,7 +171,7 @@ def update_host_tunnel(host_id):
         }}), 400
 
     lock_token = str(uuid.uuid4())
-    if not acquire_lock('host', host.id, lock_token, ttl=180):
+    if not acquire_lock('host', host.id, lock_token, ttl=360):
         return jsonify({"error": {
             "message": f'Another operation is running on host "{host.name}". Please wait for it to complete.'
         }}), 409

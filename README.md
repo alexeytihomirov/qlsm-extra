@@ -112,6 +112,11 @@ qlsm's image ships **no** addon — install every one of these from this
 repository. `qlmatch-packer` extends `demo-management`'s screen, so it is only
 useful with it installed too.
 
+**demo-stream 1.2.0:** the stream now goes through a per-host stunnel TLS
+tunnel (Hosts -> Demo Stream Tunnel). Instances enabled under 1.1.1 still point
+straight at the relay over plain TCP and must be re-enabled (Live Demo Stream
+tab) after the host tunnel is on.
+
 ### player-ranks
 
 Three rating sources, stacked in one Rank column in Live Status (a generic
