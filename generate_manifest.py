@@ -137,7 +137,8 @@ def _plugin_entries(existing: list) -> list:
         prev = by_name.get(filename, {})
         entry = {
             'filename': filename,
-            'runtime': prev.get('runtime') or 'minqlx',
+            # Every plugin here imports minqlxtended, so that is the pool a new entry goes to.
+            'runtime': prev.get('runtime') or 'minqlxtended',
         }
         meta = _load_sidecar_meta(filename)
         # The sidecar is the source of truth for operator-facing text; the
