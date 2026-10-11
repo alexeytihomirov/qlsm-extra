@@ -39,7 +39,7 @@
 
       "instance_telemetry": {
         "kind": "form",
-        "description": "Reserves this instance's server ID in ql-stats-hub, turns on the stream_telemetry_unified plugin and points it at the host relay, then restarts the instance. Turn the relay on for this instance's host first.",
+        "description": "Reserves this instance's server ID in ql-stats-hub, turns on the stream_telemetry_unified plugin's master switch and pushes the host relay's routes, then restarts the instance. The plugin itself must be in the instance's plugin list, and each feed (qlx_statsHubFeedPositions, qlx_statsHubFeedItems, qlx_statsHubFeedSession) is switched on separately. Turn the relay on for this instance's host first.",
         "load": "GET instances/{instance_id}",
         "submit": "POST instances/{instance_id}/enable",
         "fields": [
