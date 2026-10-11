@@ -104,7 +104,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 |-------|------|
 | `telemetry-relay` | Per-host relay → ql-stats-hub telemetry |
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
-| `demo-stream` | Live POV demo stream screen + cvars |
+| `demo-stream` | Live POV demo stream screen + cvars; per-host stunnel TLS tunnel to stats-hub |
 | `qlmatch-packer` | Host-side `.qlmatch` packer + Demos grouping hooks |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
 

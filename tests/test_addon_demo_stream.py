@@ -510,3 +510,19 @@ def test_status_reports_tunnel_off(app, client, auth, instance_id):
         _set_relay_and_hub()
     resp = client.get(f'{URL}/instances/{instance_id}/status', headers=auth)
     assert resp.get_json()['data'] == {'ok': False, 'label': 'Tunnel not enabled on host'}
+
+
+# ---- Task 6: manifest ---------------------------------------------------
+
+def test_manifest_declares_host_tunnel_panel():
+    import json
+    m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
+    assert m['version'] == '1.2.0'
+    assert m['ui_api'] == 1
+    assert m['ui']['host_menu'][0]['panel'] == 'host_tunnel'
+    p = m['ui']['panels']['host_tunnel']
+    assert (p['load'], p['submit']) == ('GET hosts/{host_id}', 'PUT hosts/{host_id}')
+    assert [f['key'] for f in p['fields']] == ['enabled', 'local_port']
+    assert next(f for f in p['fields'] if f['key'] == 'local_port')['placeholder'] == '27999'
+    relay_port = next(f for f in m['ui']['panels']['relay_settings']['fields'] if f['key'] == 'port')
+    assert relay_port['placeholder'] == '27999'
