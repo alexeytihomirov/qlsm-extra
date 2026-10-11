@@ -24,7 +24,7 @@ from .qlmatch_listing import QLMATCH_FILENAME_RE, qlmatch_sidecar_name, read_qlm
 PACKER_REMOTE_DIR = '/home/ql/qlmatch-packer'
 
 # Generous ceiling for one pack.mjs run over SSH (parsing N POVs + zipping +
-# rclone uploads, whose own per-target rclone timeout is 10 min).
+# the replay sidecar merge, which has its own 10 min timeout).
 REMOTE_NODE_TIMEOUT_SECONDS = 1800
 
 
@@ -53,9 +53,9 @@ def _read_manifest_or_raise(instance_id, filename):
 
 
 def _read_packer_cvars(instance):
-    """(name_template, rclone_targets) from the instance's own server.cfg on
+    """The name template from the instance's own server.cfg on
     qlsm's local disk (the config source of truth qlsm pushes to hosts) --
-    the same two cvars pack.mjs itself reads, set by hand in server.cfg
+    the same cvar pack.mjs itself reads, set by hand in server.cfg
     (there is no Plugins-tab UI for them), so a rebuild matches whatever the
     operator already configured instead of falling back to the packer's bare
     defaults."""
@@ -64,9 +64,9 @@ def _read_packer_cvars(instance):
         with open(config_path, 'r', encoding='utf-8') as f:
             text = f.read()
     except FileNotFoundError:
-        return '', ''
-    cvars = read_cvars_from_text(text, ('qlx_qlmatchNameTemplate', 'qlx_qlmatchRcloneTargets'))
-    return cvars.get('qlx_qlmatchNameTemplate', ''), cvars.get('qlx_qlmatchRcloneTargets', '')
+        return ''
+    cvars = read_cvars_from_text(text, ('qlx_qlmatchNameTemplate',))
+    return cvars.get('qlx_qlmatchNameTemplate', '')
 
 
 def rebuild_sidecar_logic(instance_id, filename):
@@ -124,15 +124,13 @@ def rebuild_full_logic(instance_id, filename):
             'full rebuild needs them; only "Rebuild sidecar" is possible now.'
         )
 
-    name_template, rclone_targets = _read_packer_cvars(instance)
+    name_template = _read_packer_cvars(instance)
     command_parts = [
         'cd', shlex.quote(PACKER_REMOTE_DIR), '&&', 'node', 'pack.mjs',
         '--dir', shlex.quote(demo_dir), '--match-id', shlex.quote(match_id), '--map', shlex.quote(map_name),
     ]
     if name_template:
         command_parts += ['--name-template', shlex.quote(name_template)]
-    if rclone_targets:
-        command_parts += ['--rclone-targets', shlex.quote(rclone_targets)]
     command = ' '.join(command_parts)
 
     exit_status, stdout, stderr = run_remote_command(host, command, timeout=REMOTE_NODE_TIMEOUT_SECONDS)

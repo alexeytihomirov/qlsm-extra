@@ -4,7 +4,7 @@
 # Nothing launches it automatically (the demo_native_autorecord.py plugin
 # that did was retired): it runs by hand or from this addon's rebuild
 # actions over SSH, builds the .qlmatch package, renders the operator's
-# filename template and delivers the result via rclone.
+# filename template. Delivery off the host is the file-forwarder addon's job.
 #
 # Run by this addon's host.payload_sync handler (backend.py) after a
 # successful ansible_host_setup.py / ansible_plugin_update.py run -- same
@@ -14,10 +14,7 @@
 # Node >= 22 comes from NodeSource, NOT Debian's own nodejs package: the
 # packer's vendored parser (vendor/qldemo/huffman.js) uses
 # `import ... with { type: "json" }`, which Debian 12's nodejs 18 cannot
-# parse. rclone is deliberately NOT installed here - remotes hold operator
-# credentials, so installing/configuring rclone stays a manual operator
-# step (rclone config); the packer just skips delivery of targets it
-# cannot reach and logs it.
+# parse.
 
 - name: Deploy external qlmatch-packer + Node.js runtime
   hosts: all
@@ -77,14 +74,3 @@
         recurse: yes
         state: directory
       when: local_qlmatch_packer_stat.stat.exists and local_qlmatch_packer_stat.stat.isdir
-
-    - name: Check whether rclone is available (delivery is optional)
-      command: rclone version
-      register: qlmatch_rclone_check
-      changed_when: false
-      failed_when: false
-
-    - name: Warn when rclone is missing
-      debug:
-        msg: "QLMATCH_PACKER_WARN: rclone is not installed on this host - .qlmatch delivery targets (qlx_qlmatchRcloneTargets) will fail until the operator installs and configures rclone."
-      when: qlmatch_rclone_check.rc != 0

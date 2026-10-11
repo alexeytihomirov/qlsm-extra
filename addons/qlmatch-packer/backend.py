@@ -9,10 +9,10 @@ demo_management.file_kinds hook), and the external Bearer-token match API
 (moved here from demo-management's /instances/<id>/matches* -- see git
 history for the old URL if an external caller still points at it).
 
-No settings/UI of its own: qlx_qlmatchNameTemplate / qlx_qlmatchRcloneTargets
-are set by hand in an instance's server.cfg (no Plugins-tab UI for them --
-the plugin that used to own that manifest was retired) -- this addon only
-deploys the binary those cvars point at.
+No settings/UI of its own: qlx_qlmatchNameTemplate is set by hand in an
+instance's server.cfg (no Plugins-tab UI for it -- the plugin that used to own
+that manifest was retired) -- this addon only deploys the binary that cvar
+points at. Delivery of packs off the host is the file-forwarder addon's job.
 """
 import io
 import uuid

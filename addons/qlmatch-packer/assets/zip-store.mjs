@@ -5,7 +5,7 @@
 // Descended from the _tmp/overkilldemos/zip-store.mjs prototype with one
 // real fix: that prototype wrote 0 into every CRC-32 field, which
 // demo-editor's own zip-read.js never checks but Python's zipfile / unzip
-// do — a pack delivered to any other consumer via rclone would fail CRC
+// do — a pack handed to any other consumer (e.g. forwarded off-host) would fail CRC
 // validation there. This writer computes real CRC-32s.
 
 const CRC_TABLE = (() => {

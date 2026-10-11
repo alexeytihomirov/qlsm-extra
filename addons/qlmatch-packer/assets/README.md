@@ -4,7 +4,8 @@ Builds one `.qlmatch` package (zip, STORE) per finished match from the
 per-player POV `.dm_91` files and `index/*.snaps.json` that the native demo
 capture of the minqlxtended fork (alexeytihomirov/minqlxtended, built on a
 host with the runtime-source addon) leaves in an instance's demo directory,
-then optionally delivers it to any number of rclone targets.
+Delivery off the host is not done here: the file-forwarder addon forwards
+the finished files.
 
 Contract: `ql-demo-recorder/docs/superpowers/prompts/2026-08-17-sv-demorecord-multi-pov-AGENT-PROMPT.md`,
 section "Post-process (off the game thread) -> `.qlmatch`".
@@ -23,26 +24,23 @@ section "Post-process (off the game thread) -> `.qlmatch`".
   already has a `.qlmatch`. Output goes to `<demo_dir>/<match_id>.packer.log`;
   if the packer (or node) is missing on the host, no `.qlmatch` is built and
   only the raw `.dm_91` files remain.
-- Configured per instance by two cvars set by hand in the instance's
-  server.cfg (QLSM has no editor for them); a rebuild reads them from there:
+- Configured per instance by a cvar set by hand in the instance's
+  server.cfg (QLSM has no editor for it); a rebuild reads it from there:
   - `qlx_qlmatchNameTemplate` — output filename template (no extension)
-  - `qlx_qlmatchRcloneTargets` — comma-separated rclone destinations
-    (e.g. `gdrive:ql-demos/frontier,/home/ql/qlmatch-archive`)
-- rclone itself must be installed and its remotes configured on the game
-  host by the operator (`rclone config`); the packer only calls
-  `rclone copy <pack> <target>` per target.
+- Delivery moved to the file-forwarder addon. A launcher that still passes
+  `--rclone-targets <value>` is tolerated: the flag is accepted, ignored,
+  and one line is printed to stderr.
 
 ## CLI
 
 ```
 node pack.mjs --dir <demo_dir> --match-id <stamp> [--map <map>]
-              [--name-template <tpl>] [--rclone-targets a,b]
+              [--name-template <tpl>]
               [--min-window-ms 5000] [--out-dir <dir>]
 ```
 
 Exit codes: 0 ok; 2 window validation failed (empty/short POV overlap — no
-zip written, raw files left in place); 3 no POV files for the match; 4 pack
-written but >= 1 rclone delivery failed; 5 usage/IO error.
+zip written, raw files left in place); 3 no POV files for the match; 5 usage/IO error.
 
 ## Replay sidecar
 

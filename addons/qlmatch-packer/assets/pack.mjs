@@ -22,10 +22,9 @@
 // it (see sync-vendor.sh, which only diffs the two, it doesn't copy).
 //
 // Exit codes:
-//   0 pack written (and every rclone target delivered, if any)
+//   0 pack written
 //   2 window validation failed (empty/short POV overlap) — no zip written
 //   3 no POV files found for the match — nothing to do
-//   4 pack written but at least one rclone delivery failed
 //   5 usage / IO error
 
 import { readFileSync, readdirSync, writeFileSync, renameSync, existsSync, statSync } from "node:fs";
@@ -39,7 +38,6 @@ const DM91 = ".dm_91";
 // Mirrors demo_match.c DEMO_MIN_WINDOW_MS: a shared window shorter than this
 // is meaningless and the contract says fail the pack rather than ship it.
 const DEFAULT_MIN_WINDOW_MS = 5000;
-const RCLONE_TIMEOUT_MS = 10 * 60 * 1000;
 const SIDECAR_TIMEOUT_MS = 10 * 60 * 1000;
 
 function log(...args) {
@@ -51,7 +49,7 @@ function fail(code, ...args) {
 }
 
 function parseArgs(argv) {
-  const args = { minWindowMs: DEFAULT_MIN_WINDOW_MS, nameTemplate: "", rcloneTargets: [], outDir: "" };
+  const args = { minWindowMs: DEFAULT_MIN_WINDOW_MS, nameTemplate: "", outDir: "" };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => {
@@ -63,14 +61,16 @@ function parseArgs(argv) {
     else if (a === "--match-id") args.matchId = next();
     else if (a === "--map") args.map = next();
     else if (a === "--name-template") args.nameTemplate = next();
-    else if (a === "--rclone-targets") args.rcloneTargets = next().split(",").map((s) => s.trim()).filter(Boolean);
+    // Old launchers still pass --rclone-targets: accept and ignore it (delivery
+    // moved to the file-forwarder addon) so packing never breaks on it.
+    else if (a === "--rclone-targets") { next(); args.rcloneIgnored = true; }
     else if (a === "--min-window-ms") args.minWindowMs = parseInt(next(), 10);
     else if (a === "--out-dir") args.outDir = next();
     else fail(5, "unknown argument", a);
   }
   if (!args.dir || !args.matchId) {
     fail(5, "usage: pack.mjs --dir <demo_dir> --match-id <stamp> [--map <map>] " +
-      "[--name-template <tpl>] [--rclone-targets a,b] [--min-window-ms N] [--out-dir <dir>]");
+      "[--name-template <tpl>] [--min-window-ms N] [--out-dir <dir>]");
   }
   return args;
 }
@@ -331,6 +331,7 @@ function writeMatchMeta(args, { mapName, gametype, window, players, entries, pac
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.rcloneIgnored) console.error("packer: --rclone-targets is ignored, delivery moved to the file-forwarder addon");
   if (!existsSync(args.dir) || !statSync(args.dir).isDirectory()) fail(5, "not a directory:", args.dir);
 
   const files = discoverPovFiles(args.dir, args.matchId);
@@ -479,23 +480,7 @@ function main() {
     for (const line of (sc.stdout || "").trim().split("\n")) log("sidecar:", line);
   }
 
-  // Delivery: rclone copy into every configured target. One target failing
-  // must not block the others or delete the local pack.
-  let deliveryFailed = false;
-  for (const target of args.rcloneTargets) {
-    const res = spawnSync("rclone", ["copy", outPath, target], {
-      encoding: "utf8",
-      timeout: RCLONE_TIMEOUT_MS,
-    });
-    if (res.error || res.status !== 0) {
-      deliveryFailed = true;
-      const why = res.error ? String(res.error.message || res.error) : `exit ${res.status}: ${(res.stderr || "").trim().slice(-500)}`;
-      console.error(`packer: rclone copy -> ${target} FAILED (${why})`);
-    } else {
-      log(`rclone copy -> ${target} ok`);
-    }
-  }
-  process.exit(deliveryFailed ? 4 : 0);
+  process.exit(0);
 }
 
 main();
