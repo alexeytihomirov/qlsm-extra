@@ -40,6 +40,7 @@ copyto)
     cp -- "$2" "$FAKE_REMOTE/$rest"
     ;;
 lsjson)
+    if [ -n "${FAKE_LSJSON_RAW:-}" ]; then cat "$FAKE_LSJSON_RAW"; exit 0; fi
     d="$FAKE_REMOTE/${2#*:}"
     [ -d "$d" ] || { echo "directory not found" >&2; exit 3; }
     first=1
@@ -100,6 +101,9 @@ class Host:
         env['PATH'] = str(self.bin) + os.pathsep + env['PATH']
         env['FAKE_REMOTE'] = self.remote.as_posix()
         env['FORWARDER_CONF'] = self.conf.as_posix()
+        # Even with a missing config the script falls back to $STATE_DIR: keep that inside
+        # the temp dir so a test can never write under the real default (/home/ql).
+        env['STATE_DIR'] = self.state.as_posix()
         env.update(extra)
         return env
 
@@ -198,17 +202,87 @@ def test_cleanup_deletes_only_expired_ledgered_expire_rows(host):
     young = host.put('young.dm_91', b'ddd', age=OLD)
     changed = host.put('changed.dm_91', b'ccc', age=VERY_OLD)
     old_keep = host.put('old.qlmatch', b'eee', age=VERY_OLD)
-    seed_ledger(host, [expired, young, changed])
+    dotdot = host.put('a..b.dm_91', b'fff', age=VERY_OLD)       # a name with `..` is an ordinary name
+    touched = host.put('touched.dm_91', b'ggg', age=VERY_OLD)
+    seed_ledger(host, [expired, young, changed, dotdot, touched])
     seed_ledger(host, [old_keep], remote_dir='qlmatch')
     changed.write_bytes(b'cccc')                     # size differs from its ledger line
     os.utime(changed, (time.time() - VERY_OLD,) * 2)
+    os.utime(touched, (time.time() - VERY_OLD - 1000,) * 2)   # only the mtime differs
     unledgered = host.put('unledgered.dm_91', b'bbb', age=VERY_OLD)
-    # uploads fail, so `unledgered` and the re-sent `changed` never get a line
+    # uploads fail, so `unledgered` and the re-sent `changed`/`touched` never get a line
     r = host.run(FAKE_RCLONE_FAIL='copyto')
-    assert not expired.exists()
-    assert unledgered.exists() and changed.exists() and young.exists() and old_keep.exists()
-    assert host.last_run()['deleted'] == '1'
+    assert not expired.exists() and not dotdot.exists()
+    assert unledgered.exists() and changed.exists() and touched.exists()
+    assert young.exists() and old_keep.exists()
+    assert host.last_run()['deleted'] == '2'
     assert r.returncode == 1
+
+
+def test_cleanup_keeps_confirmable_file_when_listing_fails(host):
+    f = host.put('listed.dm_91', b'aaaa', age=VERY_OLD)
+    seed_ledger(host, [f])                           # ledgered, remote copy present
+    r = host.run(FAKE_RCLONE_FAIL='1')               # but lsjson fails right now
+    assert f.exists()
+    last = host.last_run()
+    assert last['kept_unconfirmed'] == '1' and last['deleted'] == '0' and last['failed'] == '0'
+    assert r.returncode == 1
+
+
+def test_same_name_in_two_source_dirs_is_never_sent_or_deleted(host):
+    a = host.put('dup.dm_91', b'same', age=VERY_OLD, dirindex=0)
+    b = host.put('dup.dm_91', b'same', age=VERY_OLD + 500, dirindex=1)   # same size, other mtime
+    seed_ledger(host, [a])                           # one copy was ledgered earlier
+    ok = host.put('fine.qlmatch', b'ok')
+    r = host.run()
+    assert a.exists() and b.exists() and ok.exists()
+    assert host.remote_names('qlmatch') == ['fine.qlmatch']
+    assert [row[0] for row in host.ledger()].count('dup.dm_91') == 1      # only the seeded line
+    last = host.last_run()
+    assert last['uploaded'] == '1' and last['failed'] == '2' and last['deleted'] == '0'
+    assert 'collision' in r.stdout and a.as_posix() in r.stdout and b.as_posix() in r.stdout
+    assert r.returncode == 1
+
+
+def test_lsjson_go_style_json_confirms_the_right_files_only(host):
+    def mk(name, content):
+        return host.put(name, content, age=VERY_OLD)
+    amp = mk('a&b.dm_91', b'1234')           # remote name is a&b.dm_91
+    brace = mk('c}d.dm_91', b'12345')        # literal brace in the name
+    bad_brace = mk('x}y.dm_91', b'123')      # remote has another size
+    ghost = mk('ghost.dm_91', b'1234')       # a record with a Name but no Size, then a Size alone
+    cafe = mk('café.dm_91', b'123456')  # remote name uses a non-ASCII escape: unconfirmed
+    hashes = mk('h.dm_91', b'12')            # nested Hashes object after Size
+    late = mk('s.dm_91', b'1234567')         # Size after a nested Hashes object
+    seed_ledger(host, [amp, brace, bad_brace, ghost, cafe, hashes, late])
+    raw = host.root / 'lsjson.json'
+    # "@U" stands for a backslash-u escape, as rclone (Go) writes & and non-ASCII letters
+    raw.write_bytes('''[
+{"Path":"sub","Name":"sub","Size":-1,"IsDir":true},
+{"Path":"a@U0026b.dm_91","Name":"a@U0026b.dm_91","Size":4,"IsDir":false},
+{"Path":"c}d.dm_91","Name":"c}d.dm_91","Size":5,"IsDir":false},
+{"Path":"x}y.dm_91","Name":"x}y.dm_91","Size":9,"IsDir":false},
+{"Name":"ghost.dm_91","IsDir":false},
+{"Size":4,"IsDir":false},
+{"Path":"caf@U00e9.dm_91","Name":"caf@U00e9.dm_91","Size":6,"IsDir":false},
+{"Path":"h.dm_91","Name":"h.dm_91","Size":2,"Hashes":{"md5":"abc"},"IsDir":false},
+{"Name":"s.dm_91","Hashes":{"md5":"x"},"Size":7,"IsDir":false}
+]
+'''.replace('@U', chr(92) + 'u').encode('utf-8'))
+    r = host.run(FAKE_LSJSON_RAW=raw.as_posix())
+    assert not amp.exists() and not brace.exists() and not hashes.exists() and not late.exists()
+    assert bad_brace.exists() and ghost.exists() and cafe.exists()
+    last = host.last_run()
+    assert last['deleted'] == '4' and last['kept_unconfirmed'] == '3'
+    assert r.returncode == 1
+
+
+def test_stale_tmp_dirs_of_killed_runs_are_removed(host):
+    stale = host.state / 'tmp.12345'
+    stale.mkdir(parents=True)
+    (stale / 'keys').write_text('x')
+    assert host.run().returncode == 0
+    assert not stale.exists()
 
 
 def test_failed_upload_keeps_everything_and_exits_1(host):
@@ -283,28 +357,31 @@ def test_backlog_cap_sends_newest_raw_first(host):
     assert host.remote_names('raw') == ['mid.dm_91', 'new.dm_91', 'old.dm_91']
 
 
-def test_unsafe_names_are_not_sent(host):
+def test_dash_space_and_non_ascii_names_are_sent(host):
     host.put('-dash.qlmatch', b'1')
     host.put('with space äö.qlmatch', b'22')
-    newline_created = True
-    try:
-        host.put('bad\nname.qlmatch', b'333')
-    except OSError:
-        newline_created = False
     r = host.run()
+    assert r.returncode == 0, r.stdout + r.stderr
     assert host.remote_names('qlmatch') == sorted(['-dash.qlmatch', 'with space äö.qlmatch'])
-    if newline_created:
-        assert r.returncode == 1
-        assert host.last_run()['failed'] == '1'
-    else:
-        pytest.skip('this filesystem cannot hold a newline in a file name '
-                    '(the other two names were checked)')
+
+
+@pytest.mark.skipif(os.name == 'nt', reason='Windows cannot create a file name with a newline')
+def test_newline_name_is_skipped_and_counted_failed(host):
+    host.put('bad\nname.qlmatch', b'333')
+    host.put('good.qlmatch', b'1')
+    r = host.run()
+    assert host.remote_names('qlmatch') == ['good.qlmatch']
+    assert host.last_run()['failed'] == '1'
+    assert r.returncode == 1
 
 
 def test_missing_config_or_rclone_exits_2_and_deletes_nothing(host):
     old = host.put('x.dm_91', age=VERY_OLD)
     r = host.run(FORWARDER_CONF=(host.root / 'nope.conf').as_posix())
     assert r.returncode == 2
+    assert host.last_run()['exit'] == '2'            # written into the test STATE_DIR
+    host.write_conf(PATTERNS='*.dm_91:ra/w:expire')
+    assert host.run().returncode == 2
     host.write_conf(RCLONE='no-such-rclone-binary')
     r = host.run()
     assert r.returncode == 2
