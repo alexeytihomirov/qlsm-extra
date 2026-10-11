@@ -96,7 +96,7 @@
     {
       "id": "demo-management",
       "zip": "packages/demo-management.zip",
-      "sha256": "0a9375ef18d3acb8155e85e06b8c54536f683f04b44f7913146753499464e020",
+      "sha256": "2957ee84aa06b0c0a476e17619627b9da14370ef661d453b6ee3d8797638bc4b",
       "version": "1.6.1",
       "label": "Demos",
       "description": "Adds a Demos screen for each instance: lists the demo files the server recorded, newest first, with all files of one match grouped in one row labelled with map, mode, players and length, and downloads them. Filters by date, map, mode and pack state. Install qlmatch-packer as well to see and rebuild .qlmatch packs. Needs QLSM with ui_api 3 or newer."
@@ -104,7 +104,7 @@
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "b2631973499ad697ba27bddb57395b078e5ef85148a4d3c545e1a5a3899abffa",
+      "sha256": "19ab209aa5436ea6d4b78327cf422acc750eae327666e52fd77fdd67064e75e3",
       "version": "1.1.1",
       "label": "Live Demo Stream (experimental)",
       "description": "Experimental, not yet verified end to end. Lets a spectator watch a player's view live: points an instance's sv_demoStream cvars at the central demo-stream relay and registers the instance with ql-stats-hub. Set the relay address and the stats-hub in Settings, then enable each instance from its Live Demo Stream menu entry, which restarts it. Needs a game server build that supports the sv_demoStream cvars."
@@ -112,7 +112,7 @@
     {
       "id": "player-ranks",
       "zip": "packages/player-ranks.zip",
-      "sha256": "0493f86dfed935d621a66e8760cf8a37da6c8e1f8d22fbfabf760e8af9b9e48b",
+      "sha256": "3b57708e8579c717124493f5fd359b30e76051660297a8daa2ad259f78f95860",
       "version": "0.3.2",
       "label": "Player Ranks",
       "description": "Shows each connected player's external rating in Live Status. Pick the sources per instance on its Ranks tab: qlstats, Slipgate and x76. qlstats and Slipgate connection details are set once for the installation; x76 is configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer."
@@ -120,7 +120,7 @@
     {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "02db537f0376e6db0930cb3ed0a6265ad65f22f0dffdf9775f01002eb6a31a0c",
+      "sha256": "7b4c5279730f8952868420094f9ee8547158872aa2fece46e62008aef68f2498",
       "version": "1.1.1",
       "label": "Qlmatch Packer",
       "description": "Installs the qlmatch packer and Node.js 22 on every game host during host setup and Update Plugins, and shows its .qlmatch packs and replay files on the Demos screen. Nothing runs the packer after a match: a first pack is built by running pack.mjs on the host by hand, and the Demos screen can rebuild an existing pack or its replay file. The output name template and rclone upload targets are the cvars qlx_qlmatchNameTemplate and qlx_qlmatchRcloneTargets, set by hand in the instance's server.cfg. Needs the demo-management addon."
@@ -128,7 +128,7 @@
     {
       "id": "runtime-source",
       "zip": "packages/runtime-source.zip",
-      "sha256": "50f821287ae9ecf715c7be4656d6979c035d9d7c8afa78203ba524749fabd387",
+      "sha256": "ce04e26f97179d49adf272eddd9fc7c76c321b14c526be3a3571b0e2d00c2199",
       "version": "1.0.0",
       "label": "Runtime Source",
       "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins, for example the alexeytihomirov/minqlxtended fork that native demo capture needs. Enable it for a host, enter the repository and a commit, then run Re-run Host Setup. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (host.setup hook)."
@@ -136,7 +136,7 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "ebd4a07ecaf670307d19ad45329dbcaea2ae85ff1659e372d76e95ee28f6eea4",
+      "sha256": "50eb2871bb588d1bed1fc5c5a2025f97b62214ae9dd2c58a9792bb2b26e380dd",
       "version": "1.3.0",
       "label": "Telemetry Relay",
       "description": "Sends live telemetry from game instances (player positions, item pickups, match events) to ql-stats-hub through a relay on each host. Set the stats-hub URL and ingest token in Settings, turn the relay on per host (host menu, Telemetry Relay), then enable each instance on its Telemetry tab. The instances need the stream_telemetry_unified plugin."
