@@ -7,6 +7,8 @@ outcome into one job:completed toast per unit of work.
 """
 import logging
 
+from rq.timeouts import JobTimeoutException
+
 from ui.job_events import publish_job_event
 
 from .rebuild_ops import RebuildError, rebuild_full_logic, rebuild_sidecar_logic
@@ -80,6 +82,9 @@ def rebuild_batch_task_logic(instance_id, kind, filenames):
             results[filename] = {'ok': True, **logic(instance_id, filename)}
             publish_job_event(_SOURCE, 'success', f'Rebuilt "{filename}" ({kind}).',
                                instance_id=instance_id, filename=filename)
+        except JobTimeoutException:
+            # The job ran out of time: stop the batch and let RQ fail the job.
+            raise
         except Exception as e:
             failures += 1
             results[filename] = {'ok': False, 'error': _error_text(e)}

@@ -100,3 +100,16 @@ def test_single_ssh_failure_is_logged_with_traceback(tasks_mod, monkeypatch, cap
     assert rec.levelname == 'ERROR' and rec.exc_info
     msg = rec.getMessage()
     assert '7' in msg and 'a.qlmatch' in msg and 'ssh lost' in msg
+
+
+def test_batch_stops_on_the_job_timeout(tasks_mod, monkeypatch):
+    from rq.timeouts import JobTimeoutException
+    seen = []
+
+    def logic(instance_id, filename):
+        seen.append(filename)
+        raise JobTimeoutException('job timed out')
+    monkeypatch.setitem(tasks_mod._KIND_LOGIC, 'full', logic)
+    with pytest.raises(JobTimeoutException):
+        tasks_mod.rebuild_batch_task_logic(1, 'full', ['a.qlmatch', 'b.qlmatch'])
+    assert seen == ['a.qlmatch']
