@@ -139,6 +139,7 @@ try:
         derive_ingest_url,
         effective_interval,
         on_stride,
+        post_outcome,
     )
 except ImportError:
     from .telemetry_unified_sched import (
@@ -148,6 +149,7 @@ except ImportError:
         derive_ingest_url,
         effective_interval,
         on_stride,
+        post_outcome,
     )
 
 
@@ -2101,11 +2103,19 @@ class stream_telemetry_unified(minqlx.Plugin):
             resp = conn.getresponse()
             resp.read()
             conn.close()
-            ok = resp.status < 400
-            if ok:
-                # Before complete(): the game thread applies this ack before it
-                # sees post_in_flight == False and takes the next batch.
+            outcome = post_outcome(resp.status)
+            ok = outcome == "ok"
+            if outcome != "retry":
+                # Delivered, or permanently rejected (dropped). Before complete():
+                # the game thread applies this ack before it sees
+                # post_in_flight == False and takes the next batch.
                 self._session_acks.append(batch)
+            if outcome == "reject":
+                self.logger.debug(
+                    "stream_telemetry_unified: session batch rejected with HTTP %s, dropping %s events",
+                    resp.status,
+                    len(batch),
+                )
             if state.complete(generation, ok):
                 self._record_post_result(state, ok)
         except (http.client.HTTPException, OSError, ValueError) as exc:
@@ -2170,6 +2180,10 @@ class stream_telemetry_unified(minqlx.Plugin):
                 self._record_post_result(state, False)
             return
         if not on_stride(self._frame_tick, self._FRAME_STRIDE_SESSION, self._FRAME_PHASE_SESSION):
+            return
+        # Again: the worker may have acked and completed after the drain above.
+        self._apply_session_acks()
+        if not self._session_queue:
             return
         batch = self._session_queue[: self._SESSION_BATCH_SIZE]
         url = self._session_events_url()

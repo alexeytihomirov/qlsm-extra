@@ -192,3 +192,15 @@ def ack_batch(queue: list, batch: list) -> int:
     before = len(queue)
     queue[:] = [row for row in queue if id(row) not in acked]
     return before - len(queue)
+
+
+
+def post_outcome(status: int) -> str:
+    """Classify an HTTP status from the relay: "ok" (< 400), "retry" (any 5xx,
+    408, 429: keep the batch queued and send it again) or "reject" (any other
+    4xx: the batch itself is bad and resending it would block the queue)."""
+    if status < 400:
+        return "ok"
+    if status >= 500 or status in (408, 429):
+        return "retry"
+    return "reject"
