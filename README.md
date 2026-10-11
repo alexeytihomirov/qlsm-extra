@@ -104,7 +104,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 |-------|------|
 | `telemetry-relay` | Per-host relay that forwards `stream_telemetry_unified` data to ql-stats-hub; enable per host, then per instance on its Telemetry tab |
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
-| `demo-stream` | Live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub |
+| `demo-stream` | Live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub; per-instance stream delay set on stats-hub without a restart |
 | `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen |
 | `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enable, enter repository + commit, then **Re-run Host Setup**. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
@@ -117,6 +117,14 @@ useful with it installed too.
 tunnel (Hosts -> Demo Stream Tunnel). Instances enabled under 1.1.1 still point
 straight at the relay over plain TCP and must be re-enabled (Live Demo Stream
 tab) after the host tunnel is on.
+
+**demo-stream 1.3.0:** each streaming instance has a Demo Stream Delay menu
+entry: the delay stats-hub puts on its stream, 0 to 300 seconds, blank for the
+hub default. Saving is one call to stats-hub, so it applies immediately,
+without restarting the instance or changing its `server.cfg`; viewers already
+watching are reconnected when the delay goes down. Needs a stats-hub that has
+the per-server delay API (`/api/demo-stream/servers/<id>/delay`); with an older
+hub the panel says so and nothing else changes.
 
 ### player-ranks
 

@@ -11,6 +11,7 @@ and `.instance_ops` are this addon's own, no longer core's -- core's four
 built-in demo-stream endpoints were deleted once this addon's endpoints fully
 replaced them (see addons/README.md in qlsm).
 """
+import math
 import uuid
 
 from flask import Blueprint, current_app, jsonify, request
@@ -285,6 +286,139 @@ def enable_instance_stream(instance_id):
         return jsonify({"error": {"message": "Failed to queue demo-stream enable."}}), 500
 
     return jsonify({"message": f'Demo-stream enable queued for "{instance.name}".'}), 202
+
+
+DELAY_VALUE_MESSAGE = ("delay_sec must be a number of seconds from 0 to 300, "
+                       "or blank for the hub default.")
+
+
+def _delay_target(instance):
+    """(server_id, None) when the hub can be asked about this instance's
+    delay, else (None, (badge label, what the operator has to do first))."""
+    from .settings import (
+        get_instance_server_id, is_instance_demo_stream_enabled,
+        is_stats_hub_configured_for_host,
+    )
+
+    if not is_stats_hub_configured_for_host(instance.host_id):
+        return None, ('Stats-hub not configured',
+                      "Set the stats-hub URL and ingest token in Settings first "
+                      "(Demo Stream Stats Hub).")
+    server_id = get_instance_server_id(instance.id)
+    if server_id is None or not is_instance_demo_stream_enabled(instance.id):
+        return None, ('Not streaming',
+                      "This instance is not streaming yet. Enable it from its Live Demo "
+                      "Stream menu entry first; the delay can be set once that has finished.")
+    return server_id, None
+
+
+def _seconds(value):
+    return f'{value:g}'
+
+
+def _delay_data(state):
+    return {
+        'delay_sec': _seconds(state['delay_sec']) if state['override'] else '',
+        'default_delay_sec': _seconds(state['default_delay_sec']),
+        'effective_delay_sec': _seconds(state['delay_sec']),
+        'override': state['override'],
+    }
+
+
+def _parse_delay(value):
+    """None for blank (back to the hub default) or a float in range; raises
+    ValueError/OverflowError for anything else."""
+    from .stats_hub import DELAY_MAX_SEC, DELAY_MIN_SEC
+
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+        raise ValueError(value)
+    number = float(value)
+    if not math.isfinite(number) or not DELAY_MIN_SEC <= number <= DELAY_MAX_SEC:
+        raise ValueError(value)
+    return number
+
+
+def _delay_hub_error(instance_id, exc):
+    current_app.logger.error(f'Addon demo-stream: delay call for instance {instance_id} failed: {exc}')
+    return jsonify({"error": {"message": str(exc)}}), exc.status
+
+
+@bp.route('/instances/<int:instance_id>/delay', methods=['GET'], endpoint='get_instance_delay')
+@jwt_required()
+def get_instance_delay(instance_id):
+    """The stream delay stats-hub applies to this instance. It lives on the
+    hub only; nothing about it is stored here."""
+    from .stats_hub import HubDelayError, get_server_delay
+
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+    server_id, _ = _delay_target(instance)
+    if server_id is None:
+        # Not an error: the form still renders, the badge says why it is empty.
+        return jsonify({"data": {'delay_sec': '', 'default_delay_sec': '',
+                                 'effective_delay_sec': '', 'override': False}})
+    try:
+        state = get_server_delay(instance.host_id, server_id)
+    except HubDelayError as exc:
+        return _delay_hub_error(instance.id, exc)
+    return jsonify({"data": _delay_data(state)})
+
+
+@bp.route('/instances/<int:instance_id>/delay/status', methods=['GET'],
+          endpoint='get_instance_delay_status')
+@jwt_required()
+def get_instance_delay_status(instance_id):
+    """Badge for the delay panel: the delay in effect and the hub default, or
+    why there is none to show."""
+    from .stats_hub import HubDelayError, get_server_delay
+
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+    server_id, blocked = _delay_target(instance)
+    if server_id is None:
+        return jsonify({"data": {'ok': False, 'label': blocked[0]}})
+    try:
+        state = get_server_delay(instance.host_id, server_id)
+    except HubDelayError as exc:
+        return jsonify({"data": {'ok': False, 'label': exc.label}})
+    effective = _seconds(state['delay_sec'])
+    default = 'hub default' if not state['override'] \
+        else f"hub default {_seconds(state['default_delay_sec'])} s"
+    return jsonify({"data": {'ok': True, 'label': f'Delay {effective} s ({default})'}})
+
+
+@bp.route('/instances/<int:instance_id>/delay', methods=['PUT'], endpoint='update_instance_delay')
+@jwt_required()
+def update_instance_delay(instance_id):
+    """One call to stats-hub. No server.cfg change, no instance lock, no
+    restart: the hub applies the delay to the running stream."""
+    from .stats_hub import HubDelayError, set_server_delay
+
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+
+    try:
+        delay = _parse_delay((request.get_json(silent=True) or {}).get('delay_sec'))
+    except (ValueError, OverflowError):
+        return jsonify({"error": {"message": DELAY_VALUE_MESSAGE}}), 400
+
+    server_id, blocked = _delay_target(instance)
+    if server_id is None:
+        return jsonify({"error": {"message": blocked[1]}}), 409
+    try:
+        state = set_server_delay(instance.host_id, server_id, delay)
+    except HubDelayError as exc:
+        return _delay_hub_error(instance.id, exc)
+
+    effective = _seconds(state['delay_sec'])
+    message = f"Stream delay set to {effective} s." if state['override'] \
+        else f"Stream delay back on the hub default ({effective} s)."
+    return jsonify({"data": _delay_data(state), "message": message})
 
 
 # Set by register(); the enable_instance_stream endpoint enqueues through

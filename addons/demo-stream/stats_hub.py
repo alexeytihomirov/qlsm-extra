@@ -131,6 +131,91 @@ def reserve_server_id(label, host_id):
     return int(resp.json()['server_id'])
 
 
+# ---- per-server stream delay -------------------------------------------
+
+DELAY_TIMEOUT_SEC = 5
+DELAY_MIN_SEC = 0
+DELAY_MAX_SEC = 300
+
+
+class HubDelayError(Exception):
+    """The hub did not answer a delay call with a usable 200. `status` is
+    what this addon's own endpoint should answer with, `label` the short form
+    for the panel's badge. The text never carries the ingest token."""
+
+    def __init__(self, message, status, label):
+        super().__init__(message)
+        self.status = status
+        self.label = label
+
+
+def _server_delay_call(send, host_id, server_id, **kwargs):
+    """One GET/PUT on the hub's per-server delay, as
+    {'delay_sec', 'default_delay_sec', 'override'}. Raises HubDelayError."""
+    url = f"{get_effective_stats_hub_url(host_id)}/api/demo-stream/servers/{server_id}/delay"
+    headers = {'Authorization': f'Bearer {get_effective_stats_hub_ingest_token(host_id)}'}
+    try:
+        resp = send(url, headers=headers, timeout=DELAY_TIMEOUT_SEC, **kwargs)
+    except requests.RequestException as exc:
+        # Only the exception type: its text is not ours and is not needed.
+        raise HubDelayError(
+            f"Could not reach stats-hub ({type(exc).__name__}). Check the stats-hub URL "
+            "in Settings and that the hub is up.", 502, 'Stats-hub unreachable') from None
+
+    try:
+        body = resp.json()
+    except ValueError:
+        body = None
+    detail = body.get('detail') if isinstance(body, dict) else None
+
+    if resp.status_code in (401, 403):
+        raise HubDelayError(
+            f"stats-hub rejected the ingest token (HTTP {resp.status_code}). Check Ingest "
+            "token under Settings -> Demo Stream Stats Hub: it must be the hub's "
+            "STATS_HUB_INGEST_TOKEN, not STATS_HUB_API_TOKEN.", 502, 'Ingest token rejected')
+    if resp.status_code == 404 and detail == 'unknown server_id':
+        raise HubDelayError(
+            f"stats-hub has no demo-stream route for server_id {server_id}. Save the "
+            "instance's Live Demo Stream panel again to register it (that restarts the "
+            "instance).",
+            409, 'No route on stats-hub')
+    if resp.status_code in (404, 405):
+        raise HubDelayError(
+            f"stats-hub answered HTTP {resp.status_code} for this server's delay. Either "
+            "this stats-hub is older than the per-server delay API and needs an update, or "
+            f"it has no demo-stream route for server_id {server_id} (save the instance's "
+            "Live Demo Stream panel again to register it, which restarts the instance).",
+            502, 'Stats-hub has no delay API or no route')
+    if resp.status_code in (400, 422):
+        raise HubDelayError(
+            f"stats-hub rejected the delay value (HTTP {resp.status_code}). It accepts "
+            f"{DELAY_MIN_SEC} to {DELAY_MAX_SEC} seconds.", 400, 'Delay rejected by stats-hub')
+    if resp.status_code != 200:
+        raise HubDelayError(
+            f"stats-hub answered HTTP {resp.status_code} for this server's delay.",
+            502, f'Stats-hub error (HTTP {resp.status_code})')
+
+    try:
+        return {
+            'delay_sec': float(body['delay_sec']),
+            'default_delay_sec': float(body['default_delay_sec']),
+            'override': bool(body['override']),
+        }
+    except (KeyError, TypeError, ValueError):
+        raise HubDelayError(
+            "stats-hub answered the delay call with something this addon does not "
+            "understand.", 502, 'Unexpected stats-hub answer') from None
+
+
+def get_server_delay(host_id, server_id):
+    return _server_delay_call(requests.get, host_id, server_id)
+
+
+def set_server_delay(host_id, server_id, delay_sec):
+    """`delay_sec` None puts the server back on the hub default."""
+    return _server_delay_call(requests.put, host_id, server_id, json={'delay_sec': delay_sec})
+
+
 # ---- server.cfg cvar helpers -------------------------------------------
 
 def upsert_cvars_in_text(text, cvars):
