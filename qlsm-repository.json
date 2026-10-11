@@ -43,7 +43,7 @@
         "restore/items.py": "74c275f04c61641200dc853f3b27cfb0cb27d2122e3dfc92f43e87c406fd677d",
         "restore/qlmatch.py": "8e721f8c82df00d787aa2ad91864c39092ab78240a1944e7efbab8c990049f8e"
       },
-      "sha256": "19a0f6639317e32fa3db58950ef83a416db9724c743f316bb5358934b052d884"
+      "sha256": "64a7690673183a770b2da4963dd98ab155e8f590b9f9e12ded0adce58b38ad13"
     },
     {
       "filename": "match_restore_util.py",

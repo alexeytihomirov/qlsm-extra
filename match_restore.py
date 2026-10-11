@@ -825,6 +825,7 @@ class match_restore(minqlx.Plugin):
         self._awaiting_unfreeze_after_unpause = False
         self._unfreeze_thaw_token += 1
         self._unfreeze_thaw_at_wall = None
+        self._restore_pending_velocities.clear()
         self._end_restore_session()
         if reason:
             self.logger.warning("match_restore: restore aborted: %s", reason)
@@ -3889,6 +3890,7 @@ class match_restore(minqlx.Plugin):
         pending = dict(self._restore_pending_velocities or {})
         if not pending:
             return
+        self._restore_pending_velocities.clear()
         for cid, vel in pending.items():
             try:
                 target = self.player(cid)
