@@ -6,7 +6,7 @@ that do **not** ship in the standard qlsm image / plugin pools.
 | Kind | What |
 |------|------|
 | Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `match_restore` family), live telemetry for the `minqlxtended` runtime |
-| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `runtime-source`, `player-ranks` |
+| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `file-forwarder`, `runtime-source`, `player-ranks` |
 
 Merged from the former local `minqlxtended-plugins` and `qlsm-addons` trees.
 
@@ -106,6 +106,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
 | `demo-stream` | Live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub; per-instance stream delay set on stats-hub without a restart |
 | `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen |
+| `file-forwarder` | Ships demo files (.qlmatch packs, replay sidecars, raw demos) from game hosts to the VPS over SFTP, keeps a delivery ledger, cleans up delivered raw demos, and offers manual sync from the host menu |
 | `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enable, enter repository + commit, then **Re-run Host Setup**. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
 
