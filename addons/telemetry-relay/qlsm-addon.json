@@ -2,7 +2,7 @@
   "id": "telemetry-relay",
   "version": "1.3.0",
   "name": "Telemetry Relay",
-  "description": "Forwards live match/player/pickup telemetry from each game instance to ql-stats-hub through a per-host relay sidecar.",
+  "description": "Sends live telemetry from game instances (player positions, item pickups, match events) to ql-stats-hub through a relay on each host. Set the stats-hub URL and ingest token in Settings, turn the relay on per host (host menu, Telemetry Relay), then enable each instance on its Telemetry tab. The instances need the stream_telemetry_unified plugin.",
   "scopes": ["global", "host", "instance"],
   "ui_api": 1,
 
@@ -39,11 +39,11 @@
 
       "instance_telemetry": {
         "kind": "form",
-        "description": "Reserves this instance's cluster-wide stats-hub server ID and points its qlx_statsHub* cvars at the host relay. Requires the relay enabled on the host. Applies config and restarts the instance.",
+        "description": "Reserves this instance's server ID in ql-stats-hub, turns on the stream_telemetry_unified plugin and points it at the host relay, then restarts the instance. Turn the relay on for this instance's host first.",
         "load": "GET instances/{instance_id}",
         "submit": "POST instances/{instance_id}/enable",
         "fields": [
-          { "key": "server_id", "type": "number", "label": "Reserved server ID", "default": 0, "min": 0, "description": "Read-only result of the reservation. 0 means telemetry has never been enabled for this instance. Saving reserves one and applies the config." }
+          { "key": "server_id", "type": "number", "label": "Reserved server ID", "default": 0, "min": 0, "description": "Assigned automatically the first time you save this form, then kept; a number typed here is ignored. 0 means telemetry was never enabled for this instance." }
         ]
       },
 

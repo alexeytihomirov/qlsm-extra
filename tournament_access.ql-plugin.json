@@ -1,10 +1,10 @@
 {
   "label": "Tournament Access",
-  "description": "Whitelist / join gate for tournament matches — restricts who can join based on a tournament roster.",
+  "description": "Closes a tournament server to everyone not on the tournament roster. The tournament hub writes the roster (players and casters) into the server's Redis; when the hub marks it enforced, players not on it are kicked as they load, casters are kept in spectator, and on a lobby server everyone stays in spectator. The server owner and players at the bypass permission level are never checked.",
   "cvars": [
-    { "cvar": "qlx_tournamentAccessEnabled", "label": "Enabled", "description": "Turns the tournament join-gate on or off.", "type": "bool", "default": false },
-    { "cvar": "qlx_tournamentId", "label": "Tournament ID", "description": "ID of the tournament whose roster gates access to this server.", "type": "number", "default": 0, "min": 0 },
-    { "cvar": "qlx_tournamentAccessBypassPerm", "label": "Bypass Permission", "description": "Minimum minqlx permission level that bypasses the roster gate.", "type": "number", "default": 3, "min": 0, "max": 5 },
-    { "cvar": "qlx_devAuthOpen", "label": "Dev Auth Open", "description": "Disables the roster gate entirely for local/dev testing.", "type": "bool", "default": false }
+    { "cvar": "qlx_tournamentAccessEnabled", "label": "Enabled", "description": "Turns the roster check on. It also needs a Tournament ID, and the hub must mark the roster as enforced.", "type": "bool", "default": false },
+    { "cvar": "qlx_tournamentId", "label": "Tournament ID", "description": "Hub tournament whose roster this server uses. 0 turns the check off.", "type": "number", "default": 0, "min": 0 },
+    { "cvar": "qlx_tournamentAccessBypassPerm", "label": "Bypass Permission", "description": "Players with at least this minqlx permission level skip the roster check.", "type": "number", "default": 3, "min": 0, "max": 5 },
+    { "cvar": "qlx_devAuthOpen", "label": "Dev Auth Open", "description": "Turns the roster check off entirely, for testing. Leave it off on a real tournament.", "type": "bool", "default": false }
   ]
 }

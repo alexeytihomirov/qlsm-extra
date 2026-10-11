@@ -9,9 +9,10 @@
 // Contract: ql-demo-recorder/docs/superpowers/prompts/
 // 2026-08-17-sv-demorecord-multi-pov-AGENT-PROMPT.md, section
 // "Post-process (off the game thread) -> .qlmatch". This process is that
-// packer: launched by demo_native_autorecord.py as a separate process on
-// demo_match_finalized, never on the QLDS game thread or even inside the
-// QLDS process.
+// packer. Nothing launches it automatically any more (demo_native_autorecord.py
+// was retired): it runs by hand on the host or from the qlmatch-packer addon's
+// rebuild actions over SSH, never on the QLDS game thread or inside the QLDS
+// process.
 //
 // Demo protocol parsing (player identity, teams, gametype) reuses the
 // parser originally vendored from ql-stream-tools/live-overlay/lib/qldemo

@@ -1,10 +1,10 @@
 ---
 # Deploys the external qlmatch-packer (assets/ in this addon -> /home/ql/
 # qlmatch-packer/ on the host) and the Node.js runtime it needs.
-# demo_native_autorecord.py launches it as a separate process after every
-# finished native-demo match (demo_match_finalized) to build the .qlmatch
-# package, render the operator's filename template, and deliver the result
-# via rclone.
+# Nothing launches it automatically (the demo_native_autorecord.py plugin
+# that did was retired): it runs by hand or from this addon's rebuild
+# actions over SSH, builds the .qlmatch package, renders the operator's
+# filename template and delivers the result via rclone.
 #
 # Run by this addon's host.payload_sync handler (backend.py) after a
 # successful ansible_host_setup.py / ansible_plugin_update.py run -- same

@@ -6,7 +6,7 @@ that do **not** ship in the standard qlsm image / plugin pools.
 | Kind | What |
 |------|------|
 | Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `match_restore` family), live telemetry for the `minqlxtended` runtime |
-| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `player-ranks` |
+| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `runtime-source`, `player-ranks` |
 
 Merged from the former local `minqlxtended-plugins` and `qlsm-addons` trees.
 
@@ -60,40 +60,39 @@ python check_manifest_hashes.py
 | File | Loadable alone? |
 |------|-----------------|
 | `tournament_access.py` | Yes |
-| `chat_rcon.py` + `chat_rcon_acl.py` | Yes, both together |
+| `chat_rcon.py` | Yes |
+| `chat_rcon_acl.py` | No - a copy of chat_rcon's permission rules for the tests; not needed on a server |
 | `lobby.py` | Yes |
-| `referee_call.py` | Yes - `!call` for players; the call itself travels as chat through `stream_telemetry_unified` |
-| `match_restore_util.py` | No — helper for `match_restore.py` |
+| `referee_call.py` | Yes - `!call` for players; the call travels as chat through `stream_telemetry_unified` (Session Events on) |
+| `match_restore_util.py` | No - helper for `match_restore.py`, downloaded with it |
 | `match_restore_lab.py` | Optional add-on to `match_restore.py` |
-| `match_restore.py` + `restore/` | Yes together — downloads as one entry |
+| `match_restore.py` + `restore/` | Yes - downloads as one entry |
 
 `match_restore.py` needs the `restore/` package beside it. Its manifest entry
 declares `package_files` for every file under `restore/`, so downloading
 `match_restore.py` from the Repositories page fetches the whole folder with
 it. `generate_manifest.py` regenerates that list from `PACKAGE_FOLDERS`.
 
-These plugins assume qlsm's `minqlxtended-patched` runtime
-([alexeytihomirov/minqlxtended](https://github.com/alexeytihomirov/minqlxtended)).
+All plugins here need the `minqlxtended` runtime (every entry in `qlsm-repository.json` says `"runtime": "minqlxtended"`). Native demo capture needs the [alexeytihomirov/minqlxtended](https://github.com/alexeytihomirov/minqlxtended) fork, which a host gets through the `runtime-source` addon.
 
 ### Live telemetry (minqlxtended runtime)
 
 | File | Loadable alone? |
 |------|-----------------|
-| `telemetry_unified_sched.py` | No — helper for `stream_telemetry_unified.py` |
-| `stats_hub_pause.py` | No — helper for `stream_telemetry_unified.py` |
-| `stream_telemetry_unified.py` | Yes — live match/player/pickup telemetry to `ql-telemetry-relay` |
+| `telemetry_unified_sched.py` | No - helper for `stream_telemetry_unified.py` |
+| `stats_hub_pause.py` | No - helper for `stream_telemetry_unified.py` |
+| `stream_telemetry_unified.py` | Yes - live positions, item pickups and match events to the host's telemetry relay |
 
 These three only need the generic `minqlxtended` runtime, not the
-`alexeytihomirov/minqlxtended` fork specifically — nothing here touches the
+`alexeytihomirov/minqlxtended` fork specifically - nothing here touches the
 fork's native demo capture.
 
 Native per-match demo capture (`sv_demoRecord`/`sv_demoCut`) is the engine's
 own feature on that fork; this repo no longer ships a plugin to launch the
 `.qlmatch` packer automatically when a match finishes. Building a `.qlmatch`
-for a finished match is manual for now — use the qlmatch-packer addon's
-rebuild action from the Demos screen. A compat shim resolving a bare
+for a finished match is manual for now - run `pack.mjs` on the host by hand; the Demos screen can only rebuild a match that already has a `.qlmatch`. A compat shim resolving a bare
 `import minqlx` to `minqlxtended` (for plugins like `ips.py` that don't know
-about the fork) was also dropped, since nothing in this repo needs it — add
+about the fork) was also dropped, since nothing in this repo needs it - add
 one back if a plugin like that is added here later.
 
 ## Addons
@@ -103,10 +102,10 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 
 | Addon | Role |
 |-------|------|
-| `telemetry-relay` | Per-host relay → ql-stats-hub telemetry |
+| `telemetry-relay` | Per-host relay that forwards `stream_telemetry_unified` data to ql-stats-hub; enable per host, then per instance on its Telemetry tab |
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
-| `demo-stream` | Live POV demo stream screen + cvars |
-| `qlmatch-packer` | Host-side `.qlmatch` packer + Demos grouping hooks |
+| `demo-stream` | Experimental: live POV demo stream through a central relay |
+| `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen |
 | `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enable, enter repository + commit, then **Re-run Host Setup**. Needs a qlsm whose `host.setup` hook fires on every provider and whose `setup_host.yml` reads `minqlxtended_git_repo`. |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
 

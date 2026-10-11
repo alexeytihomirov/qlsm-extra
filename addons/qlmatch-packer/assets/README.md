@@ -1,9 +1,9 @@
 # qlmatch-packer
 
 Builds one `.qlmatch` package (zip, STORE) per finished match from the
-per-player POV `.dm_91` files + `index/*.snaps.json` that minqlxtended's
-native demo capture (`demo_match.c`, vendored in
-`ql-assets/patches/minqlxtended/`) leaves in an instance's demo directory,
+per-player POV `.dm_91` files and `index/*.snaps.json` that the native demo
+capture of the minqlxtended fork (alexeytihomirov/minqlxtended, built on a
+host with the runtime-source addon) leaves in an instance's demo directory,
 then optionally delivers it to any number of rclone targets.
 
 Contract: `ql-demo-recorder/docs/superpowers/prompts/2026-08-17-sv-demorecord-multi-pov-AGENT-PROMPT.md`,
@@ -16,16 +16,15 @@ section "Post-process (off the game thread) -> `.qlmatch`".
   after host setup and after the "Update Plugins" host action). Requires
   Node.js >= 22 (installed by the same playbook from NodeSource;
   `vendor/qldemo` uses `import ... with { type: "json" }`).
-- No automatic trigger right now — the plugin that used to launch this on
-  `demo_match_finalized` was retired (nothing in the plugin pool needed a
-  separate launcher for it). Build a pack by hand via the qlmatch-packer
-  addon's rebuild action from the Demos screen (`rebuild_ops.py`), which
-  runs this same script over SSH. Output goes to
-  `<demo_dir>/<match_id>.packer.log`; if the packer (or node) is missing on
-  the host, no `.qlmatch` is built for that match — only the raw `.dm_91`
-  files remain (there is no in-process fallback build).
-- Configured per instance via plugin cvars (editable from the QLSM Plugins
-  tab, delivered through server.cfg like every other setting):
+- No automatic trigger: nothing launches the packer when a match ends (the
+  plugin that did was retired). A first pack is built by running pack.mjs on
+  the host by hand (see CLI below). The Demos screen's rebuild actions
+  (`rebuild_ops.py`) run the same scripts over SSH, but only for a match that
+  already has a `.qlmatch`. Output goes to `<demo_dir>/<match_id>.packer.log`;
+  if the packer (or node) is missing on the host, no `.qlmatch` is built and
+  only the raw `.dm_91` files remain.
+- Configured per instance by two cvars set by hand in the instance's
+  server.cfg (QLSM has no editor for them); a rebuild reads them from there:
   - `qlx_qlmatchNameTemplate` — output filename template (no extension)
   - `qlx_qlmatchRcloneTargets` — comma-separated rclone destinations
     (e.g. `gdrive:ql-demos/frontier,/home/ql/qlmatch-archive`)

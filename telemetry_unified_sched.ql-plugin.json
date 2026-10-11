@@ -1,4 +1,4 @@
 {
-  "label": "⚠️ telemetry helper — DO NOT ENABLE separately",
-  "description": "Pure scheduler/state-machine helper for stream_telemetry_unified.py (no minqlx.Plugin class of its own). Must stay present as a file but is not itself a loadable plugin."
+  "label": "⚠️ telemetry helper - do not enable",
+  "description": "Helper module for stream_telemetry_unified.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins."
 }

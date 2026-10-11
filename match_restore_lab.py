@@ -68,7 +68,7 @@ class match_restore_lab(minqlx.Plugin):
             ("itemlab", "itemslot"),
             self.cmd_itemlab,
             5,
-            usage="touch <eid> [cid] | respawn <eid> <sec> | stat <eid>",
+            usage="touch <eid> [cid] | touchat <eid> <sec> [cid] | respawn <eid> <sec> | stat <eid>",
             client_cmd_pass=False,
         )
         self.add_hook("map", self._on_map)

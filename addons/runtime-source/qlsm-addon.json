@@ -2,7 +2,7 @@
   "id": "runtime-source",
   "version": "1.0.0",
   "name": "Runtime Source",
-  "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins. Enable it for a host, enter the repository and a commit, then run Re-run Host Setup. Needs a QLSM whose host setup passes host.setup extra-vars on every provider and reads the minqlxtended_git_repo playbook var.",
+  "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins, for example the alexeytihomirov/minqlxtended fork that native demo capture needs. Enable it for a host, enter the repository and a commit, then run Re-run Host Setup. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (host.setup hook).",
   "scopes": ["global", "host"],
   "ui_api": 1,
 
