@@ -27,6 +27,8 @@ related: [root-0011, root-0003, docs/superpowers/specs/2026-10-11-demo-stream-re
 
 - 2026-10-11 - created
 
+- 2026-10-11 - ветка `feat/demo-stream-tunnel` влита в `main` `de7055b` (после слияния с чужими коммитами referee_call и runtime-source; 309 тестов зелёные), пуш подтверждён `git ls-remote`. Обновление аддона в qlsm до 1.2.0 и живая проверка туннеля - за оператором
+
 ## Результат
 
 ## Как проверить
