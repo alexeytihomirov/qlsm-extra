@@ -73,6 +73,16 @@ def export_item_row(
     return {"k": alias, "s": 1}
 
 
+def note_item_pickup(pickups: dict, table_id: int, match_ms: int) -> None:
+    """Record the match clock of the last pickup per spawn slot, in the
+    bundled_pickup shape export_item_row takes. match_ms <= 0 (warmup, clock
+    not running) forgets the slot instead."""
+    if match_ms <= 0:
+        pickups.pop(int(table_id), None)
+        return
+    pickups[int(table_id)] = {"pickup_ms": int(match_ms)}
+
+
 def plan_item_visible_at_ms(item: dict, checkpoint_t_ms: int) -> int | None:
     """Absolute match ms when a restored item should spawn (None = hide only)."""
     state = int(item.get("s", 1))

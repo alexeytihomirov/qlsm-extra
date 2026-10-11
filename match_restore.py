@@ -270,6 +270,8 @@ class match_restore(minqlx.Plugin):
         self.add_hook("game_end", self._on_game_end)
         self.add_hook("game_countdown", self._on_game_countdown)
         self._last_item_touch = {}
+        # spawn-table entity id -> {"pickup_ms"} on the match clock, for export
+        self._item_pickups = {}
         if "item_event" in minqlx.EVENT_DISPATCHERS:
             self.add_hook("item_event", self.on_item_event, priority=minqlx.Priority.LOW)
         else:
@@ -723,6 +725,7 @@ class match_restore(minqlx.Plugin):
         self._unfreeze_thaw_token = 0
         self._unfreeze_thaw_at_wall = None
         self._engine_clock_synced = False
+        self._item_pickups.clear()
 
     def _unfreeze_delay_sec(self):
         try:
@@ -814,6 +817,7 @@ class match_restore(minqlx.Plugin):
     def _reset_restore_runtime_cache(self):
         self._runtime_entity_by_alias.clear()
         self._slot_runtime_ids.clear()
+        self._item_pickups.clear()
 
     def _abort_restore_session(self, reason=None):
         """No item rollback by design: engine nextthink respawns anything still hidden."""
@@ -1395,6 +1399,11 @@ class match_restore(minqlx.Plugin):
         self._runtime_entity_by_alias[str(alias)] = runtime_eid
         self._runtime_entity_by_alias["e{}".format(table_id)] = runtime_eid
         self._track_slot_runtime_id(table_id, runtime_eid)
+        if (match_restore_items is not None and not self._restore_apply_active
+                and not self._restore_session_active):
+            match_restore_items.note_item_pickup(
+                self._item_pickups, table_id, self._export_match_time_ms()
+            )
         return minqlx.Return.NONE
 
     @staticmethod
@@ -2383,12 +2392,16 @@ class match_restore(minqlx.Plugin):
 
     def _export_item_row(self, alias, meta, now_ms):
         if match_restore_items is not None:
+            try:
+                bundled = self._item_pickups.get(int(meta.get("entity_id")))
+            except (TypeError, ValueError):
+                bundled = None
             return match_restore_items.export_item_row(
                 alias,
                 meta,
                 int(now_ms),
                 wall_now=time.time(),
-                bundled_pickup=None,
+                bundled_pickup=bundled,
                 map_key=self._map_key() or "",
             )
         return {"k": alias, "s": 1}
