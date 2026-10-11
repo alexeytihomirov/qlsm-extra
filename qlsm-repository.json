@@ -4,7 +4,7 @@
       "filename": "tournament_access.py",
       "runtime": "minqlxtended",
       "label": "Tournament Access",
-      "description": "Closes a tournament server to everyone not on the tournament roster. The tournament hub writes the roster (players and casters) into the server's Redis; when the hub marks it enforced, players not on it are kicked as they load, casters are kept in spectator, and on a lobby server everyone stays in spectator. The server owner and players at the bypass permission level are never checked.",
+      "description": "Closes a tournament server to everyone not on the tournament roster. The tournament hub writes the roster (players and casters) into the server's Redis; when the hub marks it enforced, players not on it are kicked as they load, casters are kept in spectator, and on a lobby server everyone stays in spectator. The server owner and players at the bypass permission level are never checked. A stream spectator account (name starting with StreamSpec, or the qlx_specbot_name_prefix cvar) must be on the roster or have the bypass level like anyone else; on the roster it is kept in spectator.",
       "sha256": "74b8bd7d8032e9de42566def4b792f805334afbf57be6faf6ed495a9f5af4844"
     },
     {

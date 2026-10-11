@@ -116,6 +116,11 @@ def _package_files(folder: str) -> dict:
     return out
 
 
+def plugin_text(sidecar: dict, existing: dict) -> tuple:
+    """(label, description): the sidecar's value, else the existing manifest entry's, else None."""
+    return tuple(sidecar.get(k) or existing.get(k) or None for k in ('label', 'description'))
+
+
 def _plugin_entries(existing: list) -> list:
     by_name = {
         e['filename']: e for e in existing
@@ -135,7 +140,14 @@ def _plugin_entries(existing: list) -> list:
             'runtime': prev.get('runtime') or 'minqlx',
         }
         meta = _load_sidecar_meta(filename)
-        for key in ('label', 'description', 'version', 'requires_qlsm_version'):
+        # The sidecar is the source of truth for operator-facing text; the
+        # existing manifest entry is only a fallback when it lacks the key.
+        label, description = plugin_text(meta, prev)
+        if label:
+            entry['label'] = label
+        if description:
+            entry['description'] = description
+        for key in ('version', 'requires_qlsm_version'):
             value = prev.get(key) or meta.get(key)
             if value:
                 entry[key] = value
