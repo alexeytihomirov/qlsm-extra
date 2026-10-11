@@ -1,7 +1,7 @@
 ---
 id: qlsm-extra-0003
 title: Review fixes: descriptions in English and the eight ranked bugs
-status: in-progress
+status: done-unverified
 created: 2026-10-11
 updated: 2026-10-11
 verified:
@@ -31,7 +31,7 @@ related: [qlsm-extra-0001, qlsm-extra/docs/superpowers/plans/2026-10-11-review-f
 - [x] Описания на английском обновлены
 - [x] Ошибки 1-8 исправлены с тестами
 - [x] `generate_manifest.py`, полный прогон тестов
-- [ ] Слито в `main`, запушено, проверено `git ls-remote`
+- [x] Слито в `main`, запушено, проверено `git ls-remote`
 
 ## Журнал
 - 2026-10-11 - created; worktree `fix/review-2026-10-11` from origin/main f74474b; работа ведётся субагентами (subagent-driven-development)
@@ -48,11 +48,15 @@ related: [qlsm-extra-0001, qlsm-extra/docs/superpowers/plans/2026-10-11-review-f
 - 2026-10-11 - итоговый прогон: 340 passed, 903 warnings; `check_manifest_hashes.py` и `task.py check` чисто
 - 2026-10-11 - слит origin/main 7ee029c (demo-stream 1.2.0, stunnel-туннель) в ветку: 96ac658; сброс статуса demo-stream перенесён на 1.2.0 (версия 1.2.1), задача перенумерована в qlsm-extra-0003 (0002 занят задачей туннеля)
 - 2026-10-11 - правки итогового ревью: 2893877 relay отдаёт плагину 4xx хаба (кроме 408/429); 6ae786b `*.txt` и `*.j2` с LF в zip; b33c8e6 batch rebuild не глотает таймаут RQ; 94beb8e тексты вкладки Telemetry; c2b45d6 runtime новых записей по умолчанию `minqlxtended`; этот коммит - журнал задачи. Не сделано (follow-up): восстановленные таймеры предметов не отслеживаются после restore
+- 2026-10-11 - 904c9af: с demo-stream снята пометка experimental (main в 1.2.0 её уже убрал); scoped re-review фикс-волны и слияния чистый
+- 2026-10-11 - слито в main fast-forward и запушено (git ls-remote); не проверено оператором на живом сервере, см. Как проверить
 
 ## Результат
 
-Ветка `fix/review-2026-10-11`, в `main` пока не слита, не запушена.
+Ветка `fix/review-2026-10-11`, слита в `main` fast-forward и запушена 2026-10-11.
 
+- 904c9af docs: demo-stream is no longer marked experimental
+- 0774139 tasks: 0003 journal matches the plan
 - c2b45d6 generate_manifest: default new plugin entries to minqlxtended
 - 94beb8e docs: say what the Telemetry tab does and does not switch on
 - b33c8e6 qlmatch-packer: let the job timeout stop a batch rebuild
