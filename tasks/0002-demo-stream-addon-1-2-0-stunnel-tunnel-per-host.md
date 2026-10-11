@@ -1,5 +1,5 @@
 ---
-id: qlsm-extra-0001
+id: qlsm-extra-0002
 title: demo-stream addon 1.2.0: stunnel tunnel per host, port 27999, shared server_id with telemetry
 status: in-progress
 created: 2026-10-11
