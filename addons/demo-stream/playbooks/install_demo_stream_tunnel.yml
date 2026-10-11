@@ -32,8 +32,9 @@
           ansible.builtin.assert:
             that:
               - demo_stream_relay_host | length > 0
+              - demo_stream_relay_port | length > 0
               - demo_stream_hub_cert_pem | length > 0
-            fail_msg: "demo_stream_relay_host and demo_stream_hub_cert_pem are required to enable the tunnel"
+            fail_msg: "demo_stream_relay_host, demo_stream_relay_port and demo_stream_hub_cert_pem are required to enable the tunnel"
 
         - name: Install stunnel4
           ansible.builtin.apt:

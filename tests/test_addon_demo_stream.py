@@ -237,3 +237,173 @@ def test_playbook_stops_unit_only_when_present():
     when = ' '.join(when) if isinstance(when, list) else when
     assert 'not demo_stream_tunnel_enabled' in when
     assert register in when
+
+
+def test_fetch_cert_rejects_truncated_pem(app, host_id):
+    with app.app_context():
+        from qlsm_addon_demo_stream.tunnel_ops import TunnelCertError, fetch_hub_tls_cert
+        _set_hub()
+        with patch('qlsm_addon_demo_stream.tunnel_ops.requests.get',
+                   return_value=_resp(200, '-----BEGIN CERTIFICATE-----\nMIIB\n')):
+            with pytest.raises(TunnelCertError, match='not a PEM'):
+                fetch_hub_tls_cert(host_id)
+
+
+def test_playbook_enable_assert_requires_relay_port():
+    asserts = [t['ansible.builtin.assert']['that'] for t in _playbook_tasks()
+               if 'ansible.builtin.assert' in t]
+    assert asserts
+    assert 'demo_stream_relay_port | length > 0' in asserts[0]
+
+
+# ---- Task 4: host endpoints --------------------------------------------
+
+URL = '/api/addons/demo-stream'
+
+
+def _set_relay_and_hub():
+    from qlsm_addon_demo_stream.settings import set_relay_host, set_relay_port
+    set_relay_host('70.34.223.191')
+    set_relay_port('27999')
+    _set_hub()
+
+
+def test_get_host_tunnel_defaults(client, auth, host_id):
+    resp = client.get(f'{URL}/hosts/{host_id}', headers=auth)
+    assert resp.status_code == 200
+    assert resp.get_json()['data'] == {'enabled': False, 'local_port': '27999'}
+
+
+def test_get_host_tunnel_unknown_host_404(client, auth):
+    assert client.get(f'{URL}/hosts/9999', headers=auth).status_code == 404
+
+
+def test_put_unknown_host_404(client, auth):
+    resp = client.put(f'{URL}/hosts/9999', json={'enabled': False, 'local_port': ''}, headers=auth)
+    assert resp.status_code == 404
+
+
+@pytest.mark.parametrize('bad', ['0', '70000', '27 999', 'abc', 27999])
+def test_put_rejects_bad_port(app, client, auth, host_id, bad):
+    resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': False, 'local_port': bad},
+                      headers=auth)
+    assert resp.status_code == 400
+    assert resp.get_json()['error']['message'] == 'local_port must be a port number (1-65535).'
+    with app.app_context():
+        from qlsm_addon_demo_stream.settings import get_host_tunnel_port
+        assert get_host_tunnel_port(host_id) == '27999'
+
+
+def test_put_enable_without_relay_is_409(client, auth, host_id):
+    resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': ''},
+                      headers=auth)
+    assert resp.status_code == 409
+    assert 'relay host and port' in resp.get_json()['error']['message']
+
+
+def test_put_enable_when_hub_has_no_tls_is_409_and_queues_nothing(app, client, auth, host_id):
+    from qlsm_addon_demo_stream.tunnel_ops import TunnelCertError
+    with app.app_context():
+        _set_relay_and_hub()
+    with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert',
+               side_effect=TunnelCertError('stats-hub has no TLS configured (x)')), \
+            patch('ui.tasks.enqueue_task') as enqueue:
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': ''},
+                          headers=auth)
+    assert resp.status_code == 409
+    assert 'no TLS' in resp.get_json()['error']['message']
+    enqueue.assert_not_called()
+
+
+def test_put_enable_queues_playbook_with_cert(app, client, auth, host_id):
+    with app.app_context():
+        _set_relay_and_hub()
+    with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert', return_value=PEM), \
+            patch('ui.task_lock.acquire_lock', return_value=True), \
+            patch('ui.tasks.enqueue_task') as enqueue:
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': '28000'},
+                          headers=auth)
+    assert resp.status_code == 202
+    assert enqueue.call_args.args[1:] == (host_id, True, '28000', PEM)
+    with app.app_context():
+        assert db.session.get(Host, host_id).status == HostStatus.CONFIGURING
+
+
+def test_put_enable_on_non_active_host_is_400(app, client, auth, host_id):
+    with app.app_context():
+        _set_relay_and_hub()
+        db.session.get(Host, host_id).status = HostStatus.ERROR
+        db.session.commit()
+    with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert', return_value=PEM), \
+            patch('ui.tasks.enqueue_task') as enqueue:
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': ''},
+                          headers=auth)
+    assert resp.status_code == 400
+    enqueue.assert_not_called()
+
+
+def test_put_enable_busy_lock_is_409(app, client, auth, host_id):
+    with app.app_context():
+        _set_relay_and_hub()
+    with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert', return_value=PEM), \
+            patch('ui.task_lock.acquire_lock', return_value=False), \
+            patch('ui.tasks.enqueue_task') as enqueue:
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': ''},
+                          headers=auth)
+    assert resp.status_code == 409
+    enqueue.assert_not_called()
+
+
+def test_put_port_change_on_enabled_tunnel_requeues_playbook(app, client, auth, host_id):
+    with app.app_context():
+        from qlsm_addon_demo_stream.settings import set_host_tunnel_enabled
+        _set_relay_and_hub()
+        set_host_tunnel_enabled(host_id, True)
+        db.session.commit()
+    with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert', return_value=PEM), \
+            patch('ui.task_lock.acquire_lock', return_value=True), \
+            patch('ui.tasks.enqueue_task') as enqueue:
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': '28001'},
+                          headers=auth)
+    assert resp.status_code == 202
+    enqueue.assert_called_once()
+    assert enqueue.call_args.args[1:] == (host_id, True, '28001', PEM)
+
+
+def test_put_disable_when_already_off_saves_only(client, auth, host_id):
+    with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert') as fetch, \
+            patch('ui.tasks.enqueue_task') as enqueue:
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': False, 'local_port': '28002'},
+                          headers=auth)
+    assert resp.status_code == 200
+    assert resp.get_json()['data'] == {'enabled': False, 'local_port': '28002'}
+    enqueue.assert_not_called()
+    fetch.assert_not_called()
+
+
+def test_put_disable_when_on_queues_disable(app, client, auth, host_id):
+    with app.app_context():
+        from qlsm_addon_demo_stream.settings import set_host_tunnel_enabled
+        set_host_tunnel_enabled(host_id, True)
+        db.session.commit()
+    with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert') as fetch, \
+            patch('ui.task_lock.acquire_lock', return_value=True), \
+            patch('ui.tasks.enqueue_task') as enqueue:
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': False, 'local_port': ''},
+                          headers=auth)
+    assert resp.status_code == 202
+    assert enqueue.call_args.args[1:] == (host_id, False, '27999', '')
+    fetch.assert_not_called()
+
+
+def test_host_delete_forgets_tunnel_keys(app, host_id):
+    with app.app_context():
+        from qlsm_addon_demo_stream.settings import set_host_tunnel_enabled, set_host_tunnel_port
+        from ui.addons.registry import dispatch
+        set_host_tunnel_enabled(host_id, True)
+        set_host_tunnel_port(host_id, '28000')
+        db.session.commit()
+        dispatch('host.delete', host_id, host_id)
+        db.session.commit()
+        assert AppSetting.query.get(f'demo_stream_tunnel_enabled:{host_id}') is None
+        assert AppSetting.query.get(f'demo_stream_tunnel_port:{host_id}') is None

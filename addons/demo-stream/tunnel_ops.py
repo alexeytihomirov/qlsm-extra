@@ -53,7 +53,7 @@ def fetch_hub_tls_cert(host_id):
             f"Could not fetch the stats-hub TLS certificate: HTTP {response.status_code}"
         )
     pem = response.text or ''
-    if '-----BEGIN CERTIFICATE-----' not in pem:
+    if '-----BEGIN CERTIFICATE-----' not in pem or '-----END CERTIFICATE-----' not in pem:
         raise TunnelCertError("stats-hub returned something that is not a PEM certificate.")
     return pem
 
