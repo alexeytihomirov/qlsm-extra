@@ -135,6 +135,7 @@ try:
     from telemetry_unified_sched import (
         FeedState,
         FovCache,
+        ack_batch,
         derive_ingest_url,
         effective_interval,
         on_stride,
@@ -143,6 +144,7 @@ except ImportError:
     from .telemetry_unified_sched import (
         FeedState,
         FovCache,
+        ack_batch,
         derive_ingest_url,
         effective_interval,
         on_stride,
@@ -302,6 +304,9 @@ class stream_telemetry_unified(minqlx.Plugin):
         # --- session/chat/vote/pause events state (session_events equivalent) ---
         self._session_queue = []
         self._session_queue_warned = False
+        # Batches the relay accepted; appended by the POST worker, applied to
+        # _session_queue on the game thread only.
+        self._session_acks = []
         self._session_match_running = False
         self._last_game_time_ms = None
         self._match_start_wall = None
@@ -1835,8 +1840,6 @@ class stream_telemetry_unified(minqlx.Plugin):
             return
         state = self._session_state
         if state.post_in_flight:
-            for row in reversed(batch):
-                self._session_queue.insert(0, row)
             return
         # url/token snapshotted here on the game thread (P1-3) — the worker must
         # not call self.get_cvar() itself.
@@ -1844,14 +1847,12 @@ class stream_telemetry_unified(minqlx.Plugin):
         token = (self.get_cvar("qlx_statsHubToken") or "").strip()
         generation = state.begin_post(time.time())
         payload = self._build_session_payload(batch)
-        self._post_session_batch(url, token, payload, generation)
+        self._post_session_batch(url, token, payload, generation, batch)
 
     def _post_session_lifecycle_now(self, kind, *, game_time_ms=None, meta=None):
         row = self._enqueue_lifecycle(kind, game_time_ms=game_time_ms, meta=meta)
         if not row:
             return
-        if self._session_queue and self._session_queue[-1] is row:
-            self._session_queue.pop()
         self._post_session_events_now([row])
 
     def on_game_countdown(self):
@@ -2071,7 +2072,7 @@ class stream_telemetry_unified(minqlx.Plugin):
         return payload
 
     @minqlx.thread
-    def _post_session_batch(self, url, token, payload, generation):
+    def _post_session_batch(self, url, token, payload, generation, batch):
         # url/token are a snapshot from the game thread (P1-3). `generation`
         # guards against a worker finishing after a stuck-post reset already
         # freed this slot for a newer request (P1-1).
@@ -2101,12 +2102,20 @@ class stream_telemetry_unified(minqlx.Plugin):
             resp.read()
             conn.close()
             ok = resp.status < 400
+            if ok:
+                # Before complete(): the game thread applies this ack before it
+                # sees post_in_flight == False and takes the next batch.
+                self._session_acks.append(batch)
             if state.complete(generation, ok):
                 self._record_post_result(state, ok)
         except (http.client.HTTPException, OSError, ValueError) as exc:
             if state.complete(generation, False):
                 self._record_post_result(state, False)
                 self.logger.debug("stream_telemetry_unified: session post failed: %s", exc)
+
+    def _apply_session_acks(self):
+        while self._session_acks:
+            ack_batch(self._session_queue, self._session_acks.pop(0))
 
     def _sync_match_running_from_game_state(self):
         """Self-heal _session_match_running if game_start never fired.
@@ -2131,6 +2140,7 @@ class stream_telemetry_unified(minqlx.Plugin):
         state = self._session_state
         if state.sync_enabled(enabled) == "enabled":
             self._reset_circuit(state)
+        self._apply_session_acks()
         if not enabled:
             return
         # Audit risk #5 fix: pause/game_time poll now runs on a stride instead of
@@ -2162,9 +2172,8 @@ class stream_telemetry_unified(minqlx.Plugin):
         if not on_stride(self._frame_tick, self._FRAME_STRIDE_SESSION, self._FRAME_PHASE_SESSION):
             return
         batch = self._session_queue[: self._SESSION_BATCH_SIZE]
-        del self._session_queue[: len(batch)]
         url = self._session_events_url()
         token = (self.get_cvar("qlx_statsHubToken") or "").strip()
         generation = state.begin_post(time.time())
         payload = self._build_session_payload(batch)
-        self._post_session_batch(url, token, payload, generation)
+        self._post_session_batch(url, token, payload, generation, batch)

@@ -68,14 +68,14 @@
         "telemetry_unified_sched.py",
         "stats_hub_pause.py"
       ],
-      "sha256": "de928097de8220bacbffb79d89a5722076d1dd863f81118b81600b7635aa653a"
+      "sha256": "cde182cd0046c62a2e10e198b0e8d3e63bc4793f92f1fd6cb851b05b22be839e"
     },
     {
       "filename": "telemetry_unified_sched.py",
       "runtime": "minqlxtended",
       "label": "\u26a0\ufe0f telemetry helper - do not enable",
       "description": "Helper module for stream_telemetry_unified.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins.",
-      "sha256": "be7823a6c7eee50328872430fbb1b754a6ea4afdbace3144fdc740bce711f4fe"
+      "sha256": "7e6fb248b6042ee67345ddb232cfd96a986e0de21c7ffd47b7cd0c9e7a10d657"
     },
     {
       "filename": "stats_hub_pause.py",

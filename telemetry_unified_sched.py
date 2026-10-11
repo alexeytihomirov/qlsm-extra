@@ -178,3 +178,17 @@ class FeedState:
         self.post_in_flight = False
         self.post_in_flight_since = 0.0
         return True
+
+
+def ack_batch(queue: list, batch: list) -> int:
+    """Remove the rows of an acknowledged `batch` from `queue`, in place.
+
+    Rows are matched by identity, not equality: two equal-looking events (two
+    "gg" lines) are distinct and only the delivered one may go. The queue may
+    also have been appended to or cap-trimmed while the batch was in flight, so
+    position cannot be trusted either. Returns how many rows were removed.
+    """
+    acked = {id(row) for row in batch}
+    before = len(queue)
+    queue[:] = [row for row in queue if id(row) not in acked]
+    return before - len(queue)
