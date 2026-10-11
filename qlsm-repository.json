@@ -5,7 +5,7 @@
       "runtime": "minqlxtended",
       "label": "Tournament Access",
       "description": "Closes a tournament server to everyone not on the tournament roster. The tournament hub writes the roster (players and casters) into the server's Redis; when the hub marks it enforced, players not on it are kicked as they load, casters are kept in spectator, and on a lobby server everyone stays in spectator. The server owner and players at the bypass permission level are never checked.",
-      "sha256": "7f6b332b8931d892cd292d869fea06e5a650632873274ec665b5021459b2729e"
+      "sha256": "74b8bd7d8032e9de42566def4b792f805334afbf57be6faf6ed495a9f5af4844"
     },
     {
       "filename": "chat_rcon.py",

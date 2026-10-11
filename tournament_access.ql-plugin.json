@@ -1,6 +1,6 @@
 {
   "label": "Tournament Access",
-  "description": "Closes a tournament server to everyone not on the tournament roster. The tournament hub writes the roster (players and casters) into the server's Redis; when the hub marks it enforced, players not on it are kicked as they load, casters are kept in spectator, and on a lobby server everyone stays in spectator. The server owner and players at the bypass permission level are never checked.",
+  "description": "Closes a tournament server to everyone not on the tournament roster. The tournament hub writes the roster (players and casters) into the server's Redis; when the hub marks it enforced, players not on it are kicked as they load, casters are kept in spectator, and on a lobby server everyone stays in spectator. The server owner and players at the bypass permission level are never checked. A stream spectator account (name starting with StreamSpec, or the qlx_specbot_name_prefix cvar) must be on the roster or have the bypass level like anyone else; on the roster it is kept in spectator.",
   "cvars": [
     { "cvar": "qlx_tournamentAccessEnabled", "label": "Enabled", "description": "Turns the roster check on. It also needs a Tournament ID, and the hub must mark the roster as enforced.", "type": "bool", "default": false },
     { "cvar": "qlx_tournamentId", "label": "Tournament ID", "description": "Hub tournament whose roster this server uses. 0 turns the check off.", "type": "number", "default": 0, "min": 0 },

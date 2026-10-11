@@ -22,6 +22,42 @@ ACCESS_KEY = "minqlx:tournament:access:{tournament_id}"
 PLAYING_TEAMS = frozenset(("free", "red", "blue"))
 
 
+_TEAM_SWITCH_DENIED = {
+    "deny_specbot": "^3Tournament:^7 spec bots may only spectate.",
+    "deny_roster": "^1Tournament:^7 you are not on the whitelist.",
+    "deny_lobby": "^3Tournament:^7 lobby is spec-only - use ^6!go^7 to join a game server.",
+    "deny_caster": "^3Tournament:^7 casters may only spectate on game servers.",
+}
+
+
+def decide_loaded(role, access_active, is_specbot, is_lobby):
+    """What to do with a player who just loaded: "allow", "spec" or "kick"."""
+    if not access_active:
+        return "spec" if is_specbot else "allow"
+    if role is None:
+        return "kick"
+    if is_specbot or role == "caster" or is_lobby:
+        return "spec"
+    return "allow"
+
+
+def decide_team_switch(role, access_active, is_specbot, is_lobby, new_team):
+    """Verdict on a team switch: "allow" or one of the "deny_*" keys of _TEAM_SWITCH_DENIED."""
+    if access_active and role is None:
+        return "deny_roster"
+    if is_specbot:
+        return "deny_specbot" if new_team in PLAYING_TEAMS else "allow"
+    if not access_active:
+        return "allow"
+    if new_team not in PLAYING_TEAMS:
+        return "allow"
+    if is_lobby:
+        return "deny_lobby"
+    if role == "caster":
+        return "deny_caster"
+    return "allow"
+
+
 class tournament_access(minqlx.Plugin):
     def __init__(self):
         self._cache = None
@@ -206,16 +242,11 @@ class tournament_access(minqlx.Plugin):
         if self._is_bot(player) or self._bypass(player):
             return
 
-        if self._is_specbot(player):
-            self._force_spec(player, "specbot")
-            return
-
         access = self._access_active()
-        if not access:
-            return
-
-        role = self._role(player, access)
-        if role is None:
+        role = self._role(player, access) if access else None
+        specbot = self._is_specbot(player)
+        decision = decide_loaded(role, access is not None, specbot, self._is_lobby_server())
+        if decision == "kick":
             self.logger.info(
                 "tournament_access: kick %s (%s) — not on whitelist rev=%s",
                 player.name,
@@ -223,10 +254,8 @@ class tournament_access(minqlx.Plugin):
                 access.get("rev"),
             )
             self._kick_not_whitelisted(player)
-            return
-
-        if role == "caster" or self._is_lobby_server():
-            self._force_spec(player)
+        elif decision == "spec":
+            self._force_spec(player, "specbot" if specbot else "")
 
     def handle_team_switch_attempt(self, player, old_team, new_team, target=None):
         if self._dev_auth_open():
@@ -234,28 +263,14 @@ class tournament_access(minqlx.Plugin):
         if self._is_bot(player) or self._bypass(player):
             return
 
-        if self._is_specbot(player):
-            if new_team in PLAYING_TEAMS:
-                player.tell("^3Tournament:^7 spec bots may only spectate.")
-                self._force_spec(player, "specbot_team_block")
-                return minqlx.Return.STOP_ALL
-            return
-
         access = self._access_active()
-        if not access:
+        role = self._role(player, access) if access else None
+        decision = decide_team_switch(
+            role, access is not None, self._is_specbot(player), self._is_lobby_server(), new_team
+        )
+        if decision == "allow":
             return
-
-        if not self._is_whitelisted(player, access):
-            player.tell("^1Tournament:^7 you are not on the whitelist.")
-            return minqlx.Return.STOP_ALL
-
-        if new_team not in PLAYING_TEAMS:
-            return
-
-        if self._is_lobby_server():
-            player.tell("^3Tournament:^7 lobby is spec-only — use ^6!go^7 to join a game server.")
-            return minqlx.Return.STOP_ALL
-
-        if self._role(player, access) == "caster":
-            player.tell("^3Tournament:^7 casters may only spectate on game servers.")
-            return minqlx.Return.STOP_ALL
+        player.tell(_TEAM_SWITCH_DENIED[decision])
+        if decision == "deny_specbot":
+            self._force_spec(player, "specbot_team_block")
+        return minqlx.Return.STOP_ALL
