@@ -1,0 +1,109 @@
+---
+# Installs + configures the demo-stream TLS tunnel: a local stunnel client on
+# the game host (127.0.0.1:<demo_stream_tunnel_port> -> stats-hub TLS ingest)
+# so the engine's plain-TCP sv_demoStream reaches a hub that requires TLS.
+# Called by the demo-stream addon (tunnel_ops.py), which passes:
+#   demo_stream_tunnel_enabled, demo_stream_tunnel_port,
+#   demo_stream_relay_host, demo_stream_relay_port, demo_stream_hub_cert_pem
+# (the PEM is the hub certificate, pinned as stunnel's CAfile).
+#
+# A bare run without extravars is a no-op disable: it stops the unit if it
+# exists and installs nothing, so it never turns a tunnel on by accident:
+#   ansible-playbook -i <inventory> playbooks/install_demo_stream_tunnel.yml
+
+- name: Install + configure the demo-stream TLS tunnel (stunnel client)
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  vars:
+    demo_stream_tunnel_dir: "/home/ql/demo-stream-tunnel"
+    demo_stream_tunnel_enabled: false
+    demo_stream_tunnel_port: "27999"
+    demo_stream_relay_host: ""
+    demo_stream_relay_port: "27999"
+    demo_stream_hub_cert_pem: ""
+
+  tasks:
+    - name: Install and start the tunnel
+      when: demo_stream_tunnel_enabled | bool
+      block:
+        - name: Require relay host and hub certificate
+          ansible.builtin.assert:
+            that:
+              - demo_stream_relay_host | length > 0
+              - demo_stream_hub_cert_pem | length > 0
+            fail_msg: "demo_stream_relay_host and demo_stream_hub_cert_pem are required to enable the tunnel"
+
+        - name: Install stunnel4
+          ansible.builtin.apt:
+            name: stunnel4
+            state: present
+            update_cache: yes
+            cache_valid_time: 3600
+
+        - name: Create tunnel directory
+          ansible.builtin.file:
+            path: "{{ demo_stream_tunnel_dir }}"
+            state: directory
+            owner: ql
+            group: ql
+            mode: '0750'
+
+        - name: Pin the stats-hub certificate
+          ansible.builtin.copy:
+            content: "{{ demo_stream_hub_cert_pem }}"
+            dest: "{{ demo_stream_tunnel_dir }}/hub.pem"
+            owner: ql
+            group: ql
+            mode: '0600'
+          notify: reload systemd and restart demo stream tunnel
+
+        - name: Render stunnel.conf
+          ansible.builtin.template:
+            src: templates/stunnel.conf.j2
+            dest: "{{ demo_stream_tunnel_dir }}/stunnel.conf"
+            owner: ql
+            group: ql
+            mode: '0600'
+          notify: reload systemd and restart demo stream tunnel
+
+        - name: Render ql-demo-stream-tunnel systemd unit
+          ansible.builtin.template:
+            src: templates/ql-demo-stream-tunnel.service.j2
+            dest: /etc/systemd/system/ql-demo-stream-tunnel.service
+            owner: root
+            group: root
+            mode: '0644'
+          notify: reload systemd and restart demo stream tunnel
+
+        - name: Flush handlers so daemon_reload/restart runs before enabling
+          ansible.builtin.meta: flush_handlers
+
+        - name: Enable ql-demo-stream-tunnel service
+          ansible.builtin.systemd:
+            name: ql-demo-stream-tunnel
+            enabled: yes
+            state: started
+            daemon_reload: yes
+
+    - name: Check whether the tunnel unit is installed
+      ansible.builtin.stat:
+        path: /etc/systemd/system/ql-demo-stream-tunnel.service
+      register: demo_stream_tunnel_unit_stat
+
+    - name: Stop and disable the tunnel (package and files stay in place)
+      ansible.builtin.systemd:
+        name: ql-demo-stream-tunnel
+        state: stopped
+        enabled: no
+      when:
+        - not demo_stream_tunnel_enabled | bool
+        - demo_stream_tunnel_unit_stat.stat.exists
+
+  handlers:
+    - name: reload systemd and restart demo stream tunnel
+      ansible.builtin.systemd:
+        daemon_reload: yes
+        name: ql-demo-stream-tunnel
+        state: restarted

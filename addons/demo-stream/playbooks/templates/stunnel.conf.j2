@@ -1,0 +1,12 @@
+; Managed by qlsm (demo-stream addon). Do not edit by hand.
+client = yes
+foreground = yes
+; Empty pid: Debian's default pid path is not writable by user ql.
+pid =
+
+[demo-stream]
+accept = 127.0.0.1:{{ demo_stream_tunnel_port }}
+connect = {{ demo_stream_relay_host }}:{{ demo_stream_relay_port }}
+verifyPeer = yes
+CAfile = /home/ql/demo-stream-tunnel/hub.pem
+sslVersionMin = TLSv1.2

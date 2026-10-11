@@ -1,0 +1,17 @@
+[Unit]
+Description=QL demo stream TLS tunnel (stunnel client to stats-hub)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ql
+Group=ql
+ExecStart=/usr/bin/stunnel /home/ql/demo-stream-tunnel/stunnel.conf
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

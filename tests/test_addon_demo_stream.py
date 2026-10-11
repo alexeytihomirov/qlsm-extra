@@ -177,3 +177,63 @@ def test_configure_failure_keeps_flag_and_sets_error(app, host_id):
         host = db.session.get(Host, host_id)
         assert host.status == HostStatus.ERROR
         assert host.logs.startswith('Demo stream tunnel configuration failed.')
+
+
+# ---- Task 3: playbook and templates ------------------------------------
+
+PLAYBOOK_DIR = ADDONS_DIR / 'demo-stream' / 'playbooks'
+
+
+def _render(name, **variables):
+    import jinja2
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(str(PLAYBOOK_DIR / 'templates')),
+                             keep_trailing_newline=True)
+    return env.get_template(name).render(**variables)
+
+
+def test_stunnel_conf_matches_spec():
+    text = _render('stunnel.conf.j2', demo_stream_tunnel_port='27999',
+                   demo_stream_relay_host='70.34.223.191', demo_stream_relay_port='27999')
+    lines = text.splitlines()
+    for line in ('client = yes', 'foreground = yes', 'pid =', '[demo-stream]',
+                 'accept = 127.0.0.1:27999', 'connect = 70.34.223.191:27999',
+                 'verifyPeer = yes', 'CAfile = /home/ql/demo-stream-tunnel/hub.pem',
+                 'sslVersionMin = TLSv1.2'):
+        assert line in lines
+    # global options must precede the service section
+    assert lines.index('pid =') < lines.index('[demo-stream]')
+
+
+def test_unit_runs_as_ql_and_restarts_always():
+    lines = _render('ql-demo-stream-tunnel.service.j2').splitlines()
+    assert 'User=ql' in lines
+    assert 'Restart=always' in lines
+    exec_start = [l for l in lines if l.startswith('ExecStart=')]
+    assert len(exec_start) == 1
+    assert exec_start[0].endswith(' /home/ql/demo-stream-tunnel/stunnel.conf')
+    assert 'WantedBy=multi-user.target' in lines
+
+
+def _playbook_tasks():
+    import yaml
+    play = yaml.safe_load((PLAYBOOK_DIR / 'install_demo_stream_tunnel.yml').read_text('utf-8'))[0]
+    tasks = []
+    for task in play['tasks']:
+        tasks.append(task)
+        tasks.extend(task.get('block', []))
+    return tasks
+
+
+def test_playbook_stops_unit_only_when_present():
+    tasks = _playbook_tasks()
+    stats = [t for t in tasks if 'ansible.builtin.stat' in t
+             and t['ansible.builtin.stat']['path'] == '/etc/systemd/system/ql-demo-stream-tunnel.service']
+    assert stats, 'no stat task for the unit file'
+    register = stats[0]['register']
+    stops = [t for t in tasks if 'ansible.builtin.systemd' in t
+             and t['ansible.builtin.systemd'].get('state') == 'stopped']
+    assert stops, 'no stop task'
+    when = stops[0]['when']
+    when = ' '.join(when) if isinstance(when, list) else when
+    assert 'not demo_stream_tunnel_enabled' in when
+    assert register in when
