@@ -407,3 +407,106 @@ def test_host_delete_forgets_tunnel_keys(app, host_id):
         db.session.commit()
         assert AppSetting.query.get(f'demo_stream_tunnel_enabled:{host_id}') is None
         assert AppSetting.query.get(f'demo_stream_tunnel_port:{host_id}') is None
+
+
+# ---- Task 5: instance enable through the tunnel -------------------------
+
+def _setup_enable(host_id, instance_id, tunnel=True, port='27999'):
+    from qlsm_addon_demo_stream.settings import (
+        set_host_tunnel_enabled, set_host_tunnel_port, set_stats_hub_ingest_token)
+    _set_relay_and_hub()
+    set_stats_hub_ingest_token('tok')
+    set_host_tunnel_enabled(host_id, tunnel)
+    set_host_tunnel_port(host_id, port)
+    db.session.commit()
+
+
+def _run_enable(instance_id):
+    from qlsm_addon_demo_stream.instance_ops import enable_instance_demo_stream_logic
+    with patch('qlsm_addon_demo_stream.instance_ops._register_route') as route, \
+            patch('ui.tasks.enqueue_task', return_value=Mock(id='job1')):
+        result = enable_instance_demo_stream_logic(instance_id)
+    return result, route
+
+
+def _set_key(key, value):
+    db.session.add(AppSetting(key=key, value=value))
+    db.session.commit()
+
+
+def test_enable_endpoint_400_without_host_tunnel(app, client, auth, instance_id):
+    with app.app_context():
+        _set_relay_and_hub()
+    resp = client.post(f'{URL}/instances/{instance_id}/enable', json={}, headers=auth)
+    assert resp.status_code == 400
+    assert 'Demo Stream Tunnel' in resp.get_json()['error']['message']
+
+
+def test_enable_writes_loopback_and_tunnel_port(app, host_id, instance_id, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with app.app_context():
+        _setup_enable(host_id, instance_id, port='28000')
+        _set_key(f'demo_stream_stats_hub_server_id:{instance_id}', '7')
+        (ok, _msg), _route = _run_enable(instance_id)
+        assert ok is True
+    cfg = (tmp_path / 'configs' / 'germany' / str(instance_id) / 'server.cfg').read_text('utf-8')
+    assert 'set sv_demoStreamHost "127.0.0.1"' in cfg
+    assert 'set sv_demoStreamPort "28000"' in cfg
+    assert '70.34.223.191' not in cfg
+
+
+def test_enable_logic_refuses_without_tunnel(app, host_id, instance_id, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with app.app_context():
+        _setup_enable(host_id, instance_id, tunnel=False)
+        (ok, msg), route = _run_enable(instance_id)
+        assert ok is False
+        assert 'Demo Stream Tunnel' in msg
+        route.assert_not_called()
+    assert not (tmp_path / 'configs').exists()
+
+
+def test_enable_reuses_telemetry_server_id(app, host_id, instance_id, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with app.app_context():
+        _setup_enable(host_id, instance_id)
+        _set_key(f'stats_hub_server_id:{instance_id}', '42')
+        with patch('qlsm_addon_demo_stream.instance_ops.reserve_server_id') as reserve:
+            (ok, _msg), route = _run_enable(instance_id)
+        assert ok is True
+        reserve.assert_not_called()
+        assert route.call_args.args[1] == 42
+        assert AppSetting.query.get(f'demo_stream_stats_hub_server_id:{instance_id}').value == '42'
+
+
+def test_enable_prefers_telemetry_server_id_over_own(app, host_id, instance_id, tmp_path,
+                                                     monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with app.app_context():
+        _setup_enable(host_id, instance_id)
+        _set_key(f'demo_stream_stats_hub_server_id:{instance_id}', '7')
+        _set_key(f'stats_hub_server_id:{instance_id}', '42')
+        (ok, _msg), route = _run_enable(instance_id)
+        assert ok is True
+        assert route.call_args.args[1] == 42
+        assert AppSetting.query.get(f'demo_stream_stats_hub_server_id:{instance_id}').value == '42'
+
+
+def test_enable_reserves_into_own_key_only(app, host_id, instance_id, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with app.app_context():
+        _setup_enable(host_id, instance_id)
+        with patch('qlsm_addon_demo_stream.instance_ops.reserve_server_id', return_value=99):
+            (ok, _msg), route = _run_enable(instance_id)
+        assert ok is True
+        assert route.call_args.args[1] == 99
+        assert AppSetting.query.get(f'demo_stream_stats_hub_server_id:{instance_id}').value == '99'
+        # telemetry's key is never written by this addon
+        assert AppSetting.query.get(f'stats_hub_server_id:{instance_id}') is None
+
+
+def test_status_reports_tunnel_off(app, client, auth, instance_id):
+    with app.app_context():
+        _set_relay_and_hub()
+    resp = client.get(f'{URL}/instances/{instance_id}/status', headers=auth)
+    assert resp.get_json()['data'] == {'ok': False, 'label': 'Tunnel not enabled on host'}

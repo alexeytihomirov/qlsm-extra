@@ -205,7 +205,8 @@ def get_instance_stream_status(instance_id):
     """Badge for the panel: says why it cannot be switched on, before the
     operator tries and gets a task that fails somewhere they cannot see."""
     from .settings import (
-        get_instance_demo_stream_token, is_instance_demo_stream_enabled, is_relay_configured,
+        get_instance_demo_stream_token, is_host_tunnel_enabled,
+        is_instance_demo_stream_enabled, is_relay_configured,
     )
 
     instance, error = _instance_or_error(instance_id)
@@ -214,6 +215,8 @@ def get_instance_stream_status(instance_id):
 
     if not is_relay_configured():
         return jsonify({"data": {'ok': False, 'label': 'Relay address not set'}})
+    if not is_host_tunnel_enabled(instance.host_id):
+        return jsonify({"data": {'ok': False, 'label': 'Tunnel not enabled on host'}})
     if not is_instance_demo_stream_enabled(instance.id):
         return jsonify({"data": {'ok': False, 'label': 'Not streaming'}})
     has_token = bool(get_instance_demo_stream_token(instance.id))
@@ -227,7 +230,8 @@ def get_instance_stream_status(instance_id):
 @jwt_required()
 def enable_instance_stream(instance_id):
     from ui.database import get_instance, update_instance
-    from .settings import is_relay_configured
+    from .instance_ops import TUNNEL_REQUIRED_MESSAGE
+    from .settings import is_host_tunnel_enabled, is_relay_configured
     from ui.models import InstanceStatus
     from ui.task_lock import acquire_lock, release_lock
     from ui.task_logic.job_failure_handlers import instance_job_failure_handler
@@ -249,6 +253,9 @@ def enable_instance_stream(instance_id):
         return jsonify({"error": {
             "message": "Set the demo-stream relay host and port in Settings first."
         }}), 409
+
+    if not is_host_tunnel_enabled(instance.host_id):
+        return jsonify({"error": {"message": TUNNEL_REQUIRED_MESSAGE}}), 400
 
     busy = [InstanceStatus.DEPLOYING, InstanceStatus.CONFIGURING, InstanceStatus.RESTARTING,
             InstanceStatus.DELETING, InstanceStatus.STOPPING, InstanceStatus.STARTING]
