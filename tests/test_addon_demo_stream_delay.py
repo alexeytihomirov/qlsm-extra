@@ -341,6 +341,104 @@ def test_put_delay_takes_no_lock_changes_no_status_queues_nothing(
     assert not (tmp_path / 'configs').exists()
 
 
+# ---- review fixes: redirects, strict hub body, round trip, bad body --------
+
+REDIRECTS = [301, 302, 303, 307, 308]
+
+
+@pytest.mark.parametrize('status', REDIRECTS)
+def test_get_delay_does_not_follow_redirects(client, auth, streaming, status):
+    with patch(GET, return_value=_hub(status=status, body={})) as get:
+        resp = client.get(f'{URL}/instances/{streaming}/delay', headers=auth)
+        badge = client.get(f'{URL}/instances/{streaming}/delay/status', headers=auth)
+    assert get.call_args.kwargs['allow_redirects'] is False
+    assert resp.status_code == 502
+    assert 'redirected' in _message(resp)
+    assert 'Demo Stream Stats Hub' in _message(resp)
+    assert badge.get_json()['data'] == {'ok': False, 'label': 'Stats-hub redirected the call'}
+
+
+@pytest.mark.parametrize('status', REDIRECTS)
+def test_put_delay_does_not_follow_redirects(client, auth, streaming, status):
+    with patch(PUT, return_value=_hub(status=status, body={})) as put:
+        resp = client.put(f'{URL}/instances/{streaming}/delay', json={'delay_sec': '5'},
+                          headers=auth)
+    assert put.call_args.kwargs['allow_redirects'] is False
+    assert resp.status_code == 502
+    assert 'redirected' in _message(resp)
+    assert 'Demo Stream Stats Hub' in _message(resp)
+
+
+@pytest.mark.parametrize('sent, hub', [
+    ('5', dict(delay=30.0, override=False)),   # hub left it on the default
+    ('5', dict(delay=7.0, override=True)),     # hub holds another value
+    ('', dict(delay=5.0, override=True)),      # reset did not take
+])
+def test_put_delay_hub_state_not_matching_the_request_is_502(client, auth, streaming, sent, hub):
+    with patch(PUT, return_value=_hub(**hub)):
+        resp = client.put(f'{URL}/instances/{streaming}/delay', json={'delay_sec': sent},
+                          headers=auth)
+    assert resp.status_code == 502
+    assert 'did not apply' in _message(resp)
+
+
+def test_put_delay_accepts_a_hub_value_within_tolerance(client, auth, streaming):
+    with patch(PUT, return_value=_hub(delay=5.0000001, override=True)):
+        resp = client.put(f'{URL}/instances/{streaming}/delay', json={'delay_sec': '5'},
+                          headers=auth)
+    assert resp.status_code == 200
+
+
+@pytest.mark.parametrize('fields', [
+    {'override': 'false'}, {'override': 1}, {'override': None},
+    {'delay_sec': True}, {'delay_sec': '30'}, {'delay_sec': None},
+    {'delay_sec': float('nan')}, {'delay_sec': float('inf')}, {'delay_sec': 10 ** 400},
+    {'default_delay_sec': False}, {'default_delay_sec': '30'},
+    {'default_delay_sec': float('nan')}, {'default_delay_sec': float('-inf')},
+])
+def test_hub_body_is_parsed_strictly(client, auth, streaming, fields):
+    body = {'ok': True, 'server_id': SERVER_ID, 'delay_sec': 30.0,
+            'default_delay_sec': 30.0, 'override': False}
+    body.update(fields)
+    with patch(GET, return_value=_hub(body=body)):
+        resp = client.get(f'{URL}/instances/{streaming}/delay', headers=auth)
+        badge = client.get(f'{URL}/instances/{streaming}/delay/status', headers=auth)
+    assert resp.status_code == 502
+    assert 'does not understand' in _message(resp)
+    assert badge.get_json()['data'] == {'ok': False, 'label': 'Unexpected stats-hub answer'}
+
+
+def test_hub_body_with_integer_seconds_is_fine(client, auth, streaming):
+    body = {'delay_sec': 12, 'default_delay_sec': 30, 'override': True}
+    with patch(GET, return_value=_hub(body=body)):
+        resp = client.get(f'{URL}/instances/{streaming}/delay', headers=auth)
+    assert resp.get_json()['data']['delay_sec'] == '12'
+
+
+@pytest.mark.parametrize('value, shown', [
+    (250.1234, '250.1234'), (0.123456789, '0.123456789'), (299.99999, '299.99999'),
+    (30.0, '30'), (0.0, '0'), (300.0, '300'), (12.5, '12.5'),
+])
+def test_untouched_save_writes_back_the_same_value(client, auth, streaming, value, shown):
+    with patch(GET, return_value=_hub(delay=value, override=True)):
+        loaded = client.get(f'{URL}/instances/{streaming}/delay', headers=auth).get_json()['data']
+    assert loaded['delay_sec'] == shown
+    with patch(PUT, return_value=_hub(delay=value, override=True)) as put:
+        resp = client.put(f'{URL}/instances/{streaming}/delay',
+                          json={'delay_sec': loaded['delay_sec']}, headers=auth)
+    assert resp.status_code == 200
+    assert put.call_args.kwargs['json'] == {'delay_sec': value}
+
+
+@pytest.mark.parametrize('body', [[1], 5, 'x', True])
+def test_put_delay_non_object_body_is_400(client, auth, streaming, body):
+    with patch(PUT) as put:
+        resp = client.put(f'{URL}/instances/{streaming}/delay', json=body, headers=auth)
+    assert resp.status_code == 400
+    assert _message(resp) == 'The request body must be a JSON object with delay_sec.'
+    put.assert_not_called()
+
+
 # ---- manifest -------------------------------------------------------------
 
 def test_manifest_declares_the_delay_panel():

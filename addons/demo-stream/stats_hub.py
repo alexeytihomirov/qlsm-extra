@@ -16,6 +16,7 @@ State lives in the generic AppSetting key/value table, under the exact key
 names this feature has used since before the split -- renaming them would
 orphan every deployed database's current demo-stream settings.
 """
+import math
 import re
 
 import requests
@@ -149,13 +150,26 @@ class HubDelayError(Exception):
         self.label = label
 
 
+def _is_seconds(value):
+    # bool is an int in Python; True is not a delay.
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
+
 def _server_delay_call(send, host_id, server_id, **kwargs):
     """One GET/PUT on the hub's per-server delay, as
     {'delay_sec', 'default_delay_sec', 'override'}. Raises HubDelayError."""
     url = f"{get_effective_stats_hub_url(host_id)}/api/demo-stream/servers/{server_id}/delay"
     headers = {'Authorization': f'Bearer {get_effective_stats_hub_ingest_token(host_id)}'}
     try:
-        resp = send(url, headers=headers, timeout=DELAY_TIMEOUT_SEC, **kwargs)
+        # No redirects: requests re-sends a redirected PUT without its body
+        # (301) or as a GET (302/303), and either looks like an answer.
+        resp = send(url, headers=headers, timeout=DELAY_TIMEOUT_SEC, allow_redirects=False,
+                    **kwargs)
     except requests.RequestException as exc:
         # Only the exception type: its text is not ours and is not needed.
         raise HubDelayError(
@@ -168,6 +182,11 @@ def _server_delay_call(send, host_id, server_id, **kwargs):
         body = None
     detail = body.get('detail') if isinstance(body, dict) else None
 
+    if 300 <= resp.status_code < 400:
+        raise HubDelayError(
+            f"stats-hub redirected the delay call (HTTP {resp.status_code}) instead of "
+            "answering it. Check the scheme (http or https) and host of the Stats-hub URL "
+            "under Settings -> Demo Stream Stats Hub.", 502, 'Stats-hub redirected the call')
     if resp.status_code in (401, 403):
         raise HubDelayError(
             f"stats-hub rejected the ingest token (HTTP {resp.status_code}). Check Ingest "
@@ -195,16 +214,15 @@ def _server_delay_call(send, host_id, server_id, **kwargs):
             f"stats-hub answered HTTP {resp.status_code} for this server's delay.",
             502, f'Stats-hub error (HTTP {resp.status_code})')
 
-    try:
-        return {
-            'delay_sec': float(body['delay_sec']),
-            'default_delay_sec': float(body['default_delay_sec']),
-            'override': bool(body['override']),
-        }
-    except (KeyError, TypeError, ValueError):
+    state = body if isinstance(body, dict) else {}
+    delay, default, override = (state.get(key) for key in
+                                ('delay_sec', 'default_delay_sec', 'override'))
+    if not (_is_seconds(delay) and _is_seconds(default) and isinstance(override, bool)):
         raise HubDelayError(
             "stats-hub answered the delay call with something this addon does not "
-            "understand.", 502, 'Unexpected stats-hub answer') from None
+            "understand.", 502, 'Unexpected stats-hub answer')
+    return {'delay_sec': float(delay), 'default_delay_sec': float(default),
+            'override': override}
 
 
 def get_server_delay(host_id, server_id):

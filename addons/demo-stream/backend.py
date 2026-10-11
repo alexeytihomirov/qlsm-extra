@@ -288,6 +288,7 @@ def enable_instance_stream(instance_id):
     return jsonify({"message": f'Demo-stream enable queued for "{instance.name}".'}), 202
 
 
+DELAY_MATCH_TOLERANCE_SEC = 0.001
 DELAY_VALUE_MESSAGE = ("delay_sec must be a number of seconds from 0 to 300, "
                        "or blank for the hub default.")
 
@@ -313,7 +314,10 @@ def _delay_target(instance):
 
 
 def _seconds(value):
-    return f'{value:g}'
+    """A float as the operator types it. repr round-trips, so loading a value
+    and saving it untouched writes the same value back."""
+    text = repr(float(value))
+    return text[:-2] if text.endswith('.0') else text
 
 
 def _delay_data(state):
@@ -402,8 +406,13 @@ def update_instance_delay(instance_id):
     if error:
         return error
 
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": {
+            "message": "The request body must be a JSON object with delay_sec."
+        }}), 400
     try:
-        delay = _parse_delay((request.get_json(silent=True) or {}).get('delay_sec'))
+        delay = _parse_delay(body.get('delay_sec'))
     except (ValueError, OverflowError):
         return jsonify({"error": {"message": DELAY_VALUE_MESSAGE}}), 400
 
@@ -414,6 +423,21 @@ def update_instance_delay(instance_id):
         state = set_server_delay(instance.host_id, server_id, delay)
     except HubDelayError as exc:
         return _delay_hub_error(instance.id, exc)
+
+    # A 200 that does not show what was asked for is not a save: say so
+    # rather than let the form report "Saved".
+    applied = not state['override'] if delay is None else (
+        state['override'] and abs(state['delay_sec'] - delay) <= DELAY_MATCH_TOLERANCE_SEC)
+    if not applied:
+        current_app.logger.error(
+            f'Addon demo-stream: stats-hub answered 200 for instance {instance.id} but '
+            f'reports delay {state["delay_sec"]} (override={state["override"]}), asked {delay}')
+        return jsonify({"error": {
+            "message": "stats-hub answered but did not apply the delay: it reports "
+                       f"{_seconds(state['delay_sec'])} s"
+                       f"{'' if state['override'] else ' (hub default)'}. "
+                       "Check the stats-hub and try again."
+        }}), 502
 
     effective = _seconds(state['delay_sec'])
     message = f"Stream delay set to {effective} s." if state['override'] \
