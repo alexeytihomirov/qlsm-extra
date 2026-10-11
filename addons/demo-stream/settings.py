@@ -29,6 +29,13 @@ Two kinds of state, all in AppSetting:
 State lives in the generic AppSetting key/value table under the same key
 names it has always used -- renaming them would orphan every deployed
 database's current demo-stream settings.
+
+The host tunnel (a local stunnel client that wraps the engine's plain TCP in
+TLS to stats-hub) adds per-host keys `demo_stream_tunnel_enabled:<host_id>` and
+`demo_stream_tunnel_port:<host_id>`. The telemetry server_id is read directly
+from telemetry's own `stats_hub_server_id:<instance_id>` key, because the
+shared core `ui/stats_hub.py` no longer exists; that key name must stay in step
+with `addons/telemetry-relay/stats_hub.py`.
 """
 from ui import db
 from ui.models import AppSetting
@@ -109,3 +116,35 @@ def get_instance_demo_stream_token(instance_id):
 
 def set_instance_demo_stream_token(instance_id, token):
     _set(f'{_TOKEN_PREFIX}{instance_id}', token)
+
+
+DEFAULT_TUNNEL_PORT = '27999'
+_TUNNEL_ENABLED_PREFIX = 'demo_stream_tunnel_enabled:'
+_TUNNEL_PORT_PREFIX = 'demo_stream_tunnel_port:'
+_TELEMETRY_SERVER_ID_PREFIX = 'stats_hub_server_id:'
+
+
+def is_host_tunnel_enabled(host_id):
+    return _get(f'{_TUNNEL_ENABLED_PREFIX}{host_id}') == '1'
+
+
+def set_host_tunnel_enabled(host_id, enabled):
+    _set(f'{_TUNNEL_ENABLED_PREFIX}{host_id}', '1' if enabled else '')
+
+
+def get_host_tunnel_port(host_id):
+    return _get(f'{_TUNNEL_PORT_PREFIX}{host_id}') or DEFAULT_TUNNEL_PORT
+
+
+def set_host_tunnel_port(host_id, value):
+    _set(f'{_TUNNEL_PORT_PREFIX}{host_id}', value)
+
+
+def get_telemetry_server_id(instance_id):
+    value = _get(f'{_TELEMETRY_SERVER_ID_PREFIX}{instance_id}')
+    return int(value) if value else None
+
+
+def set_telemetry_server_id(instance_id, server_id):
+    _set(f'{_TELEMETRY_SERVER_ID_PREFIX}{instance_id}',
+         str(int(server_id)) if server_id else None)
