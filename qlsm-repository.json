@@ -136,7 +136,7 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "fa8212bb71ff72cbd75a56f1f994f0a17939999c8cf76530cabe9a5001b86f15",
+      "sha256": "415356f37f5b6477aabf40098dffa1ac6dd62dd56e9ca75979f34746a6cd4eb2",
       "version": "1.3.1",
       "label": "Telemetry Relay",
       "description": "Sends live telemetry from game instances (player positions, item pickups, match events) to ql-stats-hub through a relay on each host. Set the stats-hub URL and ingest token in Settings, turn the relay on per host (host menu, Telemetry Relay), then enable each instance on its Telemetry tab. The instances need the stream_telemetry_unified plugin."

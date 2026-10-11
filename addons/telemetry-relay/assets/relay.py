@@ -71,6 +71,40 @@ _items_forwarder: "_StreamForwarder | None" = None
 _session_forwarder: "_StreamForwarder | None" = None
 
 
+class UpstreamHTTPError(RuntimeError):
+    """The hub answered with an HTTP error status (kept in .status)."""
+
+    def __init__(self, status: int) -> None:
+        super().__init__(f"upstream HTTP {status}")
+        self.status = status
+
+
+def upstream_reply_status(status: int) -> int:
+    """Status the relay answers the plugin with after the hub answered `status`.
+
+    The plugin (telemetry_unified_sched.post_outcome) treats a 4xx as a
+    permanent reject and drops the batch, so a poison batch does not block the
+    feed; 5xx, 408 and 429 mean "send it again". A hub 4xx other than 408/429
+    is therefore passed through as is, everything else becomes 502."""
+    if 400 <= status < 500 and status not in (408, 429):
+        return status
+    return int(HTTPStatus.BAD_GATEWAY)
+
+
+def _forward_error_reply(exc: Exception, server_id: Any) -> tuple[int, dict[str, Any]]:
+    """Status and JSON body for a failed blocking forward (see upstream_reply_status)."""
+    if isinstance(exc, UpstreamHTTPError):
+        code = upstream_reply_status(exc.status)
+        if code != HTTPStatus.BAD_GATEWAY:
+            return code, {"ok": False, "error": "upstream rejected", "status": exc.status}
+    return int(HTTPStatus.BAD_GATEWAY), {
+        "ok": False,
+        "forwarded": False,
+        "error": str(exc)[:200],
+        "server_id": server_id,
+    }
+
+
 class _StreamForwarder:
     """Sequential forward queue — never drop under burst."""
 
@@ -110,7 +144,7 @@ class _StreamForwarder:
                 resp = conn.getresponse()
                 resp.read()
                 if resp.status >= 400:
-                    raise RuntimeError(f"upstream HTTP {resp.status}")
+                    raise UpstreamHTTPError(resp.status)
             finally:
                 try:
                     conn.close()
@@ -435,15 +469,7 @@ class RelayHandler(BaseHTTPRequestHandler):
                 with _stats_lock:
                     _stats["forward_errors"] = int(_stats.get("forward_errors") or 0) + 1
                     _stats["last_error"] = str(exc)[:200]
-                self._send_json(
-                    HTTPStatus.BAD_GATEWAY,
-                    {
-                        "ok": False,
-                        "forwarded": False,
-                        "error": str(exc)[:200],
-                        "server_id": payload.get("server_id"),
-                    },
-                )
+                self._send_json(*_forward_error_reply(exc, payload.get("server_id")))
                 return
             self._send_json(
                 HTTPStatus.ACCEPTED,
@@ -485,15 +511,7 @@ class RelayHandler(BaseHTTPRequestHandler):
                 with _stats_lock:
                     _stats["forward_errors"] = int(_stats.get("forward_errors") or 0) + 1
                     _stats["last_error"] = str(exc)[:200]
-                self._send_json(
-                    HTTPStatus.BAD_GATEWAY,
-                    {
-                        "ok": False,
-                        "forwarded": False,
-                        "error": str(exc)[:200],
-                        "server_id": payload.get("server_id"),
-                    },
-                )
+                self._send_json(*_forward_error_reply(exc, payload.get("server_id")))
                 return
             self._send_json(
                 HTTPStatus.ACCEPTED,
