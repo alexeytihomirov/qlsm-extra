@@ -1,8 +1,10 @@
 """Deploys forwarder.sh (assets/) to game hosts and runs it on demand.
 
-- host.payload_sync (after host setup / Update Plugins) and the "Apply to
-  host" task run playbooks/sync_file_forwarder.yml for a host whose
-  `enabled` host setting is on (the addon must also be on globally).
+- host.payload_sync (after host setup) and the "Apply to host" task run
+  playbooks/sync_file_forwarder.yml for a host whose `enabled` host setting
+  is on (the addon must also be on globally). Update Plugins does not fire
+  host.payload_sync: use Apply to host after an addon update or a settings
+  change.
 - "Sync now" / "Sync now and delete delivered" run playbooks/run_forwarder.yml
   with ff_mode=run|purge and return forwarder.sh's last-run line.
 - The status route runs playbooks/status_file_forwarder.yml.
@@ -144,7 +146,7 @@ def summary_line(stdout):
 
 
 def sync_host(host_id, purge=False):
-    """Run forwarder.sh now (purge: also delete everything confirmed delivered).
+    """Run forwarder.sh now (purge: also delete what it proves delivered, see its header).
 
     Returns its summary line, prefixed with "failed: " when the run failed.
     """
@@ -357,7 +359,7 @@ def register(ctx):
 
     @ctx.on('host.payload_sync')
     def sync_file_forwarder(host_id):
-        """Install / update the forwarder after host setup or Update Plugins.
+        """Install / update the forwarder after host setup.
 
         host.payload_sync is ungated in core, so the enable check is here.
         """

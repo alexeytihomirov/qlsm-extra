@@ -19,6 +19,8 @@ REMOTE_NAME = 'qldemos'
 SRC_GLOBS = '/home/ql/qlds-*/demos'
 STATE_DIR = '/home/ql/.forwarder-state'
 MIN_AGE_MIN = 2
+DELIVERED_GRACE_HOURS = 24
+MAX_RAW_REMOTE_MB = 5000
 RCLONE = 'rclone'
 KNOWN_HOSTS_FILE = os.path.join(ADDON_DIR, 'assets', 'known_hosts_vps')
 MANIFEST_FILE = os.path.join(ADDON_DIR, 'qlsm-addon.json')
@@ -129,8 +131,10 @@ def render_conf(settings):
         f"SRC_GLOBS='{SRC_GLOBS}'",
         f"PATTERNS='{patterns}'",
         f"RETENTION_DAYS='{values['retention_days']}'",
+        f"DELIVERED_GRACE_HOURS='{DELIVERED_GRACE_HOURS}'",
         f"MIN_AGE_MIN='{MIN_AGE_MIN}'",
         f"MAX_RAW_MB_PER_RUN='{values['max_raw_mb_per_run']}'",
+        f"MAX_RAW_REMOTE_MB='{MAX_RAW_REMOTE_MB}'",
         f"STATE_DIR='{STATE_DIR}'",
         f"RCLONE='{RCLONE}'",
     ]

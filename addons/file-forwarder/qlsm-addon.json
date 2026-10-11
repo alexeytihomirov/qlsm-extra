@@ -2,7 +2,7 @@
   "id": "file-forwarder",
   "version": "1.0.0",
   "name": "File Forwarder",
-  "description": "Ships demo files (.qlmatch packs, .replay.json.gz sidecars, raw .dm_91) from every game host to the site VPS over SFTP with rclone, every few minutes, and removes delivered raw demos from the host after the retention period, only once the VPS confirms it has them. One SFTP key belongs to the whole QLSM install: add its public half (Settings -> Addons -> File Forwarder) to the VPS once. The forwarder is installed on every host at host setup and Update Plugins; the host menu entry File Forwarder Sync shows its status and has Apply to host, Sync now and Sync now and delete delivered.",
+  "description": "Ships demo files (.qlmatch packs, .replay.json.gz sidecars, raw .dm_91) from every game host to the site VPS over SFTP with rclone, every few minutes, and removes raw demos from the host after the retention period, only when the delivery is recorded and at least a day old. One SFTP key belongs to the whole QLSM install: add its public half (Settings -> Addons -> File Forwarder) to the VPS once. The forwarder is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry File Forwarder Sync shows its status and has Apply to host, Sync now and Sync now and delete delivered.",
   "scopes": ["global", "host"],
   "ui_api": 1,
 
@@ -36,7 +36,7 @@
     "panels": {
       "host_switch": {
         "kind": "form",
-        "description": "Whether host setup and Update Plugins install and update the forwarder on this host. Turning it off stops future installs; it does not remove a forwarder already on the host.",
+        "description": "Whether host setup installs and updates the forwarder on this host (after an addon update use Apply to host). Turning it off stops future installs; it does not remove a forwarder already on the host.",
         "load": "GET hosts/{host_id}",
         "submit": "PUT hosts/{host_id}",
         "fields": [
@@ -46,14 +46,14 @@
 
       "host_status": {
         "kind": "table",
-        "description": "The forwarder installed on this host, read from the host when this opens.",
+        "description": "The forwarder installed on this host, read from the host when this opens. Sync now and delete delivered: .qlmatch and .replay.json.gz go only when the VPS lists them, .dm_91 when the VPS lists them or they were delivered more than 24 hours ago; the rest stays and is counted as kept_unconfirmed.",
         "load": "GET hosts/{host_id}/status",
         "rows": "rows",
         "row_key": "host",
         "empty": "No status.",
         "columns": [
-          { "key": "version", "label": "Installed" },
-          { "key": "state", "label": "Version" },
+          { "key": "version", "label": "Installed version" },
+          { "key": "state", "label": "State" },
           { "key": "timer", "label": "Timer" },
           { "key": "last_run", "label": "Last run" }
         ],
@@ -61,13 +61,13 @@
           { "id": "apply", "label": "Apply to host", "route": "POST hosts/{host_id}/apply" },
           { "id": "sync", "label": "Sync now", "route": "POST hosts/{host_id}/sync" },
           { "id": "purge", "label": "Sync now and delete delivered", "route": "POST hosts/{host_id}/purge", "danger": true,
-            "confirm": "Sync now, then delete from this host every demo file the VPS confirms it already has, whatever its age (.qlmatch, .replay.json.gz and .dm_91). Files the VPS does not confirm stay on the host. Continue?" }
+            "confirm": "Sync now, then delete delivered demo files from this host, whatever their age: .qlmatch and .replay.json.gz only when the VPS lists them, .dm_91 when the VPS lists them or they were delivered more than 24 hours ago (the NAS has pulled them). Everything else stays on the host. Continue?" }
         ]
       },
 
       "global_settings": {
         "kind": "form",
-        "description": "Where and how every host forwards its demos. Changes reach a host with Apply to host (host menu, File Forwarder Sync) or its next host setup / Update Plugins. Patterns: rows of 'glob remote_dir keep|expire' separated by ';'. A remote_dir uses only A-Za-z0-9_.- ; 'expire' rows are deleted from the host after the retention, once delivered and confirmed on the VPS.",
+        "description": "Where and how every host forwards its demos. Changes reach a host with Apply to host (host menu, File Forwarder Sync) or its next host setup; Update Plugins does not apply them. Patterns: rows of 'glob remote_dir keep|expire' separated by ';'. A remote_dir uses only A-Za-z0-9_.- ; 'expire' rows are deleted from the host after the retention, once their delivery is recorded and at least 24 hours old.",
         "load": "GET settings",
         "submit": "PUT settings",
         "fields": [

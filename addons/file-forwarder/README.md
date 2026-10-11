@@ -1,7 +1,10 @@
 # file-forwarder
 
 Ships demo files from every game host to the site VPS over SFTP (rclone), and
-removes delivered raw demos from the host once the VPS confirms it has them.
+removes raw demos from the host after the retention once their delivery is
+recorded in the host's ledger and at least 24 hours old. The VPS is not asked:
+the NAS pulls `raw/` with a MOVE sync, so a delivered raw demo is normally gone
+from the VPS by then. A file is never deleted in the run that delivered it.
 Design: `docs/superpowers/specs/2026-10-11-file-forwarder-addon-design.md` in
 the QL monorepo.
 
@@ -27,12 +30,21 @@ A glob uses only letters, digits and `_ . * ? [ ] -`; a remote dir only
 `A-Za-z0-9_.-`, with no leading `.` or `-` and no `..`.
 
 Host (host menu -> File Forwarder): `enabled`, on by default, so a new host
-gets the forwarder at its first setup with no operator step.
+gets the forwarder at its first setup with no operator step. The addon hooks
+host setup only (`host.payload_sync`); Update Plugins does not reach it, so use
+Apply to host after an addon update or a settings change.
 
 Pinned in the addon, not settings: SFTP user `qldemos-in`, rclone remote name
 `qldemos`, source directories `/home/ql/qlds-*/demos`, state directory
-`/home/ql/.forwarder-state/`, the VPS host keys. Moving to another VPS address
+`/home/ql/.forwarder-state/`, the VPS host keys, the delivery grace (24 hours,
+`DELIVERED_GRACE_HOURS`) and the remote raw budget (5000 MB,
+`MAX_RAW_REMOTE_MB`: a run that finds `raw/` on the VPS that full sends no raw
+demo; the `.qlmatch` files still go). Moving to another VPS address
 needs a release with that host's keys in `assets/known_hosts_vps`.
+
+File names are shared flat across hosts: each remote dir on the VPS is one
+directory for all hosts, so the same file name from two hosts would overwrite
+there (match names make that improbable).
 
 ## The SFTP key
 
@@ -58,8 +70,13 @@ host.
 - **Apply to host**: runs the sync playbook (install / update script, units,
   key, config).
 - **Sync now**: one forwarder run now.
-- **Sync now and delete delivered**: purge mode; deletes from the host every
-  ledgered file the VPS confirms, whatever its age.
+- **Sync now and delete delivered**: purge mode; whatever the file age, deletes
+  ledgered files of `keep` rows (`.qlmatch`, `.replay.json.gz`) only when the
+  VPS listing holds them (name and size), and ledgered files of `expire` rows
+  (`.dm_91`) when the VPS listing holds them or their delivery is more than
+  24 hours old (the NAS has pulled them). Everything else stays and is counted
+  as `kept_unconfirmed`; that does not make the run fail (exit 1 is for failed
+  uploads only).
 
 The status row shows the installed version (stale when it differs from the
 addon's), the timer state and the last run line.

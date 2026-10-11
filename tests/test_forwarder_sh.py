@@ -185,16 +185,118 @@ def test_second_run_uploads_nothing_and_changed_file_is_resent(host):
     assert (host.remote / 'qlmatch' / 'b.qlmatch').read_bytes() == b'twotwo'
 
 
-def seed_ledger(host, files, remote_dir='raw', remote_content=None):
-    """Ledger the given files as delivered (current size and mtime) and put a
-    matching copy on the fake remote, as if an earlier run had sent them."""
+OLD_DELIVERY = '2026-01-01T00:00:00Z'    # far longer ago than DELIVERED_GRACE_HOURS (24)
+
+
+def iso_ago(seconds):
+    return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() - seconds))
+
+
+def seed_ledger(host, files, remote_dir='raw', delivered_at=OLD_DELIVERY, remote=True):
+    """Ledger the given files as delivered (current size and mtime) at
+    `delivered_at` and, with `remote`, put a matching copy on the fake remote,
+    as if an earlier run had sent them."""
     host.state.mkdir(exist_ok=True)
     (host.remote / remote_dir).mkdir(parents=True, exist_ok=True)
     with open(host.state / 'delivered.tsv', 'a', encoding='utf-8', newline='\n') as f:
         for p in files:
             st = p.stat()
-            f.write(f'{p.name}\t{st.st_size}\t{int(st.st_mtime)}\t2026-01-01T00:00:00Z\n')
-            (host.remote / remote_dir / p.name).write_bytes(p.read_bytes())
+            f.write(f'{p.name}\t{st.st_size}\t{int(st.st_mtime)}\t{delivered_at}\n')
+            if remote:
+                (host.remote / remote_dir / p.name).write_bytes(p.read_bytes())
+
+
+def test_run_deletes_expired_raw_by_ledger_without_remote_copy(host):
+    # the NAS MOVE sync already took it off the VPS: the ledger alone decides in run mode
+    f = host.put('moved.dm_91', b'aaaa', age=VERY_OLD)
+    seed_ledger(host, [f], remote=False)
+    r = host.run()
+    assert not f.exists(), r.stdout + r.stderr
+    last = host.last_run()
+    assert last['deleted'] == '1' and last['kept_unconfirmed'] == '0' and last['exit'] == '0'
+    assert r.returncode == 0
+
+
+def test_file_delivered_in_this_run_is_not_deleted_in_this_run(host):
+    f = host.put('backlog.dm_91', b'old demo', age=VERY_OLD)     # unledgered backlog file
+    r = host.run()
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert host.remote_names('raw') == ['backlog.dm_91']
+    assert f.exists()
+    assert host.last_run()['deleted'] == '0'
+    assert host.run().returncode == 0                            # still inside the grace
+    assert f.exists()
+    # once its delivery is older than the grace, the next run deletes it
+    ledger = host.state / 'delivered.tsv'
+    rows = [line.split('\t') for line in ledger.read_text(encoding='utf-8').splitlines()]
+    ledger.write_text(''.join('\t'.join(row[:3] + [iso_ago(25 * 3600)]) + '\n' for row in rows),
+                      encoding='utf-8', newline='\n')
+    assert host.run().returncode == 0
+    assert not f.exists()
+
+
+def test_delivery_younger_than_the_grace_keeps_the_file(host):
+    fresh = host.put('fresh.dm_91', b'aaaa', age=VERY_OLD)
+    older = host.put('older.dm_91', b'bbbb', age=VERY_OLD)
+    seed_ledger(host, [fresh], delivered_at=iso_ago(3600), remote=False)
+    seed_ledger(host, [older], delivered_at=iso_ago(3 * 3600), remote=False)
+    host.write_conf(DELIVERED_GRACE_HOURS='2')
+    r = host.run()
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert fresh.exists() and not older.exists()
+    last = host.last_run()
+    assert last['deleted'] == '1' and last['kept_unconfirmed'] == '0'
+
+
+@pytest.mark.parametrize('delivered_at', [
+    'garbage', '', '2026-13-01T00:00:00Z', '2026-01-01 00:00:00', '2026-01-01T00:00:00', None,
+])
+def test_unparseable_delivered_at_keeps_the_file(host, delivered_at):
+    f = host.put('odd.dm_91', b'aaaa', age=VERY_OLD)
+    host.state.mkdir(exist_ok=True)
+    st = f.stat()
+    key = f'{f.name}\t{st.st_size}\t{int(st.st_mtime)}'
+    line = key if delivered_at is None else f'{key}\t{delivered_at}'
+    (host.state / 'delivered.tsv').write_text(line + '\n', encoding='utf-8', newline='\n')
+    r = host.run()
+    assert f.exists(), r.stdout + r.stderr
+    assert host.last_run()['deleted'] == '0'
+    assert r.returncode == 0
+    # the same file with a readable old delivery time goes
+    (host.state / 'delivered.tsv').write_text(f'{key}\t{OLD_DELIVERY}\n', encoding='utf-8', newline='\n')
+    assert host.run().returncode == 0
+    assert not f.exists()
+
+
+def test_purge_deletes_expire_row_absent_from_remote_only_after_the_grace(host):
+    old = host.put('old.dm_91', b'aaaa', age=OLD)
+    fresh = host.put('fresh.dm_91', b'bbbb', age=OLD)
+    seed_ledger(host, [old], remote=False)
+    seed_ledger(host, [fresh], delivered_at=iso_ago(600), remote=False)
+    r = host.run('purge')
+    assert not old.exists() and fresh.exists(), r.stdout + r.stderr
+    last = host.last_run()
+    assert last['deleted'] == '1' and last['kept_unconfirmed'] == '1'
+    assert r.returncode == 0
+
+
+def test_remote_raw_over_budget_skips_raw_uploads(host):
+    host.write_conf(MAX_RAW_REMOTE_MB='1')
+    (host.remote / 'raw').mkdir()
+    (host.remote / 'raw' / 'waiting.dm_91').write_bytes(b'w' * (1024 * 1024 + 10))
+    host.put('new.dm_91', b'demo')
+    host.put('new.qlmatch', b'pack')
+    r = host.run()
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert host.remote_names('raw') == ['waiting.dm_91']
+    assert host.remote_names('qlmatch') == ['new.qlmatch']
+    last = host.last_run()
+    assert last['uploaded'] == '1' and last['failed'] == '0' and last['exit'] == '0'
+    assert 'MAX_RAW_REMOTE_MB' in r.stdout
+    # once the NAS has pulled raw/, the demo goes
+    (host.remote / 'raw' / 'waiting.dm_91').unlink()
+    assert host.run().returncode == 0
+    assert host.remote_names('raw') == ['new.dm_91']
 
 
 def test_cleanup_deletes_only_expired_ledgered_expire_rows(host):
@@ -219,14 +321,14 @@ def test_cleanup_deletes_only_expired_ledgered_expire_rows(host):
     assert r.returncode == 1
 
 
-def test_cleanup_keeps_confirmable_file_when_listing_fails(host):
-    f = host.put('listed.dm_91', b'aaaa', age=VERY_OLD)
-    seed_ledger(host, [f])                           # ledgered, remote copy present
-    r = host.run(FAKE_RCLONE_FAIL='1')               # but lsjson fails right now
+def test_purge_keeps_confirmable_keep_row_file_when_listing_fails(host):
+    f = host.put('listed.qlmatch', b'aaaa', age=VERY_OLD)
+    seed_ledger(host, [f], remote_dir='qlmatch')     # ledgered, remote copy present
+    r = host.run('purge', FAKE_RCLONE_FAIL='1')      # but lsjson fails right now
     assert f.exists()
     last = host.last_run()
     assert last['kept_unconfirmed'] == '1' and last['deleted'] == '0' and last['failed'] == '0'
-    assert r.returncode == 1
+    assert r.returncode == 0
 
 
 def test_same_name_in_two_source_dirs_is_never_sent_or_deleted(host):
@@ -245,36 +347,37 @@ def test_same_name_in_two_source_dirs_is_never_sent_or_deleted(host):
 
 
 def test_lsjson_go_style_json_confirms_the_right_files_only(host):
+    # purge confirms `keep` rows by the remote listing only
     def mk(name, content):
         return host.put(name, content, age=VERY_OLD)
-    amp = mk('a&b.dm_91', b'1234')           # remote name is a&b.dm_91
-    brace = mk('c}d.dm_91', b'12345')        # literal brace in the name
-    bad_brace = mk('x}y.dm_91', b'123')      # remote has another size
-    ghost = mk('ghost.dm_91', b'1234')       # a record with a Name but no Size, then a Size alone
-    cafe = mk('café.dm_91', b'123456')  # remote name uses a non-ASCII escape: unconfirmed
-    hashes = mk('h.dm_91', b'12')            # nested Hashes object after Size
-    late = mk('s.dm_91', b'1234567')         # Size after a nested Hashes object
-    seed_ledger(host, [amp, brace, bad_brace, ghost, cafe, hashes, late])
+    amp = mk('a&b.qlmatch', b'1234')           # remote name is a&b.qlmatch
+    brace = mk('c}d.qlmatch', b'12345')        # literal brace in the name
+    bad_brace = mk('x}y.qlmatch', b'123')      # remote has another size
+    ghost = mk('ghost.qlmatch', b'1234')       # a record with a Name but no Size, then a Size alone
+    cafe = mk('café.qlmatch', b'123456')       # remote name uses a non-ASCII escape: unconfirmed
+    hashes = mk('h.qlmatch', b'12')            # nested Hashes object after Size
+    late = mk('s.qlmatch', b'1234567')         # Size after a nested Hashes object
+    seed_ledger(host, [amp, brace, bad_brace, ghost, cafe, hashes, late], remote_dir='qlmatch')
     raw = host.root / 'lsjson.json'
     # "@U" stands for a backslash-u escape, as rclone (Go) writes & and non-ASCII letters
     raw.write_bytes('''[
 {"Path":"sub","Name":"sub","Size":-1,"IsDir":true},
-{"Path":"a@U0026b.dm_91","Name":"a@U0026b.dm_91","Size":4,"IsDir":false},
-{"Path":"c}d.dm_91","Name":"c}d.dm_91","Size":5,"IsDir":false},
-{"Path":"x}y.dm_91","Name":"x}y.dm_91","Size":9,"IsDir":false},
-{"Name":"ghost.dm_91","IsDir":false},
+{"Path":"a@U0026b.qlmatch","Name":"a@U0026b.qlmatch","Size":4,"IsDir":false},
+{"Path":"c}d.qlmatch","Name":"c}d.qlmatch","Size":5,"IsDir":false},
+{"Path":"x}y.qlmatch","Name":"x}y.qlmatch","Size":9,"IsDir":false},
+{"Name":"ghost.qlmatch","IsDir":false},
 {"Size":4,"IsDir":false},
-{"Path":"caf@U00e9.dm_91","Name":"caf@U00e9.dm_91","Size":6,"IsDir":false},
-{"Path":"h.dm_91","Name":"h.dm_91","Size":2,"Hashes":{"md5":"abc"},"IsDir":false},
-{"Name":"s.dm_91","Hashes":{"md5":"x"},"Size":7,"IsDir":false}
+{"Path":"caf@U00e9.qlmatch","Name":"caf@U00e9.qlmatch","Size":6,"IsDir":false},
+{"Path":"h.qlmatch","Name":"h.qlmatch","Size":2,"Hashes":{"md5":"abc"},"IsDir":false},
+{"Name":"s.qlmatch","Hashes":{"md5":"x"},"Size":7,"IsDir":false}
 ]
 '''.replace('@U', chr(92) + 'u').encode('utf-8'))
-    r = host.run(FAKE_LSJSON_RAW=raw.as_posix())
+    r = host.run('purge', FAKE_LSJSON_RAW=raw.as_posix())
     assert not amp.exists() and not brace.exists() and not hashes.exists() and not late.exists()
     assert bad_brace.exists() and ghost.exists() and cafe.exists()
     last = host.last_run()
     assert last['deleted'] == '4' and last['kept_unconfirmed'] == '3'
-    assert r.returncode == 1
+    assert r.returncode == 0
 
 
 def test_stale_tmp_dirs_of_killed_runs_are_removed(host):
@@ -298,28 +401,22 @@ def test_failed_upload_keeps_everything_and_exits_1(host):
     assert host.run().returncode == 0
 
 
-def test_cleanup_requires_remote_confirmation(host):
-    gone = host.put('gone.dm_91', b'aaaa', age=VERY_OLD)
-    wrong = host.put('wrong.dm_91', b'bbbb', age=VERY_OLD)
-    good = host.put('good.dm_91', b'cccc', age=VERY_OLD)
-    # first run uploads and ledgers all three; the cleanup in that same run
-    # would delete them, so ledger by hand instead and keep them on disk
-    stat = lambda p: (p.stat().st_size, int(p.stat().st_mtime))
-    host.state.mkdir()
-    with open(host.state / 'delivered.tsv', 'w', encoding='utf-8', newline='\n') as f:
-        for p in (gone, wrong, good):
-            size, mt = stat(p)
-            f.write(f'{p.name}\t{size}\t{mt}\t2026-01-01T00:00:00Z\n')
-    (host.remote / 'raw').mkdir(parents=True)
-    (host.remote / 'raw' / 'wrong.dm_91').write_bytes(b'bb')       # other size
-    (host.remote / 'raw' / 'good.dm_91').write_bytes(b'cccc')
-    r = host.run(FAKE_RCLONE_FAIL='')
-    assert gone.exists() and wrong.exists()
+def test_purge_keep_rows_require_remote_confirmation(host):
+    gone = host.put('gone.qlmatch', b'aaaa', age=VERY_OLD)
+    wrong = host.put('wrong.qlmatch', b'bbbb', age=VERY_OLD)
+    good = host.put('good.qlmatch', b'cccc', age=VERY_OLD)
+    seed_ledger(host, [gone, wrong, good], remote_dir='qlmatch', remote=False)
+    (host.remote / 'qlmatch' / 'wrong.qlmatch').write_bytes(b'bb')       # other size
+    (host.remote / 'qlmatch' / 'good.qlmatch').write_bytes(b'cccc')
+    assert host.run().returncode == 0                # run mode never deletes keep rows
+    assert gone.exists() and wrong.exists() and good.exists()
+    r = host.run('purge')
+    assert gone.exists() and wrong.exists()          # old delivery, but keep rows need the remote
     assert not good.exists()
     last = host.last_run()
     assert last['kept_unconfirmed'] == '2'
     assert last['deleted'] == '1'
-    assert r.returncode == 1
+    assert r.returncode == 0
 
 
 def test_purge_deletes_every_confirmed_file_regardless_of_age_and_pattern(host):
@@ -330,14 +427,14 @@ def test_purge_deletes_every_confirmed_file_regardless_of_age_and_pattern(host):
     (host.demos[0] / 'ignored.txt').write_bytes(b'not a pattern')
     assert host.run().returncode == 0
     assert q.exists() and rp.exists() and dm.exists()      # nothing expired
-    (host.remote / 'raw' / 'b.dm_91').unlink()             # remote lost this one
+    (host.remote / 'raw' / 'b.dm_91').unlink()             # remote lost this one, delivered just now
     r = host.run('purge')
     assert not q.exists() and not rp.exists() and not dm.exists()
     assert unconfirmed.exists()
     assert (host.demos[0] / 'ignored.txt').exists()
     last = host.last_run()
     assert last['mode'] == 'purge' and last['deleted'] == '3' and last['kept_unconfirmed'] == '1'
-    assert r.returncode == 1
+    assert r.returncode == 0
 
 
 def test_backlog_cap_sends_newest_raw_first(host):
@@ -389,6 +486,10 @@ def test_missing_config_or_rclone_exits_2_and_deletes_nothing(host):
     assert host.run().returncode == 2
     host.write_conf(PATTERNS='*.dm_91:raw:sometimes')
     assert host.run().returncode == 2
+    for key, value in (('DELIVERED_GRACE_HOURS', '0'), ('DELIVERED_GRACE_HOURS', '1h'),
+                       ('MAX_RAW_REMOTE_MB', ''), ('MAX_RAW_REMOTE_MB', '0')):
+        host.write_conf(**{key: value})
+        assert host.run().returncode == 2, (key, value)
     assert old.exists() and host.remote_names('raw') == []
 
 

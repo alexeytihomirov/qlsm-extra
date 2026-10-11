@@ -64,8 +64,9 @@ def test_rendered_conf_sourced_by_sh_gives_the_forwarder_variables(render, tmp_p
     conf = tmp_path / 'forwarder.conf'
     conf.write_text(render.render_conf(DEFAULTS), encoding='utf-8', newline='\n')
     script = ('set -eu; . ./forwarder.conf; '
-              'for v in REMOTE SRC_GLOBS PATTERNS RETENTION_DAYS MIN_AGE_MIN '
-              'MAX_RAW_MB_PER_RUN STATE_DIR RCLONE; do eval "printf \'%s=%s\\n\' $v \\"\\$$v\\""; done')
+              'for v in REMOTE SRC_GLOBS PATTERNS RETENTION_DAYS DELIVERED_GRACE_HOURS MIN_AGE_MIN '
+              'MAX_RAW_MB_PER_RUN MAX_RAW_REMOTE_MB STATE_DIR RCLONE; do '
+              'eval "printf \'%s=%s\\n\' $v \\"\\$$v\\""; done')
     out = subprocess.run([SH, '-c', script], cwd=tmp_path, capture_output=True, text=True, check=True).stdout
     values = dict(line.split('=', 1) for line in out.splitlines())
     assert values == {
@@ -73,11 +74,20 @@ def test_rendered_conf_sourced_by_sh_gives_the_forwarder_variables(render, tmp_p
         'SRC_GLOBS': '/home/ql/qlds-*/demos',
         'PATTERNS': '*.qlmatch:qlmatch:keep *.replay.json.gz:qlmatch:keep *.dm_91:raw:expire',
         'RETENTION_DAYS': '14',
+        'DELIVERED_GRACE_HOURS': '24',
         'MIN_AGE_MIN': '2',
         'MAX_RAW_MB_PER_RUN': '2048',
+        'MAX_RAW_REMOTE_MB': '5000',
         'STATE_DIR': '/home/ql/.forwarder-state',
         'RCLONE': 'rclone',
     }
+
+
+@pytest.mark.standalone
+def test_pinned_conf_values_match_the_script_defaults(render):
+    script = (Path(render.ADDON_DIR) / 'assets' / 'forwarder.sh').read_text(encoding='utf-8')
+    for name in ('MIN_AGE_MIN', 'DELIVERED_GRACE_HOURS', 'MAX_RAW_REMOTE_MB'):
+        assert f'\n{name}={getattr(render, name)}\n' in script, name
 
 
 @pytest.mark.standalone
