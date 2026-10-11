@@ -16,14 +16,29 @@ log = logging.getLogger(__name__)
 _SOURCE = 'qlmatch-packer.rebuild'
 
 
+def _error_text(exc):
+    if isinstance(exc, RebuildError):
+        return str(exc)
+    return f'{type(exc).__name__}: {exc}'
+
+
+def _log_failure(exc, message, *args):
+    # A RebuildError is an expected refusal; anything else (SSH loss, OSError)
+    # needs its traceback in the qlsm log.
+    if isinstance(exc, RebuildError):
+        log.warning(message, *args, exc)
+    else:
+        log.exception(message, *args, exc)
+
+
 def rebuild_sidecar_task_logic(instance_id, filename):
     try:
         result = rebuild_sidecar_logic(instance_id, filename)
-    except RebuildError as e:
-        log.warning('Sidecar rebuild failed for instance %s, %s: %s', instance_id, filename, e)
-        publish_job_event(_SOURCE, 'error', f'Sidecar rebuild failed for "{filename}": {e}',
+    except Exception as e:
+        _log_failure(e, 'Sidecar rebuild failed for instance %s, %s: %s', instance_id, filename)
+        publish_job_event(_SOURCE, 'error', f'Sidecar rebuild failed for "{filename}": {_error_text(e)}',
                            instance_id=instance_id, filename=filename)
-        return {'ok': False, 'error': str(e)}
+        return {'ok': False, 'error': _error_text(e)}
 
     publish_job_event(_SOURCE, 'success', f'Rebuilt replay sidecar for "{filename}".',
                        instance_id=instance_id, filename=filename)
@@ -33,11 +48,11 @@ def rebuild_sidecar_task_logic(instance_id, filename):
 def rebuild_full_task_logic(instance_id, filename):
     try:
         result = rebuild_full_logic(instance_id, filename)
-    except RebuildError as e:
-        log.warning('Full rebuild failed for instance %s, %s: %s', instance_id, filename, e)
-        publish_job_event(_SOURCE, 'error', f'Full rebuild failed for "{filename}": {e}',
+    except Exception as e:
+        _log_failure(e, 'Full rebuild failed for instance %s, %s: %s', instance_id, filename)
+        publish_job_event(_SOURCE, 'error', f'Full rebuild failed for "{filename}": {_error_text(e)}',
                            instance_id=instance_id, filename=filename)
-        return {'ok': False, 'error': str(e)}
+        return {'ok': False, 'error': _error_text(e)}
 
     publish_job_event(_SOURCE, 'success', f'Fully rebuilt "{filename}" from raw demos.',
                        instance_id=instance_id, filename=filename)
@@ -65,11 +80,11 @@ def rebuild_batch_task_logic(instance_id, kind, filenames):
             results[filename] = {'ok': True, **logic(instance_id, filename)}
             publish_job_event(_SOURCE, 'success', f'Rebuilt "{filename}" ({kind}).',
                                instance_id=instance_id, filename=filename)
-        except RebuildError as e:
+        except Exception as e:
             failures += 1
-            results[filename] = {'ok': False, 'error': str(e)}
-            log.warning('Batch %s rebuild failed for instance %s, %s: %s', kind, instance_id, filename, e)
-            publish_job_event(_SOURCE, 'error', f'Rebuild failed for "{filename}": {e}',
+            results[filename] = {'ok': False, 'error': _error_text(e)}
+            _log_failure(e, 'Batch %s rebuild failed for instance %s, %s: %s', kind, instance_id, filename)
+            publish_job_event(_SOURCE, 'error', f'Rebuild failed for "{filename}": {_error_text(e)}',
                                instance_id=instance_id, filename=filename)
 
     ok_count = len(filenames) - failures

@@ -120,8 +120,8 @@
     {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "7b4c5279730f8952868420094f9ee8547158872aa2fece46e62008aef68f2498",
-      "version": "1.1.1",
+      "sha256": "0f1bac93100fbd3a0e67616fb570b555647628f94c65984c7f99936711c36db2",
+      "version": "1.1.2",
       "label": "Qlmatch Packer",
       "description": "Installs the qlmatch packer and Node.js 22 on every game host during host setup and Update Plugins, and shows its .qlmatch packs and replay files on the Demos screen. Nothing runs the packer after a match: a first pack is built by running pack.mjs on the host by hand, and the Demos screen can rebuild an existing pack or its replay file. The output name template and rclone upload targets are the cvars qlx_qlmatchNameTemplate and qlx_qlmatchRcloneTargets, set by hand in the instance's server.cfg. Needs the demo-management addon."
     },
