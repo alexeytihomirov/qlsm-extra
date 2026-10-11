@@ -197,6 +197,7 @@ def _zip_addon(addon_dir: Path, zip_path: Path) -> None:
             # Zip entries carry only content, never checkout mtimes, so a rebuild
             # on any machine gives the same bytes and the same sha256.
             info = zipfile.ZipInfo(arcname, date_time=(1980, 1, 1, 0, 0, 0))
+            info.create_system = 3  # pin the host OS field so Windows and Linux rebuilds give the same bytes
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
             zf.writestr(info, path.read_bytes())
