@@ -17,3 +17,6 @@
 # Addon packages are archives: never touch their bytes, the repository index
 # carries a sha256 of exactly what is committed here.
 *.zip binary
+
+# Pinned host keys shipped to game hosts.
+known_hosts_vps text eol=lf

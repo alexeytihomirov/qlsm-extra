@@ -1,0 +1,97 @@
+{
+  "id": "file-forwarder",
+  "version": "1.0.0",
+  "name": "File Forwarder",
+  "description": "Ships demo files (.qlmatch packs, .replay.json.gz sidecars, raw .dm_91) from every game host to the site VPS over SFTP with rclone, every few minutes, and removes delivered raw demos from the host after the retention period, only once the VPS confirms it has them. One SFTP key belongs to the whole QLSM install: add its public half (Settings -> Addons -> File Forwarder) to the VPS once. The forwarder is installed on every host at host setup and Update Plugins; the host menu entry File Forwarder Sync shows its status and has Apply to host, Sync now and Sync now and delete delivered.",
+  "scopes": ["global", "host"],
+  "ui_api": 1,
+
+  "settings": {
+    "global": [
+      { "key": "vps_host", "type": "string", "label": "VPS address", "default": "70.34.223.191" },
+      { "key": "retention_days", "type": "string", "label": "Raw demo retention on the host (days)", "default": "14" },
+      { "key": "max_raw_mb_per_run", "type": "string", "label": "Raw upload limit per run (MB)", "default": "2048" },
+      { "key": "interval_minutes", "type": "string", "label": "Run every (minutes)", "default": "10" },
+      { "key": "patterns", "type": "string", "label": "Patterns", "default": "*.qlmatch qlmatch keep; *.replay.json.gz qlmatch keep; *.dm_91 raw expire" },
+      { "key": "sftp_private_key", "type": "secret", "label": "internal: install SFTP private key (generated, never shown)" },
+      { "key": "sftp_public_key", "type": "string", "label": "internal: install SFTP public key (generated)" }
+    ],
+    "host": [
+      { "key": "enabled", "type": "bool", "label": "Forward this host's demos", "default": true }
+    ]
+  },
+
+  "ui": {
+    "icon": "upload",
+
+    "host_menu": [
+      { "id": "file-forwarder", "label": "File Forwarder", "icon": "upload", "panel": "host_switch" },
+      { "id": "file-forwarder-sync", "label": "File Forwarder Sync", "icon": "upload", "panel": "host_status" }
+    ],
+    "settings_section": [
+      { "label": "File Forwarder", "icon": "upload", "panel": "global_settings" },
+      { "label": "File Forwarder SFTP key", "icon": "upload", "panel": "public_key" }
+    ],
+
+    "panels": {
+      "host_switch": {
+        "kind": "form",
+        "description": "Whether host setup and Update Plugins install and update the forwarder on this host. Turning it off stops future installs; it does not remove a forwarder already on the host.",
+        "load": "GET hosts/{host_id}",
+        "submit": "PUT hosts/{host_id}",
+        "fields": [
+          { "key": "enabled", "type": "bool", "label": "Forward this host's demos", "default": true }
+        ]
+      },
+
+      "host_status": {
+        "kind": "table",
+        "description": "The forwarder installed on this host, read from the host when this opens.",
+        "load": "GET hosts/{host_id}/status",
+        "rows": "rows",
+        "row_key": "host",
+        "empty": "No status.",
+        "columns": [
+          { "key": "version", "label": "Installed" },
+          { "key": "state", "label": "Version" },
+          { "key": "timer", "label": "Timer" },
+          { "key": "last_run", "label": "Last run" }
+        ],
+        "row_actions": [
+          { "id": "apply", "label": "Apply to host", "route": "POST hosts/{host_id}/apply" },
+          { "id": "sync", "label": "Sync now", "route": "POST hosts/{host_id}/sync" },
+          { "id": "purge", "label": "Sync now and delete delivered", "route": "POST hosts/{host_id}/purge", "danger": true,
+            "confirm": "Sync now, then delete from this host every demo file the VPS confirms it already has, whatever its age (.qlmatch, .replay.json.gz and .dm_91). Files the VPS does not confirm stay on the host. Continue?" }
+        ]
+      },
+
+      "global_settings": {
+        "kind": "form",
+        "description": "Where and how every host forwards its demos. Changes reach a host with Apply to host (host menu, File Forwarder Sync) or its next host setup / Update Plugins. Patterns: rows of 'glob remote_dir keep|expire' separated by ';'. A remote_dir uses only A-Za-z0-9_.- ; 'expire' rows are deleted from the host after the retention, once delivered and confirmed on the VPS.",
+        "load": "GET settings",
+        "submit": "PUT settings",
+        "fields": [
+          { "key": "vps_host", "type": "string", "label": "VPS address", "default": "70.34.223.191",
+            "description": "SFTP target. Its host keys are pinned in the addon: another address also needs an addon release with its keys." },
+          { "key": "retention_days", "type": "string", "label": "Raw demo retention on the host (days)", "default": "14" },
+          { "key": "max_raw_mb_per_run", "type": "string", "label": "Raw upload limit per run (MB)", "default": "2048",
+            "description": "Raw demos are sent newest first; the rest waits for the next run." },
+          { "key": "interval_minutes", "type": "string", "label": "Run every (minutes)", "default": "10" },
+          { "key": "patterns", "type": "string", "label": "Patterns", "default": "*.qlmatch qlmatch keep; *.replay.json.gz qlmatch keep; *.dm_91 raw expire" }
+        ]
+      },
+
+      "public_key": {
+        "kind": "table",
+        "description": "The SFTP key of this QLSM install, generated on first use. Add this public line once to /etc/ssh/authorized_keys.d/qldemos-in on the VPS. The private half never leaves QLSM except to the game hosts.",
+        "load": "GET public-key",
+        "rows": "keys",
+        "row_key": "name",
+        "columns": [
+          { "key": "name", "label": "Key" },
+          { "key": "public_key", "label": "Public key" }
+        ]
+      }
+    }
+  }
+}
