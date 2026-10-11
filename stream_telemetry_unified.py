@@ -166,6 +166,22 @@ def forwarded_command(cmd):
     return text if head in _FORWARDED_COMMANDS else None
 
 
+# chat_rcon consumes `!rcon` chat lines, which can carry passwords (`!rcon g_password X`);
+# they must not reach the hub's chat archive.
+_UNFORWARDED_CHAT_HEAD = "!rcon"
+
+
+def should_forward_say(text):
+    """False for a chat line that chat_rcon consumes, True for everything else."""
+    text = (text or "").strip()
+    if text.startswith('"'):
+        text = text[1:]
+    if text.startswith("/"):
+        text = text[1:]
+    parts = text.split(None, 1)
+    return not parts or parts[0].lower() != _UNFORWARDED_CHAT_HEAD
+
+
 class stream_telemetry_unified(minqlx.Plugin):
     _COLOR_RE = re.compile(r"\^[0-9a-zA-Z]")
     # Fixed address of the per-host ql-telemetry-relay sidecar (loopback
@@ -621,9 +637,13 @@ class stream_telemetry_unified(minqlx.Plugin):
         if self._session_enabled() and cmd:
             lower = cmd.lower()
             if lower.startswith("say "):
-                self._enqueue_session("say", player, text=cmd[4:].strip())
+                text = cmd[4:].strip()
+                if should_forward_say(text):
+                    self._enqueue_session("say", player, text=text)
             elif lower.startswith("say_team "):
-                self._enqueue_session("say_team", player, text=cmd[9:].strip())
+                text = cmd[9:].strip()
+                if should_forward_say(text):
+                    self._enqueue_session("say_team", player, text=text)
             elif lower.startswith("tell "):
                 parts = cmd.split(None, 2)
                 if len(parts) >= 3:
