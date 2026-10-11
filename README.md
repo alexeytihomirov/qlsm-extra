@@ -62,6 +62,7 @@ python check_manifest_hashes.py
 | `tournament_access.py` | Yes |
 | `chat_rcon.py` + `chat_rcon_acl.py` | Yes, both together |
 | `lobby.py` | Yes |
+| `referee_call.py` | Yes - `!call` for players; the call itself travels as chat through `stream_telemetry_unified` |
 | `match_restore_util.py` | No — helper for `match_restore.py` |
 | `match_restore_lab.py` | Optional add-on to `match_restore.py` |
 | `match_restore.py` + `restore/` | Yes together — downloads as one entry |
@@ -106,6 +107,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
 | `demo-stream` | Live POV demo stream screen + cvars; per-host stunnel TLS tunnel to stats-hub |
 | `qlmatch-packer` | Host-side `.qlmatch` packer + Demos grouping hooks |
+| `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enable, enter repository + commit, then **Re-run Host Setup**. Needs a qlsm whose `host.setup` hook fires on every provider and whose `setup_host.yml` reads `minqlxtended_git_repo`. |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
 
 qlsm's image ships **no** addon — install every one of these from this

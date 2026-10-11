@@ -55,7 +55,8 @@ def pytest_collection_modifyitems(config, items):
         return
     skip = pytest.mark.skip(reason='no qlsm checkout found -- set QLSM_REPO')
     for item in items:
-        item.add_marker(skip)
+        if item.get_closest_marker('standalone') is None:
+            item.add_marker(skip)
 
 
 @pytest.fixture
