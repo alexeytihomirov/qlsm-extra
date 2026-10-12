@@ -90,6 +90,23 @@
       "label": "Referee Call",
       "description": "Adds the !call chat command, which any player or spectator can use to ask for a referee. It only answers the caller; the call reaches the referees as a chat line that stream_telemetry_unified forwards to ql-stats-hub, so that plugin must be enabled with Session Events (qlx_statsHubFeedSession) on. One call per player per 60 seconds.",
       "sha256": "19bb92b5a16b1dfa1dcc0713894667258f28e502ced110eff92f00059ee1c8a1"
+    },
+    {
+      "filename": "qlmatch_packer.py",
+      "runtime": "minqlxtended",
+      "label": "QLMatch Packer",
+      "description": "Packages finished match demos into a .qlmatch. Recording and cutting are the engine's own: set sv_demoRecord 1 (records every client) and sv_demoCut 1 (the engine detects match start/end, cuts each POV to the match window and names the files after the match). This plugin only listens for demo_match_finalized and launches the external qlmatch-packer (deployed to /home/ql/qlmatch-packer/ by the qlmatch-packer addon), which builds the .qlmatch and its .replay.json.gz. Without this plugin no .qlmatch is built and only the raw .dm_91 files remain. Delivery off the host is the file-forwarder addon's job. Requires the minqlxtended fork build with native demo capture (runtime-source addon).",
+      "depends_on": [
+        "qlmatch_packer_cmd.py"
+      ],
+      "sha256": "db752b7db7ff484f4022128f1c055db241b433d3299d7bdc51d396f3ab015e97"
+    },
+    {
+      "filename": "qlmatch_packer_cmd.py",
+      "runtime": "minqlxtended",
+      "label": "\u26a0\ufe0f qlmatch_packer helper - do not enable",
+      "description": "Helper module for qlmatch_packer.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins.",
+      "sha256": "30e09232075125e71ecaf1e38d6259c88b27dcf203a73416999c30e5f3e54944"
     }
   ],
   "addons": [

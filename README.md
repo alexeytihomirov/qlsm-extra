@@ -67,6 +67,7 @@ python check_manifest_hashes.py
 | `match_restore_util.py` | No - helper for `match_restore.py`, downloaded with it |
 | `match_restore_lab.py` | Optional add-on to `match_restore.py` |
 | `match_restore.py` + `restore/` | Yes - downloads as one entry |
+| `qlmatch_packer.py` | Yes - launches the `qlmatch-packer` addon's `pack.mjs` when the engine finishes a match's demos; **required** for automatic `.qlmatch` (without it only raw `.dm_91` remain). Downloads with its helper `qlmatch_packer_cmd.py` (not a plugin) |
 
 `match_restore.py` needs the `restore/` package beside it. Its manifest entry
 declares `package_files` for every file under `restore/`, so downloading
@@ -88,9 +89,12 @@ These three only need the generic `minqlxtended` runtime, not the
 fork's native demo capture.
 
 Native per-match demo capture (`sv_demoRecord`/`sv_demoCut`) is the engine's
-own feature on that fork; this repo no longer ships a plugin to launch the
-`.qlmatch` packer automatically when a match finishes. Building a `.qlmatch`
-for a finished match is manual for now - run `pack.mjs` on the host by hand; the Demos screen can only rebuild a match that already has a `.qlmatch`. A compat shim resolving a bare
+own feature on that fork. `qlmatch_packer.py` (formerly `demo_native_autorecord.py`,
+which hosts may still carry) only reacts to the engine's `demo_match_finalized`
+event and launches `pack.mjs` from the `qlmatch-packer` addon. When migrating a
+host, replace `demo_native_autorecord` with `qlmatch_packer` in `qlx_plugins`
+(never both: the packer would run twice). Shipping the files off the host is the
+`file-forwarder` addon. A compat shim resolving a bare
 `import minqlx` to `minqlxtended` (for plugins like `ips.py` that don't know
 about the fork) was also dropped, since nothing in this repo needs it - add
 one back if a plugin like that is added here later.
