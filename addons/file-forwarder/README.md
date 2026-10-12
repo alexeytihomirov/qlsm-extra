@@ -18,6 +18,8 @@ the QL monorepo.
 | `keypair.py` | The install-wide ed25519 SFTP key (generated with `cryptography`). |
 | `backend.py` | Routes, the `apply_task` / `sync_task` tasks, the `host.payload_sync` handler. |
 | `playbooks/` | `sync_file_forwarder.yml`, `run_forwarder.yml`, `status_file_forwarder.yml`. |
+| `ui/HostPanel.js` | The host menu dialog: switch, status table, action buttons. Hand-written, no build step. |
+| `ui/PublicKey.js` | The SFTP key settings section: the public line, wrapped, with Copy. |
 
 ## Settings
 
@@ -65,7 +67,11 @@ with `{"settings": {"sftp_private_key": ""}}`), open the key section to
 generate a new pair, replace the line on the VPS, then Apply to host on every
 host.
 
-## Host actions (host menu -> File Forwarder Sync)
+## Host dialog (host menu -> File Forwarder)
+
+One dialog holds the `enabled` switch (saved as soon as it is toggled), the
+status table and the actions as buttons below it. An action is queued as a
+task; press Refresh to read the status again once it has finished.
 
 - **Apply to host**: runs the sync playbook (install / update script, units,
   key, config).
@@ -78,5 +84,5 @@ host.
   as `kept_unconfirmed`; that does not make the run fail (exit 1 is for failed
   uploads only).
 
-The status row shows the installed version (stale when it differs from the
+The status table shows the installed version (stale when it differs from the
 addon's), the timer state and the last run line.

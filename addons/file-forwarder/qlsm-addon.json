@@ -1,10 +1,10 @@
 {
   "id": "file-forwarder",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "File Forwarder",
-  "description": "Ships demo files (.qlmatch packs, .replay.json.gz sidecars, raw .dm_91) from every game host to the site VPS over SFTP with rclone, every few minutes, and removes raw demos from the host after the retention period, only when the delivery is recorded and at least a day old. One SFTP key belongs to the whole QLSM install: add its public half (Settings -> Addons -> File Forwarder) to the VPS once. The forwarder is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry File Forwarder Sync shows its status and has Apply to host, Sync now and Sync now and delete delivered.",
+  "description": "Ships demo files (.qlmatch packs, .replay.json.gz sidecars, raw .dm_91) from every game host to the site VPS over SFTP with rclone, every few minutes, and removes raw demos from the host after the retention period, only when the delivery is recorded and at least a day old. One SFTP key belongs to the whole QLSM install: add its public half (Settings -> Addons -> File Forwarder) to the VPS once. The forwarder is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry File Forwarder has the host switch, the status and the buttons Apply to host, Sync now and Sync now and delete delivered.",
   "scopes": ["global", "host"],
-  "ui_api": 1,
+  "ui_api": 3,
 
   "settings": {
     "global": [
@@ -25,49 +25,17 @@
     "icon": "upload",
 
     "host_menu": [
-      { "id": "file-forwarder", "label": "File Forwarder", "icon": "upload", "panel": "host_switch" },
-      { "id": "file-forwarder-sync", "label": "File Forwarder Sync", "icon": "upload", "panel": "host_status" }
+      { "id": "file-forwarder", "label": "File Forwarder", "icon": "upload", "component": "HostPanel.js", "renders": "modal" }
     ],
     "settings_section": [
       { "label": "File Forwarder", "icon": "upload", "panel": "global_settings" },
-      { "label": "File Forwarder SFTP key", "icon": "upload", "panel": "public_key" }
+      { "label": "File Forwarder SFTP key", "icon": "upload", "component": "PublicKey.js" }
     ],
 
     "panels": {
-      "host_switch": {
-        "kind": "form",
-        "description": "Whether host setup installs and updates the forwarder on this host (after an addon update use Apply to host). Turning it off stops future installs; it does not remove a forwarder already on the host.",
-        "load": "GET hosts/{host_id}",
-        "submit": "PUT hosts/{host_id}",
-        "fields": [
-          { "key": "enabled", "type": "bool", "label": "Forward this host's demos", "default": true }
-        ]
-      },
-
-      "host_status": {
-        "kind": "table",
-        "description": "The forwarder installed on this host, read from the host when this opens. Sync now and delete delivered: .qlmatch and .replay.json.gz go only when the VPS lists them, .dm_91 when the VPS lists them or they were delivered more than 24 hours ago; the rest stays and is counted as kept_unconfirmed.",
-        "load": "GET hosts/{host_id}/status",
-        "rows": "rows",
-        "row_key": "host",
-        "empty": "No status.",
-        "columns": [
-          { "key": "version", "label": "Installed version" },
-          { "key": "state", "label": "State" },
-          { "key": "timer", "label": "Timer" },
-          { "key": "last_run", "label": "Last run" }
-        ],
-        "row_actions": [
-          { "id": "apply", "label": "Apply to host", "route": "POST hosts/{host_id}/apply" },
-          { "id": "sync", "label": "Sync now", "route": "POST hosts/{host_id}/sync" },
-          { "id": "purge", "label": "Sync now and delete delivered", "route": "POST hosts/{host_id}/purge", "danger": true,
-            "confirm": "Sync now, then delete delivered demo files from this host, whatever their age: .qlmatch and .replay.json.gz only when the VPS lists them, .dm_91 when the VPS lists them or they were delivered more than 24 hours ago (the NAS has pulled them). Everything else stays on the host. Continue?" }
-        ]
-      },
-
       "global_settings": {
         "kind": "form",
-        "description": "Where and how every host forwards its demos. Changes reach a host with Apply to host (host menu, File Forwarder Sync) or its next host setup; Update Plugins does not apply them. Patterns: rows of 'glob remote_dir keep|expire' separated by ';'. A remote_dir uses only A-Za-z0-9_.- ; 'expire' rows are deleted from the host after the retention, once their delivery is recorded and at least 24 hours old.",
+        "description": "Where and how every host forwards its demos. Changes reach a host with Apply to host (host menu, File Forwarder) or its next host setup; Update Plugins does not apply them. Patterns: rows of 'glob remote_dir keep|expire' separated by ';'. A remote_dir uses only A-Za-z0-9_.- ; 'expire' rows are deleted from the host after the retention, once their delivery is recorded and at least 24 hours old.",
         "load": "GET settings",
         "submit": "PUT settings",
         "fields": [
@@ -78,18 +46,6 @@
             "description": "Raw demos are sent newest first; the rest waits for the next run." },
           { "key": "interval_minutes", "type": "string", "label": "Run every (minutes)", "default": "10" },
           { "key": "patterns", "type": "string", "label": "Patterns", "default": "*.qlmatch qlmatch keep; *.replay.json.gz qlmatch keep; *.dm_91 raw expire" }
-        ]
-      },
-
-      "public_key": {
-        "kind": "table",
-        "description": "The SFTP key of this QLSM install, generated on first use. Add this public line once to /etc/ssh/authorized_keys.d/qldemos-in on the VPS. The private half never leaves QLSM except to the game hosts.",
-        "load": "GET public-key",
-        "rows": "keys",
-        "row_key": "name",
-        "columns": [
-          { "key": "name", "label": "Key" },
-          { "key": "public_key", "label": "Public key" }
         ]
       }
     }

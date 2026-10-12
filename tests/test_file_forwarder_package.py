@@ -19,6 +19,7 @@ EXPECTED = [
     'assets/file-forwarder.service', 'assets/file-forwarder.timer',
     'playbooks/run_forwarder.yml', 'playbooks/status_file_forwarder.yml',
     'playbooks/sync_file_forwarder.yml',
+    'ui/HostPanel.js', 'ui/PublicKey.js',
 ]
 
 

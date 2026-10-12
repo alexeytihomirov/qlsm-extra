@@ -162,7 +162,7 @@ def test_playbook_vars(render):
                               'ff_version', 'ff_interval_minutes'}
     assert variables['ff_private_key'] == FAKE_PRIVATE + '\n'
     assert variables['ff_conf_text'] == render.render_conf(DEFAULTS)
-    assert variables['ff_version'] == '1.0.0'
+    assert variables['ff_version'] == '1.1.0'
     assert variables['ff_interval_minutes'] == 10
     assert variables['ff_vps_host'] == '70.34.223.191'
     assert variables['ff_sftp_user'] == 'qldemos-in'
@@ -267,7 +267,7 @@ def test_manifest_validates(app):
     manifest, errors = read_manifest(str(ADDON_DIR))
     assert errors == []
     assert manifest['id'] == 'file-forwarder'
-    assert manifest['version'] == '1.0.0'
+    assert manifest['version'] == '1.1.0'
     assert manifest['scopes'] == ['global', 'host']
     assert manifest['depends'] == []
     raw = json.loads((ADDON_DIR / 'qlsm-addon.json').read_text(encoding='utf-8'))
@@ -295,29 +295,44 @@ def _route_exists(app, method, path):
         return False
 
 
-def test_ui_block_is_tier1_and_every_route_exists(app):
+def test_ui_block_mounts_and_every_route_exists(app):
     raw = json.loads((ADDON_DIR / 'qlsm-addon.json').read_text(encoding='utf-8'))
     ui = raw['ui']
     panels = ui['panels']
     assert all(panel['kind'] in ('form', 'table') for panel in panels.values())
-    for mount in ('host_menu', 'settings_section'):
-        for entry in ui[mount]:
-            assert 'component' not in entry and entry['panel'] in panels
-    actions = {}
-    for entry in ui['host_menu']:
-        for action in panels[entry['panel']].get('row_actions', []):
-            actions[action['id']] = action
-    assert {'apply', 'sync', 'purge'} <= set(actions)
-    confirm = actions['purge']['confirm'].lower()
+
+    # One host menu entry: the addon's own dialog (needs ui_api 3).
+    assert len(ui['host_menu']) == 1
+    host_entry = ui['host_menu'][0]
+    assert host_entry['component'] == 'HostPanel.js' and host_entry['renders'] == 'modal'
+    assert raw['ui_api'] >= 3
+
+    for entry in ui['host_menu'] + ui['settings_section']:
+        if 'component' in entry:
+            assert 'panel' not in entry
+            assert (ADDON_DIR / 'ui' / entry['component']).is_file(), entry['component']
+        else:
+            assert entry['panel'] in panels
+
+    host_js = (ADDON_DIR / 'ui' / 'HostPanel.js').read_text(encoding='utf-8')
+    for action in ('apply', 'sync', 'purge'):
+        assert f"id: '{action}'" in host_js, action
+    confirm = host_js.split('PURGE_CONFIRM =', 1)[1].split(';', 1)[0].lower()
     assert 'delete' in confirm and 'host' in confirm
-    routes = []
+    assert 'confirm: PURGE_CONFIRM' in host_js
+    # No Tailwind and no wide content: the table is fixed-layout and wraps.
+    assert "tableLayout: 'fixed'" in host_js and 'className' not in host_js
+
+    key_js = (ADDON_DIR / 'ui' / 'PublicKey.js').read_text(encoding='utf-8')
+    assert "'public-key'" in key_js and "overflowWrap: 'anywhere'" in key_js
+
+    # Routes the components call (hosts/${hostId}/<action> in HostPanel.js).
+    routes = ['GET hosts/1', 'PUT hosts/1', 'GET hosts/1/status', 'POST hosts/1/apply',
+              'POST hosts/1/sync', 'POST hosts/1/purge', 'GET public-key']
     for panel in panels.values():
         routes += [panel[k] for k in ('load', 'submit') if k in panel]
-        routes += [a['route'] for a in panel.get('row_actions', [])]
-    assert routes
     for route in routes:
         method, _, path = route.partition(' ')
-        path = path.replace('{host_id}', '1')
         assert _route_exists(app, method, path), route
 
 
@@ -451,7 +466,7 @@ STATUS_STDOUT = '''
 TASK [report] ******
 ok: [game-1] => {
     "msg": [
-        "FF_VERSION=1.0.0",
+        "FF_VERSION=1.1.0",
         "FF_TIMER=active",
         "FF_LAST_RUN=time=2026-10-11T10:00:00Z mode=run uploaded=3 failed=0 deleted=1 kept_unconfirmed=0 exit=0"
     ]
@@ -468,7 +483,7 @@ def test_status_is_parsed_from_the_playbook_and_carries_no_key(app, client, auth
     response = client.get(f'{API}/hosts/{host_id}/status', headers=auth)
     assert response.status_code == 200
     data = response.get_json()['data']
-    assert data['version'] == '1.0.0'
+    assert data['version'] == '1.1.0'
     assert data['timer_active'] is True
     assert data['up_to_date'] is True
     assert data['last_run'].startswith('time=2026-10-11T10:00:00Z mode=run uploaded=3')
@@ -534,7 +549,7 @@ def test_payload_sync_deploys_an_enabled_host_with_the_key_in_a_file(app, monkey
     _assert_no_private(json.dumps(extravars), private)
     assert fake.key_file_contents == [private + '\n']
     assert not os.path.exists(extravars['ff_private_key_file'])
-    assert extravars['ff_version'] == '1.0.0'
+    assert extravars['ff_version'] == '1.1.0'
     assert "RETENTION_DAYS='14'" in extravars['ff_conf_text']
     _assert_no_private(caplog.text, private)
 
@@ -614,6 +629,8 @@ def test_sync_and_purge_enqueue_the_sync_task(app, client, auth, queue, action, 
     host_id = _host(app)
     response = client.post(f'{API}/hosts/{host_id}/{action}', headers=auth)
     assert response.status_code == 202, response.get_json()
+    # The host dialog reads the message from `data`.
+    assert 'queued for' in response.get_json()['data']['message']
     assert len(queue) == 1
     name, args, kwargs = queue[0]
     assert name == 'sync_task'

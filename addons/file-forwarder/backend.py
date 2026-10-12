@@ -304,6 +304,12 @@ def _enqueue(host_id, task_name, ttl, **task_kwargs):
     return None
 
 
+def _queued(message):
+    # The message is also inside `data`: the host dialog (ui/HostPanel.js) gets
+    # only that key from ctx.api.
+    return jsonify({'data': {'queued': True, 'message': message}, 'message': message}), 202
+
+
 @bp.route('/hosts/<int:host_id>/apply', methods=['POST'], endpoint='apply_host_route')
 @jwt_required()
 def apply_host_route(host_id):
@@ -315,7 +321,7 @@ def apply_host_route(host_id):
     error = _enqueue(host_id, 'apply_task', APPLY_TIMEOUT_SECONDS + _LOCK_MARGIN_SECONDS)
     if error:
         return error
-    return jsonify({'data': {'queued': True}, 'message': f'Apply queued for {host.name}.'}), 202
+    return _queued(f'Apply queued for {host.name}.')
 
 
 def _sync_route(host_id, purge):
@@ -326,7 +332,7 @@ def _sync_route(host_id, purge):
     if error:
         return error
     what = 'Sync and delete of delivered files' if purge else 'Sync'
-    return jsonify({'data': {'queued': True}, 'message': f'{what} queued for {host.name}.'}), 202
+    return _queued(f'{what} queued for {host.name}.')
 
 
 @bp.route('/hosts/<int:host_id>/sync', methods=['POST'], endpoint='sync_host_route')
