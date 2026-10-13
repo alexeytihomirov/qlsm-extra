@@ -46,6 +46,7 @@ DEFAULT_PLUGINS = [
     'telemetry_unified_sched.py',
     'stats_hub_pause.py',
     'referee_call.py',
+    'demo_stream_resync_hold.py',
 ]
 
 # filename -> folder (relative to this script) that must be downloaded

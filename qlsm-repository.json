@@ -107,6 +107,13 @@
       "label": "\u26a0\ufe0f qlmatch_packer helper - do not enable",
       "description": "Helper module for qlmatch_packer.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins.",
       "sha256": "30e09232075125e71ecaf1e38d6259c88b27dcf203a73416999c30e5f3e54944"
+    },
+    {
+      "filename": "demo_stream_resync_hold.py",
+      "runtime": "minqlxtended",
+      "label": "Demo Stream Resync Hold",
+      "description": "Keeps a live demo stream decodable after a resync. When the engine forces a full snapshot for a streamed player (relay reconnect, lost blocks, periodic keyframe), this plugin keeps forcing full snapshots for that player on the following server frames until the client acknowledges one of them, or the cap runs out. Without it the snapshots right behind a single full one are deltas from messages the relay never received, and the relay's picture can stop until the next keyframe. Off by default: it was measured on a duel server only (two streamed players), not yet on a populated server or in team modes. Cost: one to three extra full snapshots (about 250 bytes each in a duel) per resync and per keyframe interval for each streamed player; never more holds at once than Max holds at once, and none while the relay is behind. For a periodic keyframe the plugin cannot see which player the engine meant and works it out from its own record of each player's last full snapshot. With sv_demoStreamKeyframeSec 0 there are no keyframe holds, but a relay reconnect and lost blocks are still repaired, the first player after a reconnect included. A hold that has waited more than 60 server frames for its turn is dropped, unless it repairs a real loss. Does nothing when the demo stream itself (sv_demoStream) is off. Console: qlx !resynchold prints the counters. Requires the minqlxtended fork build with the live demo stream (runtime-source addon).",
+      "sha256": "7d376bf48144424ab9f95742d5da5256d73070034e6b5f1c7d34eedd73bf37c5"
     }
   ],
   "addons": [
