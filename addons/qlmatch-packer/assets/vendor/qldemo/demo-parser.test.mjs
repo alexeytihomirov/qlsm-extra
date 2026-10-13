@@ -2,12 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { QLDemoParser } from "./demo-parser.js";
 import { SVC_SNAPSHOT, SVC_SERVERCOMMAND, SVC_EOF } from "./constants.js";
-// Cross-directory test-only imports: demo-editor/lib/*-write.js are the
-// encode-side mirrors of this parser, already used the same way by
-// demo-editor/lib/gamestate-writer.test.mjs (which imports QLDemoParser
-// from here) — just the reverse direction, purely to build wire-format test
-// fixtures.
-import { buildGamestateMessage } from "../../../demo-editor/lib/gamestate-writer.js";
+// Test-only imports: test-support/*-write.js are the encode-side mirrors of
+// this parser (carried from the former ql-stream-tools demo editor, see the
+// header of each file), used purely to build wire-format test fixtures.
+import { buildGamestateMessage } from "./test-support/gamestate-writer.js";
 import {
   buildEncodeTable,
   createMsgWriter,
@@ -15,7 +13,7 @@ import {
   huffmanWriteByte,
   huffmanWriteLong,
   huffmanWriteString,
-} from "../../../demo-editor/lib/huffman-write.js";
+} from "./test-support/huffman-write.js";
 
 function frameAsDemoFile(body) {
   const header = new ArrayBuffer(8);
@@ -125,7 +123,7 @@ test("a truncated snapshot (entity list cut off mid-stream) fails fast instead o
 // Real QL servers re-broadcast CS_SERVERINFO mid-match (e.g. on the
 // PRE_GAME -> IN_PROGRESS transition) as a "cs" server command whose raw
 // wire text has a trailing space AFTER the closing quote — confirmed by
-// decoding a real captured .dm_91 (demo-editor/demos/), where the initial
+// decoding a real captured .dm_91, where the initial
 // gamestate's configstring 0 is clean but every later "cs 0 ..." command's
 // text ends in `..."` followed by a space. parseServerCommand used to
 // build `rest` via `text.split(/\s+/).join(" ")` — which also tokenizes on
