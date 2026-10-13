@@ -1,10 +1,10 @@
 ---
 id: qlsm-extra-0006
 title: Demo stream: hold the full snapshot after a resync until the client acknowledges it
-status: done-unverified
+status: done
 created: 2026-10-13
 updated: 2026-10-14
-verified:
+verified: 2026-10-14
 depends_on: []
 related: [ql-stats-hub-0009, root-0013, docs/superpowers/plans/2026-10-12-live-stream-synthetic-keyframe.md]
 ---
@@ -83,6 +83,7 @@ related: [ql-stats-hub-0009, root-0013, docs/superpowers/plans/2026-10-12-live-s
 - 2026-10-14 - замер восстановления на 1.2 сделал контроллер, со стороны зрителя, без rcon и без скрипта замера (тот рестартовал бы хаб второй раз). Хаб выкачен (`ql-stats-hub` `0e2b5ad`) и перезапущен около 23:20:10 UTC 2026-10-13 (01:20 CEST 2026-10-14). Два записывающих зрителя (`tests/manual/demo_stream_measure_recovery.py`, по одному на слот, 240 с, старт 23:18:38 UTC), плагин включён (`qlx_demoStreamResyncHold 1`), keyframe раз в 10 с. Оба переподключились (`connects=3`); блоков не было примерно с 85-й по 100-ю секунду записи (хаб лежал на выкатке), дальше ровно 200 блоков за 5 с с первого полного интервала. `demo_stream_count_empty_runs.py`: слот 0 - `blocks=8970 with_snapshot=8970 without_snapshot=0 runs_of_20_or_more=0`; слот 1 - `blocks=8993 with_snapshot=8993 without_snapshot=0 runs_of_20_or_more=0`. По одному скачку номеров на слот через рестарт (128752 -> 129383 и 61255 -> 61885). В логе хаба новых строк `no decodable snapshot` нет (остались 10 строк от 2026-10-13), строк `transcoder failure` 0
 - 2026-10-14 - что в этом замере не прочитано: строка состояния и журнал самого плагина после рестарта (нужен rcon). Удержание `hold started (flag)` после `link up` на 1.2 поэтому выведено из чистого потока, а не увидено; на 1.0 и 1.1 оно в журнале плагина видно было
 - 2026-10-14 - задача закрыта как `done-unverified`: код в `origin/main`, плагин 1.2 стоит и включён на тестовом инстансе, замеры пройдены. Что осталось непроверенным - в разделе "Результат"
+- 2026-10-14 - оператор выполнил `qlx !resynchold` на тестовом сервере и подтвердил счётчики ("равен, всё соответствует": `acknowledged` равен `holds`, остальные значения как ожидалось). Задача подтверждена, статус `done`. Оператор попросил включить плагин на втором дуэльном сервере; журнал этой раскатки ведётся в монорепозитории, не здесь
 
 ## Результат
 
