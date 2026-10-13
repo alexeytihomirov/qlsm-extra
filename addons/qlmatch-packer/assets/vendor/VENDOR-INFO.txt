@@ -1,4 +1,5 @@
-source: ql-stream-tools/live-overlay/lib/qldemo (production parser)
-       + ql-stream-tools/live-overlay/maps/entities (pickup tables, vendored to ../maps/entities)
-synced: 2026-09-02T08:10:11Z
-refresh: bash sync-vendor.sh (see header comment)
+origin: ql-stream-tools/live-overlay/lib/qldemo (production parser)
+        + ql-stream-tools/live-overlay/maps/entities (pickup tables, vendored to ../maps/entities)
+        + test-support/*.js from ql-stream-tools@31fd6c0 demo-editor/lib (encode-side test helpers)
+last synced from origin: 2026-09-02T08:10:11Z
+status: ql-stream-tools was archived on 2026-10-14. This directory is canonical, not a mirror; nothing syncs it.

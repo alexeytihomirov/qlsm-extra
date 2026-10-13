@@ -16,10 +16,10 @@
 //
 // Demo protocol parsing (player identity, teams, gametype) reuses the
 // parser originally vendored from ql-stream-tools/live-overlay/lib/qldemo
-// into vendor/qldemo, NOT the stale _tmp/overkilldemos/qldemo-nquery
-// snapshot the old prototype used. vendor/qldemo is now qlsm's own fork —
-// it has diverged from ql-stream-tools and is no longer kept in sync with
-// it (see sync-vendor.sh, which only diffs the two, it doesn't copy).
+// (archived 2026-10-14) into vendor/qldemo, NOT the stale
+// _tmp/overkilldemos/qldemo-nquery snapshot the old prototype used.
+// vendor/qldemo is now this addon's own copy and the canonical one: it has
+// diverged from ql-stream-tools, which is frozen, and nothing syncs it.
 //
 // Exit codes:
 //   0 pack written

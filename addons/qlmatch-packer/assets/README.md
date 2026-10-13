@@ -109,20 +109,20 @@ exists, `_{match_id}` is appended instead of overwriting the previous match.
 Originally vendored from the **production** demo parser
 `ql-stream-tools/live-overlay/lib/qldemo/` (not the stale
 `_tmp/overkilldemos/qldemo-nquery` snapshot the first prototype used), but
-qlsm has since carried its own fixes on top of it without merging them back
-upstream. **It is now an independent fork, not a mirror** — do not run
-anything that copies `ql-stream-tools/live-overlay/lib/qldemo/` over this
-directory (or vice versa); that would silently discard whichever side's
-fixes the other is missing.
+qlsm has since carried its own fixes on top of it without merging them back.
+**It is an independent fork, not a mirror.** The `ql-stream-tools` repository
+was archived on 2026-10-14, so this directory is now the canonical copy and
+there is nothing to sync from; change it here.
 
-`maps/entities/` is different: it's a plain data vendor (per-map pickup
-tables) from `ql-stream-tools/live-overlay/maps/entities/` with no qlsm-side
-edits, so it's still safe to refresh for real — the sidecar merge needs
-these tables to resolve item classnames on the game host
-(`map-item-resolve.node.js` resolves them relative to this directory).
+`maps/entities/` (per-map pickup tables, originally from
+`ql-stream-tools/live-overlay/maps/entities/`, no qlsm-side edits) is likewise
+canonical here: the sidecar merge needs these tables to resolve item
+classnames on the game host (`map-item-resolve.node.js` resolves them relative
+to this directory). See `vendor/VENDOR-INFO.txt` for the origin.
 
-Run `bash sync-vendor.sh` (from a monorepo workspace, or
-`bash sync-vendor.sh /path/to/ql-stream-tools` from anywhere, e.g. a qlsm
-git worktree) to diff `vendor/qldemo` against upstream (report only, no
-files touched) and refresh `maps/entities/` for real — see
-`vendor/VENDOR-INFO.txt`.
+`vendor/qldemo/test-support/` holds the two encode-side modules
+(`gamestate-writer.js`, `huffman-write.js`) that `demo-parser.test.mjs` uses to
+build wire-format fixtures. They were carried from `ql-stream-tools@31fd6c0`
+(`demo-editor/lib/`) so the tests run without a checkout of that repository.
+Run the vendored tests with `node --test vendor/qldemo/*.test.mjs` from this
+directory.

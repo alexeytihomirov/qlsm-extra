@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // CLI: qlmatch-to-replay.mjs <file.qlmatch> [-o out.replay.json.gz]
 //
-// Game-host twin of ql-stream-tools/scripts/qlmatch-to-replay.mjs, importing
-// the vendored parser (vendor/qldemo) instead of the live-overlay checkout.
+// Game-host copy of what was ql-stream-tools/scripts/qlmatch-to-replay.mjs
+// (archived 2026-10-14; this file is now the maintained one), importing
+// the vendored parser (vendor/qldemo).
 // (Re)generates the replay-v2 sidecar for a .qlmatch pack - the gzipped
 // {match_id}_{map}.replay.json.gz file next to the pack that
 // restore/qlmatch.py (!restore match) and the dashboard's #/demo view
