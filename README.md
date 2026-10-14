@@ -85,6 +85,12 @@ All plugins here need the `minqlxtended` runtime (every entry in `qlsm-repositor
 | `stats_hub_pause.py` | No - helper for `stream_telemetry_unified.py` |
 | `stream_telemetry_unified.py` | Yes - live positions, item pickups and match events to the host's telemetry relay |
 
+`stream_telemetry_unified.py` puts the engine match GUID (configstring 712, lower-case
+UUID) into `meta.match_guid` of the session lifecycle events `countdown_start`,
+`match_start` and `match_end`; it is omitted when the server does not know it yet. It
+is the key that ties a hub result, a `.qlmatch` pack and a tournament game together
+(see `addons/qlmatch-packer/assets/README.md` for the manifest side).
+
 These three only need the generic `minqlxtended` runtime, not the
 `alexeytihomirov/minqlxtended` fork specifically - nothing here touches the
 fork's native demo capture.
