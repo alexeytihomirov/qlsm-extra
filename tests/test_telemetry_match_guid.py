@@ -153,46 +153,14 @@ def test_upstream_minqlx_get_configstring_still_works(monkeypatch):
     assert st.read_configstring(712) == GUID
 
 
-def _loaded_plugin(monkeypatch, cs, state, running=False):
-    """Bare plugin on which the load-time seeding runs, in the given game state."""
-    p, posted, _ = _plugin(monkeypatch, cs)
-    p._session_match_running = running
-    p.game = type("G", (), {"state": state})() if state else None
-    p._seed_last_end_guid()
-    return p, posted
+def test_plugin_load_does_not_remember_the_warmup_guid():
+    """QL sets 712 to the NEXT game's guid already in warmup (seen live 2026-10-15: the guid 712
+    held right after a restart was the one the following game played with). Remembering it at
+    load as "the previous game's" dropped that game's guid."""
+    assert not hasattr(st.stream_telemetry_unified, "_seed_last_end_guid")
 
 
-def test_reload_in_warmup_seeds_the_previous_guid(monkeypatch):
-    p, _ = _loaded_plugin(monkeypatch, GUID, "warmup")
-    assert p._last_end_guid == GUID.lower()
-
-
-@pytest.mark.parametrize("state", ["in_progress", "countdown", None])
-def test_reload_during_a_game_does_not_seed(monkeypatch, state):
-    p, _ = _loaded_plugin(monkeypatch, GUID, state)
-    assert p._last_end_guid is None
-
-
-def test_reload_with_match_running_does_not_seed(monkeypatch):
-    p, _ = _loaded_plugin(monkeypatch, GUID, "warmup", running=True)
-    assert p._last_end_guid is None
-
-
-def test_reload_seed_survives_a_bad_configstring(monkeypatch):
-    p, _ = _loaded_plugin(monkeypatch, RuntimeError("boom"), "warmup")
-    assert p._last_end_guid is None
-
-
-def test_countdown_after_warmup_reload_with_stale_712_omits_the_guid(monkeypatch):
-    p, posted = _loaded_plugin(monkeypatch, GUID, "warmup")
+def test_countdown_right_after_a_reload_sends_the_guid(monkeypatch):
+    p, posted, _ = _plugin(monkeypatch, GUID)
     p.on_game_countdown()
-    assert "match_guid" not in posted[-1][1]
-    assert ("warning", "match_guid %s equals the previous game's; omitted" % GUID.lower()) in p.logger.records
-
-
-def test_countdown_after_warmup_reload_with_new_guid_is_sent(monkeypatch):
-    cs = [GUID]
-    p, posted = _loaded_plugin(monkeypatch, cs, "warmup")
-    cs[0] = GUID2
-    p.on_game_countdown()
-    assert posted[-1][1]["match_guid"] == GUID2.lower()
+    assert posted[-1][1]["match_guid"] == GUID.lower()

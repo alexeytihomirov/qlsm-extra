@@ -438,22 +438,6 @@ class stream_telemetry_unified(minqlx.Plugin):
                 "on %ss TTL fallback only (still avoids per-frame cvars parsing)",
                 self._FOV_CACHE_TTL_SEC,
             )
-        self._seed_last_end_guid()
-
-    def _seed_last_end_guid(self):
-        """After a reload, treat the guid 712 holds between games as the previous game's.
-
-        Not seeded while a game is live (712 is then the current game's guid).
-        """
-        if self._session_match_running:
-            return
-        state = getattr(self.game, "state", None) if self.game else None
-        if state != "warmup":
-            return
-        try:
-            self._last_end_guid = normal_match_guid(read_configstring(712))
-        except Exception as exc:
-            self._warn_match_guid_read(exc)
 
     # ======================================================================
     # Shared helpers (identical across all three source plugins — kept once)
