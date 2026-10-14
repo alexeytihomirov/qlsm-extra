@@ -33,12 +33,15 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { QLDemoParser } from "./vendor/qldemo/demo-parser.js";
 import { zipSync } from "./zip-store.mjs";
+import { matchIdentity } from "./match-identity.mjs";
 
 const DM91 = ".dm_91";
 // Mirrors demo_match.c DEMO_MIN_WINDOW_MS: a shared window shorter than this
 // is meaningless and the contract says fail the pack rather than ship it.
 const DEFAULT_MIN_WINDOW_MS = 5000;
 const SIDECAR_TIMEOUT_MS = 10 * 60 * 1000;
+// The engine writes the match GUID into this configstring of every gamestate.
+const CS_MATCH_GUID = 712;
 
 function log(...args) {
   console.log("packer:", ...args);
@@ -299,7 +302,7 @@ function renderName(template, ctx) {
 // and a full rebuild simply replaces it. A failure only costs the labels -
 // the listing falls back to parsing the engine's own filenames - so it is
 // logged, never fatal to the pack.
-function writeMatchMeta(args, { mapName, gametype, window, players, entries, packName }) {
+function writeMatchMeta(args, { mapName, gametype, window, players, entries, packName, identity }) {
   const startedFrom = Number.isFinite(window?.game_start_server_time) && window.game_start_server_time > 0
     ? window.game_start_server_time
     : window?.start_server_time;
@@ -313,7 +316,12 @@ function writeMatchMeta(args, { mapName, gametype, window, players, entries, pac
     map: mapName,
     gametype,
     duration_ms: duration > 0 ? duration : null,
-    players: players.map((p) => ({ name: stripColors(p.name), team: String(p.team ?? "") })),
+    ...(identity.match_guid ? { match_guid: identity.match_guid } : {}),
+    players: players.map((p, i) => ({
+      name: stripColors(p.name),
+      team: String(p.team ?? ""),
+      steam_id64: identity.players[i]?.steam_id64 ?? null,
+    })),
     povs: entries.map((e) => ({ file: e.base, client_num: e.clientNum, name: stripColors(e.name) })),
     pack: packName,
     written_at: new Date().toISOString(),
@@ -356,7 +364,8 @@ function main() {
       gs.spectators?.[clientNum]?.n ||
       nameFromBasename(basename(path), args.matchId, args.map || mapNameOf(parser) || "") ||
       String(clientNum));
-    entries.push({ path, base: basename(path), bytes, index, parser, clientNum, name });
+    const guidFromGamestate = String(parser.gamestate.configstrings?.[CS_MATCH_GUID] ?? "");
+    entries.push({ path, base: basename(path), bytes, index, parser, clientNum, name, guidFromGamestate });
     log(
       `  ${basename(path)}: client_num ${clientNum} "${stripColors(name)}"` +
         (index
@@ -403,19 +412,25 @@ function main() {
     name: e.name,
     index: e.index ? `index/${basename(indexPathFor(e.path))}` : null,
   }));
+  const identity = matchIdentity(entries, roster);
+  for (const w of identity.warnings) log("warning:", w);
   const manifest = {
     format: "ql-match",
-    version: 1,
+    version: 2,
     match_id: args.matchId,
+    ...(identity.match_guid ? { match_guid: identity.match_guid } : {}),
     map: mapName,
     gametype: String(gametype),
     index_framing: "with_header",
     window,
+    players: identity.players,
     demos,
   };
 
   // Filename template context.
-  const players = [...roster.values()];
+  // Same order as identity.players (roster sorted by client number) so
+  // writeMatchMeta can pair steam ids by position.
+  const players = identity.players.map((p) => ({ name: p.name, team: p.team }));
   const red = players.filter((p) => p.team === "1");
   const blue = players.filter((p) => p.team === "2");
   const names = (list) => list.map((p) => sanitizeToken(p.name)).filter(Boolean).join("-");
@@ -455,7 +470,7 @@ function main() {
   renameSync(partPath, outPath);
   const size = statSync(outPath).size;
   log(`wrote ${outPath} (${entries.length} POV(s), ${size} bytes, gametype ${ctx.gametype})`);
-  writeMatchMeta(args, { mapName, gametype: ctx.gametype, window, players, entries, packName: outDir === args.dir ? outName : null });
+  writeMatchMeta(args, { mapName, gametype: ctx.gametype, window, players, entries, packName: outDir === args.dir ? outName : null, identity });
 
   // Replay sidecar: merge the N POVs into one deduplicated replay-v2 JSON
   // ({match_id}_{map}.replay.json.gz next to the pack, never inside the zip

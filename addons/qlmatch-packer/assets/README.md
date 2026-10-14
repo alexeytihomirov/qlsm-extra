@@ -42,6 +42,20 @@ node pack.mjs --dir <demo_dir> --match-id <stamp> [--map <map>]
 Exit codes: 0 ok; 2 window validation failed (empty/short POV overlap — no
 zip written, raw files left in place); 3 no POV files for the match; 5 usage/IO error.
 
+## Manifest v2 and match identity
+
+`manifest.json` is `version: 2` (since addon 1.3.0). Added, all optional for readers:
+
+- `match_guid` - the engine match GUID (configstring 712), lower-case UUID. Taken from the
+  POV index files (`"match_guid"`) when they agree; if they disagree it is omitted and a
+  warning goes to the packer log; if no index has one, from the demo gamestate. Omitted
+  when nothing valid is found.
+- `players[]` - `{steam_id64, name, team, client_num}` for every roster player.
+  `steam_id64` (17-digit string) comes from the player's own POV index only, else `null`.
+
+`{match_id}.meta.json` stays `version: 1` and gains optional `match_guid` and
+`players[].steam_id64`.
+
 ## Replay sidecar
 
 After writing a pack, `pack.mjs` spawns `qlmatch-to-replay.mjs` (child
