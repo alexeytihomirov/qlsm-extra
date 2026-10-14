@@ -166,6 +166,17 @@ def forwarded_command(cmd):
     return text if head in _FORWARDED_COMMANDS else None
 
 
+_MATCH_GUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+
+
+def normal_match_guid(raw):
+    """The engine match GUID (configstring 712) as a lower-case UUID, or None if it is not one."""
+    if not isinstance(raw, str):
+        return None
+    text = raw.strip().lower()
+    return text if len(text) == 36 and _MATCH_GUID_RE.fullmatch(text) else None
+
+
 # chat_rcon consumes `!rcon` chat lines, which can carry passwords (`!rcon g_password X`);
 # they must not reach the hub's chat archive.
 _UNFORWARDED_CHAT_HEAD = "!rcon"
@@ -1877,11 +1888,19 @@ class stream_telemetry_unified(minqlx.Plugin):
             return
         self._post_session_events_now([row])
 
+    def _match_guid(self):
+        try:
+            return normal_match_guid(minqlx.get_configstring(712))
+        except Exception:
+            return None
+
     def on_game_countdown(self):
         level_ms = self._level_time_ms()
-        self._post_session_lifecycle_now(
-            "countdown_start", game_time_ms=level_ms, meta={"level_time_ms": level_ms}
-        )
+        meta = {"level_time_ms": level_ms}
+        guid = self._match_guid()
+        if guid:
+            meta["match_guid"] = guid
+        self._post_session_lifecycle_now("countdown_start", game_time_ms=level_ms, meta=meta)
         return minqlx.Return.NONE
 
     def on_game_start(self):
@@ -1901,6 +1920,9 @@ class stream_telemetry_unified(minqlx.Plugin):
             "timelimit_sec": self._timelimit_sec(),
             "fraglimit": self._fraglimit(),
         }
+        guid = self._match_guid()
+        if guid:
+            meta["match_guid"] = guid
         self._post_session_lifecycle_now("match_start", game_time_ms=0, meta=meta)
         return minqlx.Return.NONE
 
@@ -1913,6 +1935,9 @@ class stream_telemetry_unified(minqlx.Plugin):
             "level_time_ms": self._level_time_ms(),
         }
         meta["end_reason"] = "abort" if aborted else "ended"
+        guid = self._match_guid()
+        if guid:
+            meta["match_guid"] = guid
         winner = self._winner_steam_id64(players)
         if winner:
             meta["winner_steam_id64"] = winner

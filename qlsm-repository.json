@@ -68,7 +68,7 @@
         "telemetry_unified_sched.py",
         "stats_hub_pause.py"
       ],
-      "sha256": "7558c1222d6e9eef69acb6db77feb9ce01c521b1f77f35081b93bf7a06635619"
+      "sha256": "9f11235c2f273c1dac00b99983134d69aa312f0edae27726d7b2e3f71c0f6e93"
     },
     {
       "filename": "telemetry_unified_sched.py",
