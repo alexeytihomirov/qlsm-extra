@@ -64,6 +64,36 @@ def test_gamestate_guid_when_no_index_has_one():
     assert out['match_guid'] == G.lower()
 
 
+NO_FORK_WARNING = 'no match_guid in the POV indexes; gamestate fallback skipped (new fork indexes)'
+
+
+def test_new_fork_indexes_without_guid_skip_the_gamestate_fallback():
+    out = _run([
+        {'clientNum': 0, 'index': {'steam_id64': S1}, 'guidFromGamestate': G},
+        {'clientNum': 1, 'index': {'steam_id64': S2}, 'guidFromGamestate': G},
+    ], ROSTER)
+    assert out['match_guid'] is None
+    assert NO_FORK_WARNING in out['warnings']
+
+
+def test_one_new_fork_index_is_enough_to_skip_the_fallback():
+    out = _run([
+        {'clientNum': 0, 'index': {}, 'guidFromGamestate': G},
+        {'clientNum': 1, 'index': {'steam_id64': S2}, 'guidFromGamestate': G},
+    ], ROSTER)
+    assert out['match_guid'] is None
+    assert NO_FORK_WARNING in out['warnings']
+
+
+def test_old_fork_indexes_without_guid_use_the_gamestate_guid():
+    out = _run([
+        {'clientNum': 0, 'index': {'name': 'a'}, 'guidFromGamestate': G},
+        {'clientNum': 1, 'index': {}, 'guidFromGamestate': G},
+    ], ROSTER)
+    assert out['match_guid'] == G.lower()
+    assert NO_FORK_WARNING not in out['warnings']
+
+
 def test_roster_player_without_own_pov_has_null_steam_id():
     roster = dict(ROSTER)
     roster[2] = {'name': 'c', 'team': '2'}
@@ -78,7 +108,8 @@ def test_malformed_values_are_absent():
     out = _run([
         {'clientNum': 0, 'index': {'match_guid': 'not-a-guid', 'steam_id64': '123'}},
     ], ROSTER)
-    assert out['match_guid'] is None and out['warnings'] == []
+    assert out['match_guid'] is None
+    assert out['warnings'] == [NO_FORK_WARNING]  # the steam_id64 key marks a new-fork index
     assert out['players'][0]['steam_id64'] is None
 
 

@@ -48,8 +48,10 @@ zip written, raw files left in place); 3 no POV files for the match; 5 usage/IO 
 
 - `match_guid` - the engine match GUID (configstring 712), lower-case UUID. Taken from the
   POV index files (`"match_guid"`) when they agree; if they disagree it is omitted and a
-  warning goes to the packer log; if no index has one, from the demo gamestate. Omitted
-  when nothing valid is found.
+  warning goes to the packer log; if no index has one, from the demo gamestate - but only
+  when no index is from the new fork (none has a `steam_id64` key). New-fork indexes without
+  a guid mean the engine refused a stale one, so the manifest gets no `match_guid` and the
+  log gets a warning (addon 1.3.1). Omitted when nothing valid is found.
 - `players[]` - `{steam_id64, name, team, client_num}` for every roster player.
   `steam_id64` (17-digit string) comes from the player's own POV index only, else `null`.
 

@@ -3,7 +3,7 @@
 //
 // Sources: the C-written POV index files carry optional "match_guid" and
 // "steam_id64" keys; the demo's own gamestate carries configstring 712 as a
-// fallback for the GUID. Values that do not look right are treated as absent,
+// fallback for the GUID (only for indexes from before the fork wrote steam_id64). Values that do not look right are treated as absent,
 // never written.
 
 const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -40,6 +40,10 @@ export function matchIdentity(entries, roster) {
     matchGuid = [...indexGuids][0];
   } else if (indexGuids.size > 1) {
     warnings.push(`POV indexes disagree on match_guid (${[...indexGuids].join(", ")}) - not writing one`);
+  } else if (entries.some((e) => e.index && Object.hasOwn(e.index, "steam_id64"))) {
+    // New fork: a missing index guid means the engine refused a stale one, and
+    // the gamestate (recording start) holds exactly that value.
+    warnings.push("no match_guid in the POV indexes; gamestate fallback skipped (new fork indexes)");
   } else {
     for (const e of entries) {
       const g = normalizeGuid(e.guidFromGamestate);
