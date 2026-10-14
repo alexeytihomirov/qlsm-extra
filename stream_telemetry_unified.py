@@ -343,6 +343,9 @@ class stream_telemetry_unified(minqlx.Plugin):
         self._pause_lifecycle_open = False
         self._pause_wall_at = None
         self._pause_reason = None
+        # match_guid sent with the last match_end: 712 can still hold it when
+        # the next game starts, and it must not tie that game to the old one.
+        self._last_end_guid = None
         self._last_sv_paused = None
 
         # --- cvars (shared with the three standalone plugins, plus the one new switch) ---
@@ -1890,9 +1893,14 @@ class stream_telemetry_unified(minqlx.Plugin):
 
     def _match_guid(self):
         try:
-            return normal_match_guid(minqlx.get_configstring(712))
-        except Exception:
+            guid = normal_match_guid(minqlx.get_configstring(712))
+        except Exception as exc:
+            self.logger.debug("stream_telemetry_unified: reading match_guid failed: %s", exc)
             return None
+        if guid and guid == self._last_end_guid:
+            self.logger.warning("match_guid %s equals the previous game's; omitted", guid)
+            return None
+        return guid
 
     def on_game_countdown(self):
         level_ms = self._level_time_ms()
@@ -1938,6 +1946,7 @@ class stream_telemetry_unified(minqlx.Plugin):
         guid = self._match_guid()
         if guid:
             meta["match_guid"] = guid
+            self._last_end_guid = guid
         winner = self._winner_steam_id64(players)
         if winner:
             meta["winner_steam_id64"] = winner

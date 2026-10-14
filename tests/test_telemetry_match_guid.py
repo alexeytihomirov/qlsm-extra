@@ -11,20 +11,34 @@ from _minqlx_stub import bare_instance, import_plugin  # noqa: E402
 pytestmark = pytest.mark.standalone
 
 GUID = "0F8FAD5B-D9CB-469F-A165-70867728950E"
+GUID2 = "1B4E28BA-2FA1-11D2-883F-0016D3CCA427"
 
 st = import_plugin("stream_telemetry_unified")
 
 
-def _plugin(monkeypatch, configstring):
-    """Bare plugin whose lifecycle posts are captured as (kind, meta)."""
+class _Log:
+    def __init__(self):
+        self.records = []
+
+    def __getattr__(self, level):
+        return lambda msg, *args: self.records.append((level, msg % args if args else msg))
+
+
+def _plugin(monkeypatch, configstring, last_end_guid=None):
+    """Bare plugin whose lifecycle posts are captured as (kind, meta).
+
+    configstring is the value 712 holds, or a one-element list whose item can be
+    swapped between events.
+    """
     posted = []
     calls = []
+    box = configstring if isinstance(configstring, list) else [configstring]
 
     def get_configstring(index):
         calls.append(index)
-        if isinstance(configstring, Exception):
-            raise configstring
-        return configstring
+        if isinstance(box[0], Exception):
+            raise box[0]
+        return box[0]
 
     monkeypatch.setattr(st.minqlx, "get_configstring", get_configstring, raising=False)
     p = bare_instance(
@@ -36,6 +50,8 @@ def _plugin(monkeypatch, configstring):
         _resolve_match_end_game_time_ms=lambda meta: None,
         _pause_lifecycle_open=False,
         _post_session_lifecycle_now=lambda kind, *, game_time_ms=None, meta=None: posted.append((kind, meta)),
+        _last_end_guid=last_end_guid,
+        logger=_Log(),
     )
     return p, posted, calls
 
@@ -72,3 +88,44 @@ def test_lifecycle_without_guid_has_no_key(monkeypatch, kind, raw):
     _fire(p, kind)
     assert posted[-1][0] == kind
     assert "match_guid" not in posted[-1][1]
+
+
+@pytest.mark.parametrize("kind", ["countdown_start", "match_start", "match_end"])
+def test_guid_equal_to_previous_end_is_omitted(monkeypatch, kind):
+    p, posted, _ = _plugin(monkeypatch, GUID, last_end_guid=GUID.lower())
+    _fire(p, kind)
+    assert posted[-1][0] == kind
+    assert "match_guid" not in posted[-1][1]
+    assert ("warning", "match_guid %s equals the previous game's; omitted" % GUID.lower()) in p.logger.records
+
+
+@pytest.mark.parametrize("kind", ["countdown_start", "match_start", "match_end"])
+def test_guid_different_from_previous_end_is_sent(monkeypatch, kind):
+    p, posted, _ = _plugin(monkeypatch, GUID2, last_end_guid=GUID.lower())
+    _fire(p, kind)
+    assert posted[-1][1]["match_guid"] == GUID2.lower()
+    assert not [r for r in p.logger.records if r[0] == "warning"]
+
+
+def test_match_end_remembers_the_guid_it_sent(monkeypatch):
+    cs = [GUID]
+    p, posted, _ = _plugin(monkeypatch, cs)
+    p.on_game_end(False)
+    assert posted[-1][1]["match_guid"] == GUID.lower()
+    # The next game's countdown still sees the old value in 712: omitted.
+    p.on_game_countdown()
+    assert "match_guid" not in posted[-1][1]
+    # 712 moves on: the new guid is sent and, at its end, becomes the previous one.
+    cs[0] = GUID2
+    p.on_game_start()
+    assert posted[-1][1]["match_guid"] == GUID2.lower()
+    p.on_game_end(False)
+    assert posted[-1][1]["match_guid"] == GUID2.lower()
+    assert p._last_end_guid == GUID2.lower()
+
+
+def test_guid_read_failure_is_logged_at_debug(monkeypatch):
+    p, posted, _ = _plugin(monkeypatch, RuntimeError("boom"))
+    p.on_game_countdown()
+    assert "match_guid" not in posted[-1][1]
+    assert [r for r in p.logger.records if r[0] == "debug" and "boom" in r[1]]
