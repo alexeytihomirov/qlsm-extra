@@ -302,13 +302,14 @@ function renderName(template, ctx) {
 // and a full rebuild simply replaces it. A failure only costs the labels -
 // the listing falls back to parsing the engine's own filenames - so it is
 // logged, never fatal to the pack.
-function writeMatchMeta(args, { mapName, gametype, window, players, entries, packName, identity }) {
+function writeMatchMeta(args, { mapName, gametype, window, roster, entries, packName, identity }) {
   const startedFrom = Number.isFinite(window?.game_start_server_time) && window.game_start_server_time > 0
     ? window.game_start_server_time
     : window?.start_server_time;
   const duration = Number.isFinite(window?.end_server_time) && Number.isFinite(startedFrom)
     ? window.end_server_time - startedFrom
     : null;
+  const steamByClient = new Map(identity.players.map((p) => [p.client_num, p.steam_id64]));
   const meta = {
     format: "qlsm-demo-meta",
     version: 1,
@@ -317,10 +318,10 @@ function writeMatchMeta(args, { mapName, gametype, window, players, entries, pac
     gametype,
     duration_ms: duration > 0 ? duration : null,
     ...(identity.match_guid ? { match_guid: identity.match_guid } : {}),
-    players: players.map((p, i) => ({
+    players: [...roster.entries()].map(([cn, p]) => ({
       name: stripColors(p.name),
       team: String(p.team ?? ""),
-      steam_id64: identity.players[i]?.steam_id64 ?? null,
+      steam_id64: steamByClient.get(cn) ?? null,
     })),
     povs: entries.map((e) => ({ file: e.base, client_num: e.clientNum, name: stripColors(e.name) })),
     pack: packName,
@@ -428,9 +429,7 @@ function main() {
   };
 
   // Filename template context.
-  // Same order as identity.players (roster sorted by client number) so
-  // writeMatchMeta can pair steam ids by position.
-  const players = identity.players.map((p) => ({ name: p.name, team: p.team }));
+  const players = [...roster.values()];
   const red = players.filter((p) => p.team === "1");
   const blue = players.filter((p) => p.team === "2");
   const names = (list) => list.map((p) => sanitizeToken(p.name)).filter(Boolean).join("-");
@@ -470,7 +469,7 @@ function main() {
   renameSync(partPath, outPath);
   const size = statSync(outPath).size;
   log(`wrote ${outPath} (${entries.length} POV(s), ${size} bytes, gametype ${ctx.gametype})`);
-  writeMatchMeta(args, { mapName, gametype: ctx.gametype, window, players, entries, packName: outDir === args.dir ? outName : null, identity });
+  writeMatchMeta(args, { mapName, gametype: ctx.gametype, window, roster, entries, packName: outDir === args.dir ? outName : null, identity });
 
   // Replay sidecar: merge the N POVs into one deduplicated replay-v2 JSON
   // ({match_id}_{map}.replay.json.gz next to the pack, never inside the zip

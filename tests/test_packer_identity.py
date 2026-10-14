@@ -80,3 +80,70 @@ def test_malformed_values_are_absent():
     ], ROSTER)
     assert out['match_guid'] is None and out['warnings'] == []
     assert out['players'][0]['steam_id64'] is None
+
+
+def test_later_gamestate_guid_used_when_first_is_invalid():
+    # documented rule: the first VALID guidFromGamestate wins
+    out = _run([
+        {'clientNum': 0, 'index': None, 'guidFromGamestate': 'garbage'},
+        {'clientNum': 1, 'index': None, 'guidFromGamestate': G},
+    ], ROSTER)
+    assert out['match_guid'] == G.lower()
+
+
+# ---- end to end: pack.mjs on a synthesized gamestate-only POV set -----------
+
+import zipfile  # noqa: E402
+
+TESTS_DIR = Path(__file__).resolve().parent
+PACK_MJS = TESTS_DIR.parent / 'addons' / 'qlmatch-packer' / 'assets' / 'pack.mjs'
+MATCH_ID = '20260101T000000Z'
+
+
+def _pack(tmp_path, extra_args=()):
+    spec = {
+        'map': 'bloodrun', 'guid': G,
+        'povs': [
+            # POV 0 knows clients 0 and 2 only; POV 1 knows 0, 1 and 2, so the
+            # roster is built in the order 0, 2, 1 (insertion order != client order)
+            {'client_num': 0, 'roster': {'0': {'n': 'alpha', 't': '1'}, '2': {'n': 'gamma', 't': '1'}},
+             'index': {'match_guid': G, 'steam_id64': S1}},
+            {'client_num': 1, 'roster': {'0': {'n': 'alpha', 't': '1'}, '1': {'n': 'beta', 't': '2'},
+                                         '2': {'n': 'gamma', 't': '1'}},
+             'index': {'match_guid': G, 'steam_id64': S2}},
+        ],
+    }
+    spec_path = tmp_path / 'spec.json'
+    spec_path.write_text(json.dumps(spec))
+    demo_dir = tmp_path / 'demos'
+    demo_dir.mkdir()
+    node = shutil.which('node')
+    subprocess.run([node, str(TESTS_DIR / 'packer_fixture.mjs'), str(demo_dir), MATCH_ID, str(spec_path)],
+                   check=True)
+    subprocess.run([node, str(PACK_MJS), '--dir', str(demo_dir), '--match-id', MATCH_ID, *extra_args],
+                   check=True, capture_output=True, text=True)
+    return demo_dir
+
+
+def test_pack_end_to_end_manifest_v2_and_unchanged_names(tmp_path):
+    demo_dir = _pack(tmp_path)
+    pack = demo_dir / f'{MATCH_ID}_bloodrun.qlmatch'
+    assert pack.exists()
+    manifest = json.loads(zipfile.ZipFile(pack).read('manifest.json'))
+    assert manifest['version'] == 2
+    assert manifest['match_guid'] == G.lower()
+    by_cn = {p['client_num']: p for p in manifest['players']}
+    assert by_cn[0]['steam_id64'] == S1 and by_cn[1]['steam_id64'] == S2
+    assert by_cn[2]['steam_id64'] is None
+
+    meta = json.loads((demo_dir / f'{MATCH_ID}.meta.json').read_text())
+    assert meta['version'] == 1 and meta['match_guid'] == G.lower()
+    # original roster insertion order (0, 2, 1) is kept in meta
+    assert [(p['name'], p['steam_id64']) for p in meta['players']] == [
+        ('alpha', S1), ('gamma', None), ('beta', S2)]
+
+
+def test_pack_name_template_players_keeps_roster_insertion_order(tmp_path):
+    demo_dir = _pack(tmp_path, ['--name-template', '{match_id}_{players}'])
+    # before this change: [...roster.values()] order = alpha, gamma, beta
+    assert (demo_dir / f'{MATCH_ID}_alpha-gamma-beta.qlmatch').exists()
