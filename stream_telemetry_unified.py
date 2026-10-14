@@ -1849,9 +1849,14 @@ class stream_telemetry_unified(minqlx.Plugin):
                 rows.append(row)
         return rows
 
-    def _winner_steam_id64(self, players):
+    def _winner_steam_id64(self, players, aborted=False):
         if not players:
             return None
+        if aborted:
+            # An aborted game is a forfeit: the one player still in the game wins,
+            # whatever the score. Two still playing (a vote stopped it) - no winner.
+            playing = [p for p in players if p.get("team") != "spectator"]
+            return playing[0].get("steam_id64") if len(playing) == 1 else None
         best = max(players, key=lambda p: p.get("score", 0))
         if best.get("score", 0) <= 0:
             return None
@@ -1966,7 +1971,7 @@ class stream_telemetry_unified(minqlx.Plugin):
         if guid:
             meta["match_guid"] = guid
             self._last_end_guid = guid
-        winner = self._winner_steam_id64(players)
+        winner = self._winner_steam_id64(players, aborted)
         if winner:
             meta["winner_steam_id64"] = winner
         end_ms = self._resolve_match_end_game_time_ms(meta)
