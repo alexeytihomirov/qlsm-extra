@@ -177,6 +177,18 @@ def normal_match_guid(raw):
     return text if len(text) == 36 and _MATCH_GUID_RE.fullmatch(text) else None
 
 
+def read_configstring(index):
+    """The engine's configstring at `index`, read fresh.
+
+    minqlxtended has no get_configstring: it reads with configstring(index, cached=...).
+    Upstream minqlx has get_configstring(index) only.
+    """
+    reader = getattr(minqlx, "configstring", None)
+    if callable(reader):
+        return reader(index, cached=False)
+    return minqlx.get_configstring(index)
+
+
 # chat_rcon consumes `!rcon` chat lines, which can carry passwords (`!rcon g_password X`);
 # they must not reach the hub's chat archive.
 _UNFORWARDED_CHAT_HEAD = "!rcon"
@@ -439,9 +451,9 @@ class stream_telemetry_unified(minqlx.Plugin):
         if state != "warmup":
             return
         try:
-            self._last_end_guid = normal_match_guid(minqlx.get_configstring(712))
+            self._last_end_guid = normal_match_guid(read_configstring(712))
         except Exception as exc:
-            self.logger.debug("stream_telemetry_unified: seeding previous match_guid failed: %s", exc)
+            self._warn_match_guid_read(exc)
 
     # ======================================================================
     # Shared helpers (identical across all three source plugins — kept once)
@@ -1907,11 +1919,18 @@ class stream_telemetry_unified(minqlx.Plugin):
             return
         self._post_session_events_now([row])
 
+    def _warn_match_guid_read(self, exc):
+        # Once per load: a broken read repeats every game, one line says enough.
+        if getattr(self, "_match_guid_read_warned", False):
+            return
+        self._match_guid_read_warned = True
+        self.logger.warning("stream_telemetry_unified: reading match_guid (configstring 712) failed: %s", exc)
+
     def _match_guid(self):
         try:
-            guid = normal_match_guid(minqlx.get_configstring(712))
+            guid = normal_match_guid(read_configstring(712))
         except Exception as exc:
-            self.logger.debug("stream_telemetry_unified: reading match_guid failed: %s", exc)
+            self._warn_match_guid_read(exc)
             return None
         if guid and guid == self._last_end_guid:
             self.logger.warning("match_guid %s equals the previous game's; omitted", guid)

@@ -124,11 +124,33 @@ def test_match_end_remembers_the_guid_it_sent(monkeypatch):
     assert p._last_end_guid == GUID2.lower()
 
 
-def test_guid_read_failure_is_logged_at_debug(monkeypatch):
+def test_guid_read_failure_is_a_warning_once(monkeypatch):
     p, posted, _ = _plugin(monkeypatch, RuntimeError("boom"))
     p.on_game_countdown()
+    p.on_game_start()
     assert "match_guid" not in posted[-1][1]
-    assert [r for r in p.logger.records if r[0] == "debug" and "boom" in r[1]]
+    warnings = [r for r in p.logger.records if r[0] == "warning" and "boom" in r[1]]
+    assert len(warnings) == 1
+
+
+def test_minqlxtended_configstring_api_is_used(monkeypatch):
+    """minqlxtended has no get_configstring; it reads configstrings with configstring(index, cached=...)."""
+    calls = []
+
+    def configstring(index, cached=True):
+        calls.append((index, cached))
+        return GUID
+
+    monkeypatch.delattr(st.minqlx, "get_configstring", raising=False)
+    monkeypatch.setattr(st.minqlx, "configstring", configstring, raising=False)
+    assert st.read_configstring(712) == GUID
+    assert calls == [(712, False)]
+
+
+def test_upstream_minqlx_get_configstring_still_works(monkeypatch):
+    monkeypatch.delattr(st.minqlx, "configstring", raising=False)
+    monkeypatch.setattr(st.minqlx, "get_configstring", lambda index: GUID if index == 712 else "", raising=False)
+    assert st.read_configstring(712) == GUID
 
 
 def _loaded_plugin(monkeypatch, cs, state, running=False):
