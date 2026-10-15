@@ -179,3 +179,14 @@ def test_downsample_keeps_spikes_and_sums_counts(conn):
     assert max(r["p99_ms"] for r in rows) == 50.0
     assert sum(r["late"] for r in rows) == n
     assert sum(r["frames"] for r in rows) == 10 * n
+
+
+def test_close_all_open_closes_only_open_events(conn):
+    a = hm_store.insert_event(conn, 100, "mem_low", "host", None, "warn", "m")
+    b = hm_store.insert_event(conn, 110, "core_saturated", "core", None, "warn", "c")
+    hm_store.close_event(conn, b, 120)
+    assert hm_store.close_all_open(conn, 500) == 1
+    rows = {e["id"]: e for e in hm_store.events(conn, 0)}
+    assert rows[a]["state"] == "closed" and rows[a]["closed_ts"] == 500
+    assert rows[b]["closed_ts"] == 120
+    assert hm_store.close_all_open(conn, 600) == 0

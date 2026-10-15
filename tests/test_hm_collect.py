@@ -1,0 +1,235 @@
+"""Collector loop: tick() on a fixture tree with advancing counters, fake Redis and clock."""
+import json
+import shutil
+import sys
+from pathlib import Path
+
+import pytest
+
+pytestmark = pytest.mark.standalone
+
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "addons" / "host-metrics" / "assets"))
+
+import hm_collect  # noqa: E402
+import hm_readers  # noqa: E402
+import hm_store  # noqa: E402
+
+FIXTURE = REPO / "tests" / "fixtures" / "host-metrics" / "germany"
+SLICE = "sys/fs/cgroup/system.slice/system-qlds.slice"
+T0 = 1_700_000_000
+
+
+class FakeRedis:
+    def __init__(self):
+        self.data = {}
+        self.down = False
+
+    def get(self, key):
+        if self.down:
+            raise OSError("redis down")
+        v = self.data.get(key)
+        return None if v is None else (v if isinstance(v, bytes) else json.dumps(v).encode())
+
+
+class Env:
+    def __init__(self, tmp_path):
+        self.root = tmp_path / "root"
+        shutil.copytree(FIXTURE, self.root)
+        self.now = float(T0)
+        self.redis = FakeRedis()
+        self.db = tmp_path / "m.db"
+        self.usage = 1_000_000_000
+        self._write_usage(27960, self.usage)
+
+    def clock(self):
+        return self.now
+
+    def collector(self, store=True):
+        cfg = {"db_path": str(self.db), "thresholds": {}}
+        return hm_collect.Collector(
+            cfg, root=str(self.root), redis=self.redis, clock=self.clock,
+            affinity=lambda port: 1, disk=lambda: {"used": 10, "total": 100}, store=store)
+
+    def _inst_dir(self, port):
+        return self.root / SLICE / ("qlds@%d.service" % port)
+
+    def _write_usage(self, port, usec):
+        d = self._inst_dir(port)
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "cpu.stat").write_text("usage_usec %d\nuser_usec 1\n" % usec)
+        (d / "memory.current").write_text("90624000\n")
+        (d / "memory.events").write_text("low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\n")
+
+    def advance(self, seconds=10, usage_s=None, port=27960):
+        self.now += seconds
+        if usage_s is not None:
+            self.usage += int(usage_s * 1_000_000)
+            self._write_usage(port, self.usage)
+
+    def set_usage(self, usec, port=27960):
+        self.usage = usec
+        self._write_usage(port, usec)
+
+    def remove_instance(self, port):
+        shutil.rmtree(self._inst_dir(port))
+
+
+@pytest.fixture
+def env(tmp_path):
+    return Env(tmp_path)
+
+
+def _inst(sample, port=27960):
+    return next(i for i in sample["insts"] if i["port"] == port)
+
+
+def test_first_tick_has_no_rates_second_has_rates(env):
+    col = env.collector()
+    s1 = col.tick()
+    assert s1["ts"] == T0
+    assert s1["cores"][0]["core"] == -1
+    assert s1["cores"][0]["busy"] is None
+    assert s1["host"]["rx_bps"] is None
+    assert _inst(s1)["cpu"] is None
+    assert s1["host"]["mem_total"] > 0 and s1["host"]["disk_total"] == 100
+    env.advance(10, usage_s=1)
+    # advance the aggregate cpu line so a rate exists
+    stat = env.root / "proc/stat"
+    lines = stat.read_text().splitlines()
+    lines[0] = "cpu  48075331 59663 19512832 883475785 688454 0 3228592 0 0 0"
+    stat.write_text("\n".join(lines) + "\n")
+    s2 = col.tick()
+    assert s2["cores"][0]["core"] == -1
+    assert s2["cores"][0]["busy"] == pytest.approx(10.0)
+    assert _inst(s2)["cpu"] == pytest.approx(10.0)
+    rows = col.conn.execute("SELECT COUNT(*) FROM inst_raw").fetchone()[0]
+    assert rows == 2
+
+
+def test_instance_cpu_percent_of_one_core(env):
+    col = env.collector()
+    col.tick()
+    env.advance(10, usage_s=5)
+    assert _inst(col.tick())["cpu"] == pytest.approx(50.0)
+    env.advance(10, usage_s=20)
+    assert _inst(col.tick())["cpu"] == pytest.approx(200.0)
+
+
+def test_tick_after_counter_reset_skips_rate(env):
+    col = env.collector()
+    col.tick()
+    env.advance(10, usage_s=5)
+    col.tick()
+    env.advance(10)
+    env.set_usage(1_000_000)  # instance restarted: counter dropped
+    s = col.tick()
+    assert _inst(s)["cpu"] is None
+    env.advance(10, usage_s=2)
+    assert _inst(col.tick())["cpu"] == pytest.approx(20.0)
+    # host reboot: /proc/stat drops
+    stat = env.root / "proc/stat"
+    lines = stat.read_text().splitlines()
+    lines[0] = "cpu  10 0 10 100 0 0 0 0 0 0"
+    stat.write_text("\n".join(lines) + "\n")
+    env.advance(10)
+    s = col.tick()
+    assert all(c["busy"] is None for c in s["cores"] if c["core"] == -1)
+    for c in s["cores"]:
+        assert c["busy"] is None or 0 <= c["busy"] <= 100
+
+
+def test_dry_run_prints_sample_without_db(env, tmp_path, capsys, monkeypatch):
+    cfg = tmp_path / "config.json"
+    cfg.write_text(json.dumps({"db_path": str(env.db), "root": str(env.root), "redis_socket": None, "thresholds": {}}))
+    monkeypatch.setattr(hm_collect.hm_readers, "read_disk", lambda p="/": {"used": 1, "total": 2})
+    rc = hm_collect.main(["--config", str(cfg), "--once", "--dry-run"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert {"ts", "host", "cores", "insts", "oom_delta"} <= set(out)
+    assert not env.db.exists()
+
+
+def test_tick_without_redis_keys_writes_nulls(env):
+    col = env.collector()
+    s = col.tick()
+    i = _inst(s)
+    assert i["players"] is None and i["state"] is None and i["frames"] is None
+    row = col.conn.execute("SELECT players, state, map, frames, mem FROM inst_raw").fetchone()
+    assert row[:4] == (None, None, None, None) and row[4] == 90624000
+    # redis unreachable: still a row, nulls, loop keeps running
+    env.redis.down = True
+    env.advance(10)
+    s = col.tick()
+    assert _inst(s)["players"] is None and _inst(s)["frames"] is None
+    assert col.conn.execute("SELECT COUNT(*) FROM inst_raw").fetchone()[0] == 2
+
+
+def test_players_state_and_map_from_server_status(env):
+    env.redis.data["minqlx:server_status:27960"] = {
+        "players": [{"name": "a"}, {"name": "b"}], "maxplayers": 16,
+        "state": "in_progress", "map": "campgrounds"}
+    s = env.collector().tick()
+    i = _inst(s)
+    assert (i["players"], i["state"], i["map"]) == (2, "in_progress", "campgrounds")
+
+
+def test_frame_stats_only_when_seq_changes(env):
+    key = "minqlx:frame_stats:27960"
+    env.redis.data[key] = {"seq": 1, "frames": 500, "late": 3, "max_ms": 40.0,
+                           "p99_ms": 12.0, "tick_ms": 8.0}
+    col = env.collector()
+    i1 = _inst(col.tick())
+    assert (i1["frames"], i1["late"], i1["max_ms"], i1["tick_ms"]) == (500, 3, 40.0, 8.0)
+    env.advance(10)
+    i2 = _inst(col.tick())
+    assert i2["frames"] is None and i2["late"] is None and i2["p99_ms"] is None
+    env.redis.data[key]["seq"] = 2
+    env.advance(10)
+    assert _inst(col.tick())["frames"] == 500
+
+
+def test_instance_appears_and_disappears(env):
+    col = env.collector()
+    col.tick()
+    env._write_usage(27961, 5_000_000)
+    env.advance(10)
+    s = col.tick()
+    assert _inst(s, 27961)["cpu"] is None  # no rate on the first tick
+    env.remove_instance(27961)
+    env.advance(10)
+    s = col.tick()
+    assert [i["port"] for i in s["insts"]] == [27960]
+    kinds = [(e["kind"], e["port"]) for e in hm_store.events(col.conn, 0)]
+    assert sorted(kinds) == [("instance_gone", 27961), ("instance_new", 27961)]
+
+
+def test_oom_delta_at_top_level_and_event(env):
+    col = env.collector()
+    assert col.tick()["oom_delta"] == 0
+    vm = env.root / "proc/vmstat"
+    text = vm.read_text()
+    assert "oom_kill 0" in text
+    vm.write_text(text.replace("oom_kill 0", "oom_kill 2"))
+    env.advance(10)
+    s = col.tick()
+    assert s["oom_delta"] == 2
+    assert [e["kind"] for e in hm_store.events(col.conn, 0)] == ["oom_kill"]
+
+
+def test_startup_closes_stale_open_events(env):
+    conn = hm_store.open_db(env.db)
+    hm_store.insert_event(conn, T0 - 100, "mem_low", "host", None, "warn", "stale")
+    conn.close()
+    col = env.collector()
+    ev = hm_store.events(col.conn, 0)
+    assert ev[0]["state"] == "closed" and ev[0]["closed_ts"] == T0
+
+
+def test_maintain_rolls_up_once_a_minute(env):
+    col = env.collector()
+    for _ in range(7):
+        col.tick()
+        env.advance(10)
+    col.maintain(env.now)
+    assert col.conn.execute("SELECT COUNT(*) FROM host_min").fetchone()[0] >= 1

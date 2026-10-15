@@ -235,6 +235,14 @@ def close_event(conn, event_id, ts):
         conn.execute("UPDATE events SET state='closed', closed_ts=? WHERE id=?", (ts, event_id))
 
 
+def close_all_open(conn, ts):
+    """Close every open event (stale ones of a previous process). Returns the count."""
+    with conn:
+        cur = conn.execute("UPDATE events SET state='closed', closed_ts=? WHERE state='open'",
+                           (ts,))
+    return cur.rowcount
+
+
 def events(conn, since):
     """Events with ts >= since, newest first."""
     return _rows(conn, "SELECT * FROM events WHERE ts>=? ORDER BY ts DESC, id DESC", (since,))
