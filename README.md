@@ -93,6 +93,17 @@ game's value; logged as a warning). It
 is the key that ties a hub result, a `.qlmatch` pack and a tournament game together
 (see `addons/qlmatch-packer/assets/README.md` for the manifest side).
 
+`match_end` also carries `players[].stats` for every non-spectator: the engine's own
+end-of-game numbers (`Player.expanded_stats`, minqlxtended fork), read once on the game
+thread. Shape: `time_ms`, `dmg_dealt`, `dmg_taken`, `kills`, `deaths`, `suicides`,
+`max_streak`, `weapons` (keys `g, mg, sg, gl, rl, lg, rg, pg, bfg, ng, pl, cg, hmg`, each
+`{k, d, s, h, dd, dt, p, t}` = kills, deaths, shots, hits, damage dealt, damage taken,
+pickups, ms held; an all-zero weapon is left out) and `pickups`
+(`mega, ra, ya, ga, health, ammo`). A player whose stats cannot be read has no `stats`
+(one warning in the log) and the event is still sent. The stats hub keeps them in the
+result snapshot and the tournament site shows them (ql-tournament `docs/DEVELOPMENT.md`,
+"Tournament player stats").
+
 These three only need the generic `minqlxtended` runtime, not the
 `alexeytihomirov/minqlxtended` fork specifically - nothing here touches the
 fork's native demo capture.
