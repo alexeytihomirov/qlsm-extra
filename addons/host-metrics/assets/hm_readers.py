@@ -234,6 +234,63 @@ def _root_block_device(root):
     return None
 
 
+def _root_majmin(root):
+    """major:minor of the filesystem mounted on `/` from /proc/self/mountinfo, else None."""
+    try:
+        lines = _read(root, "proc/self/mountinfo").splitlines()
+    except OSError:
+        return None
+    found = None
+    for line in lines:
+        parts = line.split()
+        if len(parts) >= 5 and parts[4] == "/":
+            found = parts[2]   # the last mount on / wins
+    return found
+
+
+def _disk_dir(path):
+    """Resolve a sysfs device dir; a partition maps to its parent disk dir."""
+    real = os.path.realpath(path)
+    if os.path.exists(os.path.join(real, "partition")):
+        real = os.path.dirname(real)
+    return real
+
+
+def _dev_rotational(devdir, depth=0):
+    """queue/rotational of a device dir, else of its slaves (rotational if any is); None if unknown."""
+    try:
+        with open(os.path.join(devdir, "queue", "rotational"), "r", encoding="utf-8") as f:
+            return int(f.read().strip()) == 1
+    except (OSError, ValueError):
+        pass
+    if depth > 8:
+        return None
+    try:
+        names = sorted(os.listdir(os.path.join(devdir, "slaves")))
+    except OSError:
+        return None
+    vals = [_dev_rotational(_disk_dir(os.path.join(devdir, "slaves", n)), depth + 1) for n in names]
+    vals = [v for v in vals if v is not None]
+    return any(vals) if vals else None
+
+
+def _root_disk_by_majmin(root, hw):
+    """Fill disk_total/disk_rotational from the device of `/` (works for LVM, RAID, /dev/root)."""
+    majmin = _root_majmin(root)
+    if not majmin:
+        return False
+    devdir = _disk_dir(_path(root, "sys/dev/block/" + majmin))
+    if not os.path.isdir(devdir):
+        return False
+    try:
+        with open(os.path.join(devdir, "size"), "r", encoding="utf-8") as f:
+            hw["disk_total"] = int(f.read().strip()) * 512
+    except (OSError, ValueError):
+        pass
+    hw["disk_rotational"] = _dev_rotational(devdir)
+    return True
+
+
 def read_hardware(root="/"):
     """Static facts about the host; every key of HARDWARE_KEYS is present, None when unknown.
 
@@ -257,7 +314,13 @@ def read_hardware(root="/"):
             hw["swap_total"] = kb["SwapTotal"] * 1024
     except (OSError, ValueError):
         pass
-    dev = _root_block_device(root)
+    dev = None
+    try:
+        by_majmin = _root_disk_by_majmin(root, hw)
+    except Exception:
+        by_majmin = False
+    if not by_majmin:
+        dev = _root_block_device(root)   # fallback: name from /proc/mounts
     if dev:
         try:
             hw["disk_rotational"] = int(_read(root, "sys/block/%s/queue/rotational" % dev)) == 1

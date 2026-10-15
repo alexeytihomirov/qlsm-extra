@@ -270,3 +270,91 @@ def test_read_hardware_overlay_root_has_no_disk(tmp_path):
     _write(tmp_path, "proc/mounts", "overlay / overlay rw 0 0\n")
     hw = hm_readers.read_hardware(str(tmp_path))
     assert hw["disk_total"] is None and hw["disk_rotational"] is None
+
+
+# ---- root disk through major:minor ----
+
+# ':' is not allowed in Windows file names: there the fixture tree uses '_' and the reader is
+# patched to match (the mountinfo parsing itself is still exercised).
+_SEP = "_" if sys.platform == "win32" else ":"
+
+
+@pytest.fixture(autouse=True)
+def _majmin_name(monkeypatch):
+    if _SEP != ":":
+        real = hm_readers._root_majmin
+        monkeypatch.setattr(hm_readers, "_root_majmin",
+                            lambda root: (real(root) or "").replace(":", _SEP) or None)
+
+def _dev(root, name, majmin, size=None, rotational=None, partition=False, parent_dir="sys/devices/virt"):
+    """sysfs device dir under parent_dir plus the sys/dev/block/<maj:min> symlink to it."""
+    rel = "%s/%s" % (parent_dir, name)
+    (Path(root) / rel).mkdir(parents=True, exist_ok=True)
+    if size is not None:
+        _write(root, rel + "/size", "%d\n" % size)
+    if rotational is not None:
+        _write(root, rel + "/queue/rotational", "%d\n" % rotational)
+    if partition:
+        _write(root, rel + "/partition", "1\n")
+    link = Path(root) / "sys/dev/block" / majmin.replace(":", _SEP)
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if not link.exists():
+        os.symlink(os.path.relpath(Path(root) / rel, link.parent), link, target_is_directory=True)
+    return Path(root) / rel
+
+
+def _mountinfo(root, majmin):
+    _write(root, "proc/self/mountinfo",
+           "22 1 %s / / rw,relatime shared:1 - ext4 /dev/whatever rw\n"
+           "23 22 0:21 / /run rw - tmpfs tmpfs rw\n" % majmin)
+
+
+def test_root_disk_partition_sda1(tmp_path):
+    disk = _dev(tmp_path, "sda", "8:0", size=2048, rotational=1)
+    _write(tmp_path, "proc/mounts", "/dev/sda1 / ext4 rw 0 0\n")
+    _mountinfo(tmp_path, "8:1")
+    _dev(tmp_path, "sda/sda1", "8:1", size=1024, partition=True)
+    hw = hm_readers.read_hardware(str(tmp_path))
+    assert hw["disk_total"] == 2048 * 512 and hw["disk_rotational"] is True
+
+
+def test_root_disk_nvme_via_dev_root(tmp_path):
+    _dev(tmp_path, "nvme0n1", "259:0", size=62914560, rotational=0)
+    _dev(tmp_path, "nvme0n1/nvme0n1p1", "259:1", size=62912512, partition=True)
+    _write(tmp_path, "proc/mounts", "/dev/root / ext4 rw 0 0\n")
+    _mountinfo(tmp_path, "259:1")
+    hw = hm_readers.read_hardware(str(tmp_path))
+    assert hw["disk_total"] == 30 * 1024 ** 3 and hw["disk_rotational"] is False
+
+
+def test_root_disk_lvm_on_raid1_rotational_from_slaves(tmp_path):
+    _write(tmp_path, "proc/mounts", "/dev/mapper/vg0-lv--root / ext4 rw 0 0\n")
+    _mountinfo(tmp_path, "253:0")
+    dm = _dev(tmp_path, "dm-0", "253:0", size=65 * 1024 ** 3 // 512)   # no queue/rotational
+    md = _dev(tmp_path, "md0", "9:0", size=1)
+    sda = _dev(tmp_path, "sda", "8:0", size=1, rotational=1)
+    sdb = _dev(tmp_path, "sdb", "8:16", size=1, rotational=1)
+    _dev(tmp_path, "sda/sda2", "8:2", partition=True)
+    _dev(tmp_path, "sdb/sdb2", "8:18", partition=True)
+    for owner, slaves in ((dm, [md]), (md, [sda / "sda2", sdb / "sdb2"])):
+        (owner / "slaves").mkdir()
+        for s in slaves:
+            os.symlink(os.path.relpath(s, owner / "slaves"), owner / "slaves" / s.name,
+                       target_is_directory=True)
+    hw = hm_readers.read_hardware(str(tmp_path))
+    assert hw["disk_total"] == 65 * 1024 ** 3 and hw["disk_rotational"] is True
+
+
+def test_root_disk_lvm_on_ssd_slaves_not_rotational(tmp_path):
+    _mountinfo(tmp_path, "253:0")
+    dm = _dev(tmp_path, "dm-0", "253:0", size=8)
+    ssd = _dev(tmp_path, "nvme0n1", "259:0", size=8, rotational=0)
+    (dm / "slaves").mkdir()
+    os.symlink(os.path.relpath(ssd, dm / "slaves"), dm / "slaves" / "nvme0n1", target_is_directory=True)
+    assert hm_readers.read_hardware(str(tmp_path))["disk_rotational"] is False
+
+
+def test_root_disk_missing_everything_is_none(tmp_path):
+    _mountinfo(tmp_path, "253:7")   # no sys tree at all
+    hw = hm_readers.read_hardware(str(tmp_path))
+    assert hw["disk_total"] is None and hw["disk_rotational"] is None
