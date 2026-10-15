@@ -101,6 +101,25 @@ def test_memory_limits_below_cpu_slots():
     assert r["status"] == "ok"
 
 
+def test_empty_host_caps_memory_with_a_150_mb_reference():
+    # small VPS: 2 GB, 900 MB available; cpu would allow (70-5)/30 = 2 per core = 4
+    inp = snap(insts=[], mem_total=2048 * MB, mem_avail_now=900 * MB)
+    r = verdict(inp, SETTINGS, 30.0)
+    # (900 - 0.2 * 2048) / 150 = 3.26 -> 3
+    assert r["slots"] == 3
+    assert r["status"] == "ok"
+    assert "reference instance 150 MB" in r["reason"]
+    r = verdict(snap(insts=[], mem_total=2048 * MB, mem_avail_now=500 * MB), SETTINGS, 30.0)
+    assert r["slots"] == 0 and r["status"] == "tight" and "memory" in r["reason"]
+
+
+def test_instance_without_rss_yet_uses_the_reference():
+    inp = snap(insts=[{"port": 1, "core": 0, "busy_p95": 30.0, "rss_max": None}],
+               mem_total=2048 * MB, mem_avail_now=800 * MB)
+    r = verdict(inp, SETTINGS, None)
+    assert r["slots"] == 2  # (800 - 409.6) / 150 = 2.6
+
+
 def test_zero_cpu_slots_is_tight():
     inp = snap(core_other_p95={0: 5.0, 1: 60.0})
     r = verdict(inp, SETTINGS, None)

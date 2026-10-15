@@ -11,6 +11,9 @@ DEFAULTS = {
     "steal_tight_pct": 5.0,
     "steal_overload_pct": 15.0,
 }
+# Memory reference when the host has no instance RSS yet: measured instances use
+# 80-91 MB, x1.6 margin (ruling R20).
+REF_RSS_BYTES = 150 * 1048576
 
 
 def _num(settings, key):
@@ -86,13 +89,17 @@ def verdict(inp, settings, fleet_busy_median):
         cpu_slots, cpu_text = _cpu_slots(inp, load, target)
         slots = cpu_slots
     rss = [float(i["rss_max"]) for i in insts if i.get("rss_max")]
+    rss_label = "largest instance"
+    if not rss:
+        # empty host (or instances without a full minute yet): a typical instance
+        rss, rss_label = [float(REF_RSS_BYTES)], "reference instance"
     total = inp.get("mem_total")
     avail = inp.get("mem_avail_now")
-    if rss and total is not None and avail is not None:
+    if total is not None and avail is not None:
         free_mem = float(avail) - reserve / 100.0 * float(total)
         mem_slots = max(int(math.floor(free_mem / max(rss))), 0)
-        mem_text = "memory: %d MB available - %s%% reserve, largest instance %d MB" % (
-            float(avail) / 1048576, _g(reserve), max(rss) / 1048576)
+        mem_text = "memory: %d MB available - %s%% reserve, %s %d MB" % (
+            float(avail) / 1048576, _g(reserve), rss_label, max(rss) / 1048576)
         if slots is not None:
             slots = min(slots, mem_slots)
 
