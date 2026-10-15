@@ -6,7 +6,7 @@ created: 2026-10-15
 updated: 2026-10-15
 verified:
 depends_on: []
-related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md, qlsm-extra/docs/superpowers/plans/2026-10-15-host-metrics-addon.md]
+related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-v1-1-design.md, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md, qlsm-extra/docs/superpowers/plans/2026-10-15-host-metrics-addon.md]
 ---
 
 # host-metrics addon: per-host and per-instance resource dashboard with capacity verdict
@@ -43,7 +43,7 @@ related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-a
 - [x] Плагин времени кадра
 - [x] Бэкенд аддона (забор по SSH, агрегация, вывод о запасе)
 - [x] UI: страница и окно хоста
-- [ ] Деплой на один хост, проверка на реальных данных
+- [x] Деплой на один хост, проверка на реальных данных
 
 ## Журнал
 
@@ -52,6 +52,9 @@ related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-a
 - 2026-10-15 - спека написана: docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md
 - 2026-10-15 - спека согласована (трафик только по хосту); хук frame подтверждён по коду форка; план: docs/superpowers/plans/2026-10-15-host-metrics-addon.md, 11 задач
 - 2026-10-15 - реализация по плану субагентами: задачи 1-10 + финальное ревью и одна волна исправлений (критичное: Redis DB у каждого инстанса своя); ветка host-metrics, cc4b350; тесты: Linux (WSL) 125 passed, аддон 49 passed, npm 17; не слито, не задеплоено - ждёт OK оператора
+- 2026-10-15 - 1.0.0 слит и запушен (ffa3260); в прод-qlsm установлен из репозитория, qlsm перезапущен, включён глобально и на GermanyHetzner (host 1), Apply: сервис active, ~0.12% ядра, 8.5 МБ; frame_timing включён на instance 1 :27960 (400 кадров/10 с, опозданий 0); маршруты hosts/series/events/status отвечают через paramiko
+- 2026-10-15 - выяснилось: у подаренных хостов ssh_user ubuntu (4 AWS) и ruweb (NijniyNovgorod3); 1.0.1 - запросы через sudo -n -u ql, состояние no_sudo; слит и запушен (d76df6b), в прод ещё не поставлен
+- 2026-10-15 - отзыв оператора на UI -> спека 1.1: docs/superpowers/specs/2026-10-15-host-metrics-v1-1-design.md (тема, доска здоровья, выводы текстом, железо, понятные графики; колокольчик и пункт навбара через PR в qlsm)
 
 ## Результат
 
