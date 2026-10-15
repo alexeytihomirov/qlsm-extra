@@ -6,7 +6,7 @@ created: 2026-10-15
 updated: 2026-10-15
 verified:
 depends_on: []
-related: [root-0020]
+related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md]
 ---
 
 # host-metrics addon: per-host and per-instance resource dashboard with capacity verdict
@@ -36,8 +36,8 @@ related: [root-0020]
 
 ## Шаги
 
-- [ ] Спека в `qlsm-extra/docs/superpowers/specs/`, согласовать с оператором
-- [ ] Проверить на живом хосте: `systemctl show qlds@<port> -p CPUUsageNSec,MemoryCurrent` возвращает числа (включён ли accounting)
+- [x] Спека в `qlsm-extra/docs/superpowers/specs/` (написана, ждёт согласования оператора)
+- [x] Проверить на живом хосте: `systemctl show qlds@<port> -p CPUUsageNSec,MemoryCurrent` возвращает числа (включён ли accounting)
 - [ ] План в `qlsm-extra/docs/superpowers/plans/`
 - [ ] Сборщик на хосте + плейбук установки
 - [ ] Плагин времени кадра
@@ -48,6 +48,8 @@ related: [root-0020]
 ## Журнал
 
 - 2026-10-15 - created; схема согласована, история 30 дней хватает, время кадра делаем плагином
+- 2026-10-15 - проба germany и sweden (только чтение): cgroup v2, CPU/RAM по qlds@<port> есть, 2 ядра, инстанс закреплён на ядре 0, steal 0 / ~0.45 %, ql-watchdog не установлен, serverchecker пишет minqlx:server_status:<port> в redis db1
+- 2026-10-15 - спека написана: docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md
 
 ## Результат
 
