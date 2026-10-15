@@ -3,8 +3,7 @@ server.cfg prefill), each /ranks/<provider_id> route's contract
 (configured/reason, steam_ids validation, caching), all through a real qlsm
 app with the addon installed the way an operator would (see conftest.py).
 
-qlstats and Slipgate keep their connection details and default-on switches in
-settings.global (edited through core's generic
+qlstats and Slipgate keep their connection details in settings.global (edited through core's generic
 /api/addons/player-ranks/state endpoint -- see set_global() below); which
 sources an instance shows, and all of x76, are per-instance, edited through
 this addon's own /instances/<id>/config.
@@ -21,7 +20,7 @@ import pytest
 
 from ui import db
 from ui.models import Host, HostStatus, InstanceStatus, QLInstance
-from conftest import auth_headers, make_user
+from conftest import ADDONS_DIR, auth_headers, make_user
 
 ADDON = '/api/addons/player-ranks'
 
@@ -152,6 +151,16 @@ STEAM_A = '76561197993968023'
 STEAM_B = '76561197960287930'
 
 
+def enable_source(client, auth, instance_id, *providers, **flags):
+    """Tick the given sources on an instance through its Ranks tab, the only
+    place a source is switched on."""
+    body = {f'{p}_enabled': True for p in providers}
+    body.update(flags)
+    resp = client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json=body)
+    assert resp.status_code == 200, resp.get_json()
+    return resp.get_json()['data']
+
+
 def set_global(client, auth, **settings):
     """qlstats/Slipgate live in settings.global -- a managed panel backed by
     core's own generic state endpoint, not this addon's code."""
@@ -190,7 +199,8 @@ def test_default_config_has_everything_off_and_is_not_suggested(client, auth, in
     assert body['slipgate_enabled'] is False
     assert body['elo_service_display'] == 'rank_label'
     assert body['elo_service_game_type'] == 'ffa_auto'
-    assert body['sources_saved'] is False
+    assert 'sources_saved' not in body
+    assert 'configured' not in body
     assert 'server_status_enabled' not in body
     assert body['suggested'] is False
 
@@ -240,48 +250,6 @@ def test_config_save_stores_source_checkboxes_and_display(client, auth, instance
     assert loaded['qlstats_enabled'] is True
     assert loaded['slipgate_enabled'] is False
     assert loaded['elo_service_display'] == 'rank_label'
-    assert loaded['sources_saved'] is True
-
-
-def test_config_save_without_source_checkboxes_leaves_them_alone(
-    client, auth, instance_id, host_id, stub_registry, fake_redis,
-):
-    """A caller that only knows the x76 fields (the whole body before 0.3.0)
-    must not switch qlstats/Slipgate off or end the follow-the-default state."""
-    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
-    stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
-    set_global(client, auth, qlstats_enabled=True)
-
-    resp = client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
-        'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
-        'elo_service_api_key': 'secret', 'elo_service_game_type': 'duel',
-    })
-    assert resp.status_code == 200
-
-    loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
-    assert loaded['sources_saved'] is False
-    assert loaded['qlstats_enabled'] is True  # still the installation-wide default
-    assert loaded['elo_service_enabled'] is True
-    qlstats = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
-                         query_string={'steam_ids': STEAM_A}, headers=auth).get_json()
-    assert qlstats['data'][STEAM_A]['display'] == '2181'
-
-    # Still following the default: turning it off globally reaches this instance.
-    set_global(client, auth, qlstats_enabled=False)
-    qlstats = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
-                         query_string={'steam_ids': STEAM_A}, headers=auth).get_json()
-    assert qlstats == {'data': {}, 'configured': False}
-
-
-def test_config_save_with_one_checkbox_keeps_the_other_as_it_was_in_effect(client, auth, instance_id):
-    set_global(client, auth, qlstats_enabled=True, slipgate_enabled=True)
-
-    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={'qlstats_enabled': False})
-
-    loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
-    assert loaded['sources_saved'] is True
-    assert loaded['qlstats_enabled'] is False
-    assert loaded['slipgate_enabled'] is True  # frozen at what the default gave it
 
 
 def test_config_save_defaults_display_to_rank_label(client, auth, instance_id):
@@ -310,89 +278,7 @@ def test_config_save_requires_pool_when_x76_is_on(client, auth, instance_id):
     assert 'pool' in resp.get_json()['error']['message']
 
 
-def test_saved_config_with_everything_off_is_no_longer_suggested(
-    client, auth, instance_id, tmp_path, monkeypatch,
-):
-    monkeypatch.chdir(tmp_path)
-    cfg_dir = tmp_path / 'configs' / 'germany' / str(instance_id)
-    cfg_dir.mkdir(parents=True)
-    (cfg_dir / 'server.cfg').write_text('set qlx_rankedServiceUrl "http://localhost:5002"\n', encoding='utf-8')
-
-    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={})
-    loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
-    assert loaded['elo_service_enabled'] is False
-    assert loaded['suggested'] is False
-
-
-def test_unsaved_config_shows_the_global_defaults_as_ticked(client, auth, instance_id):
-    set_global(client, auth, qlstats_enabled=True)
-
-    body = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
-
-    assert body['qlstats_enabled'] is True
-    assert body['slipgate_enabled'] is False
-    assert body['sources_saved'] is False
-
-
-def test_saved_config_shows_its_own_checkboxes_not_the_global_defaults(client, auth, instance_id):
-    set_global(client, auth, qlstats_enabled=True)
-    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={'qlstats_enabled': False})
-
-    body = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
-
-    assert body['qlstats_enabled'] is False
-
-
-def test_config_saved_by_an_older_version_shows_the_global_defaults(client, auth, app, instance_id):
-    from ui.addons import get_addon
-
-    set_global(client, auth, slipgate_enabled=True)
-    with app.app_context():
-        get_addon('player-ranks').ctx.settings.set('instance', instance_id, {'configured': True})
-
-    body = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
-
-    assert body['slipgate_enabled'] is True
-    assert body['suggested'] is False
-
-
 # ---- config load/save (global: qlstats + Slipgate) ------------------------
-
-def test_global_sources_default_off(client, auth):
-    resp = client.get(f'{ADDON}/state', headers=auth, query_string={'scope': 'global', 'scope_id': 0})
-    settings = resp.get_json()['data']['settings']
-    assert settings['qlstats_enabled'] is False
-    assert settings['slipgate_enabled'] is False
-
-
-def test_enabling_qlstats_globally_applies_to_every_instance(
-    client, auth, app, host_and_instance_id, stub_registry, fake_redis,
-):
-    """The whole point of the redesign: one switch, every instance -- no
-    per-instance PUT .../config needed at all for qlstats/Slipgate."""
-    host_id, instance_id = host_and_instance_id
-    with app.app_context():
-        second = QLInstance(name='second srv', port=27961, hostname='second', host_id=host_id,
-                            status=InstanceStatus.RUNNING)
-        db.session.add(second)
-        db.session.commit()
-        second_id = second.id
-
-    set_global(client, auth, qlstats_enabled=True, qlstats_base_url='http://qlstats.net')
-
-    stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
-    for iid in (instance_id, second_id):
-        _set_status(fake_redis, host_id=host_id, instance_id=iid, gametype='duel')
-        resp = client.get(f'{ADDON}/instances/{iid}/ranks/qlstats',
-                          query_string={'steam_ids': STEAM_A}, headers=auth)
-        assert resp.get_json()['data'][STEAM_A]['display'] == '2181'
-
-
-def test_qlstats_disabled_globally_is_unconfigured_on_every_instance(client, auth, instance_id):
-    resp = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
-                      query_string={'steam_ids': STEAM_A}, headers=auth)
-    assert resp.get_json() == {'data': {}, 'configured': False}
-
 
 def test_slipgate_missing_api_key_is_not_required_globally(
     client, auth, instance_id, host_id, fake_redis,
@@ -400,7 +286,7 @@ def test_slipgate_missing_api_key_is_not_required_globally(
     """Slipgate works without a key (public per-player lookup) -- only
     elo_service hard-requires one."""
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
-    set_global(client, auth, slipgate_enabled=True)
+    enable_source(client, auth, instance_id, 'slipgate')
     StubProvider.calls = []
     StubProvider.fixed_result = {STEAM_A: {'display': '1650'}}
     registry = {'slipgate': {'label': 'Slipgate', 'factory': StubProvider, 'requires_api_key': False}}
@@ -438,14 +324,14 @@ def test_ranks_missing_required_api_key_is_unconfigured_with_reason(client, auth
 
 
 def test_ranks_empty_steam_ids_is_configured_with_no_data(client, auth, instance_id, stub_registry):
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
     resp = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats', headers=auth)
     assert resp.get_json() == {'data': {}, 'configured': True}
     assert stub_registry.calls == []  # never even asked the provider
 
 
 def test_ranks_with_no_live_gametype_is_configured_with_no_data(client, auth, instance_id, stub_registry):
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
     resp = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
                       query_string={'steam_ids': STEAM_A}, headers=auth)
     assert resp.get_json() == {'data': {}, 'configured': True}
@@ -455,7 +341,7 @@ def test_ranks_with_no_live_gametype_is_configured_with_no_data(client, auth, in
 def test_ranks_calls_provider_with_resolved_data(client, auth, instance_id, host_id, stub_registry, fake_redis):
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
     stub_registry.fixed_result = {STEAM_A: {'display': '2181', 'title': 'duel, 13732 games'}}
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
 
     resp = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
                       query_string={'steam_ids': f'{STEAM_A},{STEAM_B}'}, headers=auth)
@@ -479,7 +365,7 @@ def test_ranks_finds_status_blob_even_if_instance_host_id_drifted(
     wrong_host_id = 999999
     _set_status(fake_redis, host_id=wrong_host_id, instance_id=instance_id, gametype='duel')
     stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
 
     resp = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
                       query_string={'steam_ids': STEAM_A}, headers=auth)
@@ -493,7 +379,7 @@ def test_two_providers_enabled_at_once_both_return_data(
     """qlstats (global) and elo_service (per-instance) can both be on at
     once, each with its own independent result."""
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
     client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
         'qlstats_enabled': True,
         'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
@@ -515,7 +401,7 @@ def test_disabling_one_provider_hides_only_its_own_column(
     client, auth, instance_id, host_id, stub_registry, fake_redis,
 ):
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
     client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
         'qlstats_enabled': True,
         'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
@@ -538,42 +424,6 @@ def test_disabling_one_provider_hides_only_its_own_column(
 def _ranks(client, auth, instance_id, provider_id):
     return client.get(f'{ADDON}/instances/{instance_id}/ranks/{provider_id}',
                       query_string={'steam_ids': STEAM_A}, headers=auth).get_json()
-
-
-def test_saved_instance_can_turn_a_globally_enabled_source_off(
-    client, auth, instance_id, host_id, stub_registry, fake_redis,
-):
-    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
-    set_global(client, auth, qlstats_enabled=True)
-    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={'qlstats_enabled': False})
-
-    assert _ranks(client, auth, instance_id, 'qlstats') == {'data': {}, 'configured': False}
-
-
-def test_saved_instance_can_turn_a_globally_disabled_source_on(
-    client, auth, instance_id, host_id, stub_registry, fake_redis,
-):
-    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
-    stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
-    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={'qlstats_enabled': True})
-
-    assert _ranks(client, auth, instance_id, 'qlstats')['data'][STEAM_A]['display'] == '2181'
-
-
-def test_instance_saved_by_an_older_version_still_follows_the_global_switch(
-    client, auth, app, instance_id, host_id, stub_registry, fake_redis,
-):
-    """0.2.0 stored `configured` but no source checkboxes. Such an instance
-    must keep its qlstats column after the update."""
-    from ui.addons import get_addon
-
-    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
-    stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
-    set_global(client, auth, qlstats_enabled=True)
-    with app.app_context():
-        get_addon('player-ranks').ctx.settings.set('instance', instance_id, {'configured': True})
-
-    assert _ranks(client, auth, instance_id, 'qlstats')['data'][STEAM_A]['display'] == '2181'
 
 
 def test_x76_display_choice_reaches_the_provider(client, auth, instance_id, host_id, fake_redis):
@@ -600,7 +450,7 @@ def test_x76_display_choice_reaches_the_provider(client, auth, instance_id, host
 def test_ranks_result_is_cached_between_calls(client, auth, instance_id, host_id, stub_registry, fake_redis):
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
     stub_registry.fixed_result = {STEAM_A: {'display': '1000'}}
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
 
     client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats', query_string={'steam_ids': STEAM_A}, headers=auth)
     client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats', query_string={'steam_ids': STEAM_A}, headers=auth)
@@ -611,10 +461,10 @@ def test_ranks_result_is_cached_between_calls(client, auth, instance_id, host_id
 def test_config_save_invalidates_cache(client, auth, instance_id, host_id, stub_registry, fake_redis):
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
     stub_registry.fixed_result = {STEAM_A: {'display': '1000'}}
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
     client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats', query_string={'steam_ids': STEAM_A}, headers=auth)
 
-    set_global(client, auth, qlstats_enabled=True, qlstats_base_url='http://other.example')
+    set_global(client, auth, qlstats_base_url='http://other.example')
     client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats', query_string={'steam_ids': STEAM_A}, headers=auth)
 
     assert len(stub_registry.calls) == 2  # global config changed -> re-fetched, not served stale
@@ -622,7 +472,7 @@ def test_config_save_invalidates_cache(client, auth, instance_id, host_id, stub_
 
 def test_ranks_caps_steam_ids_at_64(client, auth, instance_id, host_id, stub_registry, fake_redis):
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
 
     many_ids = ','.join(f'7656119{str(i).zfill(10)}' for i in range(100))
     client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats', query_string={'steam_ids': many_ids}, headers=auth)
@@ -632,7 +482,7 @@ def test_ranks_caps_steam_ids_at_64(client, auth, instance_id, host_id, stub_reg
 
 def test_ranks_survives_provider_exception(client, auth, instance_id, host_id, fake_redis):
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
 
     class ExplodingProvider(StubProvider):
         def fetch_ratings(self, steam_ids, game_type):
@@ -651,7 +501,7 @@ def test_provider_failure_is_cached_with_the_short_ttl(client, auth, instance_id
     import requests
 
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
 
     class FailingProvider(StubProvider):
         def fetch_ratings(self, steam_ids, game_type):
@@ -684,7 +534,7 @@ def test_ranks_all_nothing_enabled_is_unconfigured(client, auth, instance_id):
 
 
 def test_ranks_all_empty_steam_ids_is_configured_with_no_data(client, auth, instance_id, stub_registry):
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
     resp = client.get(f'{ADDON}/instances/{instance_id}/ranks', headers=auth)
     assert resp.get_json() == {'data': {}, 'configured': True}
     assert stub_registry.calls == []
@@ -695,7 +545,7 @@ def test_ranks_all_one_source_wraps_it_as_a_single_entry(
 ):
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
     stub_registry.fixed_result = {STEAM_A: {'display': '2181', 'title': 'duel, 13732 games'}}
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
 
     resp = client.get(f'{ADDON}/instances/{instance_id}/ranks',
                       query_string={'steam_ids': STEAM_A}, headers=auth)
@@ -723,7 +573,7 @@ def test_ranks_all_combines_two_sources_in_one_request_in_declared_order(
         'qlstats': {'label': 'qlstats', 'factory': StubProvider, 'requires_api_key': False},
         'elo_service': {'label': 'x76', 'factory': X76Stub, 'requires_api_key': True},
     }
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
     client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
         'qlstats_enabled': True,
         'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
@@ -753,7 +603,7 @@ def test_a_source_color_reaches_the_cell_and_the_stacked_entry(
         STEAM_A: {'display': 'Gold III', 'color': 'yellow'},
         STEAM_B: {'display': '1400', 'color': None},
     }
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
     ids = f'{STEAM_A},{STEAM_B}'
 
     single = client.get(f'{ADDON}/instances/{instance_id}/ranks/qlstats',
@@ -774,9 +624,199 @@ def test_ranks_all_skips_a_player_no_source_has_anything_for(
 ):
     _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
     stub_registry.fixed_result = {}  # qlstats knows nobody
-    set_global(client, auth, qlstats_enabled=True)
+    enable_source(client, auth, instance_id, 'qlstats')
 
     resp = client.get(f'{ADDON}/instances/{instance_id}/ranks',
                       query_string={'steam_ids': STEAM_A}, headers=auth)
 
     assert resp.get_json() == {'data': {}, 'configured': True}
+
+
+# ---- sources are per instance only (0.4.0) --------------------------------
+
+def _put_raw(app, scope, scope_id, values, enabled=False):
+    """Write a stored row exactly as an older version left it, bypassing the
+    manifest (the settings API refuses keys the manifest no longer declares)."""
+    from ui.models import AddonState
+
+    with app.app_context():
+        row = AddonState.query.filter_by(addon_id='player-ranks', scope=scope, scope_id=scope_id).first()
+        if row is None:
+            row = AddonState(addon_id='player-ranks', scope=scope, scope_id=scope_id,
+                             enabled=enabled, settings_json='{}')
+            db.session.add(row)
+        row.settings_json = json.dumps(values)
+        db.session.commit()
+
+
+def _raw(app, scope, scope_id):
+    from ui.models import AddonState
+
+    with app.app_context():
+        row = AddonState.query.filter_by(addon_id='player-ranks', scope=scope, scope_id=scope_id).first()
+        return None if row is None else dict(row.settings)
+
+
+def test_manifest_has_no_on_by_default():
+    manifest = json.loads((ADDONS_DIR / 'player-ranks' / 'qlsm-addon.json').read_text(encoding='utf-8'))
+    global_keys = {f['key'] for f in manifest['settings']['global']}
+    instance_keys = {f['key'] for f in manifest['settings']['instance']}
+    assert not global_keys & {'qlstats_enabled', 'slipgate_enabled'}
+    assert not instance_keys & {'configured', 'sources_saved'}
+    assert {'qlstats_enabled', 'slipgate_enabled'} <= instance_keys
+    assert manifest['version'] == '0.4.0'
+    assert 'on by default' not in json.dumps(manifest)
+
+
+def test_new_instance_all_sources_off(client, auth, instance_id, host_id, stub_registry, fake_redis):
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    body = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+    assert body['qlstats_enabled'] is False
+    assert body['slipgate_enabled'] is False
+    assert body['elo_service_enabled'] is False
+    assert _ranks(client, auth, instance_id, 'qlstats') == {'data': {}, 'configured': False}
+    resp = client.get(f'{ADDON}/instances/{instance_id}/ranks', query_string={'steam_ids': STEAM_A}, headers=auth)
+    assert resp.get_json() == {'data': {}, 'configured': False}
+
+
+def test_sources_are_independent_per_instance(client, auth, app, host_and_instance_id, stub_registry, fake_redis):
+    host_id, first = host_and_instance_id
+    with app.app_context():
+        second = QLInstance(name='second srv', port=27961, hostname='second', host_id=host_id,
+                            status=InstanceStatus.RUNNING)
+        db.session.add(second)
+        db.session.commit()
+        second_id = second.id
+    stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
+    for iid in (first, second_id):
+        _set_status(fake_redis, host_id=host_id, instance_id=iid, gametype='duel')
+    enable_source(client, auth, first, 'qlstats')
+
+    assert _ranks(client, auth, first, 'qlstats')['data'][STEAM_A]['display'] == '2181'
+    assert _ranks(client, auth, second_id, 'qlstats') == {'data': {}, 'configured': False}
+
+
+def test_config_save_without_source_checkboxes_leaves_them_alone(client, auth, instance_id):
+    enable_source(client, auth, instance_id, 'qlstats', 'slipgate')
+    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
+        'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
+        'elo_service_game_type': 'duel',
+    })
+    loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+    assert loaded['qlstats_enabled'] is True
+    assert loaded['slipgate_enabled'] is True
+    assert loaded['elo_service_enabled'] is True
+
+
+def test_suggestion_shown_while_x76_url_blank(client, auth, instance_id, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    cfg_dir = tmp_path / 'configs' / 'germany' / str(instance_id)
+    cfg_dir.mkdir(parents=True)
+    (cfg_dir / 'server.cfg').write_text('set qlx_rankedServiceUrl "http://localhost:5002"\n', encoding='utf-8')
+
+    # Saving a tab that leaves x76 blank does not end the suggestion ...
+    enable_source(client, auth, instance_id, 'qlstats')
+    loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+    assert loaded['suggested'] is True
+    assert loaded['elo_service_base_url'] == 'http://localhost:5002'
+    assert loaded['qlstats_enabled'] is True
+
+    # ... a filled-in URL does.
+    client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
+        'elo_service_enabled': True, 'elo_service_base_url': 'http://elo.example',
+        'elo_service_game_type': 'duel',
+    })
+    loaded = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth).get_json()['data']
+    assert loaded['suggested'] is False
+    assert loaded['elo_service_base_url'] == 'http://elo.example'
+
+
+# ---- migration from the "on by default" switches ---------------------------
+
+def test_migrate_unsaved_instance_takes_old_defaults():
+    from qlsm_addon_player_ranks.ranks_service import migrate_instance
+
+    values = migrate_instance({'qlstats_enabled': True, 'slipgate_enabled': False}, {'configured': True})
+    assert values == {'qlstats_enabled': True, 'slipgate_enabled': False}
+    assert migrate_instance({'qlstats_enabled': True, 'slipgate_enabled': True}, {}) == {
+        'qlstats_enabled': True, 'slipgate_enabled': True}
+
+
+def test_migrate_saved_instance_untouched():
+    from qlsm_addon_player_ranks.ranks_service import migrate_instance
+
+    stored = {'configured': True, 'sources_saved': True, 'qlstats_enabled': False, 'slipgate_enabled': True}
+    assert migrate_instance({'qlstats_enabled': True, 'slipgate_enabled': False}, stored) is None
+
+
+def test_migrate_twice_is_noop():
+    from qlsm_addon_player_ranks.ranks_service import migrate_instance
+
+    first = migrate_instance({'qlstats_enabled': True}, {})
+    assert first == {'qlstats_enabled': True, 'slipgate_enabled': False}
+    # What the instance stores afterwards; the global switches are gone too.
+    assert migrate_instance({}, dict(first)) is None
+
+
+def test_migrate_all_keeps_what_every_instance_shows_today(client, auth, app, host_and_instance_id):
+    from ui.addons import get_addon
+    from qlsm_addon_player_ranks.ranks_service import migrate_all
+
+    host_id, never_saved = host_and_instance_id
+    with app.app_context():
+        ids = []
+        for n in range(3):
+            inst = QLInstance(name=f'srv{n}', port=27970 + n, hostname=f'h{n}', host_id=host_id,
+                              status=InstanceStatus.RUNNING)
+            db.session.add(inst)
+            db.session.flush()
+            ids.append(inst.id)
+        db.session.commit()
+    saved_off, old_unsaved, saved_on = ids
+    _put_raw(app, 'global', 0, {'qlstats_enabled': True, 'slipgate_enabled': True, 'qlstats_base_url': 'http://q'})
+    _put_raw(app, 'instance', saved_off, {'configured': True, 'sources_saved': True,
+                                          'qlstats_enabled': False, 'slipgate_enabled': False})
+    _put_raw(app, 'instance', old_unsaved, {'configured': True, 'elo_service_enabled': False})
+    _put_raw(app, 'instance', saved_on, {'configured': True, 'sources_saved': True,
+                                         'qlstats_enabled': True, 'slipgate_enabled': False})
+
+    with app.app_context():
+        migrate_all(get_addon('player-ranks').ctx.settings)
+
+    got = {}
+    for iid in (never_saved, saved_off, old_unsaved, saved_on):
+        data = client.get(f'{ADDON}/instances/{iid}/config', headers=auth).get_json()['data']
+        got[iid] = (data['qlstats_enabled'], data['slipgate_enabled'])
+    assert got == {never_saved: (True, True), saved_off: (False, False),
+                   old_unsaved: (True, True), saved_on: (True, False)}
+    # The legacy keys are gone from storage, the connection details stay.
+    assert _raw(app, 'global', 0) == {'qlstats_base_url': 'http://q'}
+    assert 'sources_saved' not in _raw(app, 'instance', saved_on)
+    assert 'configured' not in _raw(app, 'instance', old_unsaved)
+
+    # A second run changes nothing, and an instance created later starts all off.
+    before = {i: _raw(app, 'instance', i) for i in ids}
+    with app.app_context():
+        migrate_all(get_addon('player-ranks').ctx.settings)
+    assert {i: _raw(app, 'instance', i) for i in ids} == before
+    with app.app_context():
+        late = QLInstance(name='late', port=27999, hostname='late', host_id=host_id,
+                          status=InstanceStatus.RUNNING)
+        db.session.add(late)
+        db.session.commit()
+        late_id = late.id
+        migrate_all(get_addon('player-ranks').ctx.settings)
+    data = client.get(f'{ADDON}/instances/{late_id}/config', headers=auth).get_json()['data']
+    assert (data['qlstats_enabled'], data['slipgate_enabled']) == (False, False)
+
+
+def test_ranks_route_migrates_an_old_instance_lazily(
+    client, auth, app, instance_id, host_id, stub_registry, fake_redis,
+):
+    _set_status(fake_redis, host_id=host_id, instance_id=instance_id, gametype='duel')
+    stub_registry.fixed_result = {STEAM_A: {'display': '2181'}}
+    _put_raw(app, 'global', 0, {'qlstats_enabled': True})
+    _put_raw(app, 'instance', instance_id, {'configured': True})
+
+    assert _ranks(client, auth, instance_id, 'qlstats')['data'][STEAM_A]['display'] == '2181'
+    assert _raw(app, 'instance', instance_id).get('qlstats_enabled') is True
