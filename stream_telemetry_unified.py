@@ -1892,25 +1892,25 @@ class stream_telemetry_unified(minqlx.Plugin):
             "deaths": deaths,
         }
         if row["team"] != "spectator":
-            engine_stats = self._engine_stats(player)
+            engine_stats = self._engine_stats(player, steam)
             if engine_stats:
                 row["stats"] = engine_stats
         return row
 
-    def _warn_player_stats_read(self, exc):
+    def _warn_player_stats_read(self, steam, exc):
         # Once per load: a broken read repeats every game, one line says enough.
         if getattr(self, "_player_stats_read_warned", False):
             return
         self._player_stats_read_warned = True
-        self.logger.warning("stream_telemetry_unified: reading player expanded_stats failed: %s", exc)
+        self.logger.warning("stream_telemetry_unified: reading player %s expanded_stats failed: %s", steam, exc)
 
-    def _engine_stats(self, player):
+    def _engine_stats(self, player, steam):
         # Game end runs once per game on the game thread: no per-frame cost. One player's
         # failure leaves that player without stats; the event is still sent.
         try:
             return player_stats(player.expanded_stats)
         except Exception as exc:
-            self._warn_player_stats_read(exc)
+            self._warn_player_stats_read(steam, exc)
             return None
 
     def _collect_player_summaries(self):

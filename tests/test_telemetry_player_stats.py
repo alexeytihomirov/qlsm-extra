@@ -122,6 +122,7 @@ def test_spectator_and_failure_have_no_stats():
     p.on_game_end(False)
     warnings = [r for r in p.logger.records if r[0] == "warning" and "boom" in r[1]]
     assert len(warnings) == 1
+    assert C in warnings[0][1]  # names the player whose stats could not be read
 
 
 def test_expanded_stats_none_has_no_stats():
