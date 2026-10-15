@@ -254,6 +254,22 @@ def test_a_failed_playbook_is_reported(app, client, auth, monkeypatch):
     assert result['success'] is False and len(fake.calls) == 1
 
 
+def test_a_failed_playbook_logs_the_stdout_tail(app, client, auth, monkeypatch):
+    _with_cert(app, client, auth)
+    host_id = _host(app)
+    _enable(app, host_id)
+    stdout = 'x' * 5000 + 'TASK [Fail the play] fatal: ql-ping-echo failed to start'
+    monkeypatch.setattr(_ctx(app), 'run_playbook', FakePlaybook(success=False, stdout=stdout,
+                                                                stderr='boom'))
+    errors = []
+    monkeypatch.setattr(_ctx(app).logger, 'error', lambda msg, *args: errors.append(msg % args))
+    with app.app_context():
+        assert _backend().apply_host(host_id)['success'] is False
+    assert len(errors) == 1
+    assert 'ql-ping-echo failed to start' in errors[0] and 'boom' in errors[0]
+    assert 'x' * 2100 not in errors[0]   # only the tail
+
+
 def test_apply_task_is_a_no_op_while_the_addon_is_off(app, client, auth, monkeypatch):
     _with_cert(app, client, auth)
     for host_enabled in (True, False):
@@ -463,6 +479,23 @@ def test_sync_playbook_disabled_path_only_removes():
     assert any(t.get('file', {}).get('path', '').endswith('/cert.pem')
                and t['file']['state'] == 'absent' for t in steps)
     assert (ADDON_DIR / 'playbooks' / 'status_server_ping.yml').is_file()
+
+
+@pytest.mark.standalone
+def test_sync_playbook_disabled_path_resaves_rules_v4_after_the_remove():
+    steps = [t for t in _sync_play() if t['when'] == DISABLED][0]['block']
+    remove = next(i for i, t in enumerate(steps)
+                  if str(t.get('command', '')).endswith('ql-ping-firewall remove'))
+    check = [i for i, t in enumerate(steps)
+             if 'QLPING-INPUT' in str(t.get('command', '')) and 'rules.v4' in str(t.get('command', ''))]
+    assert len(check) == 1
+    check_task = steps[check[0]]
+    assert check_task['failed_when'] is False   # no rules.v4 (rc 2) is fine
+    resave = [i for i, t in enumerate(steps)
+              if str(t.get('shell', '')).strip() == 'iptables-save > /etc/iptables/rules.v4']
+    assert len(resave) == 1
+    assert steps[resave[0]]['when'] == f"{check_task['register']}.rc == 0"
+    assert remove < check[0] < resave[0]
 
 
 FAKE_IPTABLES = r'''#!/usr/bin/env bash

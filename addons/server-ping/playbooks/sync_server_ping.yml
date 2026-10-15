@@ -7,7 +7,8 @@
 # the service restarted and checked to stay up for 15 s (rescue stops it).
 # Disabled: nothing is installed; a service that exists is stopped and
 # disabled, the QLPING-INPUT hook and chain removed (when the script is on the
-# host) and the certificate deleted. QLSM-INPUT is never touched.
+# host), /etc/iptables/rules.v4 re-saved when it still holds the chain, and
+# the certificate deleted. QLSM-INPUT is never touched.
 
 - name: Deploy ql-ping-echo
   hosts: all
@@ -182,6 +183,20 @@
           command: "{{ sp_dir }}/ql-ping-firewall remove"
           changed_when: false
           when: sp_firewall_script.stat.exists
+
+        # qlsm runs iptables-save > rules.v4 on every instance add/start, so the
+        # chain was persisted while enabled; without a re-save the port opens
+        # again on the next boot (nothing listening). rc 0 = file exists and
+        # still holds the chain; 1 = clean; 2 = no file.
+        - name: Check whether rules.v4 still holds QLPING-INPUT
+          command: grep -q QLPING-INPUT /etc/iptables/rules.v4
+          register: sp_rules_v4
+          failed_when: false
+          changed_when: false
+
+        - name: Re-save rules.v4 without QLPING-INPUT
+          shell: iptables-save > /etc/iptables/rules.v4
+          when: sp_rules_v4.rc == 0
 
         - name: Remove the DTLS key and certificate
           file:

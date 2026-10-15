@@ -138,7 +138,7 @@ def apply_host(host_id):
         return {'success': False, 'message': str(e)}
     cert_file = _write_cert_file(pem) if pem else ''
     try:
-        success, _stdout, stderr = _run(host, SYNC_PLAYBOOK, dict(variables, sp_cert_file=cert_file))
+        success, stdout, stderr = _run(host, SYNC_PLAYBOOK, dict(variables, sp_cert_file=cert_file))
     finally:
         if cert_file:
             try:
@@ -146,8 +146,10 @@ def apply_host(host_id):
             except OSError:
                 pass
     if not success:
-        CTX.logger.error('server-ping: sync playbook failed for host %s: %s',
-                         host.name, stderr[-_LOG_TAIL:])
+        # Ansible prints task failures (and the rescue's journal lines) on stdout, which
+        # core logs only at DEBUG. Safe to log: the cert copy is no_log.
+        CTX.logger.error('server-ping: sync playbook failed for host %s: stdout: %s stderr: %s',
+                         host.name, stdout[-_LOG_TAIL:], stderr[-_LOG_TAIL:])
         return {'success': False, 'message': 'The sync playbook failed; see the qlsm log.'}
     CTX.logger.info('server-ping: applied to host %s (enabled=%s)', host.name,
                     variables['sp_enabled'])
