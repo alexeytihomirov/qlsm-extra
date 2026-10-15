@@ -92,6 +92,17 @@ def get_host_relay_status(host_id):
     }})
 
 
+def _allow_or_error(host):
+    """None once stats-hub lets the host in, else the error response."""
+    from .settings import HubAccessError, allow_host
+
+    try:
+        allow_host(host)
+    except HubAccessError as exc:
+        return jsonify({"error": {"message": f"stats-hub did not let this host in: {exc}"}}), exc.status
+    return None
+
+
 def _access_line(host):
     """'Firewall ok; telemetry 5 s ago' from stats-hub, or why it is unknown."""
     from .settings import HubAccessError, firewall_label, host_access_status
@@ -126,8 +137,7 @@ def update_host_relay(host_id):
     from ui.task_logic.job_failure_handlers import host_job_failure_handler
     from ui.tasks import enqueue_task
     from .settings import (
-        HubAccessError, allow_host, is_relay_enabled, set_host_stats_hub_ingest_token,
-        set_host_stats_hub_url,
+        is_relay_enabled, set_host_stats_hub_ingest_token, set_host_stats_hub_url,
     )
 
     host, error = _host_or_404(host_id)
@@ -145,16 +155,13 @@ def update_host_relay(host_id):
     set_host_stats_hub_ingest_token(host_id, token)
     db.session.commit()
 
-    if wanted:
-        # The hub must accept the host before the relay starts sending to it.
-        try:
-            allow_host(host)
-        except HubAccessError as exc:
-            return jsonify({"error": {"message": f"stats-hub did not let this host in: {exc}"}}), exc.status
-
     if wanted == is_relay_enabled(host_id):
         # Nothing to install or remove -- just re-push the config so an edited
         # URL/token reaches a relay that is already running.
+        if wanted:
+            error = _allow_or_error(host)
+            if error:
+                return error
         push_relay_config_logic(host_id)
         return jsonify({"data": {"enabled": wanted}, "message": "Relay configuration updated."})
 
@@ -168,6 +175,14 @@ def update_host_relay(host_id):
         return jsonify({"error": {
             "message": f'Another operation is running on host "{host.name}". Please wait for it to complete.'
         }}), 409
+    if wanted:
+        # The hub must accept the host before the relay starts sending to it;
+        # only now, with the job certain to be queued, so a refused save leaves
+        # no stale entry behind.
+        error = _allow_or_error(host)
+        if error:
+            release_lock('host', host.id, lock_token)
+            return error
     try:
         update_host(host.id, status=HostStatus.CONFIGURING)
         enqueue_task(TASKS['configure_host_relay'], host.id, wanted,

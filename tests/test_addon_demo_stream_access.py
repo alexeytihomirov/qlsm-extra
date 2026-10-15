@@ -28,6 +28,13 @@ def auth(app):
     return auth_headers(app, 'demoop2')
 
 
+@pytest.fixture(autouse=True)
+def host_lock_is_free():
+    """No Redis in tests: the host lock is taken (a test patching it again wins)."""
+    with patch('ui.task_lock.acquire_lock', return_value=True), patch('ui.task_lock.release_lock'):
+        yield
+
+
 @pytest.fixture
 def host_id(app):
     with app.app_context():
@@ -182,3 +189,40 @@ def test_manifest_declares_host_status(app):
     from conftest import ADDONS_DIR
     manifest = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
     assert manifest['ui']['panels']['host_tunnel']['status'] == {'load': 'GET hosts/{host_id}/status'}
+
+
+def test_busy_host_lock_lets_nothing_in(app, client, auth, host_id):
+    with app.app_context():
+        _set_relay_and_hub()
+    with patch(f'{MOD}.requests.put') as put, \
+            patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert', return_value=PEM), \
+            patch('ui.task_lock.acquire_lock', return_value=False), \
+            patch('ui.tasks.enqueue_task') as enqueue:
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': ''},
+                          headers=auth)
+    assert resp.status_code == 409
+    put.assert_not_called()
+    enqueue.assert_not_called()
+
+
+def test_refused_allow_releases_the_lock(app, client, auth, host_id):
+    with app.app_context():
+        _set_relay_and_hub()
+    with patch(f'{MOD}.requests.put', return_value=_answer(503, {'detail': 'x'})), \
+            patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert', return_value=PEM), \
+            patch('ui.task_lock.acquire_lock', return_value=True), \
+            patch('ui.task_lock.release_lock') as release, \
+            patch('ui.tasks.enqueue_task'):
+        resp = client.put(f'{URL}/hosts/{host_id}', json={'enabled': True, 'local_port': ''},
+                          headers=auth)
+    assert resp.status_code == 502
+    release.assert_called_once()
+
+
+def test_status_call_uses_the_short_timeout(app, host_id):
+    with app.app_context():
+        _set_relay_and_hub()
+        from qlsm_addon_demo_stream.stats_hub import STATUS_TIMEOUT_SEC, host_access_status
+        with patch(f'{MOD}.requests.get', return_value=_answer(body={'ports': {}})) as get:
+            host_access_status(db.session.get(Host, host_id))
+        assert get.call_args.kwargs['timeout'] == STATUS_TIMEOUT_SEC == 10

@@ -187,6 +187,7 @@ def read_cvars_from_text(text, cvar_names):
 # docs/FIREWALL.md, "Managed from qlsm through the hub API").
 
 ACCESS_TIMEOUT_SEC = 35  # the hub gives hub-allow 30 s
+STATUS_TIMEOUT_SEC = 10  # a panel badge: do not hang the panel on a slow hub
 
 
 class HubAccessError(Exception):
@@ -207,7 +208,7 @@ def hub_host_name(host):
     return name or f'host-{host.id}'
 
 
-def _access_call(send, host, suffix='', **kwargs):
+def _access_call(send, host, suffix='', timeout=ACCESS_TIMEOUT_SEC, **kwargs):
     if not (host.ip_address or '').strip():
         raise HubAccessError('This host has no IP address yet.', 409, 'No IP address')
     if not is_stats_hub_configured_for_host(host.id):
@@ -217,7 +218,7 @@ def _access_call(send, host, suffix='', **kwargs):
            f"{host.ip_address.strip()}{suffix}")
     headers = {'Authorization': f'Bearer {get_effective_stats_hub_ingest_token(host.id)}'}
     try:
-        resp = send(url, headers=headers, timeout=ACCESS_TIMEOUT_SEC, allow_redirects=False,
+        resp = send(url, headers=headers, timeout=timeout, allow_redirects=False,
                     **kwargs)
     except requests.RequestException as exc:
         raise HubAccessError(
@@ -261,7 +262,7 @@ def release_host(host):
 
 
 def host_access_status(host):
-    return _access_call(requests.get, host, '/status')
+    return _access_call(requests.get, host, '/status', timeout=STATUS_TIMEOUT_SEC)
 
 
 def firewall_label(state):

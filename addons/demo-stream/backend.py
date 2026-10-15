@@ -193,18 +193,20 @@ def update_host_tunnel(host_id):
             "message": f"Host must be ACTIVE to change the tunnel. Current state: {host.status.value}"
         }}), 400
 
-    if wanted:
-        # The hub must accept the host before the tunnel starts streaming to it.
-        try:
-            allow_host(host)
-        except HubAccessError as exc:
-            return jsonify({"error": {"message": f"stats-hub did not let this host in: {exc}"}}), exc.status
-
     lock_token = str(uuid.uuid4())
     if not acquire_lock('host', host.id, lock_token, ttl=360):
         return jsonify({"error": {
             "message": f'Another operation is running on host "{host.name}". Please wait for it to complete.'
         }}), 409
+    if wanted:
+        # The hub must accept the host before the tunnel starts streaming to it;
+        # only now, with the job certain to be queued, so a refused save leaves
+        # no stale entry behind.
+        try:
+            allow_host(host)
+        except HubAccessError as exc:
+            release_lock('host', host.id, lock_token)
+            return jsonify({"error": {"message": f"stats-hub did not let this host in: {exc}"}}), exc.status
     try:
         update_host(host.id, status=HostStatus.CONFIGURING)
         enqueue_task(TASKS['configure_host_tunnel'], host.id, wanted, port, cert_pem,
