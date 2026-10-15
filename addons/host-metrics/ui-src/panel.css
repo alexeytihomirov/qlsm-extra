@@ -1,0 +1,153 @@
+/* Tailwind utilities for this bundle only (no preflight: QLSM's own base styles stay
+ * untouched). `source(none)` + `@source` limit the scan to this directory.
+ */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities) source(none);
+@source "./";
+
+/* QLSM flips theme by putting `.dark` on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---- tokens -------------------------------------------------------------------
+ * Chart palette: the dataviz reference palette, categorical slots in fixed order
+ * (validated light and dark with validate_palette.js). Ink and surface come from QLSM's
+ * own variables so the charts sit on the same card as the rest of the dialog.
+ * Status colors are fixed, never used as a series color.
+ */
+.hm-root {
+  color-scheme: light;
+  --hm-surface: var(--surface-elevated, #fcfcfb);
+  --hm-ink: var(--text-primary, #0b0b0b);
+  --hm-ink-2: var(--text-secondary, #52514e);
+  --hm-muted: var(--text-muted, #898781);
+  --hm-grid: #e1e0d9;
+  --hm-axis: #c3c2b7;
+  --hm-line: var(--surface-border, rgba(11, 11, 11, 0.10));
+  --hm-s1: #2a78d6;
+  --hm-s2: #eb6834;
+  --hm-s3: #1baf7a;
+  --hm-s4: #eda100;
+  --hm-s5: #e87ba4;
+  --hm-s6: #008300;
+  --hm-s7: #6250d6;
+  --hm-s8: #e34948;
+  --hm-s0: #898781;
+  --hm-good: #0ca30c;
+  --hm-warning: #fab219;
+  --hm-critical: #d03b3b;
+  --hm-good-ink: #006300;
+}
+.dark .hm-root {
+  color-scheme: dark;
+  --hm-grid: #2c2c2a;
+  --hm-axis: #383835;
+  --hm-s1: #3987e5;
+  --hm-s2: #d95926;
+  --hm-s3: #199e70;
+  --hm-s4: #c98500;
+  --hm-s5: #d55181;
+  --hm-s6: #008300;
+  --hm-s7: #9085e9;
+  --hm-s8: #e66767;
+  --hm-good-ink: #0ca30c;
+}
+
+.hm-root { color: var(--hm-ink); font-size: 13px; }
+.hm-muted { color: var(--hm-muted); }
+.hm-ink-2 { color: var(--hm-ink-2); }
+.hm-mono { font-family: "Share Tech Mono", "Consolas", monospace; }
+.hm-num { font-variant-numeric: tabular-nums; }
+
+/* ---- buttons, range switch ------------------------------------------------------ */
+.hm-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 6px;
+  border: 1px solid var(--surface-border-strong, var(--hm-line));
+  background: var(--surface-elevated, transparent); color: var(--hm-ink);
+  font-size: 12px; cursor: pointer;
+}
+.hm-btn:hover:not(:disabled) { border-color: var(--accent-primary, var(--hm-s1)); }
+.hm-btn:disabled { opacity: 0.5; cursor: default; }
+.hm-btn-primary { border-color: var(--accent-primary, var(--hm-s1)); }
+
+.hm-range { display: inline-flex; border: 1px solid var(--surface-border-strong, var(--hm-line)); border-radius: 6px; overflow: hidden; }
+.hm-range button {
+  padding: 4px 12px; background: transparent; color: var(--hm-ink-2);
+  border: 0; border-right: 1px solid var(--hm-line); font-size: 12px; cursor: pointer;
+}
+.hm-range button:last-child { border-right: 0; }
+.hm-range button:hover { background: var(--hm-grid); }
+.hm-range button[aria-pressed="true"] { background: var(--accent-primary, var(--hm-s1)); color: #fff; font-weight: 600; }
+
+/* ---- status badge (icon + label, never color alone) ----------------------------- */
+.hm-badge { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; font-size: 12px; white-space: nowrap; }
+.hm-badge svg { width: 14px; height: 14px; flex: none; }
+.hm-tone-good { color: var(--hm-good-ink); }
+.hm-tone-warning { color: var(--hm-ink); }
+.hm-tone-warning svg { color: var(--hm-warning); }
+.hm-tone-critical { color: var(--hm-critical); }
+.hm-tone-neutral { color: var(--hm-ink-2); }
+
+/* ---- page table -------------------------------------------------------------------- */
+.hm-page { padding: 4px 0; }
+.hm-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.hm-table-wrap { overflow-x: auto; border: 1px solid var(--hm-line); border-radius: 8px; }
+.hm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.hm-table th {
+  text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--hm-muted); padding: 8px 12px; border-bottom: 1px solid var(--hm-line); white-space: nowrap;
+}
+.hm-table td { padding: 8px 12px; border-bottom: 1px solid var(--hm-line); vertical-align: top; }
+.hm-table tr:last-child td { border-bottom: 0; }
+.hm-host-link {
+  background: none; border: 0; padding: 0; cursor: pointer; font-weight: 600;
+  color: var(--accent-primary, var(--hm-s1)); text-align: left;
+}
+.hm-host-link:hover { text-decoration: underline; }
+.hm-reason { margin-top: 2px; max-width: 320px; font-size: 11px; color: var(--hm-muted); }
+.hm-cores { display: flex; flex-wrap: wrap; gap: 2px 8px; }
+.hm-core-hot { color: var(--hm-critical); font-weight: 600; }
+.hm-error { color: var(--accent-danger, var(--hm-critical)); margin: 8px 0; }
+
+/* ---- host modal -------------------------------------------------------------------- */
+.hm-modal-body { display: flex; flex-direction: column; gap: 16px; }
+.hm-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.hm-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--hm-muted); margin: 4px 0 6px; font-weight: 600; }
+.hm-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 720px) { .hm-grid-2 { grid-template-columns: minmax(0, 1fr); } }
+.hm-dim { opacity: 0.5; transition: opacity 0.15s; }
+
+/* ---- chart card ---------------------------------------------------------------------- */
+.hm-card { background: var(--hm-surface); border: 1px solid var(--hm-line); border-radius: 8px; padding: 10px 12px 8px; min-width: 0; }
+.hm-card-title { font-size: 12px; font-weight: 600; color: var(--hm-ink); }
+.hm-card-sub { font-size: 11px; color: var(--hm-muted); margin-left: 6px; font-weight: 400; }
+.hm-legend { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 4px 0 2px; font-size: 11px; color: var(--hm-ink-2); }
+.hm-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.hm-swatch-line { width: 14px; height: 3px; border-radius: 2px; flex: none; }
+.hm-swatch-box { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.hm-legend-value { color: var(--hm-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.hm-chart { position: relative; width: 100%; }
+.hm-chart-empty { display: flex; align-items: center; justify-content: center; color: var(--hm-muted); font-size: 12px; }
+.hm-chart .uplot, .hm-chart .u-wrap { max-width: 100%; }
+.hm-tip {
+  position: absolute; top: 4px; z-index: 5; pointer-events: none; min-width: 140px;
+  background: var(--hm-surface); border: 1px solid var(--hm-axis); border-radius: 6px;
+  padding: 6px 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); font-size: 11px;
+}
+.hm-tip-time { color: var(--hm-muted); margin-bottom: 3px; }
+.hm-tip-row { display: flex; align-items: center; gap: 6px; line-height: 1.5; }
+.hm-tip-row .hm-tip-val { margin-left: auto; padding-left: 10px; font-weight: 600; color: var(--hm-ink); font-variant-numeric: tabular-nums; }
+.hm-tip-row .hm-tip-name { color: var(--hm-ink-2); }
+
+/* ---- events table ------------------------------------------------------------------- */
+.hm-events { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hm-events th { text-align: left; font-size: 11px; color: var(--hm-muted); font-weight: 600; padding: 4px 8px; border-bottom: 1px solid var(--hm-line); }
+.hm-events td { padding: 4px 8px; border-bottom: 1px solid var(--hm-line); vertical-align: top; }
+.hm-sev { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.hm-sev svg { width: 12px; height: 12px; }
+
+/* ---- footer ---------------------------------------------------------------------------- */
+.hm-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; width: 100%; font-size: 12px; color: var(--hm-ink-2); }
+.hm-footer-spacer { flex: 1; }
+.hm-footer label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.hm-note { font-size: 12px; color: var(--hm-ink-2); }

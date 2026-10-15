@@ -1,0 +1,19 @@
+{
+  "name": "qlsm-addon-host-metrics-ui",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Build for the host-metrics addon's tier-2 QLSM components (ui/Page.js, ui/HostPanel.js, ui/Panel.css).",
+  "scripts": {
+    "build": "vite build",
+    "test": "node --test ui-src/format.test.mjs ui-src/data.test.mjs"
+  },
+  "dependencies": {
+    "uplot": "1.6.31"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.5",
+    "tailwindcss": "^4.1.5",
+    "vite": "^6.3.5"
+  }
+}

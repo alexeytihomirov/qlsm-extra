@@ -149,6 +149,14 @@
       "description": "Ships demo files (.qlmatch packs, .replay.json.gz sidecars, raw .dm_91) from every game host to the site VPS over SFTP with rclone, every few minutes, and removes raw demos from the host after the retention period, only when the delivery is recorded and at least a day old. One SFTP key belongs to the whole QLSM install: add its public half (Settings -> Addons -> File Forwarder) to the VPS once. The forwarder is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry File Forwarder has the host switch, the status and the buttons Apply to host, Sync now and Sync now and delete delivered."
     },
     {
+      "id": "host-metrics",
+      "zip": "packages/host-metrics.zip",
+      "sha256": "513bf8d2ec6422d747a6a8e9b2fef70e2961b69fe6e3427e94c3edb8123116ac",
+      "version": "1.0.0",
+      "label": "Host Metrics",
+      "description": "Per-core CPU (including steal), memory, disk and per-instance CPU, memory, players and frame timing for every game host, kept for 30 days in a small SQLite file on the host by a low-priority collector service, with a capacity verdict (how many more instances the host takes). The collector is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry Host Metrics has the host switch, the status and Apply to host; the Host Metrics page lists every host."
+    },
+    {
       "id": "player-ranks",
       "zip": "packages/player-ranks.zip",
       "sha256": "2471cc55530bba981675af9368d306fcf99d4fb2b1d6704dd11ded64cb5466c6",
