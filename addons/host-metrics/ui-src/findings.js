@@ -110,10 +110,12 @@ function saturation(events, series, now) {
     const m = /^core (\d+)/.exec(e.message || '');
     if (!m) continue;
     const core = Number(m[1]);
-    const end = isNum(e.closed_ts) ? e.closed_ts : (isNum(now) ? now : e.ts);
-    const cur = out.get(core) || { seconds: 0, matches: false };
-    cur.seconds += Math.max(end - e.ts, 0);
-    if (series && playersAt(series, e.ts, end)) cur.matches = true;
+    const end = isNum(e.closed_ts) ? e.closed_ts : (isNum(now) ? now : null);
+    const cur = out.get(core) || { seconds: null, matches: false };
+    if (end !== null) {
+      cur.seconds = (cur.seconds || 0) + Math.max(end - e.ts, 0);
+      if (series && playersAt(series, e.ts, end)) cur.matches = true;
+    }
     out.set(core, cur);
   }
   return out;
@@ -128,14 +130,23 @@ function cpuFindings({ snapshot, series, events, settings, range }) {
   const note = fromSeries ? '' : ' (24 h snapshot)';
   const out = [];
   const satMap = saturation(events, series, series?.now ?? snapshot?.now);
-  for (const c of cores || []) {
-    const s = satMap.get(c.core);
+  const byCore = new Map((cores || []).map((c) => [c.core, c]));
+  const ids = [...new Set([...byCore.keys(), ...satMap.keys()])].sort((a, b) => a - b);
+  for (const id of ids) {
+    const c = byCore.get(id);
+    const s = satMap.get(id);
     if (s) {
-      const minutes = Math.max(1, Math.round(s.seconds / 60));
+      // saturation events stand on their own: a core without a p95 row is still reported
+      let dur = '';
+      if (s.seconds !== null) {
+        dur = s.seconds < 60
+          ? ' for less than a minute'
+          : ` for ${plural(Math.round(s.seconds / 60), 'minute', 'minutes')}`;
+      }
       out.push({
         level: 'problem',
         area: 'cpu',
-        text: `Core ${c.core} was above ${pct0(sat)} % for ${plural(minutes, 'minute', 'minutes')}${s.matches ? ', during matches' : ''}.`,
+        text: `Core ${id} was above ${pct0(sat)} %${dur}${s.matches ? ', during matches' : ''}.`,
       });
     } else if (c.p95 > target) {
       out.push({
@@ -196,10 +207,15 @@ function roomFindings({ snapshot, verdict }) {
       text: `${prefix}Room for ${slots} more ${slots === 1 ? 'instance' : 'instances'} (${refText}).`,
     }];
   }
+  // the verdict takes the smaller of the CPU and RAM slot counts: name the one that limits
+  const reason = String(verdict.reason || '');
+  let why = '';
+  if (/^0 slots, memory:/.test(reason)) why = ': RAM is the limit';
+  else if (/^0 slots, core \d+:/.test(reason)) why = ` (CPU is the limit; ${refText})`;
   return [{
     level: verdict.status === 'overloaded' ? 'problem' : 'warning',
     area: 'room',
-    text: `${prefix}No room for more instances (${refText}).`,
+    text: `${prefix}No room for more instances${why}.`,
   }];
 }
 

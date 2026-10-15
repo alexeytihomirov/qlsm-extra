@@ -124,7 +124,12 @@ test('room: slots, no room, fleet reference, nothing at all', () => {
   assert.match(by(one, 'room')[0].text, /^Room for 1 more instance \(/);
   const none = findings({ snapshot: snap(), verdict: { status: 'tight', slots: 0, ref_load: 50, ref_source: 'host' } });
   assert.equal(by(none, 'room')[0].level, 'warning');
-  assert.match(by(none, 'room')[0].text, /^No room for more instances \(reference: one instance uses 50 % of a core in a match\)\.$/);
+  assert.equal(by(none, 'room')[0].text, 'No room for more instances.'); // reason unknown: no resource is blamed
+  const cpu = findings({ snapshot: snap(), verdict: { status: 'tight', slots: 0, ref_load: 50, ref_source: 'host', reason: '0 slots, core 0: 1 x 50% + 30% other of 70%' } });
+  assert.equal(by(cpu, 'room')[0].text, 'No room for more instances (CPU is the limit; reference: one instance uses 50 % of a core in a match).');
+  const ram = findings({ snapshot: snap(), verdict: { status: 'tight', slots: 0, ref_load: 50, ref_source: 'host', reason: '0 slots, memory: 500 MB available - 20% reserve, largest instance 100 MB' } });
+  assert.equal(by(ram, 'room')[0].text, 'No room for more instances: RAM is the limit.');
+  assert.doesNotMatch(by(ram, 'room')[0].text, /core/);
   const over = findings({ snapshot: snap(), verdict: { status: 'overloaded', slots: 0, ref_load: 50, ref_source: 'host' } });
   assert.equal(by(over, 'room')[0].level, 'problem');
 
@@ -251,4 +256,24 @@ test('a snapshot with almost nothing in it yields no invented numbers', () => {
   const out = findings({ snapshot: { data_age_s: 5 } });
   for (const f of out) assert.doesNotMatch(f.text, /NaN|undefined|null|Infinity/);
   assert.deepEqual(out.map((f) => f.area), ['frames']);
+});
+
+test('a saturation event on a core without a p95 row is still reported, in core order', () => {
+  const events = [{ kind: 'core_saturated', ts: 1000, closed_ts: 1000 + 300, state: 'closed', message: 'core 5 busy 99% (limit 95%)' }];
+  const out = by(findings({ snapshot: snap(), events }), 'cpu'); // snapshot has p95 rows for cores 0 and 1 only
+  assert.deepEqual(out.map((f) => f.text.slice(0, 6)), ['Core 0', 'Core 1', 'Core 5']);
+  assert.deepEqual(out[2], { level: 'problem', area: 'cpu', text: 'Core 5 was above 95 % for 5 minutes.' });
+  // no per-core data at all: the event is still there
+  const bare = by(findings({ snapshot: snap({ core_p95_24h: undefined }), events }), 'cpu');
+  assert.equal(bare.length, 1);
+  assert.match(bare[0].text, /^Core 5 was above/);
+});
+
+test('saturation duration: under a minute and unknown are never rounded up to 1 minute', () => {
+  const ev = (over) => [{ kind: 'core_saturated', ts: 1000, state: 'closed', message: 'core 0 busy 99% (limit 95%)', ...over }];
+  const short = by(findings({ snapshot: snap(), events: ev({ closed_ts: 1020 }) }), 'cpu')[0];
+  assert.equal(short.text, 'Core 0 was above 95 % for less than a minute.');
+  const open = by(findings({ snapshot: { ...snap(), now: undefined }, events: ev({ closed_ts: null, state: 'open' }) }), 'cpu')[0];
+  assert.equal(open.text, 'Core 0 was above 95 %.');
+  assert.doesNotMatch(open.text + short.text, /1 minute/);
 });
