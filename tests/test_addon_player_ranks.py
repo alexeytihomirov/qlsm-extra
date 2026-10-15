@@ -214,7 +214,7 @@ def test_config_load_suggests_from_server_cfg_when_unsaved(client, auth, instanc
     resp = client.get(f'{ADDON}/instances/{instance_id}/config', headers=auth)
     body = resp.get_json()['data']
 
-    assert body['elo_service_enabled'] is True
+    assert body['elo_service_enabled'] is False  # pre-fills fields, never ticks x76
     assert body['elo_service_base_url'] == 'http://localhost:5002'
     assert body['suggested'] is True
 
@@ -720,6 +720,7 @@ def test_suggestion_shown_while_x76_url_blank(client, auth, instance_id, tmp_pat
     assert loaded['suggested'] is True
     assert loaded['elo_service_base_url'] == 'http://localhost:5002'
     assert loaded['qlstats_enabled'] is True
+    assert loaded['elo_service_enabled'] is False
 
     # ... a filled-in URL does.
     client.put(f'{ADDON}/instances/{instance_id}/config', headers=auth, json={
@@ -820,3 +821,58 @@ def test_ranks_route_migrates_an_old_instance_lazily(
 
     assert _ranks(client, auth, instance_id, 'qlstats')['data'][STEAM_A]['display'] == '2181'
     assert _raw(app, 'instance', instance_id).get('qlstats_enabled') is True
+
+
+def test_ensure_migrated_is_a_noop_once_the_switches_are_gone(app, instance_id):
+    from ui.addons import get_addon
+    from qlsm_addon_player_ranks import ranks_service
+
+    _put_raw(app, 'global', 0, {'qlstats_base_url': 'http://q'})
+    with app.app_context():
+        with patch.object(ranks_service, 'migrate_all') as migrate_all:
+            ranks_service.ensure_migrated(get_addon('player-ranks').ctx.settings, instance_id)
+    migrate_all.assert_not_called()
+    assert _raw(app, 'instance', instance_id) is None
+
+
+def test_lazy_path_with_switches_present_migrates_everything(
+    client, auth, app, host_and_instance_id,
+):
+    host_id, old_id = host_and_instance_id
+    with app.app_context():
+        other = QLInstance(name='other', port=27980, hostname='o', host_id=host_id,
+                           status=InstanceStatus.RUNNING)
+        db.session.add(other)
+        db.session.commit()
+        other_id = other.id
+    _put_raw(app, 'global', 0, {'qlstats_enabled': True, 'slipgate_enabled': False})
+
+    # A route touching one instance migrates all of them and drops the switches ...
+    body = client.get(f'{ADDON}/instances/{old_id}/config', headers=auth).get_json()['data']
+    assert body['qlstats_enabled'] is True
+    assert _raw(app, 'global', 0) == {}
+    assert _raw(app, 'instance', other_id)['qlstats_enabled'] is True
+
+    # ... so an instance created afterwards starts with every source off.
+    with app.app_context():
+        late = QLInstance(name='late', port=27981, hostname='l', host_id=host_id,
+                          status=InstanceStatus.RUNNING)
+        db.session.add(late)
+        db.session.commit()
+        late_id = late.id
+    body = client.get(f'{ADDON}/instances/{late_id}/config', headers=auth).get_json()['data']
+    assert (body['qlstats_enabled'], body['slipgate_enabled']) == (False, False)
+
+
+def test_migrate_all_treats_a_concurrent_insert_as_already_migrated(app, instance_id):
+    from sqlalchemy.exc import IntegrityError
+    from ui.addons import get_addon
+    from qlsm_addon_player_ranks import ranks_service
+
+    _put_raw(app, 'global', 0, {'qlstats_enabled': True})
+    with app.app_context():
+        with patch.object(ranks_service, 'migrate_instance_row',
+                          side_effect=IntegrityError('insert', {}, Exception('UNIQUE'))):
+            ranks_service.migrate_all(get_addon('player-ranks').ctx.settings)  # must not raise
+        db.session.rollback()
+    assert _raw(app, 'global', 0) == {'qlstats_enabled': True}  # rolled back, retried next time

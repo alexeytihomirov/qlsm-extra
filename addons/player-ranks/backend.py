@@ -55,6 +55,9 @@ def get_instance_config(instance_id):
     suggestion = suggest_from_server_cfg(instance)
     if not suggestion:
         return jsonify({"data": {**values, "suggested": False}})
+    # Pre-fills the x76 fields only; the x76 checkbox keeps its stored value,
+    # so saving the tab for another reason never turns x76 on.
+    suggestion.pop('elo_service_enabled', None)
     return jsonify({"data": {**values, **suggestion, "suggested": True}})
 
 
@@ -165,11 +168,16 @@ def register(ctx):
         # Runs when core mounts the blueprint. The database may not be ready
         # yet (first boot, tests); the routes migrate lazily then.
         from ui import db
+        from ui.models import AddonState, QLInstance
 
         from .ranks_service import migrate_all
 
         try:
             with state.app.app_context():
+                inspector = db.inspect(db.engine)
+                if not all(inspector.has_table(m.__tablename__) for m in (AddonState, QLInstance)):
+                    state.app.logger.info('player-ranks: no database tables yet, startup migration skipped')
+                    return
                 migrate_all(ctx.settings)
         except Exception:
             state.app.logger.warning('player-ranks: startup migration skipped', exc_info=True)

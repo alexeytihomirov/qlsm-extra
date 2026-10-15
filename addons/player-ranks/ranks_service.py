@@ -118,8 +118,6 @@ def _raw_settings(addon_id, scope, scope_id):
 
 
 def _strip(row, keys):
-    import json
-
     kept = {k: v for k, v in row.settings.items() if k not in keys}
     if len(kept) != len(row.settings):
         row.settings_json = json.dumps(kept, ensure_ascii=False, sort_keys=True)
@@ -149,24 +147,34 @@ def migrate_instance_row(settings, instance_id, global_cfg, commit=True):
 def migrate_all(settings):
     """Run once per startup over every instance qlsm knows (not only those
     with stored rows: a never-opened instance showed the global default too),
-    then drop the global switches. Idempotent."""
+    then drop the global switches. Idempotent. If a concurrent request created
+    the same row first (unique constraint), that request migrated: roll back
+    and leave it."""
+    from sqlalchemy.exc import IntegrityError
+
     from ui import db
     from ui.models import QLInstance
 
-    _, global_cfg = _raw_settings(settings.addon_id, 'global', 0)
-    for (instance_id,) in db.session.query(QLInstance.id).all():
-        migrate_instance_row(settings, instance_id, global_cfg, commit=False)
-    global_row, _ = _raw_settings(settings.addon_id, 'global', 0)
-    if global_row is not None:
-        _strip(global_row, _LEGACY_GLOBAL_KEYS)
-    db.session.commit()
+    try:
+        _, global_cfg = _raw_settings(settings.addon_id, 'global', 0)
+        for (instance_id,) in db.session.query(QLInstance.id).all():
+            migrate_instance_row(settings, instance_id, global_cfg, commit=False)
+        global_row, _ = _raw_settings(settings.addon_id, 'global', 0)
+        if global_row is not None:
+            _strip(global_row, _LEGACY_GLOBAL_KEYS)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
 
 
-def ensure_migrated(settings, instance_id):
-    """Lazy per-instance migration for the routes, in case the startup pass
-    could not run (database not ready) or missed the instance."""
+def ensure_migrated(settings, instance_id=None):
+    """Lazy fallback for the routes if the startup pass did not run. While the
+    old global switches are still stored the whole migration runs (it is
+    atomic and removes them); otherwise this is one cheap read and a no-op, so
+    an instance created later can never inherit an old default."""
     _, global_cfg = _raw_settings(settings.addon_id, 'global', 0)
-    migrate_instance_row(settings, instance_id, global_cfg)
+    if any(key in global_cfg for key in _LEGACY_GLOBAL_KEYS):
+        migrate_all(settings)
 
 
 def _instantiate(provider_id, entry, base_url, api_key, rating_system, display):
