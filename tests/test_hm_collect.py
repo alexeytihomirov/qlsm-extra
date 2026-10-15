@@ -346,3 +346,34 @@ def test_hardware_failure_never_breaks_tick_and_logs_once(env, monkeypatch, caps
     assert col.tick()["ts"] == T0 + 3600
     assert capsys.readouterr().err.count("hardware read failed") == 1
     assert hm_store.get_hardware(col.conn) is None
+
+
+def test_hardware_failure_retries_next_minute_not_hourly_and_logs_per_state_change(
+        env, monkeypatch, capsys):
+    calls = []
+    real = hm_readers.read_hardware
+
+    def flaky(root="/"):
+        calls.append(1)
+        if len(calls) <= 2:
+            raise RuntimeError("transient")
+        return real(root)
+
+    monkeypatch.setattr(hm_readers, "read_hardware", flaky)
+    col = env.collector()
+    col.tick()
+    assert len(calls) == 1
+    env.advance(10)
+    col.tick()
+    assert len(calls) == 1                       # not retried every tick
+    env.advance(60)
+    col.tick()
+    assert len(calls) == 2 and hm_store.get_hardware(col.conn) is None
+    env.advance(60)
+    col.tick()                                    # third attempt succeeds, well before an hour
+    assert len(calls) == 3 and hm_store.get_hardware(col.conn)["provider"] == "Hetzner"
+    err = capsys.readouterr().err
+    assert err.count("hardware read failed") == 1  # second failure is the same state
+    env.advance(120)
+    col.tick()
+    assert len(calls) == 3                        # hourly again after success

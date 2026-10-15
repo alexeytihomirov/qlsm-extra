@@ -15,6 +15,7 @@ import hm_store
 TICK_S = 10
 AFFINITY_REFRESH_S = 60
 HARDWARE_REFRESH_S = 3600
+HARDWARE_RETRY_S = 60  # after a failed read
 DEFAULT_CONFIG = "/etc/host-metrics/config.json"
 STATUS_KEY = "minqlx:server_status:%d"
 FRAMES_KEY = "minqlx:frame_stats:%d"
@@ -64,8 +65,8 @@ class Collector:
         self._affinity = {}       # port -> (core, read at)
         self._redis_db = {}       # port -> (qlx_redisDatabase, read at); resolved values only
         self._last_roll = int(self.clock()) // 60
-        self._hw_at = None        # monotonic time of the last hardware read
-        self._hw_failed = False   # a read failure is logged once
+        self._hw_next = None      # monotonic time the next hardware read is due, None = now
+        self._hw_failed = False   # the last read failed; logged once per state change
 
     # ---- host ----
 
@@ -132,15 +133,20 @@ class Collector:
         """Static hardware facts at start and hourly. Never raises: every field may be None."""
         if self.conn is None:
             return
-        if self._hw_at is not None and now - self._hw_at < HARDWARE_REFRESH_S:
+        if self._hw_next is not None and now < self._hw_next:
             return
-        self._hw_at = now
         try:
             hm_store.set_hardware(self.conn, ts, hm_readers.read_hardware(self.root))
         except Exception as e:  # noqa: BLE001 - hardware info is optional
+            self._hw_next = now + HARDWARE_RETRY_S
             if not self._hw_failed:
                 self._hw_failed = True
                 _log("hardware read failed: %r" % (e,))
+            return
+        self._hw_next = now + HARDWARE_REFRESH_S
+        if self._hw_failed:
+            self._hw_failed = False
+            _log("hardware read recovered")
 
     # ---- instances ----
 
