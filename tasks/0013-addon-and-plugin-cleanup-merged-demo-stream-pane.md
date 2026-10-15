@@ -1,7 +1,7 @@
 ---
 id: qlsm-extra-0013
 title: Addon and plugin cleanup: merged demo-stream panel, telemetry menu, player-ranks defaults, file-forwarder VPS key setting, short descriptions
-status: in-progress
+status: blocked
 created: 2026-10-15
 updated: 2026-10-15
 verified:
@@ -29,7 +29,8 @@ related: [qlsm-extra/docs/superpowers/specs/2026-10-15-addons-cleanup-design.md]
 - [x] Часть 2: demo-stream 1.5.0 (одна панель, выключение, один раздел Settings)
 - [x] Часть 3: telemetry-relay 1.5.0 (меню, галочка, выключение)
 - [x] Прод: проверка server.cfg на старые cvar телеметрии до удаления fallback
-- [ ] Merge в main, push, деплой, проверка оператором
+- [x] Merge в main, push
+- [ ] Деплой (Repositories -> Sync, обновить аддоны), проверка оператором
 
 ## Журнал
 
@@ -42,6 +43,8 @@ related: [qlsm-extra/docs/superpowers/specs/2026-10-15-addons-cleanup-design.md]
 - 2026-10-15 - прод: ssh-keyscan есть в qlsm-web-1 и qlsm-worker-1; ни у одного инстанса нет match_restore_lab / chat_rcon_acl в qlx_plugins; qlx_devAuthOpen нигде не задан; пресет id_tdm2x2 держит оба в checked_plugins.json
 - 2026-10-15 - origin/main получил host-metrics 1.1.x и задачу 0012 за время работы: влит в ветку, host-metrics целиком из origin, эта задача перенумерована 0012 -> 0013
 - 2026-10-15 - финальное ревью ветки: Critical нет, Important исправлены (8b5f079); ветка готова, merge/push/PR/деплой ждут OK оператора
+
+- 2026-10-15 - оператор: OK. qlsm-extra addons-cleanup -> origin/main d701810 (ls-remote). qlsm: upstream-pr/addon-menu-status запушена в форк (97d3d741); gh pr create в dngrtech/qlsm отказал (fine-grained токен: Resource not accessible), PR открыть руками; ветка влита в main форка bfdb1d63 (конфликты с page.nav: оставлены обе стороны; test_addon_manifest 147, vitest addons 79 зелёные)
 
 ## Результат
 
