@@ -33,9 +33,11 @@ from .settings import (
     read_cvars_from_text,
     reserve_server_id,
     set_instance_server_id,
+    set_new_server_id_at,
     set_reserved_server_id,
     strip_cvars_from_text,
     upsert_cvars_in_text,
+    utcnow,
 )
 
 _RESERVE_TIMEOUT_SEC = 10
@@ -157,6 +159,10 @@ def enable_instance_telemetry_logic(instance_id, previous_status=None, new_serve
                 f"Failed to reserve stats-hub server_id for instance {instance.id}: {exc}"
             )
             return _finish(instance, False, f"Could not reserve a server_id from stats-hub: {exc}", previous_status)
+        if new_server_id:
+            # The panel's switch stays ticked after the save; the endpoint
+            # refuses another new ID for a while after this one.
+            set_new_server_id_at(instance.id, utcnow())
     set_instance_server_id(instance.id, server_id)
     db.session.commit()
 

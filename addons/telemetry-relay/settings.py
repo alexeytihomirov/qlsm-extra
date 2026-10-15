@@ -16,6 +16,8 @@ State lives in the generic AppSetting key/value table under the same key
 prefix it has always used -- renaming it would orphan every deployed host's
 current setting.
 """
+from datetime import datetime, timezone
+
 from ui import db
 from ui.models import AppSetting
 
@@ -99,3 +101,25 @@ def is_instance_demo_stream_enabled(instance_id):
     demo-stream's key, read so a new telemetry server ID can say the stream
     still has to follow it."""
     return _get(f'{_DEMO_STREAM_ENABLED_PREFIX}{instance_id}') == '1'
+
+
+_NEW_ID_AT_PREFIX = 'stats_hub_new_id_at:'
+
+
+def get_new_server_id_at(instance_id):
+    """When a new server ID was last reserved for this instance on request
+    (aware UTC datetime), or None."""
+    value = _get(f'{_NEW_ID_AT_PREFIX}{instance_id}')
+    try:
+        return datetime.fromisoformat(value) if value else None
+    except ValueError:
+        return None
+
+
+def set_new_server_id_at(instance_id, when):
+    """Records (or, with None, forgets) that time. Does not commit."""
+    _set(f'{_NEW_ID_AT_PREFIX}{instance_id}', when.isoformat() if when else '')
+
+
+def utcnow():
+    return datetime.now(timezone.utc)

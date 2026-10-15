@@ -488,10 +488,122 @@ def test_new_server_id_reserve_failure_keeps_the_old_id(app, queued, monkeypatch
 def test_upsert_leaves_one_line_per_cvar():
     s = _settings()
     text = ('set a "1"\nset qlx_statsHubServerId "1"\nset b "2"\n'
-            'set qlx_statsHubServerId "1"\nseta qlx_statsHubUnifiedEnabled 0\n')
+            'set qlx_statsHubServerId "1"\n  seta qlx_statsHubUnifiedEnabled 0\n')
     out = s.upsert_cvars_in_text(text, {'qlx_statsHubServerId': '9',
                                         'qlx_statsHubUnifiedEnabled': '1', 'new': 'x'})
     assert out == ('set a "1"\nset b "2"\nset qlx_statsHubServerId "9"\n'
-                   'seta qlx_statsHubUnifiedEnabled "1"\nset new "x"\n')
+                   '  set qlx_statsHubUnifiedEnabled "1"\nset new "x"\n')
     assert s.upsert_cvars_in_text('set qlx_statsHubServerId "1"\n', {'qlx_statsHubServerId': '1'}) \
         == 'set qlx_statsHubServerId "1"\n'
+
+
+@pytest.mark.parametrize('line', [
+    'seta qlx_statsHubUnifiedEnabled "0"',
+    'seta qlx_statsHubUnifiedEnabled 0',
+    'set qlx_statsHubUnifiedEnabled 0',
+    'set qlx_statsHubUnifiedEnabled "0" // switched off by hand',
+    'set   qlx_statsHubUnifiedEnabled\t"0"',
+])
+def test_upsert_then_read_round_trips(line):
+    s = _settings()
+    text = f'set sv_hostname "duel"\n{line}\n'
+    assert s.read_cvars_from_text(text, ['qlx_statsHubUnifiedEnabled']) == {
+        'qlx_statsHubUnifiedEnabled': '0'}
+    out = s.upsert_cvars_in_text(text, {'qlx_statsHubUnifiedEnabled': '1'})
+    assert out == 'set sv_hostname "duel"\nset qlx_statsHubUnifiedEnabled "1"\n'
+    assert s.read_cvars_from_text(out, ['qlx_statsHubUnifiedEnabled']) == {
+        'qlx_statsHubUnifiedEnabled': '1'}
+    assert s.strip_cvars_from_text(text, ['qlx_statsHubUnifiedEnabled']) == 'set sv_hostname "duel"\n'
+
+
+def test_upsert_leaves_similar_names_and_comments_alone():
+    s = _settings()
+    text = ('// set qlx_statsHubServerId "5"\n'
+            'set qlx_statsHubServerIdX "5"\n'
+            'set qlx_statsHubServerId "5" // old\n'
+            '// seta qlx_statsHubServerId 6\n')
+    out = s.upsert_cvars_in_text(text, {'qlx_statsHubServerId': '9'})
+    assert out == ('// set qlx_statsHubServerId "5"\n'
+                   'set qlx_statsHubServerIdX "5"\n'
+                   'set qlx_statsHubServerId "9"\n'
+                   '// seta qlx_statsHubServerId 6\n')
+    assert s.read_cvars_from_text(out, ['qlx_statsHubServerId', 'qlx_statsHubServerIdX']) == {
+        'qlx_statsHubServerId': '9', 'qlx_statsHubServerIdX': '5'}
+    assert s.strip_cvars_from_text(out, ['qlx_statsHubServerId']) == (
+        '// set qlx_statsHubServerId "5"\nset qlx_statsHubServerIdX "5"\n'
+        '// seta qlx_statsHubServerId 6\n')
+
+
+def test_seta_off_cfg_is_read_as_off_and_enabled_once(app, client, auth, queued):
+    """A hand-written `seta ... 0` is seen as off; after the enable writes
+    `set ... "1"` a save finds nothing to repair."""
+    iid = _make_instance(app, 'seta qlx_statsHubUnifiedEnabled 0\nseta qlx_statsHubServerId 12\n',
+                         server_id=12)
+    assert client.get(f'{URL}/instances/{iid}', headers=auth).get_json()['data']['enabled'] is False
+    with app.app_context():
+        inst = db.session.get(QLInstance, iid)
+        cfg = Path('configs') / inst.host.name / str(iid) / 'server.cfg'
+    cfg.write_text(_settings().upsert_cvars_in_text(
+        cfg.read_text(encoding='utf-8'), {'qlx_statsHubUnifiedEnabled': '1',
+                                          'qlx_statsHubServerId': '12'}), encoding='utf-8')
+    resp = client.put(f'{URL}/instances/{iid}', json={'enabled': True}, headers=auth)
+    assert resp.status_code == 200 and resp.get_json()['message'] == 'No changes.'
+    assert queued == []
+
+
+# ---- new server ID guard: the form keeps the box ticked -------------------
+
+def _reserved_minutes_ago(app, iid, minutes):
+    from datetime import timedelta
+    with app.app_context():
+        s = _settings()
+        s.set_new_server_id_at(iid, s.utcnow() - timedelta(minutes=minutes))
+        db.session.commit()
+
+
+def test_put_new_server_id_again_within_ten_minutes_409(app, client, auth, queued):
+    iid = _make_instance(app, ON_CFG, server_id=12)
+    _reserved_minutes_ago(app, iid, 3)
+    resp = client.put(f'{URL}/instances/{iid}', json={'enabled': True, 'new_server_id': True},
+                      headers=auth)
+    assert resp.status_code == 409
+    assert resp.get_json()['error']['message'] == (
+        'A new server ID was reserved a few minutes ago; reopen the panel.')
+    assert queued == []
+
+
+def test_put_new_server_id_after_ten_minutes_queues_again(app, client, auth, queued):
+    iid = _make_instance(app, ON_CFG, server_id=12)
+    _reserved_minutes_ago(app, iid, 11)
+    resp = client.put(f'{URL}/instances/{iid}', json={'enabled': True, 'new_server_id': True},
+                      headers=auth)
+    assert resp.status_code == 202, resp.get_json()
+    assert queued[0][2]['new_server_id'] is True
+
+
+def test_plain_save_is_not_blocked_by_the_guard(app, client, auth, queued):
+    iid = _make_instance(app, ON_CFG, server_id=12)
+    _reserved_minutes_ago(app, iid, 1)
+    resp = client.put(f'{URL}/instances/{iid}', json={'enabled': True, 'new_server_id': False},
+                      headers=auth)
+    assert resp.status_code == 200 and resp.get_json()['message'] == 'No changes.'
+
+
+def test_enable_with_new_server_id_records_the_time_and_delete_forgets_it(app, queued, monkeypatch):
+    from datetime import timedelta
+    ops = _ops()
+    monkeypatch.setattr(ops, 'push_relay_config_logic', lambda host_id: True)
+    monkeypatch.setattr(ops, 'reserve_server_id', Mock(return_value=47))
+    iid = _make_instance(app, ON_CFG, server_id=12, status=InstanceStatus.CONFIGURING)
+    with app.app_context():
+        s = _settings()
+        assert s.get_new_server_id_at(iid) is None
+        assert ops.enable_instance_telemetry_logic(iid)[0]          # plain enable: nothing recorded
+        assert s.get_new_server_id_at(iid) is None
+        assert ops.enable_instance_telemetry_logic(iid, new_server_id=True)[0]
+        when = s.get_new_server_id_at(iid)
+        assert when is not None and s.utcnow() - when < timedelta(minutes=1)
+        from ui.addons.registry import dispatch
+        dispatch('instance.delete', iid, iid)
+        db.session.commit()
+        assert s.get_new_server_id_at(iid) is None

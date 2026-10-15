@@ -53,7 +53,7 @@
         "status": { "load": "GET instances/{instance_id}/status" },
         "fields": [
           { "key": "enabled", "type": "bool", "label": "Send telemetry", "default": false, "description": "Needs the Telemetry Relay on this host and the stream_telemetry_unified plugin on the instance." },
-          { "key": "new_server_id", "type": "bool", "label": "Reserve a new server ID", "default": false, "description": "Asks stats-hub for a fresh server ID on save; use it when two servers share one." }
+          { "key": "new_server_id", "type": "bool", "label": "Reserve a new server ID", "default": false, "description": "Asks stats-hub for a fresh server ID on save; use it when two servers share one. Untick it after saving." }
         ]
       },
 

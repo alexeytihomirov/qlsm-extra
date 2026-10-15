@@ -364,8 +364,11 @@ def get_instance_stream_status(instance_id):
         return jsonify({"data": {'ok': False, 'label': 'Enabled, no route registered yet'}})
     ids = _server_id_drift(instance)
     if ids:
+        from .settings import is_telemetry_routing
+        telemetry = (f'telemetry uses {ids[1]}' if is_telemetry_routing(instance.id, ids[1])
+                     else f"telemetry's reserved ID is {ids[1]}")
         return jsonify({"data": {'ok': False, 'label': (
-            f'Streaming on server ID {ids[0]}, telemetry uses {ids[1]}; save to repair')}})
+            f'Streaming on server ID {ids[0]}, {telemetry}; save to repair')}})
     state = _hub_delay_state(instance)
     label = 'Streaming'
     if state:

@@ -23,6 +23,7 @@ one reader, for as long as both code paths exist.
 """
 import time
 import uuid
+from datetime import timedelta
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required
@@ -248,9 +249,13 @@ def _cfg_enabled(instance):
 
 
 # A form-only switch: saving with it on reserves a fresh server ID. It is
-# never stored and always reads back as off, so the next save does not
-# reserve again (same pattern as file-forwarder's rescan_keys).
+# never stored and a GET reads it back as off (same pattern as
+# file-forwarder's rescan_keys). The open form ignores the PUT response, so
+# the box stays ticked until the panel is reopened; a save within
+# NEW_SERVER_ID_GUARD of the last new ID is refused rather than reserving
+# yet another one.
 NEW_SERVER_ID_KEY = 'new_server_id'
+NEW_SERVER_ID_GUARD = timedelta(minutes=10)
 
 
 @bp.route('/instances/<int:instance_id>', methods=['GET'], endpoint='get_instance_telemetry')
@@ -380,9 +385,16 @@ def update_instance_telemetry(instance_id):
     enabled = _cfg_enabled(instance)
 
     if new_server_id:
+        from .settings import get_new_server_id_at, utcnow
+
         if not wanted:
             return jsonify({"error": {
                 "message": "Switch telemetry on to get a new server ID."
+            }}), 409
+        last = get_new_server_id_at(instance.id)
+        if last is not None and utcnow() - last < NEW_SERVER_ID_GUARD:
+            return jsonify({"error": {
+                "message": "A new server ID was reserved a few minutes ago; reopen the panel."
             }}), 409
         return _enable_blocked(instance) or _queue_instance_task(
             instance, 'enable_instance_telemetry', 'enable with a new server ID',
@@ -517,6 +529,9 @@ def register(ctx):
 
     @ctx.on('instance.delete')
     def forget_instance(instance_id):
-        from .settings import set_instance_server_id, set_reserved_server_id
+        from .settings import (
+            set_instance_server_id, set_new_server_id_at, set_reserved_server_id,
+        )
         set_instance_server_id(instance_id, None)
         set_reserved_server_id(instance_id, None)
+        set_new_server_id_at(instance_id, None)

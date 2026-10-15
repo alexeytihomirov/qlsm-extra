@@ -158,6 +158,12 @@ def get_telemetry_server_id(instance_id):
     return int(value) if value else None
 
 
+def is_telemetry_routing(instance_id, server_id):
+    """Whether telemetry currently sends under `server_id` (its routed key),
+    as opposed to only keeping it reserved while switched off. Read-only."""
+    return _get(f'{_TELEMETRY_SERVER_ID_PREFIX}{instance_id}') == str(server_id)
+
+
 def get_telemetry_stats_hub_url(host_id):
     """The stats-hub URL telemetry-relay effectively uses for this host (its
     per-host override, else its global one). Read-only: these are telemetry's

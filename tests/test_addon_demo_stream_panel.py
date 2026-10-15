@@ -540,6 +540,19 @@ def test_status_shows_a_stream_id_that_drifted_from_telemetry(app, client, auth,
     get.assert_not_called()
 
 
+def test_status_names_telemetrys_reserved_id_when_telemetry_is_off(app, client, auth, streaming):
+    from ui.models import AppSetting
+    _telemetry_id(app, streaming)
+    with app.app_context():
+        db.session.delete(AppSetting.query.get(f'stats_hub_server_id:{streaming}'))
+        db.session.commit()
+    resp = client.get(f'{URL}/instances/{streaming}/status', headers=auth)
+    assert resp.get_json()['data'] == {
+        'ok': False,
+        'label': f"Streaming on server ID {SERVER_ID}, telemetry's reserved ID is {TELEMETRY_ID}; "
+                 "save to repair"}
+
+
 def test_status_ignores_telemetry_on_another_hub(client, app, auth, streaming):
     _telemetry_id(app, streaming, hub='https://other.example')
     with patch(GET, return_value=_hub()):
@@ -580,6 +593,10 @@ def test_enable_adopts_telemetrys_server_id(app, streaming, monkeypatch):
 
 
 def test_upsert_leaves_one_line_per_cvar():
-    from qlsm_addon_demo_stream.stats_hub import upsert_cvars_in_text
-    text = 'set sv_demoStream "0"\nset a "1"\nset sv_demoStream 0\n'
-    assert upsert_cvars_in_text(text, {'sv_demoStream': '1'}) == 'set a "1"\nset sv_demoStream "1"\n'
+    from qlsm_addon_demo_stream.stats_hub import read_cvars_from_text, upsert_cvars_in_text
+    text = 'set sv_demoStream "0"\nset a "1"\nseta sv_demoStream 0 // off\nset sv_demoStreamHost x\n'
+    assert read_cvars_from_text(text, ['sv_demoStream', 'sv_demoStreamHost']) == {
+        'sv_demoStream': '0', 'sv_demoStreamHost': 'x'}
+    out = upsert_cvars_in_text(text, {'sv_demoStream': '1'})
+    assert out == 'set a "1"\nset sv_demoStream "1"\nset sv_demoStreamHost x\n'
+    assert read_cvars_from_text(out, ['sv_demoStream']) == {'sv_demoStream': '1'}

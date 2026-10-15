@@ -181,8 +181,9 @@ already sending keep their server ID.
 
 **telemetry-relay 1.5.1:** the Telemetry entry has a **Reserve a new server
 ID** switch for two servers that share one: saving with it on (and Send
-telemetry on) reserves a fresh ID from stats-hub and restarts once. Setting a
-cvar in `server.cfg` now leaves exactly one line for it, removing duplicates.
+telemetry on) reserves a fresh ID from stats-hub and restarts once; untick it
+afterwards (another new ID is refused for 10 minutes). Setting a cvar in
+`server.cfg` now leaves exactly one `set` line for it, removing duplicates.
 
 **demo-stream 1.5.1:** when the stream runs under another server ID than the
 instance's telemetry, the Live Demo Stream status says so and a save moves the

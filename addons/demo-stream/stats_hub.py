@@ -244,7 +244,19 @@ def set_server_delay(host_id, server_id, delay_sec):
 
 # ---- server.cfg cvar helpers -------------------------------------------
 
-_CVAR_LINE = re.compile(r'^(\s*seta?\s+)([A-Za-z0-9_]+)(\s+)(?:"[^"]*"|[^\s"]+)(\s*)$')
+# `set <name> <value>` or `seta`, the value quoted or a bare word, anything
+# after it (a `// comment`) ignored: the forms the engine and a hand-edited
+# server.cfg use. A comment line (`// set ...`) does not match.
+_CVAR_LINE = re.compile(r'^(\s*)seta?\s+([A-Za-z0-9_]+)\s+(?:"([^"]*)"|([^\s"]+))')
+
+
+def _cvar_line(line):
+    """(indent, name, value) for a `set`/`seta` line, else None."""
+    m = _CVAR_LINE.match(line)
+    if not m:
+        return None
+    value = m.group(3) if m.group(3) is not None else m.group(4)
+    return m.group(1), m.group(2), value
 
 
 def upsert_cvars_in_text(text, cvars):
@@ -253,22 +265,23 @@ def upsert_cvars_in_text(text, cvars):
     Only touches the given cvar names - every other line (including cvars
     the operator set by hand through the Plugins tab) is left alone. A cvar
     set more than once (`set` or `seta`, quoted or not) ends up as exactly
-    one line, where its last occurrence was: the engine applies the last
-    one, so rewriting only the first would leave a later stale line in
-    force.
+    one `set <cvar> "value"` line, where its last occurrence was: the engine
+    applies the last one, so rewriting only the first would leave a later
+    stale line in force.
     """
     lines = text.splitlines()
     last = {}
     for index, line in enumerate(lines):
-        m = _CVAR_LINE.match(line)
-        if m and m.group(2) in cvars:
-            last[m.group(2)] = index
+        parsed = _cvar_line(line)
+        if parsed and parsed[1] in cvars:
+            last[parsed[1]] = index
     out = []
     for index, line in enumerate(lines):
-        m = _CVAR_LINE.match(line)
-        if m and m.group(2) in cvars:
-            if last[m.group(2)] == index:
-                out.append(f'{m.group(1)}{m.group(2)}{m.group(3)}"{cvars[m.group(2)]}"{m.group(4)}')
+        parsed = _cvar_line(line)
+        if parsed and parsed[1] in cvars:
+            indent, name, _ = parsed
+            if last[name] == index:
+                out.append(f'{indent}set {name} "{cvars[name]}"')
             continue
         out.append(line)
     for cvar, value in cvars.items():
@@ -278,14 +291,15 @@ def upsert_cvars_in_text(text, cvars):
 
 
 def strip_cvars_from_text(text, cvar_names):
-    """Removes `set <cvar> ...` lines for the given cvar names entirely
-    (as opposed to upsert_cvars_in_text, which sets a value) - used to clean
-    up cvars a server.cfg should no longer carry at all."""
+    """Removes `set <cvar> ...` lines (`seta` too, quoted or not) for the
+    given cvar names entirely (as opposed to upsert_cvars_in_text, which
+    sets a value) - used to clean up cvars a server.cfg should no longer
+    carry at all."""
     names = set(cvar_names)
     out = []
     for line in text.splitlines():
-        m = re.match(r'^\s*set\s+([A-Za-z0-9_]+)\s+"', line)
-        if m and m.group(1) in names:
+        parsed = _cvar_line(line)
+        if parsed and parsed[1] in names:
             continue
         out.append(line)
     return '\n'.join(out) + ('\n' if out else '')
@@ -293,14 +307,14 @@ def strip_cvars_from_text(text, cvar_names):
 
 def read_cvars_from_text(text, cvar_names):
     """Returns {name: value} for whichever of `cvar_names` appear as
-    `set <name> "value"` lines. Last occurrence wins, matching how the
-    engine execs a cfg top to bottom."""
+    `set`/`seta` lines, quoted or not. Last occurrence wins, matching how
+    the engine execs a cfg top to bottom."""
     names = set(cvar_names)
     found = {}
     for line in text.splitlines():
-        m = re.match(r'^\s*set\s+([A-Za-z0-9_]+)\s+"(.*)"\s*$', line)
-        if m and m.group(1) in names:
-            found[m.group(1)] = m.group(2)
+        parsed = _cvar_line(line)
+        if parsed and parsed[1] in names:
+            found[parsed[1]] = parsed[2]
     return found
 
 
