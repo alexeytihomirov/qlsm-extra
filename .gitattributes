@@ -22,3 +22,6 @@
 
 # Pinned host keys shipped to game hosts.
 known_hosts_vps text eol=lf
+
+# Host-metrics fixtures are byte copies of /proc and cgroup files.
+tests/fixtures/host-metrics/** -text
