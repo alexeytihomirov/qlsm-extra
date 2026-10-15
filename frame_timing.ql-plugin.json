@@ -1,4 +1,4 @@
 {
   "label": "Frame Timing",
-  "description": "Measures the interval between server frames (a frame is late when it takes longer than 1.5 x 1000 / sv_fps ms; the gap across a map change is not counted) and writes the stats of the last 10 s - frames, late frames, max, p50 and p99 gap - to the Redis key minqlx:frame_stats:<port> every 10 s, with a 30 s TTL. The host-metrics addon reads that key to show server frame lag next to host CPU load. The frame hook only reads the clock and updates counters; the Redis write runs in a worker thread. No commands, no settings."
+  "description": "Writes server frame timing (late frames, max, p50 and p99 gap over the last 10 seconds) to Redis every 10 seconds for the host-metrics addon. No commands and no settings."
 }

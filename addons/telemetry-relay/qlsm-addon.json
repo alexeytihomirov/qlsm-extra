@@ -2,7 +2,7 @@
   "id": "telemetry-relay",
   "version": "1.5.0",
   "name": "Telemetry Relay",
-  "description": "Sends live telemetry from game instances (player positions, item pickups, match events) to ql-stats-hub through a relay on each host. Set the stats-hub URL and ingest token in Settings, turn the relay on per host (host menu, Telemetry Relay), then switch each instance on from its Telemetry menu entry. The instances need the stream_telemetry_unified plugin.",
+  "description": "Sends live telemetry (positions, item pickups, match events) from game instances to ql-stats-hub through a relay on each host. Needs the stats-hub URL and token in Settings, the host's Telemetry Relay on and the stream_telemetry_unified plugin; each instance has a Telemetry switch.",
   "scopes": ["global", "host", "instance"],
   "ui_api": 1,
 
@@ -34,7 +34,7 @@
     "panels": {
       "host_relay": {
         "kind": "form",
-        "description": "Relay sidecar for this host. Enable it to forward telemetry from every instance on this host to the stats-hub target below (falls back to the cluster-wide default when left blank). Saving with Enabled first asks stats-hub to let this host's IP through its firewall; turning the relay off takes the host out again unless the Demo Stream Tunnel is still on. The status shows the sidecar, the hub firewall and when the hub last got telemetry from this host.",
+        "description": "Relay sidecar that forwards telemetry from every instance on this host to the stats-hub target below, or to the cluster-wide default when left blank. Enabling lets this host's IP through the stats-hub firewall, and turning the relay off takes it out again unless the Demo Stream Tunnel is still on.",
         "load": "GET hosts/{host_id}",
         "submit": "PUT hosts/{host_id}",
         "status": { "load": "GET hosts/{host_id}/status" },

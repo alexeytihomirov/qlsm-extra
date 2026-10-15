@@ -4,28 +4,28 @@
       "filename": "tournament_access.py",
       "runtime": "minqlxtended",
       "label": "Tournament Access",
-      "description": "Closes a tournament server to everyone not on the tournament roster. The tournament hub writes the roster (players and casters) into the server's Redis; when the hub marks it enforced, players not on it are kicked as they load, casters are kept in spectator, and on a lobby server everyone stays in spectator. The server owner and players at the bypass permission level are never checked. A stream spectator account (name starting with StreamSpec, or the qlx_specbot_name_prefix cvar) must be on the roster or have the bypass level like anyone else; on the roster it is kept in spectator.",
+      "description": "Closes a tournament server to everyone not on the roster the tournament hub writes into the server's Redis: once the hub enforces it, others are kicked as they load and casters stay in spectator. The server owner and players at the bypass permission level are never checked.",
       "sha256": "42ef9d322a9c6446b0a40f6f7cc64726db7ad0b4fddb07770a03aa4689375b90"
     },
     {
       "filename": "chat_rcon.py",
       "runtime": "minqlxtended",
       "label": "Chat RCON",
-      "description": "Lets referees and admins run server console commands from chat with !rcon <command>. Referees (permission level Referee Permission Level and up) may run only the Referee-Allowed Commands; admins (Admin Permission Level and up) may run anything except the Admin-Denied Commands. Takes over the stock !rcon while enabled, and every use is written to the server log.",
+      "description": "Lets referees run the Referee-Allowed Commands and admins anything but the Admin-Denied Commands from chat with !rcon <command>. Takes over the stock !rcon while enabled, and every use is written to the server log.",
       "sha256": "4446cf079ba63d9541d0864b79a8403e56cb400d777e5f9cc5d48917d8821268"
     },
     {
       "filename": "lobby.py",
       "runtime": "minqlxtended",
       "label": "Lobby",
-      "description": "For a lobby server: tells each player which game server to join and shows its /connect address on screen after a short countdown. Quake Live does not let a server move a player, so players type the command themselves. A player's destination comes from a personal route set by a referee, a tournament assignment the hub writes into the server's Redis, or the default destination.",
+      "description": "For a lobby server: tells each player which game server to join and shows its /connect address after a short countdown, since a server cannot move a player itself. The destination comes from a referee's personal route, a tournament assignment from the hub, or the default destination.",
       "sha256": "d876a4ccdb30ed7cc5ef978405759bbf8aee2a8f43b255b7cd25003a844e5f63"
     },
     {
       "filename": "match_restore.py",
       "runtime": "minqlxtended",
       "label": "Match Restore",
-      "description": "Saves the state of a running match and puts it back later. A checkpoint holds player positions, health, armor, weapons, ammo, powerups and score, item respawn timers, dropped items and the match clock. Admins (permission 5) build, check and apply checkpoints with !restore, or restore a moment from a recorded .qlmatch demo pack. Needs the minqlxtended runtime; downloading it also fetches the restore/ folder.",
+      "description": "Saves the state of a running match (players, items, timers and the match clock) and puts it back later, or restores a moment from a recorded .qlmatch pack, with the admin command !restore. Needs the minqlxtended runtime and the restore/ folder, which downloads with it.",
       "depends_on": [
         "match_restore_util.py"
       ],
@@ -41,15 +41,15 @@
     {
       "filename": "match_restore_util.py",
       "runtime": "minqlxtended",
-      "label": "\u26a0\ufe0f match_restore helper - do not enable",
-      "description": "Helper module for match_restore.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins.",
+      "label": "match_restore helper",
+      "description": "Helper of match_restore.py, downloaded with it. Not a plugin.",
       "sha256": "c9c4c700db91f20e8932a0205b9b58da4a13dafc1a24afd4d2431d477fbd0f6b"
     },
     {
       "filename": "stream_telemetry_unified.py",
       "runtime": "minqlxtended",
       "label": "Telemetry (Unified)",
-      "description": "Sends live match data from this instance to ql-stats-hub through the host's telemetry relay: player positions and stats, item pickups, and match events such as chat, votes, pauses, kills and !call referee requests. Turn the relay on for the host, then enable this instance on its Telemetry tab (telemetry-relay addon), which reserves its server ID and turns on the plugin's master switch. The plugin itself must be in the instance's plugin list, and each feed (qlx_statsHubFeedPositions, qlx_statsHubFeedItems, qlx_statsHubFeedSession) is switched on separately.",
+      "description": "Sends live match data (positions, stats, item pickups, match events) from this instance to ql-stats-hub through the host's telemetry relay. Switch it on with the instance's Telemetry entry (telemetry-relay addon), which reserves the server ID; each feed is a separate switch below.",
       "depends_on": [
         "telemetry_unified_sched.py",
         "stats_hub_pause.py"
@@ -59,29 +59,29 @@
     {
       "filename": "telemetry_unified_sched.py",
       "runtime": "minqlxtended",
-      "label": "\u26a0\ufe0f telemetry helper - do not enable",
-      "description": "Helper module for stream_telemetry_unified.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins.",
+      "label": "stream_telemetry_unified helper",
+      "description": "Helper of stream_telemetry_unified.py, downloaded with it. Not a plugin.",
       "sha256": "781ff8186a5913f6b0d849a748c833a8417db99f08559ce9b70dfaf768eb10c1"
     },
     {
       "filename": "stats_hub_pause.py",
       "runtime": "minqlxtended",
-      "label": "\u26a0\ufe0f telemetry helper - do not enable",
-      "description": "Helper module for stream_telemetry_unified.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins.",
+      "label": "stream_telemetry_unified helper",
+      "description": "Helper of stream_telemetry_unified.py, downloaded with it. Not a plugin.",
       "sha256": "ab5805507a4f19930c25a5905a548b26a57ec679132bef3789b7d552140c5b0b"
     },
     {
       "filename": "referee_call.py",
       "runtime": "minqlxtended",
       "label": "Referee Call",
-      "description": "Adds the !call chat command, which any player or spectator can use to ask for a referee. It only answers the caller; the call reaches the referees as a chat line that stream_telemetry_unified forwards to ql-stats-hub, so that plugin must be enabled with Session Events (qlx_statsHubFeedSession) on. One call per player per 60 seconds.",
+      "description": "Adds !call, which lets any player or spectator ask for a referee, once per 60 seconds. The call reaches the referees through stream_telemetry_unified, which needs Session Events (qlx_statsHubFeedSession) on.",
       "sha256": "19bb92b5a16b1dfa1dcc0713894667258f28e502ced110eff92f00059ee1c8a1"
     },
     {
       "filename": "qlmatch_packer.py",
       "runtime": "minqlxtended",
       "label": "QLMatch Packer",
-      "description": "Packages finished match demos into a .qlmatch. Recording and cutting are the engine's own: set sv_demoRecord 1 (records every client) and sv_demoCut 1 (the engine detects match start/end, cuts each POV to the match window and names the files after the match). This plugin only listens for demo_match_finalized and launches the external qlmatch-packer (deployed to /home/ql/qlmatch-packer/ by the qlmatch-packer addon), which builds the .qlmatch and its .replay.json.gz. Without this plugin no .qlmatch is built and only the raw .dm_91 files remain. Delivery off the host is the file-forwarder addon's job. Requires the minqlxtended fork build with native demo capture (runtime-source addon).",
+      "description": "Builds a .qlmatch pack and its .replay.json.gz when the engine finishes a match's demos, by running the qlmatch-packer addon's pack.mjs. Needs the qlmatch-packer addon and the minqlxtended fork with native demo capture, sv_demoRecord 1 and sv_demoCut 1.",
       "depends_on": [
         "qlmatch_packer_cmd.py"
       ],
@@ -90,22 +90,22 @@
     {
       "filename": "qlmatch_packer_cmd.py",
       "runtime": "minqlxtended",
-      "label": "\u26a0\ufe0f qlmatch_packer helper - do not enable",
-      "description": "Helper module for qlmatch_packer.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins.",
+      "label": "qlmatch_packer helper",
+      "description": "Helper of qlmatch_packer.py, downloaded with it. Not a plugin.",
       "sha256": "30e09232075125e71ecaf1e38d6259c88b27dcf203a73416999c30e5f3e54944"
     },
     {
       "filename": "demo_stream_resync_hold.py",
       "runtime": "minqlxtended",
       "label": "Demo Stream Resync Hold",
-      "description": "Keeps a live demo stream decodable after a resync. When the engine forces a full snapshot for a streamed player (relay reconnect, lost blocks, periodic keyframe), this plugin keeps forcing full snapshots for that player on the following server frames until the client acknowledges one of them, or the cap runs out. Without it the snapshots right behind a single full one are deltas from messages the relay never received, and the relay's picture can stop until the next keyframe. Off by default: it was measured on a duel server only (two streamed players), not yet on a populated server or in team modes. Cost: one to three extra full snapshots (about 250 bytes each in a duel) per resync and per keyframe interval for each streamed player; never more holds at once than Max holds at once, and none while the relay is behind. For a periodic keyframe the plugin cannot see which player the engine meant and works it out from its own record of each player's last full snapshot. With sv_demoStreamKeyframeSec 0 there are no keyframe holds, but a relay reconnect and lost blocks are still repaired, the first player after a reconnect included. A hold that has waited more than 60 server frames for its turn is dropped, unless it repairs a real loss. Does nothing when the demo stream itself (sv_demoStream) is off. Console: qlx !resynchold prints the counters. Requires the minqlxtended fork build with the live demo stream (runtime-source addon).",
+      "description": "Keeps a live demo stream decodable after a resync by forcing full snapshots for a streamed player until the client acknowledges one. Off by default (measured on a duel server only); needs sv_demoStream on and the minqlxtended fork with the live demo stream.",
       "sha256": "7d376bf48144424ab9f95742d5da5256d73070034e6b5f1c7d34eedd73bf37c5"
     },
     {
       "filename": "frame_timing.py",
       "runtime": "minqlxtended",
       "label": "Frame Timing",
-      "description": "Measures the interval between server frames (a frame is late when it takes longer than 1.5 x 1000 / sv_fps ms; the gap across a map change is not counted) and writes the stats of the last 10 s - frames, late frames, max, p50 and p99 gap - to the Redis key minqlx:frame_stats:<port> every 10 s, with a 30 s TTL. The host-metrics addon reads that key to show server frame lag next to host CPU load. The frame hook only reads the clock and updates counters; the Redis write runs in a worker thread. No commands, no settings.",
+      "description": "Writes server frame timing (late frames, max, p50 and p99 gap over the last 10 seconds) to Redis every 10 seconds for the host-metrics addon. No commands and no settings.",
       "sha256": "5fdd4ffb7b8d3dcc1b81cb9dac8492f1b02da48694d4e742fad5e42c39a577f5"
     }
   ],
@@ -113,66 +113,66 @@
     {
       "id": "demo-management",
       "zip": "packages/demo-management.zip",
-      "sha256": "b01c4d12d8704003bf0a9109805aed2170cfbae7770c54f4d26a80c920207d51",
-      "version": "1.6.1",
+      "sha256": "cd8288fbc07cf442ec3b0cdb8e361aa78dd582c2fd208903f6e16d224d3f78a3",
+      "version": "1.6.2",
       "label": "Demos",
-      "description": "Adds a Demos screen for each instance: lists the demo files the server recorded, newest first, with all files of one match grouped in one row labelled with map, mode, players and length, and downloads them. Filters by date, map, mode and pack state. Install qlmatch-packer as well to see and rebuild .qlmatch packs. Needs QLSM with ui_api 3 or newer."
+      "description": "Adds a Demos screen to each instance that lists its recorded demos grouped by match, with filters and downloads. Needs QLSM with ui_api 3 or newer; install qlmatch-packer as well to see and rebuild .qlmatch packs."
     },
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "fbd2e42f1f9c9ac76b5d0642d50b9247cd23d89c74074e4e7c989206251f749e",
+      "sha256": "d13e8a98fdbfe36bb31361d304983707aaf38265176bec486a5c0a861e3b7086",
       "version": "1.5.0",
       "label": "Live Demo Stream",
-      "description": "Lets a spectator watch a player's view live: points an instance's sv_demoStream cvars at the central demo-stream relay and registers the instance with ql-stats-hub. The relay is one address for the whole cluster, but each game host runs a stunnel client that carries the stream to stats-hub over TLS with the hub's certificate pinned. Set the relay and stats-hub in Settings -> Live Demo Stream, turn on each host's Demo Stream Tunnel, then switch each instance on (and set its delay) from its Live Demo Stream menu entry. Needs a game server build that supports the sv_demoStream cvars."
+      "description": "Streams players' views live from an instance to ql-stats-hub through a central relay, over a TLS tunnel on each host. Needs the relay set in Settings, the host's Demo Stream Tunnel on and a game server with the sv_demoStream cvars; each instance has a Live Demo Stream switch."
     },
     {
       "id": "file-forwarder",
       "zip": "packages/file-forwarder.zip",
-      "sha256": "002c28684556f9200669a6df1bb28f02db26c3b5ce088b4d8b0b8ef7bac1d06a",
+      "sha256": "abe098bc4a228906d330c10c9f7f5d40bf17779d250aa790850ad31b15089671",
       "version": "1.2.0",
       "label": "File Forwarder",
-      "description": "Ships demo files (.qlmatch packs, .replay.json.gz sidecars, raw .dm_91) from every game host to the site VPS over SFTP with rclone, every few minutes, and removes raw demos from the host after the retention period, only when the delivery is recorded and at least a day old. One SFTP key belongs to the whole QLSM install: add its public half (Settings -> Addons -> File Forwarder) to the VPS once. The forwarder is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry File Forwarder has the host switch, the status and the buttons Apply to host, Sync now and Sync now and delete delivered."
+      "description": "Ships demo files from every game host to the site VPS over SFTP every few minutes and deletes delivered raw demos from the host after the retention period. Needs the VPS address saved in Settings (its host keys are scanned then) and the install's SFTP public key added to the VPS once."
     },
     {
       "id": "host-metrics",
       "zip": "packages/host-metrics.zip",
-      "sha256": "3c6a652eee906d6c65fbc353c7025e2542ee8bca1c996ea7d62131c81dd116c7",
+      "sha256": "ed6ba3745e44cf83f56a6a582606166fa7d51a98091f985300c400e31fc8fd6d",
       "version": "1.0.1",
       "label": "Host Metrics",
-      "description": "Per-core CPU (including steal), memory, disk and per-instance CPU, memory, players and frame timing for every game host, kept for 30 days in a small SQLite file on the host by a low-priority collector service, with a capacity verdict (how many more instances the host takes). The collector is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry Host Metrics has the host switch, the status and Apply to host; the Host Metrics page lists every host."
+      "description": "Keeps 30 days of CPU, memory, disk, per-instance load and frame timing for every game host and says how many more instances each host takes. The collector is installed at host setup; use Apply to host (host menu, Host Metrics) after an addon update or a settings change."
     },
     {
       "id": "player-ranks",
       "zip": "packages/player-ranks.zip",
-      "sha256": "37ebad24bdb48cfc40e8b56bda1a4bfaa2228f524c8b54de3a730fae19bbfea0",
+      "sha256": "1929bfe53b564119345cbf9718afd5e8b7a2de9a4b509359f7fe9fd1e32f900e",
       "version": "0.4.0",
       "label": "Player Ranks",
-      "description": "Shows each connected player's external rating in Live Status. Pick the sources per instance on its Ranks tab: qlstats, Slipgate and x76. qlstats and Slipgate connection details are set once for the installation; x76 is configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer."
+      "description": "Shows each connected player's rating from qlstats, Slipgate and x76 in one Rank column in Live Status, with the sources chosen per instance on its Ranks tab. Needs QLSM with ui_api 4 or newer; qlstats and Slipgate are set up once in Settings, x76 per instance."
     },
     {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "b4ffc94a53950ceaa8dc7d391e2e53814bd7fb8fbb3f94bee254a262fce65449",
-      "version": "1.3.1",
+      "sha256": "d784eb229ef7b3bb4f74730c0af4c292fb3e040f4821e940b56adeafe992da64",
+      "version": "1.3.2",
       "label": "Qlmatch Packer",
-      "description": "Installs the qlmatch packer and Node.js 22 on every game host during host setup and Update Plugins, and shows its .qlmatch packs and replay files on the Demos screen. Nothing runs the packer after a match: a first pack is built by running pack.mjs on the host by hand, and the Demos screen can rebuild an existing pack or its replay file. The output name template is the cvar qlx_qlmatchNameTemplate, set by hand in the instance's server.cfg. It does not deliver packs anywhere: the file-forwarder addon does that. Needs the demo-management addon."
+      "description": "Installs the qlmatch packer and Node.js 22 on every game host at host setup and Update Plugins, and shows and rebuilds .qlmatch packs and replay files on the Demos screen. The qlmatch_packer plugin runs the packer when the engine finishes a match's demos; needs the demo-management addon."
     },
     {
       "id": "runtime-source",
       "zip": "packages/runtime-source.zip",
-      "sha256": "135b899836c8fbd38609674519d89fd691bdb82fc4447f0be2f33dce09c7597b",
-      "version": "1.0.0",
+      "sha256": "919aa3b52d1a9243206669bafebe5a7f9fe9e687e806a876dff4d27a430e4e6b",
+      "version": "1.0.1",
       "label": "Runtime Source",
-      "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins, for example the alexeytihomirov/minqlxtended fork that native demo capture needs. Enable it for a host, enter the repository and a commit, then run Re-run Host Setup. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (host.setup hook)."
+      "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins, for example the fork native demo capture needs. Set the repository and commit in the host's Runtime Source entry, then Re-run Host Setup; needs a QLSM with the host.setup hook."
     },
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "83bcff0c2427d2d9198267f95edaf3fbac41f4af4de1ebadabbc013c20325b0c",
+      "sha256": "a39b02916cf72a402183f3c6915550e0650fa57543efe9ddf49b673ea4060af8",
       "version": "1.5.0",
       "label": "Telemetry Relay",
-      "description": "Sends live telemetry from game instances (player positions, item pickups, match events) to ql-stats-hub through a relay on each host. Set the stats-hub URL and ingest token in Settings, turn the relay on per host (host menu, Telemetry Relay), then switch each instance on from its Telemetry menu entry. The instances need the stream_telemetry_unified plugin."
+      "description": "Sends live telemetry (positions, item pickups, match events) from game instances to ql-stats-hub through a relay on each host. Needs the stats-hub URL and token in Settings, the host's Telemetry Relay on and the stream_telemetry_unified plugin; each instance has a Telemetry switch."
     }
   ]
 }

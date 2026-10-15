@@ -30,9 +30,9 @@ def _node_ok():
 
 
 @pytest.mark.standalone
-def test_manifest_version_is_1_3_1():
+def test_manifest_version_is_1_3_2():
     manifest = json.loads((ADDON_DIR / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert manifest['version'] == '1.3.1'
+    assert manifest['version'] == '1.3.2'
     assert 'rclone' not in manifest['description'].lower()
 
 

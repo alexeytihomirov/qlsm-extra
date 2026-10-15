@@ -1,4 +1,4 @@
 {
-  "label": "⚠️ qlmatch_packer helper - do not enable",
-  "description": "Helper module for qlmatch_packer.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins."
+  "label": "qlmatch_packer helper",
+  "description": "Helper of qlmatch_packer.py, downloaded with it. Not a plugin."
 }

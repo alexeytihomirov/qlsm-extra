@@ -1,15 +1,15 @@
 {
   "label": "Telemetry (Unified)",
-  "description": "Sends live match data from this instance to ql-stats-hub through the host's telemetry relay: player positions and stats, item pickups, and match events such as chat, votes, pauses, kills and !call referee requests. Turn the relay on for the host, then enable this instance on its Telemetry tab (telemetry-relay addon), which reserves its server ID and turns on the plugin's master switch. The plugin itself must be in the instance's plugin list, and each feed (qlx_statsHubFeedPositions, qlx_statsHubFeedItems, qlx_statsHubFeedSession) is switched on separately.",
+  "description": "Sends live match data (positions, stats, item pickups, match events) from this instance to ql-stats-hub through the host's telemetry relay. Switch it on with the instance's Telemetry entry (telemetry-relay addon), which reserves the server ID; each feed is a separate switch below.",
   "cvars": [
-    { "cvar": "qlx_statsHubUnifiedEnabled", "label": "Enabled", "description": "Master switch for everything this plugin sends. The instance's Telemetry tab turns it on.", "type": "bool", "default": false },
+    { "cvar": "qlx_statsHubUnifiedEnabled", "label": "Enabled", "description": "Master switch for everything this plugin sends. The Send telemetry switch in the instance's Telemetry menu entry sets it.", "type": "bool", "default": false },
     { "cvar": "qlx_statsHubFeedPositions", "label": "Position Telemetry", "description": "Sends player positions, view angles, weapons and accuracy for the stream overlay. Needs a Server ID.", "type": "bool", "default": false },
     { "cvar": "qlx_statsHubFeedItems", "label": "Pickup Telemetry", "description": "Sends item pickup and drop events.", "type": "bool", "default": false },
     { "cvar": "qlx_statsHubFeedSession", "label": "Session Events", "description": "Sends match events: chat, connects and disconnects, votes, spawns, team switches, kills, rounds, pauses, match start and end, and !call referee requests.", "type": "bool", "default": false },
     { "cvar": "qlx_statsHubInterval", "label": "Send Interval (s)", "description": "Seconds between telemetry sends during normal play.", "type": "number", "default": 0.1, "min": 0.1 },
     { "cvar": "qlx_statsHubIdleInterval", "label": "Idle Interval (s)", "description": "Seconds between sends while no player is in play.", "type": "number", "default": 1.0, "min": 0.1 },
     { "cvar": "qlx_statsHubAccuracyInterval", "label": "Accuracy Interval (s)", "description": "Seconds between accuracy-stat telemetry sends.", "type": "number", "default": 2, "min": 0.1 },
-    { "cvar": "qlx_statsHubServerId", "label": "Server ID", "description": "This instance's ID in ql-stats-hub. The instance's Telemetry tab reserves one and writes it here. With 0 the position feed is off and the host relay has no route for this instance.", "type": "number", "default": 0, "min": 0 },
+    { "cvar": "qlx_statsHubServerId", "label": "Server ID", "description": "This instance's ID in ql-stats-hub. The instance's Telemetry menu entry reserves one and writes it here. With 0 the position feed is off and the host relay has no route for this instance.", "type": "number", "default": 0, "min": 0 },
     { "cvar": "qlx_statsHubTournamentId", "label": "Tournament ID", "description": "Tournament ID added to position and session data. 0 leaves it out.", "type": "number", "default": 0, "min": 0 }
   ],
   "depends_on": ["telemetry_unified_sched.py", "stats_hub_pause.py"]

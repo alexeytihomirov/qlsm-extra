@@ -5,8 +5,8 @@ that do **not** ship in the standard qlsm image / plugin pools.
 
 | Kind | What |
 |------|------|
-| Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `match_restore` family), live telemetry for the `minqlxtended` runtime |
-| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `file-forwarder`, `runtime-source`, `player-ranks` |
+| Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `referee_call`, `match_restore`), demo packing and live stream repair (`qlmatch_packer`, `demo_stream_resync_hold`), server frame timing (`frame_timing`), live telemetry for the `minqlxtended` runtime |
+| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `file-forwarder`, `runtime-source`, `player-ranks`, `host-metrics` |
 
 Merged from the former local `minqlxtended-plugins` and `qlsm-addons` trees.
 
@@ -59,14 +59,25 @@ python check_manifest_hashes.py
 
 | File | Loadable alone? |
 |------|-----------------|
-| `tournament_access.py` | Yes |
+| `tournament_access.py` | Yes - the roster comes from the tournament hub through the server's Redis and is checked only once the hub marks it enforced (`qlx_tournamentAccessEnabled` and a `qlx_tournamentId` needed too). On a lobby server everyone stays in spectator. A stream spectator account (name starting with `StreamSpec`, or `qlx_specbot_name_prefix`) must be on the roster or have the bypass level like anyone else; on the roster it is kept in spectator |
 | `chat_rcon.py` | Yes |
 | `lobby.py` | Yes |
+| `frame_timing.py` | Yes - every 10 s writes the last 10 s of server frame stats (frames, late frames, max, p50 and p99 gap) to the Redis key `minqlx:frame_stats:<port>` with a 30 s TTL, for the `host-metrics` addon. A frame is late when it takes longer than 1.5 x 1000 / `sv_fps` ms; the gap across a map change is not counted. The frame hook only reads the clock; the Redis write runs in a worker thread |
 | `referee_call.py` | Yes - `!call` for players; the call travels as chat through `stream_telemetry_unified` (Session Events on) |
 | `match_restore_util.py` | No - helper for `match_restore.py`, downloaded with it |
 | `match_restore.py` + `restore/` | Yes - downloads as one entry |
 | `qlmatch_packer.py` | Yes - launches the `qlmatch-packer` addon's `pack.mjs` when the engine finishes a match's demos; **required** for automatic `.qlmatch` (without it only raw `.dm_91` remain). Downloads with its helper `qlmatch_packer_cmd.py` (not a plugin) |
 | `demo_stream_resync_hold.py` | Yes - after the engine forces a full snapshot for a live-streamed player (relay reconnect, lost blocks, keyframe), keeps forcing one per server frame until the client acknowledges it (at most `qlx_demoStreamResyncHoldMaxFrames`, default 8; at most `qlx_demoStreamResyncHoldPerFrame` holds at once, default 2). **Off by default** (`qlx_demoStreamResyncHold 0`): measured on a duel server only, not yet on a populated server or in team modes; set it to 1 to enable. With `sv_demoStreamKeyframeSec 0` there are no keyframe holds, but a relay reconnect and lost blocks are still repaired, the first player after a reconnect included. `qlx !resynchold` prints the counters, `qlx !resynchold log` the last holds. Needs the fork's live demo stream |
+
+`demo_stream_resync_hold.py` in more detail: without it the snapshots right
+behind a single full one are deltas from messages the relay never received,
+and the relay's picture can stop until the next keyframe. Cost: one to three
+extra full snapshots (about 250 bytes each in a duel) per resync and per
+keyframe interval for each streamed player, none while the relay is behind.
+For a periodic keyframe the plugin cannot see which player the engine meant
+and works it out from its own record of each player's last full snapshot. A
+hold that has waited more than 60 server frames for its turn is dropped,
+unless it repairs a real loss. It does nothing while `sv_demoStream` is off.
 
 `match_restore.py` needs the `restore/` package beside it. Its manifest entry
 declares `package_files` for every file under `restore/`, so downloading
@@ -124,15 +135,16 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 
 | Addon | Role |
 |-------|------|
-| `telemetry-relay` | Per-host relay that forwards `stream_telemetry_unified` data to ql-stats-hub; enable per host, then per instance on its Telemetry tab |
+| `telemetry-relay` | Per-host relay that forwards `stream_telemetry_unified` data to ql-stats-hub. Turn it on per host (host menu, **Telemetry Relay**), then per instance with the **Send telemetry** switch in its **Telemetry** menu entry; the server ID is reserved automatically and shown in the entry's status |
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
-| `demo-stream` | Live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub; per-instance stream delay set on stats-hub without a restart |
-| `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen |
-| `file-forwarder` | Ships demo files (.qlmatch packs, replay sidecars, raw demos) from game hosts to the VPS over SFTP, keeps a delivery ledger, cleans up delivered raw demos, and offers manual sync from the host menu |
-| `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enable, enter repository + commit, then **Re-run Host Setup**. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
+| `demo-stream` | Live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub (host menu, **Demo Stream Tunnel**). Each instance's **Live Demo Stream** menu entry has the stream switch and the delay; a delay change applies on stats-hub without a restart. Relay and stats-hub are set in one **Live Demo Stream** settings section |
+| `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen. The `qlmatch_packer.py` plugin runs it when the engine finishes a match's demos |
+| `file-forwarder` | Ships demo files (.qlmatch packs, replay sidecars, raw demos) from game hosts to the VPS over SFTP with rclone, keeps a delivery ledger, cleans up delivered raw demos, and offers manual sync from the host menu. The VPS address is a setting; saving it scans the VPS host keys and shows their fingerprints. The host menu entry **File Forwarder** has the host switch, the status and **Apply to host**, **Sync now** and **Sync now and delete delivered** |
+| `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enter repository + commit in **Runtime Source**, then **Re-run Host Setup**. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
+| `host-metrics` | Per-core CPU (with steal), memory, disk and per-instance CPU, memory, players and frame timing for every game host, kept 30 days in SQLite on the host by a low-priority collector, with a capacity verdict. Host menu **Host Metrics** has the switch, the status and **Apply to host**; the **Host Metrics** page lists every host |
 
-qlsm's image ships **no** addon — install every one of these from this
+qlsm's image ships **no** addon - install every one of these from this
 repository. `qlmatch-packer` extends `demo-management`'s screen, so it is only
 useful with it installed too.
 
@@ -148,6 +160,39 @@ without restarting the instance or changing its `server.cfg`; viewers already
 watching are reconnected when the delay goes down. Needs a stats-hub that has
 the per-server delay API (`/api/demo-stream/servers/<id>/delay`); with an older
 hub the panel says so and nothing else changes.
+
+**demo-stream 1.5.0:** the Demo Stream Delay instance menu entry is merged
+into **Live Demo Stream**, which now has the stream switch and the delay, and
+its status shows whether the instance streams and with what delay. Switching
+the stream off now works (`sv_demoStream 0`, applied with a restart; the token
+and hub route are kept for re-enabling). The Demo Stream Relay and Demo Stream
+Stats Hub settings sections are one **Live Demo Stream** section. After
+upgrading nothing needs re-entering: set the delay in **Live Demo Stream**
+instead of the old entry.
+
+**telemetry-relay 1.5.0:** Telemetry moved from an instance tab to an
+instance menu entry **Telemetry** with a **Send telemetry** switch; the
+server ID field is gone. The ID is reserved from stats-hub automatically,
+kept when telemetry is switched off, and shown in the entry's status.
+Switching off now works (`qlx_statsHubUnifiedEnabled 0`, applied with a
+restart). After upgrading, use the menu entry instead of the tab; instances
+already sending keep their server ID.
+
+**player-ranks 0.4.0:** the installation-wide "on by default" switches for
+qlstats and Slipgate are gone; each instance picks its sources on its own
+Ranks tab, and a new instance starts with every source off. On the first load
+after the update an instance that never saved its Ranks tab gets the sources
+it showed before, so nothing visible changes and there is nothing to do.
+
+**file-forwarder 1.2.0:** no VPS address or host key is built in any more.
+The VPS address is a setting; saving a new one scans its SSH host keys from
+qlsm, stores them and shows their SHA256 fingerprints, and **Re-scan host
+keys** reads them again after a VPS reinstall. Forwarders already on the
+hosts keep running untouched, but **Apply to host** refuses until the
+settings are saved once. After upgrading: open Settings -> Addons -> File
+Forwarder, enter the VPS address if the field is empty, save once, compare
+the fingerprints in the status line with the VPS provider console, then use
+**Apply to host** on each host.
 
 ### player-ranks
 
@@ -174,7 +219,7 @@ further source via the `player_ranks.providers` hook without touching this
 addon's code (see qlsm's `addons/README.md`, "Cross-addon UI contribution").
 
 Framework docs: qlsm's `addons/README.md`, `addons/TRUST.md`, `addons/UI-GUIDE.md`.
-Addons run in-process with qlsm's full authority — only install what you trust.
+Addons run in-process with qlsm's full authority - only install what you trust.
 
 ### Building an addon's UI
 

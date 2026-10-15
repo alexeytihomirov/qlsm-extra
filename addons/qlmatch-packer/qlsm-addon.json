@@ -1,8 +1,8 @@
 {
   "id": "qlmatch-packer",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "name": "Qlmatch Packer",
-  "description": "Installs the qlmatch packer and Node.js 22 on every game host during host setup and Update Plugins, and shows its .qlmatch packs and replay files on the Demos screen. Nothing runs the packer after a match: a first pack is built by running pack.mjs on the host by hand, and the Demos screen can rebuild an existing pack or its replay file. The output name template is the cvar qlx_qlmatchNameTemplate, set by hand in the instance's server.cfg. It does not deliver packs anywhere: the file-forwarder addon does that. Needs the demo-management addon.",
+  "description": "Installs the qlmatch packer and Node.js 22 on every game host at host setup and Update Plugins, and shows and rebuilds .qlmatch packs and replay files on the Demos screen. The qlmatch_packer plugin runs the packer when the engine finishes a match's demos; needs the demo-management addon.",
   "scopes": ["global", "host"],
   "ui_api": 1,
   "depends": ["demo-management"],

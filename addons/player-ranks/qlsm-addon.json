@@ -2,7 +2,7 @@
   "id": "player-ranks",
   "version": "0.4.0",
   "name": "Player Ranks",
-  "description": "Shows each connected player's external rating in Live Status. Pick the sources per instance on its Ranks tab: qlstats, Slipgate and x76. qlstats and Slipgate connection details are set once for the installation; x76 is configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer.",
+  "description": "Shows each connected player's rating from qlstats, Slipgate and x76 in one Rank column in Live Status, with the sources chosen per instance on its Ranks tab. Needs QLSM with ui_api 4 or newer; qlstats and Slipgate are set up once in Settings, x76 per instance.",
   "scopes": ["global", "instance"],
   "ui_api": 4,
 
@@ -54,7 +54,7 @@
     "panels": {
       "instance_ranks": {
         "kind": "form",
-        "description": "Tick the rating sources this instance shows in Live Status. qlstats and Slipgate use the connection details from Settings -> Addons -> Player Ranks. x76 is configured here. If server.cfg already carries qlx_rankedServiceUrl, the first load suggests matching x76 values -- nothing is written until you hit Save.",
+        "description": "Tick the rating sources this instance shows in Live Status; qlstats and Slipgate use the connection details from Settings, x76 is configured here. If server.cfg carries qlx_rankedServiceUrl, the first load suggests matching x76 values; nothing is written until you Save.",
         "load": "GET instances/{instance_id}/config",
         "submit": "PUT instances/{instance_id}/config",
         "fields": [
@@ -76,7 +76,7 @@
       },
       "global_sources": {
         "kind": "form",
-        "description": "Connection details for qlstats and Slipgate. Which sources an instance actually shows is chosen on that instance's own Ranks tab. x76 is configured per instance."
+        "description": "Connection details for qlstats and Slipgate; x76 is configured per instance. Each instance picks the sources it shows on its own Ranks tab."
       }
     }
   }

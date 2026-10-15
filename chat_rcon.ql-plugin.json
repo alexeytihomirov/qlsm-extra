@@ -1,6 +1,6 @@
 {
   "label": "Chat RCON",
-  "description": "Lets referees and admins run server console commands from chat with !rcon <command>. Referees (permission level Referee Permission Level and up) may run only the Referee-Allowed Commands; admins (Admin Permission Level and up) may run anything except the Admin-Denied Commands. Takes over the stock !rcon while enabled, and every use is written to the server log.",
+  "description": "Lets referees run the Referee-Allowed Commands and admins anything but the Admin-Denied Commands from chat with !rcon <command>. Takes over the stock !rcon while enabled, and every use is written to the server log.",
   "commands": [
     { "name": "rcon", "usage": "<command> [args...]", "permission": 0, "description": "Runs a console command from chat if your permission level allows it." }
   ],
