@@ -25,3 +25,6 @@ known_hosts_vps text eol=lf
 
 # Host-metrics fixtures are byte copies of /proc and cgroup files.
 tests/fixtures/host-metrics/** -text
+
+# Static linux/amd64 build of addons/server-ping/echo (build.sh).
+addons/server-ping/assets/ql-ping-echo binary
