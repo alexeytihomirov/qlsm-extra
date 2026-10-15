@@ -4979,13 +4979,13 @@ function ChartCard({
       hooks: {
         draw: [(u2) => drawThresholds(u2, live.current.thresholds, colors)],
         setCursor: [(u2) => {
-          const idx2 = u2.cursor.idx;
-          if (idx2 === null || idx2 === void 0 || u2.cursor.left < 0) {
+          const idx = u2.cursor.idx;
+          if (idx === null || idx === void 0 || u2.cursor.left < 0) {
             setHover((h) => h === null ? h : null);
             return;
           }
           const left = u2.over.offsetLeft + u2.cursor.left;
-          setHover((h) => h && h.idx === idx2 && h.left === left ? h : { idx: idx2, left });
+          setHover((h) => h && h.idx === idx && h.left === left ? h : { idx, left });
         }]
       }
     };
@@ -5002,11 +5002,9 @@ function ChartCard({
   useEffect$1(() => {
     if (uRef.current && width > 40) uRef.current.setSize({ width, height });
   }, [width, height]);
-  const idx = hover ? hover.idx : null;
-  const valueAt = (col) => {
-    const v = idx !== null ? col[idx] : lastValue(col);
-    return v === null || v === void 0 ? "no data" : yFmt(v);
-  };
+  const fmtValue = (v) => v === null || v === void 0 ? "no data" : yFmt(v);
+  const latestAt = (col) => fmtValue(lastValue(col));
+  const hoveredAt = (col) => fmtValue(hover ? col[hover.idx] : lastValue(col));
   const flipLeft = hover && width && hover.left > width * 0.6;
   return /* @__PURE__ */ React.createElement("div", { className: `hm-card${dim ? " hm-dim" : ""}` }, /* @__PURE__ */ React.createElement("div", { className: "hm-card-head" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "hm-card-title" }, title), subtitle ? /* @__PURE__ */ React.createElement("span", { className: "hm-card-sub" }, subtitle) : null), /* @__PURE__ */ React.createElement(DirectionChip, { direction })), howTo ? /* @__PURE__ */ React.createElement("div", { className: "hm-howto" }, howTo) : null, /* @__PURE__ */ React.createElement(FindingLine, { finding }), /* @__PURE__ */ React.createElement("div", { className: "hm-legend" }, series.map((s, i) => /* @__PURE__ */ React.createElement("span", { className: "hm-legend-item", key: s.label, title: s.hint || void 0 }, /* @__PURE__ */ React.createElement(
     "span",
@@ -5014,14 +5012,14 @@ function ChartCard({
       className: stacked ? "hm-swatch-box" : "hm-swatch-line",
       style: { background: slotVar(s.slot) }
     }
-  ), /* @__PURE__ */ React.createElement("span", null, s.label), /* @__PURE__ */ React.createElement("span", { className: "hm-legend-value" }, valueAt(columns[i] || [])), idx === null && peaks[i] !== null ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "peak ", yFmt(peaks[i])) : null)), thresholds.map((t) => /* @__PURE__ */ React.createElement("span", { className: "hm-legend-item", key: `t-${t.label}`, title: t.hint || void 0 }, /* @__PURE__ */ React.createElement("span", { className: "hm-swatch-dash", style: { borderColor: TONE_VAR[t.tone] || TONE_VAR.neutral } }), /* @__PURE__ */ React.createElement("span", null, t.label))), /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, idx !== null ? fmtTime(xs[idx], seconds) : "latest values; peak over the range")), /* @__PURE__ */ React.createElement("div", { className: "hm-chart", ref: wrapRef }, hasData2 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { ref: plotRef }), hover ? /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("span", null, s.label), /* @__PURE__ */ React.createElement("span", { className: "hm-legend-value" }, latestAt(columns[i] || [])), peaks[i] !== null ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "peak ", yFmt(peaks[i])) : null)), thresholds.map((t) => /* @__PURE__ */ React.createElement("span", { className: "hm-legend-item", key: `t-${t.label}`, title: t.hint || void 0 }, /* @__PURE__ */ React.createElement("span", { className: "hm-swatch-dash", style: { borderColor: TONE_VAR[t.tone] || TONE_VAR.neutral } }), /* @__PURE__ */ React.createElement("span", null, t.label))), /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "latest values; peak over the range")), /* @__PURE__ */ React.createElement("div", { className: "hm-chart", ref: wrapRef }, hasData2 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { ref: plotRef }), hover ? /* @__PURE__ */ React.createElement(
     "div",
     {
       className: "hm-tip",
       style: flipLeft ? { left: hover.left - 12, transform: "translateX(-100%)" } : { left: hover.left + 12 }
     },
     /* @__PURE__ */ React.createElement("div", { className: "hm-tip-time" }, fmtTime(xs[hover.idx], seconds)),
-    series.map((s, i) => /* @__PURE__ */ React.createElement("div", { className: "hm-tip-row", key: s.label }, /* @__PURE__ */ React.createElement("span", { className: "hm-swatch-line", style: { background: slotVar(s.slot) } }), /* @__PURE__ */ React.createElement("span", { className: "hm-tip-name" }, s.label), /* @__PURE__ */ React.createElement("span", { className: "hm-tip-val" }, valueAt(columns[i] || []))))
+    series.map((s, i) => /* @__PURE__ */ React.createElement("div", { className: "hm-tip-row", key: s.label }, /* @__PURE__ */ React.createElement("span", { className: "hm-swatch-line", style: { background: slotVar(s.slot) } }), /* @__PURE__ */ React.createElement("span", { className: "hm-tip-name" }, s.label), /* @__PURE__ */ React.createElement("span", { className: "hm-tip-val" }, hoveredAt(columns[i] || []))))
   ) : null) : /* @__PURE__ */ React.createElement("div", { className: "hm-chart-empty", style: { height } }, emptyText)));
 }
 const isNum = (v) => typeof v === "number" && Number.isFinite(v);

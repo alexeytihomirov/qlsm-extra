@@ -1,7 +1,7 @@
 {
   "name": "qlsm-addon-host-metrics-ui",
   "private": true,
-  "version": "1.1.2",
+  "version": "1.1.3",
   "type": "module",
   "description": "Build for the host-metrics addon's tier-2 QLSM components (ui/Page.js, ui/HostPanel.js, ui/Panel.css).",
   "scripts": {
