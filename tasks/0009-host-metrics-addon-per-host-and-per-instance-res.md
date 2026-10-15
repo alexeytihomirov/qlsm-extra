@@ -39,10 +39,10 @@ related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-a
 - [x] Спека в `qlsm-extra/docs/superpowers/specs/` (согласована 2026-10-15)
 - [x] Проверить на живом хосте: `systemctl show qlds@<port> -p CPUUsageNSec,MemoryCurrent` возвращает числа (включён ли accounting)
 - [x] План в `qlsm-extra/docs/superpowers/plans/` (ждёт ревью оператора)
-- [ ] Сборщик на хосте + плейбук установки
-- [ ] Плагин времени кадра
-- [ ] Бэкенд аддона (забор по SSH, агрегация, вывод о запасе)
-- [ ] UI: страница и окно хоста
+- [x] Сборщик на хосте + плейбук установки
+- [x] Плагин времени кадра
+- [x] Бэкенд аддона (забор по SSH, агрегация, вывод о запасе)
+- [x] UI: страница и окно хоста
 - [ ] Деплой на один хост, проверка на реальных данных
 
 ## Журнал
@@ -51,6 +51,7 @@ related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-a
 - 2026-10-15 - проба germany и sweden (только чтение): cgroup v2, CPU/RAM по qlds@<port> есть, 2 ядра, инстанс закреплён на ядре 0, steal 0 / ~0.45 %, ql-watchdog не установлен, serverchecker пишет minqlx:server_status:<port> в redis db1
 - 2026-10-15 - спека написана: docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md
 - 2026-10-15 - спека согласована (трафик только по хосту); хук frame подтверждён по коду форка; план: docs/superpowers/plans/2026-10-15-host-metrics-addon.md, 11 задач
+- 2026-10-15 - реализация по плану субагентами: задачи 1-10 + финальное ревью и одна волна исправлений (критичное: Redis DB у каждого инстанса своя); ветка host-metrics, cc4b350; тесты: Linux (WSL) 125 passed, аддон 49 passed, npm 17; не слито, не задеплоено - ждёт OK оператора
 
 ## Результат
 
