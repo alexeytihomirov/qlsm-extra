@@ -1,0 +1,40 @@
+---
+id: qlsm-extra-0012
+title: host-metrics: auto-refresh in the host modal
+status: done-unverified
+created: 2026-10-15
+updated: 2026-10-15
+verified:
+depends_on: []
+related: [qlsm-extra-0011]
+---
+
+# host-metrics: auto-refresh in the host modal
+
+## Цель
+
+Окно хоста с графиками обновляется само, без кнопки: 1h/6h раз в 10 с, 24h/7d/30d раз в 60 с, с переключателем Auto-refresh (по умолчанию включён).
+
+## Контекст
+
+Запрос оператора 2026-10-15 после выпуска 1.1.1 (`qlsm-extra-0011`). Сборщик пишет точку раз в 10 с; минутные таблицы для 24h+ меняются раз в минуту, чаще ходить по SSH незачем. Плейбук статуса (ansible) в цикл не входит.
+
+## Шаги
+
+- [x] Автообновление в `addons/host-metrics/ui-src/HostPanel.jsx` (пауза при скрытой вкладке / закрытом окне, без наложения запросов, без мигания, "Updated N s ago")
+- [x] Ревью
+- [x] Выпуск 1.1.2: push, установка в прод, Apply на хостах
+
+## Журнал
+
+- 2026-10-15 - created
+- 2026-10-15 - auto-refresh implemented in the host modal (ui-src/refresh.js + HostPanel.jsx), version 1.1.2, built, manifest regenerated, tests green; committed on host-metrics-autorefresh, not merged/pushed
+- 2026-10-15 - ревью: снимок для выводов не обновлялся при открытии с доски - исправлено (e2a3b3f); выпущено 1.1.2 (main e2a3b3f), установлено в прод, Apply на 7 хостах
+
+## Результат
+
+host-metrics 1.1.2: переключатель Auto-refresh в окне хоста (по умолчанию включён): 1h/6h раз в 10 с, 24h/7d/30d раз в 60 с, выводы раз в 60 с, пауза при скрытой вкладке, "Updated N s ago".
+
+## Как проверить
+
+Hosts health -> Details у хоста: рядом с переключателем диапазона галочка Auto-refresh; надпись Updated N s ago растёт и сбрасывается каждые ~10 с на диапазоне 1h; снять галочку - обновления останавливаются; после перезагрузки страницы выбор сохраняется.
