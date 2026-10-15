@@ -1,7 +1,7 @@
 ---
 id: qlsm-extra-0008
 title: Helper modules listed in qlx_plugins fail to load on every server start
-status: todo
+status: in-progress
 created: 2026-10-15
 updated: 2026-10-15
 verified:
@@ -31,7 +31,7 @@ related: [root-0014]
 
 ## Шаги
 
-- [ ] Выяснить, кто добавляет помощники в `qlx_plugins`: оператор вручную или qlsm по `depends_on` (`qlsm` - код выбора плагинов инстанса)
+- [x] Выяснить, кто добавляет помощники в `qlx_plugins`: оператор вручную или qlsm по `depends_on` (`qlsm` - код выбора плагинов инстанса)
 - [ ] Убрать пять помощников из `qlx_plugins` инстанса germany (через qlsm) и проверить sweden
 - [ ] Чтобы не повторилось: либо qlsm не предлагает модуль без класса-плагина в списке (метка "do not enable" сейчас только в описании), либо помощники переименовать (например `_chat_rcon_acl.py`) и обновить импорты плагинов - выбрать с оператором (qlsm - форк upstream, правка в нём идёт PR)
 - [ ] Проверка: перезапуск инстанса, в journald нет `PluginLoadError`
@@ -39,6 +39,8 @@ related: [root-0014]
 ## Журнал
 
 - 2026-10-15 - created (найдено в `root-0014`, журнал germany)
+- 2026-10-15 - причина (по коду qlsm, `frontend-react/src/components/fileManager/pluginSelection.js`): `applyPluginDependencies` кладёт `depends_on`-модули в checked-набор, `toQlxPluginNames` пишет их в `qlx_plugins`. Так попали `match_restore_util`, `qlmatch_packer_cmd`, `telemetry_unified_sched`, `stats_hub_pause`. `chat_rcon_acl` не зависимость ничего - добавлен вручную. Переименование `_name.py` не помогло бы: зависимость всё равно попадает в список
+- 2026-10-15 - выбор оператора: PR в upstream qlsm. Ветка `upstream-pr/helper-module-not-enabled` (worktree `C:/Users/hellp/orca/workspaces/qlsm/pr-helper-module`), коммит c5514609: `toQlxPluginNames(checked, tree)` не пишет dependency-only файлы в список. vitest: pluginSelection + EditInstanceConfigModal (85) и addInstance (101) зелёные. PR ещё не открыт
 
 ## Результат
 
