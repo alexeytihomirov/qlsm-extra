@@ -27,6 +27,10 @@
 }
 
 @layer utilities {
+  .\!visible {
+    visibility: visible !important;
+  }
+
   .visible {
     visibility: visible;
   }
@@ -49,6 +53,10 @@
 
   .grid {
     display: grid;
+  }
+
+  .hidden {
+    display: none;
   }
 
   .transform {
@@ -541,6 +549,15 @@
   .hm-grid-2 {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.hm-auto {
+  color: var(--hm-ink-2);
+  cursor: pointer;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  display: inline-flex;
 }
 
 .hm-dim {

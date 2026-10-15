@@ -28,6 +28,7 @@ related: [qlsm-extra-0011]
 ## Журнал
 
 - 2026-10-15 - created
+- 2026-10-15 - auto-refresh implemented in the host modal (ui-src/refresh.js + HostPanel.jsx), version 1.1.2, built, manifest regenerated, tests green; committed on host-metrics-autorefresh, not merged/pushed
 
 ## Результат
 

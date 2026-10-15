@@ -8,6 +8,9 @@ import {
 import {
   fmtBytes, fmtDuration, fmtPct, fmtTime, hardwareDetails, hardwareLine, kindLabel,
 } from './format';
+import {
+  refreshIntervalMs, shouldRefresh, SNAPSHOT_INTERVAL_MS, updatedText,
+} from './refresh';
 import './panel.css';
 
 const { Modal } = ui;
@@ -26,6 +29,15 @@ const EMPTY_NO_DATA = 'No samples in this range yet. The collector writes one ev
   + 'if this stays empty, check the collector status below.';
 const EMPTY_NO_FRAMES = 'No frame timing in this range: the servers did not report frame '
   + 'statistics (no instance running, or the server plugin does not publish them).';
+
+const AUTO_KEY = 'hm-auto-refresh';
+
+/** The remembered Auto-refresh choice; ON unless the operator switched it off. */
+function readAuto() {
+  try { return window.localStorage.getItem(AUTO_KEY) !== '0'; } catch (e) { return true; }
+}
+
+const isVisible = () => typeof document === 'undefined' || document.visibilityState === 'visible';
 
 function errorText(e, fallback) {
   return e?.response?.data?.error?.message || e?.message || fallback;
@@ -264,6 +276,31 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
   const [settings, setSettings] = useState(null);
   const [hostRow, setHostRow] = useState(null);
   const token = useRef(0);
+  const [autoRefresh, setAutoRefresh] = useState(readAuto);
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const [clock, setClock] = useState(() => Date.now());
+  const inFlight = useRef(false);
+  const attemptAt = useRef(null);
+  const snapshotAt = useRef(null);
+  const snapshotInFlight = useRef(false);
+  const hostIdRef = useRef(host?.id);
+  hostIdRef.current = host?.id;
+
+  // The host list (30 s cached by the backend) carries the snapshot and verdict for the findings.
+  const loadSnapshot = useCallback(async (background = false) => {
+    if (!host?.id || snapshotInFlight.current) return;
+    snapshotInFlight.current = true;
+    snapshotAt.current = Date.now();
+    try {
+      const d = await ctxRef.current.api('GET', 'hosts');
+      if (hostIdRef.current !== host.id) return;
+      const r = (d?.hosts || []).find((h) => h.id === host.id);
+      if (r) setHostRow({ snapshot: r.snapshot, verdict: r.verdict || null, state: r.state });
+      else if (!background) setHostRow(null);
+    } catch (e) { /* keep the last row */ } finally {
+      snapshotInFlight.current = false;
+    }
+  }, [host?.id]);
 
   // Thresholds of the charts come from the addon settings (defaults until they arrive).
   useEffect(() => {
@@ -283,23 +320,25 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
       setHostRow({ snapshot: host.snapshot, verdict: host.verdict || null, state: host.state });
       return undefined;
     }
-    let alive = true;
     setHostRow(null);
-    ctxRef.current.api('GET', 'hosts')
-      .then((d) => {
-        if (!alive) return;
-        const r = (d?.hosts || []).find((h) => h.id === host.id);
-        setHostRow(r ? { snapshot: r.snapshot, verdict: r.verdict || null, state: r.state } : null);
-      })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [isOpen, host?.id, host?.snapshot, host?.verdict, host?.state]);
+    snapshotInFlight.current = false; // a request of the previous host is ignored by hostIdRef
+    loadSnapshot();
+    return undefined;
+  }, [isOpen, host?.id, host?.snapshot, host?.verdict, host?.state, loadSnapshot]);
 
-  const load = useCallback(async () => {
+  // `background`: an auto-refresh. It shows no loading state, keeps the last data when it
+  // fails (and says so), and never overlaps another background refresh.
+  const load = useCallback(async (background = false) => {
     if (!host?.id) return;
+    if (background && inFlight.current) return;
     const mine = ++token.current;
-    setLoading(true);
-    setError(null);
+    inFlight.current = true;
+    attemptAt.current = Date.now();
+    if (!background) {
+      setLoading(true);
+      setError(null);
+      setRefreshFailed(false);
+    }
     try {
       const params = { range };
       const [s, e] = await Promise.all([
@@ -310,16 +349,55 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
       setSeries(s);
       setEvents(e?.events || []);
       setFetchedAt(Date.now());
+      setRefreshFailed(false);
     } catch (err) {
-      if (token.current === mine) setError(errorText(err, 'Could not load the metrics.'));
+      if (token.current === mine) {
+        if (background) setRefreshFailed(true);
+        else setError(errorText(err, 'Could not load the metrics.'));
+      }
     } finally {
-      if (token.current === mine) setLoading(false);
+      if (token.current === mine) {
+        inFlight.current = false;
+        if (!background) setLoading(false);
+      }
     }
   }, [host?.id, range]);
 
   useEffect(() => {
     if (isOpen) load();
   }, [isOpen, load]);
+
+  const toggleAuto = (value) => {
+    setAutoRefresh(value);
+    try { window.localStorage.setItem(AUTO_KEY, value ? '1' : '0'); } catch (e) { /* storage blocked */ }
+  };
+
+  // One 1 s tick drives both the "Updated N s ago" text and the refresh decision. It only
+  // refreshes series and events (and the host list for the findings, at most once a minute);
+  // the collector status in the footer runs an ansible playbook and is never part of it.
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    setClock(Date.now());
+    const tick = () => {
+      const t = Date.now();
+      setClock(t);
+      const state = {
+        enabled: autoRefresh, isOpen, visible: isVisible(), now: t,
+      };
+      if (shouldRefresh({
+        ...state, inFlight: inFlight.current, lastAttemptAt: attemptAt.current, intervalMs: refreshIntervalMs(range),
+      })) load(true);
+      if (host?.snapshot === undefined && shouldRefresh({
+        ...state, inFlight: snapshotInFlight.current, lastAttemptAt: snapshotAt.current, intervalMs: SNAPSHOT_INTERVAL_MS,
+      })) loadSnapshot(true);
+    };
+    const timer = setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', tick); // back to the tab: refresh at once if overdue
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [isOpen, autoRefresh, range, host?.snapshot, load, loadSnapshot]);
 
   // Another host: drop the previous host's picture instead of dimming it.
   useEffect(() => {
@@ -403,11 +481,17 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
               <button key={r} type="button" aria-pressed={r === range} onClick={() => setRange(r)}>{r}</button>
             ))}
           </div>
+          <label className="hm-auto">
+            <input type="checkbox" checked={autoRefresh} onChange={(e) => toggleAuto(e.target.checked)} />
+            Auto-refresh
+          </label>
           {series ? (
             <span className="hm-muted">
               {series.res === 'raw' ? '10 s samples' : '1 minute averages'}
             </span>
           ) : null}
+          {fetchedAt ? <span className="hm-muted">{updatedText(fetchedAt, clock)}</span> : null}
+          {refreshFailed ? <span className="hm-muted">refresh failed, retrying</span> : null}
         </div>
 
         {hostRow ? (

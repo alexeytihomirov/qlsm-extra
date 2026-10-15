@@ -5357,6 +5357,36 @@ function findings({ snapshot, series, events, settings, range, verdict } = {}) {
     ...diskFindings(ctx)
   ];
 }
+const FAST_RANGES = ["1h", "6h"];
+const FAST_INTERVAL_MS = 1e4;
+const SLOW_INTERVAL_MS = 6e4;
+const SNAPSHOT_INTERVAL_MS = 6e4;
+function refreshIntervalMs(range) {
+  return FAST_RANGES.includes(range) ? FAST_INTERVAL_MS : SLOW_INTERVAL_MS;
+}
+function shouldRefresh({
+  enabled,
+  isOpen,
+  visible,
+  inFlight,
+  lastAttemptAt,
+  now,
+  intervalMs
+}) {
+  if (!enabled || !isOpen || !visible || inFlight) return false;
+  if (lastAttemptAt === null || lastAttemptAt === void 0) return false;
+  return now - lastAttemptAt >= intervalMs;
+}
+function ageSeconds(at, now) {
+  if (at === null || at === void 0) return null;
+  return Math.max(0, Math.floor((now - at) / 1e3));
+}
+function updatedText(at, now) {
+  const s = ageSeconds(at, now);
+  if (s === null) return "";
+  if (s < 60) return `Updated ${s} s ago`;
+  return `Updated ${Math.floor(s / 60)} min ago`;
+}
 const { Modal } = ui;
 const { useCallback, useEffect, useMemo, useRef, useState } = React;
 const RANGES = ["1h", "6h", "24h", "7d", "30d"];
@@ -5368,6 +5398,15 @@ const ms = (v) => `${v < 10 ? v.toFixed(1) : Math.round(v)} ms`;
 const rate = (v) => `${fmtBytes(v)}/s`;
 const EMPTY_NO_DATA = "No samples in this range yet. The collector writes one every 10 s; if this stays empty, check the collector status below.";
 const EMPTY_NO_FRAMES = "No frame timing in this range: the servers did not report frame statistics (no instance running, or the server plugin does not publish them).";
+const AUTO_KEY = "hm-auto-refresh";
+function readAuto() {
+  try {
+    return window.localStorage.getItem(AUTO_KEY) !== "0";
+  } catch (e) {
+    return true;
+  }
+}
+const isVisible = () => typeof document === "undefined" || document.visibilityState === "visible";
 function errorText(e, fallback) {
   var _a, _b, _c;
   return ((_c = (_b = (_a = e == null ? void 0 : e.response) == null ? void 0 : _a.data) == null ? void 0 : _b.error) == null ? void 0 : _c.message) || (e == null ? void 0 : e.message) || fallback;
@@ -5544,6 +5583,30 @@ function HostModal({ ctx, host, isOpen, onClose }) {
   const [settings, setSettings] = useState(null);
   const [hostRow, setHostRow] = useState(null);
   const token = useRef(0);
+  const [autoRefresh, setAutoRefresh] = useState(readAuto);
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const [clock, setClock] = useState(() => Date.now());
+  const inFlight = useRef(false);
+  const attemptAt = useRef(null);
+  const snapshotAt = useRef(null);
+  const snapshotInFlight = useRef(false);
+  const hostIdRef = useRef(host == null ? void 0 : host.id);
+  hostIdRef.current = host == null ? void 0 : host.id;
+  const loadSnapshot = useCallback(async (background = false) => {
+    if (!(host == null ? void 0 : host.id) || snapshotInFlight.current) return;
+    snapshotInFlight.current = true;
+    snapshotAt.current = Date.now();
+    try {
+      const d = await ctxRef.current.api("GET", "hosts");
+      if (hostIdRef.current !== host.id) return;
+      const r = ((d == null ? void 0 : d.hosts) || []).find((h) => h.id === host.id);
+      if (r) setHostRow({ snapshot: r.snapshot, verdict: r.verdict || null, state: r.state });
+      else if (!background) setHostRow(null);
+    } catch (e) {
+    } finally {
+      snapshotInFlight.current = false;
+    }
+  }, [host == null ? void 0 : host.id]);
   useEffect(() => {
     if (!isOpen) return void 0;
     let alive = true;
@@ -5562,23 +5625,22 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       setHostRow({ snapshot: host.snapshot, verdict: host.verdict || null, state: host.state });
       return void 0;
     }
-    let alive = true;
     setHostRow(null);
-    ctxRef.current.api("GET", "hosts").then((d) => {
-      if (!alive) return;
-      const r = ((d == null ? void 0 : d.hosts) || []).find((h) => h.id === host.id);
-      setHostRow(r ? { snapshot: r.snapshot, verdict: r.verdict || null, state: r.state } : null);
-    }).catch(() => {
-    });
-    return () => {
-      alive = false;
-    };
-  }, [isOpen, host == null ? void 0 : host.id, host == null ? void 0 : host.snapshot, host == null ? void 0 : host.verdict, host == null ? void 0 : host.state]);
-  const load = useCallback(async () => {
+    snapshotInFlight.current = false;
+    loadSnapshot();
+    return void 0;
+  }, [isOpen, host == null ? void 0 : host.id, host == null ? void 0 : host.snapshot, host == null ? void 0 : host.verdict, host == null ? void 0 : host.state, loadSnapshot]);
+  const load = useCallback(async (background = false) => {
     if (!(host == null ? void 0 : host.id)) return;
+    if (background && inFlight.current) return;
     const mine = ++token.current;
-    setLoading(true);
-    setError(null);
+    inFlight.current = true;
+    attemptAt.current = Date.now();
+    if (!background) {
+      setLoading(true);
+      setError(null);
+      setRefreshFailed(false);
+    }
     try {
       const params = { range };
       const [s, e] = await Promise.all([
@@ -5589,15 +5651,61 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       setSeries(s);
       setEvents((e == null ? void 0 : e.events) || []);
       setFetchedAt(Date.now());
+      setRefreshFailed(false);
     } catch (err) {
-      if (token.current === mine) setError(errorText(err, "Could not load the metrics."));
+      if (token.current === mine) {
+        if (background) setRefreshFailed(true);
+        else setError(errorText(err, "Could not load the metrics."));
+      }
     } finally {
-      if (token.current === mine) setLoading(false);
+      if (token.current === mine) {
+        inFlight.current = false;
+        if (!background) setLoading(false);
+      }
     }
   }, [host == null ? void 0 : host.id, range]);
   useEffect(() => {
     if (isOpen) load();
   }, [isOpen, load]);
+  const toggleAuto = (value) => {
+    setAutoRefresh(value);
+    try {
+      window.localStorage.setItem(AUTO_KEY, value ? "1" : "0");
+    } catch (e) {
+    }
+  };
+  useEffect(() => {
+    if (!isOpen) return void 0;
+    setClock(Date.now());
+    const tick = () => {
+      const t = Date.now();
+      setClock(t);
+      const state = {
+        enabled: autoRefresh,
+        isOpen,
+        visible: isVisible(),
+        now: t
+      };
+      if (shouldRefresh({
+        ...state,
+        inFlight: inFlight.current,
+        lastAttemptAt: attemptAt.current,
+        intervalMs: refreshIntervalMs(range)
+      })) load(true);
+      if ((host == null ? void 0 : host.snapshot) === void 0 && shouldRefresh({
+        ...state,
+        inFlight: snapshotInFlight.current,
+        lastAttemptAt: snapshotAt.current,
+        intervalMs: SNAPSHOT_INTERVAL_MS
+      })) loadSnapshot(true);
+    };
+    const timer = setInterval(tick, 1e3);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [isOpen, autoRefresh, range, host == null ? void 0 : host.snapshot, load, loadSnapshot]);
   useEffect(() => {
     setSeries(null);
     setEvents([]);
@@ -5650,7 +5758,7 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       headerActions: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { onClick: load, disabled: loading }, loading ? "Loading..." : "Refresh"), /* @__PURE__ */ React.createElement(Button, { onClick: onClose, "aria-label": "Close" }, "Close")),
       footer: /* @__PURE__ */ React.createElement(Footer, { ctx, host, isOpen })
     },
-    /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-modal-body" }, /* @__PURE__ */ React.createElement("div", { className: "hm-controls" }, /* @__PURE__ */ React.createElement("div", { className: "hm-range", role: "group", "aria-label": "Time range" }, RANGES.map((r) => /* @__PURE__ */ React.createElement("button", { key: r, type: "button", "aria-pressed": r === range, onClick: () => setRange(r) }, r))), series ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, series.res === "raw" ? "10 s samples" : "1 minute averages") : null), hostRow ? /* @__PURE__ */ React.createElement("div", { className: "hm-overview" }, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Summary"), /* @__PURE__ */ React.createElement("ul", { className: "hm-summary" }, hostRow.state === "outdated" ? /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement(FindingLine, { finding: { level: "warning", area: "data", text: "The collector on this host is outdated: use Apply to host below." } })) : null, found.map((f, i) => /* @__PURE__ */ React.createElement("li", { key: `${f.area}-${i}` }, /* @__PURE__ */ React.createElement(FindingLine, { finding: f })))), found.some((f) => /p95/.test(f.text)) ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, P95_GLOSS) : null), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Hardware"), hwRows.length ? /* @__PURE__ */ React.createElement("dl", { className: "hm-hw" }, hwRows.map(([k, v]) => /* @__PURE__ */ React.createElement(React.Fragment, { key: k }, /* @__PURE__ */ React.createElement("dt", null, k), /* @__PURE__ */ React.createElement("dd", null, v)))) : /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Not read yet: the collector reads it at start and every hour (collector 1.1 or later)."))) : null, error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, !series && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading...") : null, charts ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "CPU per core"), charts.cores.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, EMPTY_NO_DATA) : /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, charts.cores.map((c) => /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-modal-body" }, /* @__PURE__ */ React.createElement("div", { className: "hm-controls" }, /* @__PURE__ */ React.createElement("div", { className: "hm-range", role: "group", "aria-label": "Time range" }, RANGES.map((r) => /* @__PURE__ */ React.createElement("button", { key: r, type: "button", "aria-pressed": r === range, onClick: () => setRange(r) }, r))), /* @__PURE__ */ React.createElement("label", { className: "hm-auto" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: autoRefresh, onChange: (e) => toggleAuto(e.target.checked) }), "Auto-refresh"), series ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, series.res === "raw" ? "10 s samples" : "1 minute averages") : null, fetchedAt ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, updatedText(fetchedAt, clock)) : null, refreshFailed ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "refresh failed, retrying") : null), hostRow ? /* @__PURE__ */ React.createElement("div", { className: "hm-overview" }, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Summary"), /* @__PURE__ */ React.createElement("ul", { className: "hm-summary" }, hostRow.state === "outdated" ? /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement(FindingLine, { finding: { level: "warning", area: "data", text: "The collector on this host is outdated: use Apply to host below." } })) : null, found.map((f, i) => /* @__PURE__ */ React.createElement("li", { key: `${f.area}-${i}` }, /* @__PURE__ */ React.createElement(FindingLine, { finding: f })))), found.some((f) => /p95/.test(f.text)) ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, P95_GLOSS) : null), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Hardware"), hwRows.length ? /* @__PURE__ */ React.createElement("dl", { className: "hm-hw" }, hwRows.map(([k, v]) => /* @__PURE__ */ React.createElement(React.Fragment, { key: k }, /* @__PURE__ */ React.createElement("dt", null, k), /* @__PURE__ */ React.createElement("dd", null, v)))) : /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Not read yet: the collector reads it at start and every hour (collector 1.1 or later)."))) : null, error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, !series && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading...") : null, charts ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "CPU per core"), charts.cores.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, EMPTY_NO_DATA) : /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, charts.cores.map((c) => /* @__PURE__ */ React.createElement(
       ChartCard,
       {
         key: c.core,
