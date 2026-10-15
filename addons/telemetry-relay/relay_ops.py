@@ -25,7 +25,11 @@ from .settings import (
     get_effective_stats_hub_ingest_token,
     get_effective_stats_hub_url,
     get_instance_server_id,
+    HubAccessError,
+    is_demo_stream_tunnel_enabled,
     is_relay_enabled,
+    is_stats_hub_configured_for_host,
+    release_host,
     set_relay_enabled,
 )
 
@@ -91,6 +95,20 @@ def push_relay_config_logic(host_id):
     return success
 
 
+def _release_from_hub(host):
+    """Takes the host out of stats-hub's firewall unless the demo-stream tunnel
+    still needs it. Returns a log line for a failure ('' otherwise): the relay
+    is off either way, a host left listed only keeps a port open."""
+    if is_demo_stream_tunnel_enabled(host.id) or not is_stats_hub_configured_for_host(host.id):
+        return ''
+    try:
+        release_host(host)
+    except HubAccessError as exc:
+        current_app.logger.warning(f"Telemetry relay: could not remove host {host.name} from stats-hub: {exc}")
+        return f"Warning: host not removed from the stats-hub firewall: {exc}\n"
+    return ''
+
+
 def configure_host_telemetry_relay_logic(host_id, enabled):
     """Enables/disables the ql-telemetry-relay sidecar on a host.
 
@@ -125,7 +143,8 @@ def configure_host_telemetry_relay_logic(host_id, enabled):
         current_app.logger.info(f"Successfully configured telemetry relay for host {host.name}.")
         set_relay_enabled(host_id, enabled)
         host.status = HostStatus.ACTIVE
-        host.logs = f"Telemetry relay {'enabled' if enabled else 'disabled'}.\n{host.logs or ''}"
+        warning = '' if enabled else _release_from_hub(host)
+        host.logs = f"Telemetry relay {'enabled' if enabled else 'disabled'}.\n{warning}{host.logs or ''}"
     else:
         current_app.logger.error(f"Failed to configure telemetry relay for host {host.name}.")
         host.status = HostStatus.ERROR
