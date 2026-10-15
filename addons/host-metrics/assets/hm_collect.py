@@ -33,10 +33,12 @@ def _rate(prev, cur, dt):
 
 class Collector:
     def __init__(self, config, root="/", redis=None, clock=time.time,
-                 affinity=hm_readers.read_affinity, disk=None, store=True):
+                 affinity=hm_readers.read_affinity, disk=None, store=True,
+                 mono=time.monotonic):
         self.config = config
         self.root = root
         self.clock = clock
+        self.mono = mono   # deltas use this, never the wall clock (it can step)
         self.affinity = affinity
         self.disk = disk or (lambda: hm_readers.read_disk("/"))
         if redis is None and config.get("redis_socket"):
@@ -68,7 +70,7 @@ class Collector:
         rows = []
         for idx in sorted(cur, key=lambda i: (i != -1, i)):
             pct = None
-            if prev is not None and idx in prev:
+            if prev is not None and idx in prev and dt > 0:
                 pct = hm_readers.cpu_percent(prev[idx], cur[idx])
             row = {"core": idx}
             for k in hm_store.CORE_COLS:
@@ -186,11 +188,12 @@ class Collector:
         return row
 
     def tick(self):
-        now = self.clock()
-        ts = int(now)
+        now = self.mono()
+        ts = int(self.clock())
         dt = None if self._prev_ts is None else now - self._prev_ts
         self._prev_ts = now
-        d = dt if dt is not None else 0
+        # too short an interval (wake just before a boundary) gives garbage rates: skip them
+        d = dt if dt is not None and dt >= TICK_S / 2 else 0
 
         cores = self._cores(d)
         host = self._host(ts, d)

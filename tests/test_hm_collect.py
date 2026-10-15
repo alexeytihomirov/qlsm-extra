@@ -37,6 +37,7 @@ class Env:
         self.root = tmp_path / "root"
         shutil.copytree(FIXTURE, self.root)
         self.now = float(T0)
+        self.mono_now = 1000.0
         self.redis = FakeRedis()
         self.db = tmp_path / "m.db"
         self.usage = 1_000_000_000
@@ -45,10 +46,13 @@ class Env:
     def clock(self):
         return self.now
 
+    def mono(self):
+        return self.mono_now
+
     def collector(self, store=True):
         cfg = {"db_path": str(self.db), "thresholds": {}}
         return hm_collect.Collector(
-            cfg, root=str(self.root), redis=self.redis, clock=self.clock,
+            cfg, root=str(self.root), redis=self.redis, clock=self.clock, mono=self.mono,
             affinity=lambda port: 1, disk=lambda: {"used": 10, "total": 100}, store=store)
 
     def _inst_dir(self, port):
@@ -63,6 +67,7 @@ class Env:
 
     def advance(self, seconds=10, usage_s=None, port=27960):
         self.now += seconds
+        self.mono_now += seconds
         if usage_s is not None:
             self.usage += int(usage_s * 1_000_000)
             self._write_usage(port, self.usage)
@@ -233,3 +238,32 @@ def test_maintain_rolls_up_once_a_minute(env):
         env.advance(10)
     col.maintain(env.now)
     assert col.conn.execute("SELECT COUNT(*) FROM host_min").fetchone()[0] >= 1
+
+
+def _net_bump(env, nbytes):
+    p = env.root / "proc/net/dev"
+    p.write_text(p.read_text().replace("29897441311", str(29897441311 + nbytes)))
+
+
+def test_wall_clock_step_back_does_not_inflate_rates(env):
+    col = env.collector()
+    col.tick()
+    env.advance(10, usage_s=5)
+    _net_bump(env, 10_000)
+    env.now -= 19.9  # wall clock stepped back 9.9 s net while monotonic advanced 10 s
+    s = col.tick()
+    assert _inst(s)["cpu"] == pytest.approx(50.0)
+    assert s["host"]["rx_bps"] == pytest.approx(1000.0)
+
+
+def test_short_interval_skips_rates(env):
+    col = env.collector()
+    col.tick()
+    env.advance(1, usage_s=5)
+    _net_bump(env, 10_000)
+    s = col.tick()
+    assert _inst(s)["cpu"] is None
+    assert s["host"]["rx_bps"] is None
+    assert all(c["busy"] is None for c in s["cores"])
+    env.advance(10, usage_s=5)
+    assert _inst(col.tick())["cpu"] == pytest.approx(50.0)
