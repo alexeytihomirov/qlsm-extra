@@ -103,3 +103,33 @@ export function diskUsedPct(host) {
   if (!host || !isNum(host.disk_used) || !isNum(host.disk_total) || host.disk_total <= 0) return null;
   return (host.disk_used / host.disk_total) * 100;
 }
+
+/**
+ * Per-core 24 h p95 of busy %: `{ peak, cores: [{ core, p95 }] }` over real cores (the all-cores
+ * row, key -1, is left out); null when the collector sent no `core_p95_24h` (older collector).
+ * JSON keys are strings.
+ */
+export function corePeaks(snapshot) {
+  const map = snapshot?.core_p95_24h;
+  if (!map || typeof map !== 'object') return null;
+  const cores = Object.keys(map)
+    .map((k) => ({ core: Number(k), p95: map[k] }))
+    .filter((c) => Number.isInteger(c.core) && c.core >= 0 && isNum(c.p95))
+    .sort((a, b) => a.core - b.core);
+  if (!cores.length) return null;
+  return { peak: Math.max(...cores.map((c) => c.p95)), cores };
+}
+
+/** Late frames over 24 h summed across instances: `{ late, frames, pct }`; null without frames. */
+export function lateFrames24h(snapshot) {
+  const insts = snapshot?.insts;
+  if (!Array.isArray(insts)) return null;
+  let late = 0;
+  let frames = 0;
+  for (const i of insts) {
+    if (isNum(i.late_24h)) late += i.late_24h;
+    if (isNum(i.frames_24h)) frames += i.frames_24h;
+  }
+  if (frames <= 0) return null;
+  return { late, frames, pct: (late / frames) * 100 };
+}

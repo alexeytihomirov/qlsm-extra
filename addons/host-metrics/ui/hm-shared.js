@@ -4391,6 +4391,25 @@ function diskUsedPct(host) {
   if (!host || !isNum(host.disk_used) || !isNum(host.disk_total) || host.disk_total <= 0) return null;
   return host.disk_used / host.disk_total * 100;
 }
+function corePeaks(snapshot) {
+  const map = snapshot == null ? void 0 : snapshot.core_p95_24h;
+  if (!map || typeof map !== "object") return null;
+  const cores = Object.keys(map).map((k) => ({ core: Number(k), p95: map[k] })).filter((c) => Number.isInteger(c.core) && c.core >= 0 && isNum(c.p95)).sort((a, b) => a.core - b.core);
+  if (!cores.length) return null;
+  return { peak: Math.max(...cores.map((c) => c.p95)), cores };
+}
+function lateFrames24h(snapshot) {
+  const insts = snapshot == null ? void 0 : snapshot.insts;
+  if (!Array.isArray(insts)) return null;
+  let late = 0;
+  let frames = 0;
+  for (const i of insts) {
+    if (isNum(i.late_24h)) late += i.late_24h;
+    if (isNum(i.frames_24h)) frames += i.frames_24h;
+  }
+  if (frames <= 0) return null;
+  return { late, frames, pct: late / frames * 100 };
+}
 const { useEffect: useEffect$1, useRef: useRef$1, useState: useState$1, useMemo: useMemo$1 } = React;
 const SYNC_KEY = "hm-time";
 function useThemeKey() {
@@ -4572,20 +4591,6 @@ function ChartCard({
     series.map((s, i) => /* @__PURE__ */ React.createElement("div", { className: "hm-tip-row", key: s.label }, /* @__PURE__ */ React.createElement("span", { className: "hm-swatch-line", style: { background: slotVar(s.slot) } }), /* @__PURE__ */ React.createElement("span", { className: "hm-tip-name" }, s.label), /* @__PURE__ */ React.createElement("span", { className: "hm-tip-val" }, valueAt(columns[i] || []))))
   ) : null) : /* @__PURE__ */ React.createElement("div", { className: "hm-chart-empty", style: { height } }, "No data in this range")));
 }
-function ensurePanelCss() {
-  if (typeof document === "undefined") return;
-  const here = import.meta.url;
-  const href = `${here.slice(0, here.lastIndexOf("/") + 1)}Panel.css`;
-  const id = "hm-panel-css";
-  if (document.getElementById(id)) return;
-  const link = document.createElement("link");
-  link.id = id;
-  link.rel = "stylesheet";
-  link.href = href;
-  link.onerror = () => link.remove();
-  document.head.appendChild(link);
-}
-ensurePanelCss();
 const { Modal } = ui;
 const { useCallback, useEffect, useMemo, useRef, useState } = React;
 const RANGES = ["1h", "6h", "24h", "7d", "30d"];
@@ -4691,6 +4696,8 @@ function buildCharts(series, res) {
   };
 }
 function Footer({ ctx, host, isOpen }) {
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
   const [status, setStatus] = useState(null);
   const [statusBusy, setStatusBusy] = useState(false);
   const [enabled, setEnabled] = useState(null);
@@ -4702,27 +4709,27 @@ function Footer({ ctx, host, isOpen }) {
     const mine = ++token.current;
     setStatusBusy(true);
     try {
-      const data = await ctx.api("GET", `hosts/${host.id}/status`);
+      const data = await ctxRef.current.api("GET", `hosts/${host.id}/status`);
       if (token.current === mine) setStatus(data);
     } catch (e) {
       if (token.current === mine) setStatus({ error: errorText(e, "Could not read the status.") });
     } finally {
       if (token.current === mine) setStatusBusy(false);
     }
-  }, [ctx, host == null ? void 0 : host.id]);
+  }, [host == null ? void 0 : host.id]);
   useEffect(() => {
     if (!isOpen || !(host == null ? void 0 : host.id)) return;
     setStatus(null);
     setNote(null);
     setEnabled(null);
     loadStatus();
-    ctx.api("GET", `hosts/${host.id}`).then((d) => setEnabled(Boolean(d == null ? void 0 : d.enabled))).catch(() => {
+    ctxRef.current.api("GET", `hosts/${host.id}`).then((d) => setEnabled(Boolean(d == null ? void 0 : d.enabled))).catch(() => {
     });
-  }, [isOpen, host == null ? void 0 : host.id, ctx, loadStatus]);
+  }, [isOpen, host == null ? void 0 : host.id, loadStatus]);
   const toggle = async (value) => {
     setEnabled(value);
     try {
-      await ctx.api("PUT", `hosts/${host.id}`, { data: { enabled: value } });
+      await ctxRef.current.api("PUT", `hosts/${host.id}`, { data: { enabled: value } });
       setNote(value ? "Collection enabled. Use Apply to host to install or start it." : "Collection disabled. Use Apply to host to stop it on the host.");
     } catch (e) {
       setEnabled(!value);
@@ -4733,7 +4740,7 @@ function Footer({ ctx, host, isOpen }) {
     setApplyBusy(true);
     setNote(null);
     try {
-      const data = await ctx.api("POST", `hosts/${host.id}/apply`);
+      const data = await ctxRef.current.api("POST", `hosts/${host.id}/apply`);
       setNote((data == null ? void 0 : data.message) || "Apply queued.");
     } catch (e) {
       setNote(errorText(e, "Apply failed."));
@@ -4760,6 +4767,8 @@ function Footer({ ctx, host, isOpen }) {
   ), "Collect metrics on this host"), /* @__PURE__ */ React.createElement("span", { className: "hm-footer-spacer" }), note ? /* @__PURE__ */ React.createElement("span", { className: "hm-note" }, note) : null, /* @__PURE__ */ React.createElement("button", { type: "button", className: "hm-btn hm-btn-primary", onClick: apply, disabled: applyBusy }, "Apply to host"));
 }
 function HostModal({ ctx, host, isOpen, onClose }) {
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
   const [range, setRange] = useState("24h");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -4775,8 +4784,8 @@ function HostModal({ ctx, host, isOpen, onClose }) {
     try {
       const params = { range };
       const [s, e] = await Promise.all([
-        ctx.api("GET", `hosts/${host.id}/series`, { params }),
-        ctx.api("GET", `hosts/${host.id}/events`, { params })
+        ctxRef.current.api("GET", `hosts/${host.id}/series`, { params }),
+        ctxRef.current.api("GET", `hosts/${host.id}/events`, { params })
       ]);
       if (token.current !== mine) return;
       setSeries(s);
@@ -4787,7 +4796,7 @@ function HostModal({ ctx, host, isOpen, onClose }) {
     } finally {
       if (token.current === mine) setLoading(false);
     }
-  }, [ctx, host == null ? void 0 : host.id, range]);
+  }, [host == null ? void 0 : host.id, range]);
   useEffect(() => {
     if (isOpen) load();
   }, [isOpen, load]);
@@ -4948,15 +4957,16 @@ function HostPanel({ ctx }) {
 export {
   HostModal as H,
   React as R,
-  eventsTotal as a,
-  fmtPct as b,
-  stateLabel as c,
+  fmtPct as a,
+  stateLabel as b,
+  statusLabel as c,
   diskUsedPct as d,
-  ensurePanelCss as e,
+  eventsTotal as e,
   fmtTime as f,
-  statusLabel as g,
+  corePeaks as g,
   fmtBytes as h,
   HostPanel as i,
+  lateFrames24h as l,
   playersNow as p,
   slotsText as s
 };

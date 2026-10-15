@@ -1,13 +1,12 @@
 import React from './runtime';
 import { HostModal } from './HostPanel';
-import { ensurePanelCss } from './css';
-import { diskUsedPct, eventsTotal, playersNow } from './data';
+import {
+  corePeaks, diskUsedPct, eventsTotal, lateFrames24h, playersNow,
+} from './data';
 import {
   fmtBytes, fmtPct, fmtTime, slotsText, stateLabel, statusLabel,
 } from './format';
 import './panel.css';
-
-ensurePanelCss();
 
 const { useCallback, useEffect, useRef, useState } = React;
 
@@ -68,17 +67,27 @@ function StatusCell({ host }) {
   );
 }
 
+/** Busiest core's 24 h p95, with every core as the second line and tooltip. */
 function CoresCell({ snapshot }) {
-  const cores = (snapshot?.cores_last || []).filter((c) => c.core >= 0);
-  if (!cores.length) return <span className="hm-muted">-</span>;
+  const peaks = corePeaks(snapshot);
+  if (!peaks) return <span className="hm-muted">-</span>;
+  const detail = peaks.cores.map((c) => `${c.core}: ${fmtPct(c.p95)}`).join('  ');
   return (
-    <div className="hm-cores hm-num">
-      {cores.map((c) => (
-        <span key={c.core} className={c.busy >= 95 ? 'hm-core-hot' : undefined} title={`Core ${c.core} busy now`}>
-          {c.core}: {fmtPct(c.busy)}
-        </span>
-      ))}
+    <div title={`p95 of per-minute busy %, last 24 h, per core: ${detail}`}>
+      <span className={peaks.peak >= 95 ? 'hm-core-hot' : undefined}>{fmtPct(peaks.peak)}</span>
+      {peaks.cores.length > 1 ? <div className="hm-reason hm-num">{detail}</div> : null}
     </div>
+  );
+}
+
+/** Late frames over 24 h, summed over instances, with the share of all frames. */
+function LateCell({ snapshot }) {
+  const r = lateFrames24h(snapshot);
+  if (!r) return <span className="hm-muted">-</span>;
+  return (
+    <span title={`${r.late} late of ${r.frames} frames, last 24 h`}>
+      {r.late} <span className="hm-muted">({fmtPct(r.pct)})</span>
+    </span>
   );
 }
 
@@ -93,7 +102,6 @@ function HostRow({ host, onOpen }) {
   const s = host.snapshot;
   const instances = s ? (s.insts_last || []).length : null;
   const players = s ? playersNow(s) : null;
-  const late = s ? (s.events_24h?.frames_late || 0) : null;
   const events = s ? eventsTotal(s) : null;
   const dash = <span className="hm-muted">-</span>;
   return (
@@ -107,7 +115,7 @@ function HostRow({ host, onOpen }) {
       <td className="hm-num">{s ? fmtPct(diskUsedPct(s.host)) : dash}</td>
       <td className="hm-num">{instances === null ? dash : instances}</td>
       <td className="hm-num">{players === null ? dash : players}</td>
-      <td className="hm-num">{late === null ? dash : late}</td>
+      <td className="hm-num">{s ? <LateCell snapshot={s} /> : dash}</td>
       <td className="hm-num">{events === null ? dash : events}</td>
     </tr>
   );
@@ -123,13 +131,15 @@ function Page({ ctx }) {
   const [loadedAt, setLoadedAt] = useState(null);
   const [open, setOpen] = useState(null);
   const token = useRef(0);
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx; // core rebuilds ctx on every render
 
   const load = useCallback(async (refresh) => {
     const mine = ++token.current;
     setLoading(true);
     setError(null);
     try {
-      const data = await ctx.api('GET', 'hosts', refresh ? { params: { refresh: 1 } } : undefined);
+      const data = await ctxRef.current.api('GET', 'hosts', refresh ? { params: { refresh: 1 } } : undefined);
       if (token.current !== mine) return;
       setHosts(data?.hosts || []);
       setLoadedAt(Date.now() / 1000);
@@ -138,7 +148,7 @@ function Page({ ctx }) {
     } finally {
       if (token.current === mine) setLoading(false);
     }
-  }, [ctx]);
+  }, []);
 
   useEffect(() => { load(false); }, [load]);
 
@@ -150,7 +160,7 @@ function Page({ ctx }) {
         </button>
         <span className="hm-muted">
           {loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : ''}
-          Core figures are the latest sample; steal is the 7-day p95; late frames and events are the last 24 hours.
+          Core p95 is the busiest core's p95 of per-minute busy over 24 h (hover for every core); steal is the 7-day p95.
         </span>
       </div>
       {error ? <div className="hm-error">{error}</div> : null}
@@ -164,13 +174,13 @@ function Page({ ctx }) {
                 <th>Host</th>
                 <th>Status</th>
                 <th>Capacity</th>
-                <th>Core busy now</th>
+                <th>Core p95 24 h</th>
                 <th>Steal p95</th>
                 <th>RAM available</th>
                 <th>Disk used</th>
                 <th>Instances</th>
                 <th>Players now</th>
-                <th>Late-frame events 24 h</th>
+                <th>Late frames 24 h</th>
                 <th>Events 24 h</th>
               </tr>
             </thead>

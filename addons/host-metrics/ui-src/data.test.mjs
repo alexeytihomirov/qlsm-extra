@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   pick, mergeTimes, column, sortedPorts, coreIds, stackColumns, lastValue,
-  eventsTotal, playersNow, diskUsedPct,
+  eventsTotal, playersNow, diskUsedPct, corePeaks, lateFrames24h,
 } from './data.js';
 
 test('pick takes the first finite key', () => {
@@ -47,4 +47,20 @@ test('snapshot helpers', () => {
   assert.equal(playersNow({ insts_last: [{ players: null }] }), null);
   assert.equal(diskUsedPct({ disk_used: 50, disk_total: 200 }), 25);
   assert.equal(diskUsedPct({ disk_used: 50, disk_total: null }), null);
+});
+
+test('corePeaks: busiest real core, all-cores row left out, string keys', () => {
+  const r = corePeaks({ core_p95_24h: { '-1': 30, 1: 80, 0: 20.5 } });
+  assert.equal(r.peak, 80);
+  assert.deepEqual(r.cores, [{ core: 0, p95: 20.5 }, { core: 1, p95: 80 }]);
+  assert.equal(corePeaks({}), null);
+  assert.equal(corePeaks({ core_p95_24h: {} }), null);
+});
+
+test('lateFrames24h: sums instances, percent of frames, null without frames', () => {
+  const r = lateFrames24h({ insts: [{ late_24h: 5, frames_24h: 1000 }, { late_24h: 5, frames_24h: 1000 }] });
+  assert.deepEqual(r, { late: 10, frames: 2000, pct: 0.5 });
+  assert.equal(lateFrames24h({ insts: [{ late_24h: 0, frames_24h: 0 }] }), null);
+  assert.equal(lateFrames24h({ insts: [{ port: 1 }] }), null);
+  assert.equal(lateFrames24h({}), null);
 });

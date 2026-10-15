@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import tailwindcss from '@tailwindcss/vite';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,7 +11,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
  *
  * Two things make it unusual for a Vite library build:
  *
- * 0. Both entries import one panel.css; the build emits it once as Panel.css.
+ * 0. Both entries import one panel.css; the build writes it as Page.css and HostPanel.css.
  *    A shared chunk (uPlot, charts, format) is split out by Rollup; QLSM loads
  *    each component with a plain import(), which follows the relative chunk import.
  *
@@ -30,8 +31,28 @@ const here = path.dirname(fileURLToPath(import.meta.url));
  * runtime (which would import 'react/jsx-runtime', a second bare specifier to
  * shim), esbuild's plain JSX transform is all this needs.
  */
+/**
+ * QLSM links `<component>.css` next to each component by convention (Page.js -> Page.css,
+ * HostPanel.js -> HostPanel.css; see qlsm's addonCss.js). Both entries share one stylesheet,
+ * so the single CSS asset Vite emits is written out once per entry name and the original removed.
+ */
+const cssPerEntry = {
+  name: 'hm-css-per-entry',
+  // writeBundle, not generateBundle: Vite adds its CSS asset to the bundle after the
+  // generateBundle hooks of ordinary plugins have run.
+  writeBundle(options, bundle) {
+    for (const [file, asset] of Object.entries(bundle)) {
+      if (asset.type !== 'asset' || !file.endsWith('.css')) continue;
+      for (const name of ['Page', 'HostPanel']) {
+        fs.writeFileSync(path.join(options.dir, `${name}.css`), asset.source);
+      }
+      fs.rmSync(path.join(options.dir, file));
+    }
+  },
+};
+
 export default defineConfig({
-  plugins: [tailwindcss()],
+  plugins: [tailwindcss(), cssPerEntry],
   resolve: {
     alias: { react: path.resolve(here, 'ui-src/runtime.js') },
   },
@@ -56,7 +77,7 @@ export default defineConfig({
       fileName: (_format, name) => `${name}.js`,
     },
     rollupOptions: {
-      output: { assetFileNames: 'Panel.css', chunkFileNames: 'hm-shared.js' },
+      output: { chunkFileNames: 'hm-shared.js' },
     },
   },
 });

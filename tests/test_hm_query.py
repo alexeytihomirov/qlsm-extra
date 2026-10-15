@@ -94,9 +94,36 @@ def test_snapshot_input_block(db, capsys):
     assert s["steal_p95"] == 1.0
     # core 0: busy 20 - cpu_avg 10 = 10 normally, 60 - 50 = 10 in the busy hour; core 1: 5
     assert s["core_other_p95"] == {"0": 10.0, "1": 5.0}
-    assert s["insts"] == [{"port": PORT, "core": 0, "busy_p95": 50.0, "rss_max": 90 * MB}]
+    assert s["insts"] == [{"port": PORT, "core": 0, "busy_p95": 50.0, "rss_max": 90 * MB,
+                           "late_24h": 0, "frames_24h": 60 * 1440}]
     assert s["events_24h"] == {"frames_late": 2, "core_saturated": 2, "steal_high": 1}
     assert s["events_24h_busy"] == {"frames_late": 1, "core_saturated": 1}
+
+
+def test_snapshot_core_p95_24h_includes_all_cores_key(db, capsys):
+    _, s = _run(capsys, "--db", str(db), "--now", str(NOW), "snapshot")
+    # JSON keys are strings; -1 is the all-cores row. Core 0 is busy (60) for 60 of the
+    # 1440 minutes in the window, which is under 5 %, so its nearest-rank p95 is 20.
+    assert s["core_p95_24h"] == {"-1": 12.0, "0": 20.0, "1": 5.0}
+
+
+def test_snapshot_late_and_frames_24h_sum_the_window_only(tmp_path, capsys):
+    p = tmp_path / "m.db"
+    conn = hm_store.open_db(p)
+    rows = [(NOW - 30 * 3600, PORT, 1.0, 1.0, MB, 0, 0, 0, None, 1000, 500, 1.0, 1.0),  # outside
+            (NOW - 3600, PORT, 1.0, 1.0, MB, 0, 0, 0, None, 600, 6, 1.0, 1.0),
+            (NOW - 1800, PORT, 1.0, 1.0, MB, 0, 0, 0, None, 600, 4, 1.0, 1.0),
+            (NOW - 1800, 27961, 1.0, 1.0, MB, 1, 0, 0, None, 600, None, 1.0, 1.0)]
+    with conn:
+        conn.executemany("INSERT INTO inst_min(ts,port,cpu_avg,cpu_max,mem_max,core,players_max,"
+                         "busy_ticks,cpu_busy_avg,frames,late,max_ms,p99_max)"
+                         " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+    conn.close()
+    _, s = _run(capsys, "--db", str(p), "--now", str(NOW), "snapshot")
+    by_port = {i["port"]: i for i in s["insts"]}
+    assert (by_port[PORT]["late_24h"], by_port[PORT]["frames_24h"]) == (10, 1200)
+    assert (by_port[27961]["late_24h"], by_port[27961]["frames_24h"]) == (0, 600)
+    assert s["core_p95_24h"] == {}
 
 
 def test_snapshot_last_rows(db, capsys):

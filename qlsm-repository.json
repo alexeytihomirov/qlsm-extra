@@ -151,7 +151,7 @@
     {
       "id": "host-metrics",
       "zip": "packages/host-metrics.zip",
-      "sha256": "513bf8d2ec6422d747a6a8e9b2fef70e2961b69fe6e3427e94c3edb8123116ac",
+      "sha256": "148db1af5c8fb515903fe460cbeba592a37f460d76b3e5b8ab7dd28425cdd9e8",
       "version": "1.0.0",
       "label": "Host Metrics",
       "description": "Per-core CPU (including steal), memory, disk and per-instance CPU, memory, players and frame timing for every game host, kept for 30 days in a small SQLite file on the host by a low-priority collector service, with a capacity verdict (how many more instances the host takes). The collector is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry Host Metrics has the host switch, the status and Apply to host; the Host Metrics page lists every host."

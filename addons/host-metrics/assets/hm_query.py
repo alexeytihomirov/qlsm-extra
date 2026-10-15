@@ -88,11 +88,30 @@ def _core_other_p95(conn, since):
     return {c: _p95(v) for c, v in sorted(per_core.items())}
 
 
-def _inst_block(conn, since):
+def _core_p95_24h(conn, now):
+    """Per core (-1 = all): p95 of the per-minute busy average over the last 24 h."""
+    per_core = {}
+    for core, busy in conn.execute(
+            "SELECT core, busy FROM core_min WHERE ts>=? AND busy IS NOT NULL",
+            (now - EVENTS_WINDOW_S,)):
+        per_core.setdefault(core, []).append(busy)
+    return {c: _p95(v) for c, v in sorted(per_core.items())}
+
+
+def _frames_24h(conn, now):
+    """Per port: (late, frames) summed over the minute rows of the last 24 h."""
+    return {port: (late or 0, frames or 0) for port, late, frames in conn.execute(
+        "SELECT port, SUM(late), SUM(frames) FROM inst_min WHERE ts>=? GROUP BY port",
+        (now - EVENTS_WINDOW_S,))}
+
+
+def _inst_block(conn, since, now):
     ports = [r[0] for r in conn.execute(
         "SELECT DISTINCT port FROM inst_min WHERE ts>=? ORDER BY port", (since,))]
     out = []
+    frames = _frames_24h(conn, now)
     for port in ports:
+        late_24h, frames_24h = frames.get(port, (0, 0))
         busy = [r[0] for r in conn.execute(
             "SELECT cpu_busy_avg FROM inst_min WHERE ts>=? AND port=? AND busy_ticks>=?"
             " AND cpu_busy_avg IS NOT NULL", (since, port, BUSY_MIN_TICKS))]
@@ -102,7 +121,8 @@ def _inst_block(conn, since):
         rss = conn.execute("SELECT MAX(mem_max) FROM inst_min WHERE ts>=? AND port=?",
                            (since, port)).fetchone()[0]
         out.append({"port": port, "core": last[0] if last else None,
-                    "busy_p95": _p95(busy), "rss_max": rss})
+                    "busy_p95": _p95(busy), "rss_max": rss,
+                    "late_24h": late_24h, "frames_24h": frames_24h})
     return out
 
 
@@ -134,7 +154,8 @@ def snapshot(conn, now):
         "mem_avail_now": host["mem_avail"] if host else None,
         "steal_p95": steal,
         "core_other_p95": _core_other_p95(conn, since),
-        "insts": _inst_block(conn, since),
+        "core_p95_24h": _core_p95_24h(conn, now),
+        "insts": _inst_block(conn, since, now),
         "events_24h": total,
         "events_24h_busy": busy_counts,
     }

@@ -1,13 +1,10 @@
 import React, { ui } from './runtime';
 import { ChartCard } from './charts';
-import { ensurePanelCss } from './css';
 import {
   column, coreIds, coreRows, lastValue, mergeTimes, pick, sortedPorts,
 } from './data';
 import { fmtBytes, fmtDuration, fmtPct, fmtTime } from './format';
 import './panel.css';
-
-ensurePanelCss();
 
 const { Modal } = ui;
 const { useCallback, useEffect, useMemo, useRef, useState } = React;
@@ -159,6 +156,8 @@ function buildCharts(series, res) {
 }
 
 function Footer({ ctx, host, isOpen }) {
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx; // core rebuilds ctx on every render; effects must not re-run for it
   const [status, setStatus] = useState(null);
   const [statusBusy, setStatusBusy] = useState(false);
   const [enabled, setEnabled] = useState(null);
@@ -171,14 +170,14 @@ function Footer({ ctx, host, isOpen }) {
     const mine = ++token.current;
     setStatusBusy(true);
     try {
-      const data = await ctx.api('GET', `hosts/${host.id}/status`);
+      const data = await ctxRef.current.api('GET', `hosts/${host.id}/status`);
       if (token.current === mine) setStatus(data);
     } catch (e) {
       if (token.current === mine) setStatus({ error: errorText(e, 'Could not read the status.') });
     } finally {
       if (token.current === mine) setStatusBusy(false);
     }
-  }, [ctx, host?.id]);
+  }, [host?.id]);
 
   useEffect(() => {
     if (!isOpen || !host?.id) return;
@@ -186,13 +185,13 @@ function Footer({ ctx, host, isOpen }) {
     setNote(null);
     setEnabled(null);
     loadStatus();
-    ctx.api('GET', `hosts/${host.id}`).then((d) => setEnabled(Boolean(d?.enabled))).catch(() => {});
-  }, [isOpen, host?.id, ctx, loadStatus]);
+    ctxRef.current.api('GET', `hosts/${host.id}`).then((d) => setEnabled(Boolean(d?.enabled))).catch(() => {});
+  }, [isOpen, host?.id, loadStatus]);
 
   const toggle = async (value) => {
     setEnabled(value);
     try {
-      await ctx.api('PUT', `hosts/${host.id}`, { data: { enabled: value } });
+      await ctxRef.current.api('PUT', `hosts/${host.id}`, { data: { enabled: value } });
       setNote(value ? 'Collection enabled. Use Apply to host to install or start it.'
         : 'Collection disabled. Use Apply to host to stop it on the host.');
     } catch (e) {
@@ -205,7 +204,7 @@ function Footer({ ctx, host, isOpen }) {
     setApplyBusy(true);
     setNote(null);
     try {
-      const data = await ctx.api('POST', `hosts/${host.id}/apply`);
+      const data = await ctxRef.current.api('POST', `hosts/${host.id}/apply`);
       setNote(data?.message || 'Apply queued.');
     } catch (e) {
       setNote(errorText(e, 'Apply failed.'));
@@ -252,6 +251,8 @@ function Footer({ ctx, host, isOpen }) {
  * Host Metrics page).
  */
 export function HostModal({ ctx, host, isOpen, onClose }) {
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
   const [range, setRange] = useState('24h');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -268,8 +269,8 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
     try {
       const params = { range };
       const [s, e] = await Promise.all([
-        ctx.api('GET', `hosts/${host.id}/series`, { params }),
-        ctx.api('GET', `hosts/${host.id}/events`, { params }),
+        ctxRef.current.api('GET', `hosts/${host.id}/series`, { params }),
+        ctxRef.current.api('GET', `hosts/${host.id}/events`, { params }),
       ]);
       if (token.current !== mine) return;
       setSeries(s);
@@ -280,7 +281,7 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
     } finally {
       if (token.current === mine) setLoading(false);
     }
-  }, [ctx, host?.id, range]);
+  }, [host?.id, range]);
 
   useEffect(() => {
     if (isOpen) load();
