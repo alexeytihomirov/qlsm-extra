@@ -1,10 +1,10 @@
 ---
 id: qlsm-extra-0011
 title: host-metrics addon: per-host and per-instance resource dashboard with capacity verdict
-status: in-progress
+status: done
 created: 2026-10-15
 updated: 2026-10-15
-verified:
+verified: 2026-10-15
 depends_on: []
 related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-v1-1-design.md, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md, qlsm-extra/docs/superpowers/plans/2026-10-15-host-metrics-addon.md]
 ---
@@ -55,7 +55,20 @@ related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-v
 - 2026-10-15 - 1.0.0 слит и запушен (ffa3260); в прод-qlsm установлен из репозитория, qlsm перезапущен, включён глобально и на GermanyHetzner (host 1), Apply: сервис active, ~0.12% ядра, 8.5 МБ; frame_timing включён на instance 1 :27960 (400 кадров/10 с, опозданий 0); маршруты hosts/series/events/status отвечают через paramiko
 - 2026-10-15 - выяснилось: у подаренных хостов ssh_user ubuntu (4 AWS) и ruweb (NijniyNovgorod3); 1.0.1 - запросы через sudo -n -u ql, состояние no_sudo; слит и запушен (d76df6b), в прод ещё не поставлен
 - 2026-10-15 - отзыв оператора на UI -> спека 1.1: docs/superpowers/specs/2026-10-15-host-metrics-v1-1-design.md (тема, доска здоровья, выводы текстом, железо, понятные графики; колокольчик и пункт навбара через PR в qlsm)
+- 2026-10-15 - 1.1 по отзыву оператора: ядро qlsm (PR #251, +7 коммитов: poller.tick, уведомления и колокольчик, пункт навбара, навбар-страница владеет шапкой) задеплоено через qlsm-ci (пайплайны 19 и 20, миграция 20261015120000, бэкап БД /app/data/qlds_ui.pre-notifications-20261015.db); аддон 1.1.1 (тема, доска здоровья, выводы текстом, железо, пороги на графиках, уведомления, диск через maj:min) на 7 хостах
+- 2026-10-15 - SwedenVultr (id 2) удалён из qlsm кем-то другим во время работы; коллектор host-metrics остался на 70.34.223.51
+- 2026-10-15 - оператор проверил UI: ок; SwedenVultr удалён оператором вместе с сервисом
 
 ## Результат
 
+- qlsm-extra main: host-metrics 1.1.1 (eab0666), плагин frame_timing; спеки и планы в docs/superpowers/.
+- qlsm: PR dngrtech/qlsm#251 ветка upstream-pr/host-onboarding-fixes e73c44a7; форк main 8491f456; прод задеплоен.
+- Прод: аддон включён, Apply на 7 хостах, frame_timing на GermanyHetzner :27960.
+
 ## Как проверить
+
+1. qlsm -> пункт навбара Hosts health: карточки 7 хостов, у каждого строка железа, статус No data (пока не было матчей), кнопка Refresh в строке заголовка, нет ссылки < Addons.
+2. Переключить тему светлая/тёмная: кнопки и графики меняют цвета.
+3. Открыть карточку (Details): сводка текстом сверху, над каждым графиком строка вывода, пунктирные пороги, подсказки в легенде.
+4. Колокольчик в навбаре: пуст, пока на хостах нет проблем.
+5. Сыграть матч на GermanyHetzner :27960 -> через несколько минут у хоста появится вывод о запасе (room for N).

@@ -5,6 +5,8 @@
 // differently (cpu vs cpu_avg, mem vs mem_max, ...): `pick` takes the first
 // key a row has.
 
+import { kindLabel } from './format.js';
+
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
 /** First finite number among `keys` of `row`, else null. */
@@ -145,4 +147,173 @@ export function staleInfo(host) {
 /** "fleet reference" when the slot count uses the fleet median load, else null. */
 export function refNote(verdict) {
   return verdict?.ref_source === 'fleet' ? 'fleet reference' : null;
+}
+
+// ---- health board ------------------------------------------------------------------
+
+/** Event kinds that say nothing about health (a server started or stopped). */
+const QUIET_KINDS = new Set(['instance_new', 'instance_gone']);
+/** Area of the findings that says the same as an open event of that kind. */
+const KIND_AREA = {
+  core_saturated: 'cpu', steal_high: 'steal', mem_low: 'memory', oom_kill: 'memory',
+  disk_low: 'disk', frames_late: 'frames',
+};
+const HEALTH_LABEL = { problem: 'Problem', watch: 'Watch', nodata: 'No data', ok: 'OK' };
+const HEALTH_RANK = { problem: 0, watch: 1, nodata: 2, ok: 3 };
+/** Stale data older than this is a Problem (B6 notifies it as critical after 5 min). */
+const STALE_PROBLEM_S = 300;
+
+/** Open events of a snapshot, oldest first; null for an older collector without the field. */
+export function openEvents(snapshot) {
+  const list = snapshot?.events_open;
+  if (!Array.isArray(list)) return null;
+  return list
+    .filter((e) => e && e.state === 'open' && isNum(e.ts))
+    .sort((a, b) => a.ts - b.ts || (a.id || 0) - (b.id || 0));
+}
+
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+/** The verdict's busy-event reason ("frames_late 2 with players ...") in plain words, else null. */
+function overloadText(verdict) {
+  const reason = String(verdict?.reason || '');
+  let m = /^frames_late (\d+) with players/.exec(reason);
+  if (m) return `${plural(Number(m[1]), 'late-frame event', 'late-frame events')} with players in the last 24 hours.`;
+  m = /^core_saturated (\d+) with players/.exec(reason);
+  if (m) return `${plural(Number(m[1]), 'core saturation event', 'core saturation events')} with players in the last 24 hours.`;
+  return null;
+}
+
+/** "2 events in the last 24 hours (Memory low 2)." from `events_24h`, null when there were none. */
+function recentEventsText(snapshot) {
+  const map = snapshot?.events_24h || {};
+  const kinds = Object.keys(map).filter((k) => !QUIET_KINDS.has(k) && isNum(map[k]) && map[k] > 0).sort();
+  if (!kinds.length) return null;
+  const n = kinds.reduce((a, k) => a + map[k], 0);
+  return `${plural(n, 'event', 'events')} in the last 24 hours (${kinds.map((k) => `${kindLabel(k)} ${map[k]}`).join(', ')}).`;
+}
+
+function health(status, reason, items) {
+  return { status, label: HEALTH_LABEL[status], reason, items };
+}
+
+/**
+ * Board status of one `GET hosts` row with its `findings(...)` list:
+ *   problem - unreachable / no sudo, stale over 5 min, verdict overloaded, an open critical event,
+ *             a problem finding (also when it matches an open warn event, e.g. frames_late);
+ *   watch   - stale data (up to 5 min; older is a problem), verdict tight, an open warning event, a warning finding (noisy
+ *             neighbour, CPU above the planning limit, ...), warnings in the last 24 h, an
+ *             outdated collector;
+ *   nodata  - not installed, no data yet (verdict unknown);
+ *   ok      - everything else.
+ * Returns `{ status, label, reason, items }`: `reason` is one sentence for the card, `items`
+ * the things to look at (`{ level: problem|watch, what, since }`, problems first, `since` a
+ * unix time or null). Never throws on partial input.
+ */
+export function hostHealth(row, list) {
+  const found = Array.isArray(list) ? list : [];
+  const state = row?.state;
+  const snapshot = row?.snapshot;
+  if (state === 'unreachable' || state === 'no_sudo') {
+    const what = row?.error || (state === 'no_sudo'
+      ? 'The SSH user has no passwordless sudo.'
+      : 'The host did not answer the SSH query.');
+    return health('problem', what, [{ level: 'problem', what, since: null }]);
+  }
+  if (state === 'not_installed') {
+    return health('nodata', 'Host metrics are not installed on this host: use Apply to host.', []);
+  }
+  if (!row || state === 'no_data' || !snapshot || typeof snapshot !== 'object') {
+    return health('nodata', 'The collector has not written any data yet.', []);
+  }
+  if (state === 'stale') {
+    // its open events and findings describe the past: only the staleness is reported.
+    // Ruling R5: Watch up to STALE_PROBLEM_S, Problem after (the critical notification of B6).
+    const age = snapshot.data_age_s;
+    const since = isNum(snapshot.now) && isNum(age) ? snapshot.now - age : null;
+    if (isNum(age) && age > STALE_PROBLEM_S) {
+      const what = `Collector data is ${Math.floor(age / 60)} min old - the collector or the host is down.`;
+      return health('problem', what, [{ level: 'problem', what, since }]);
+    }
+    const data = found.find((f) => f?.area === 'data');
+    const what = data?.text || 'Collector data is old - the collector or the host is down.';
+    return health('watch', what, [{ level: 'watch', what, since }]);
+  }
+
+  // Open events first (they carry "since"). A finding of the same area says the same thing:
+  // its text is dropped, but its level still counts (a warn event + a problem finding is a
+  // problem; ruling R5: an open frames_late is a problem).
+  const evItems = [];
+  for (const e of openEvents(snapshot) || []) {
+    if (QUIET_KINDS.has(e.kind)) continue;
+    evItems.push({
+      area: KIND_AREA[e.kind] || null,
+      level: e.severity === 'crit' ? 'problem' : 'watch',
+      what: `${kindLabel(e.kind)}${e.message ? `: ${e.message}` : ''}`,
+      since: e.ts,
+    });
+  }
+  const findingItems = [];
+  for (const f of found) {
+    if (!f || (f.level !== 'problem' && f.level !== 'warning')) continue;
+    const level = f.level === 'problem' ? 'problem' : 'watch';
+    const same = evItems.filter((i) => i.area && i.area === f.area);
+    if (same.length) {
+      if (level === 'problem') for (const i of same) i.level = 'problem';
+      continue;
+    }
+    findingItems.push({ level, what: f.text, since: null });
+  }
+  const problems = [];
+  const watch = [];
+  for (const { area, ...item } of evItems) (item.level === 'problem' ? problems : watch).push(item);
+  const verdict = row.verdict;
+  const overload = verdict?.status === 'overloaded' ? overloadText(verdict) : null;
+  if (overload) problems.push({ level: 'problem', what: overload, since: null });
+  for (const item of findingItems) (item.level === 'problem' ? problems : watch).push(item);
+  // a verdict the findings did not explain still counts, in its own words
+  if (verdict?.status === 'overloaded' && !problems.length) {
+    problems.push({ level: 'problem', what: `Overloaded: ${verdict.reason}.`, since: null });
+  }
+  if (verdict?.status === 'tight' && !problems.length && !watch.length) {
+    watch.push({ level: 'watch', what: `Capacity is tight: ${verdict.reason}.`, since: null });
+  }
+  if (state === 'outdated') {
+    watch.push({ level: 'watch', what: `Collector ${row.version || 'version unknown'} is outdated: use Apply to host.`, since: null });
+  }
+  const recent = recentEventsText(snapshot);
+  if (recent && !problems.length && !watch.length) watch.push({ level: 'watch', what: recent, since: null });
+
+  const items = [...problems, ...watch];
+  if (problems.length) return health('problem', problems[0].what, items);
+  if (watch.length) return health('watch', watch[0].what, items);
+  if (!verdict || verdict.status === 'unknown') {
+    return health('nodata', 'No data yet', []);
+  }
+  const room = found.find((f) => f?.area === 'room');
+  return health('ok', room?.text || found[0]?.text || 'All checks passed.', []);
+}
+
+/** `[{ row, health }]` sorted problems first, then watch, no data, ok; by host name inside. */
+export function sortByHealth(entries) {
+  return [...(entries || [])].sort((a, b) => (
+    (HEALTH_RANK[a.health?.status] ?? 9) - (HEALTH_RANK[b.health?.status] ?? 9)
+    || String(a.row?.name || '').localeCompare(String(b.row?.name || ''), undefined, { sensitivity: 'base' })
+  ));
+}
+
+/** Number of hosts per board status. */
+export function healthCounts(healths) {
+  const out = { problem: 0, watch: 0, nodata: 0, ok: 0 };
+  for (const h of healths || []) if (h && h.status in out) out[h.status] += 1;
+  return out;
+}
+
+/** Host id of `?host=<id>` in a location search string, null when absent or not a positive integer. */
+export function hostIdFromSearch(search) {
+  if (typeof search !== 'string' || !search) return null;
+  const raw = new URLSearchParams(search).get('host');
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  const id = Number(raw);
+  return id > 0 ? id : null;
 }

@@ -1,5 +1,5 @@
-import { H, j } from "./hm-shared.js";
+import { H, q } from "./hm-shared.js";
 export {
   H as HostModal,
-  j as default
+  q as default
 };

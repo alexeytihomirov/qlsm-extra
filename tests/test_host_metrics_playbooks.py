@@ -15,6 +15,7 @@ import yaml
 pytestmark = pytest.mark.standalone
 
 ADDON = Path(__file__).resolve().parent.parent / 'addons' / 'host-metrics'
+VERSION = json.loads((ADDON / 'qlsm-addon.json').read_text(encoding='utf-8'))['version']
 PLAYBOOKS = ADDON / 'playbooks'
 ASSETS = ADDON / 'assets'
 NAMES = ('sync_host_metrics.yml', 'status_host_metrics.yml')
@@ -25,6 +26,7 @@ GLOBAL_DEFAULTS = {
     'verdict_target_pct': '70', 'mem_reserve_pct': '20', 'steal_tight_pct': '5',
     'steal_overload_pct': '15',
 }
+NOTIFY_DEFAULTS = {'notify_enabled': True, 'notify_min_severity': 'warning'}
 
 
 def _load(name):
@@ -169,10 +171,11 @@ def test_ansible_syntax_check(name):
 def test_manifest_defaults_match_the_constraints():
     manifest = json.loads((ADDON / 'qlsm-addon.json').read_text(encoding='utf-8'))
     fields = {f['key']: f['default'] for f in manifest['settings']['global']}
-    assert fields == GLOBAL_DEFAULTS
+    assert fields == dict(GLOBAL_DEFAULTS, **NOTIFY_DEFAULTS)
     assert _settings().DEFAULTS == GLOBAL_DEFAULTS
+    assert _settings().NOTIFY_DEFAULTS == NOTIFY_DEFAULTS
     panel_fields = {f['key']: f['default'] for f in manifest['ui']['panels']['global_settings']['fields']}
-    assert panel_fields == GLOBAL_DEFAULTS
+    assert panel_fields == dict(GLOBAL_DEFAULTS, **NOTIFY_DEFAULTS)
 
 
 def test_collector_config_defaults():
@@ -184,7 +187,7 @@ def test_collector_config_defaults():
         'thresholds': {'core_saturated_pct': 95, 'steal_event_pct': 10, 'mem_low_pct': 10,
                        'disk_low_pct': 90, 'frames_late_pct': 1, 'frame_gap_ms': 100,
                        'event_window_s': 60},
-        'version': '1.0.1',
+        'version': VERSION,
     }
     assert _settings().collector_config(GLOBAL_DEFAULTS) == config
 
@@ -231,3 +234,23 @@ def test_a_bad_value_raises_naming_the_field(key, value):
             module.collector_config({key: value})
     with pytest.raises(ValueError, match=key):
         module.validate_settings({key: value})
+
+
+@pytest.mark.parametrize('values, expected', [
+    ({}, (True, 'warning')),
+    ({'notify_enabled': False, 'notify_min_severity': 'critical'}, (False, 'critical')),
+    ({'notify_enabled': 'false', 'notify_min_severity': ' Info '}, (False, 'info')),
+])
+def test_notify_settings(values, expected):
+    assert _settings().notify_settings(values) == expected
+
+
+@pytest.mark.parametrize('key, value', [
+    ('notify_enabled', 'maybe'),
+    ('notify_enabled', 2),
+    ('notify_min_severity', 'loud'),
+    ('notify_min_severity', 3),
+])
+def test_bad_notify_settings_raise_naming_the_field(key, value):
+    with pytest.raises(ValueError, match=key):
+        _settings().validate_settings({key: value})

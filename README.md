@@ -194,6 +194,30 @@ Forwarder, enter the VPS address if the field is empty, save once, compare
 the fingerprints in the status line with the VPS provider console, then use
 **Apply to host** on each host.
 
+**host-metrics 1.1.0:** the Host Metrics page becomes a health board (one card
+per host with a status, open problems and plain-English findings), the host
+dialog shows hardware (CPU model, memory, disk, provider) and charts with their
+limits marked, all in the QLSM light and dark theme. On a QLSM core with
+notifications (`poller.tick`, `ctx.notify`) and `page.nav` it also:
+
+- puts host problems under the navbar bell: late frames or a saturated core
+  while players are on, high steal, low memory (warning); an OOM kill, a full
+  disk, a host unreachable or a collector silent for more than 5 minutes
+  (critical). Checked once a minute against what is open on the host now: one
+  notification per problem, resolved after it stayed clear for two checks (a
+  flapping condition does not flood the bell), an OOM kill stays for 24 hours,
+  a host switched off has its notifications resolved. Switch and minimum
+  severity: Settings -> Addons -> Host Metrics (`notify_enabled`,
+  `notify_min_severity`);
+- adds a **Hosts health** entry to the navbar.
+
+On an older core the addon loads and works as before, without the bell
+notifications and without the navbar entry (the page stays at
+`/addons/host-metrics`). Hosts need **Apply to host** after the update to 1.1.0
+(the collector gains hardware info and the list of open events; the bell
+notifications are state-based and read that list, so a host that was not
+re-applied only gets the "unreachable" and "collector silent" notifications).
+
 ### player-ranks
 
 Three rating sources, stacked in one Rank column in Live Status (a generic

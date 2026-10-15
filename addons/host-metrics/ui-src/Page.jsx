@@ -1,14 +1,26 @@
-import React from './runtime';
+import React, { Button } from './runtime';
 import { HostModal } from './HostPanel';
+import { findings, P95_GLOSS } from './findings';
 import {
-  corePeaks, diskUsedPct, eventsTotal, lateFrames24h, playersNow, refNote, staleInfo,
+  corePeaks, diskUsedPct, eventsTotal, healthCounts, hostHealth, hostIdFromSearch, lateFrames24h,
+  openEvents, playersNow, refNote, sortByHealth,
 } from './data';
 import {
-  fmtBytes, fmtPct, fmtTime, slotsText, stateLabel, statusLabel,
+  fmtBytes, fmtDuration, fmtPct, fmtTime, hardwareLine, slotsText,
 } from './format';
 import './panel.css';
 
-const { useCallback, useEffect, useRef, useState } = React;
+const { useCallback, useEffect, useMemo, useRef, useState } = React;
+
+const STATUS_TONE = { problem: 'critical', watch: 'warning', nodata: 'neutral', ok: 'good' };
+const STATUS_ORDER = ['problem', 'watch', 'nodata', 'ok'];
+const STATUS_LABEL = { problem: 'Problem', watch: 'Watch', nodata: 'No data', ok: 'OK' };
+const STATUS_HINT = {
+  problem: 'Overloaded, an open critical event, or the host does not answer.',
+  watch: 'Tight capacity, noisy neighbour, stale data, or warnings in the last 24 hours.',
+  nodata: 'Not installed, or no data yet.',
+  ok: 'Room for more and nothing to look at.',
+};
 
 function errorText(e, fallback) {
   return e?.response?.data?.error?.message || e?.message || fallback;
@@ -20,7 +32,7 @@ function ToneIcon({ tone }) {
     strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
   };
   if (tone === 'good') {
-    return <svg {...props} style={{ color: 'var(--hm-good)' }}><circle cx="8" cy="8" r="6.5" /><path d="M5 8.2l2.2 2.2L11 6" /></svg>;
+    return <svg {...props}><circle cx="8" cy="8" r="6.5" /><path d="M5 8.2l2.2 2.2L11 6" /></svg>;
   }
   if (tone === 'warning') {
     return <svg {...props}><path d="M8 2l6.5 11.5h-13z" /><path d="M8 6.5v3M8 11.6v.1" /></svg>;
@@ -31,119 +43,146 @@ function ToneIcon({ tone }) {
   return <svg {...props}><circle cx="8" cy="8" r="6.5" /><path d="M5 8h6" /></svg>;
 }
 
-function Badge({ text, tone }) {
+/** Status light and word (icon shape + word, never colour alone). */
+function StatusBadge({ health }) {
+  const tone = STATUS_TONE[health.status] || 'neutral';
   return (
-    <span className={`hm-badge hm-tone-${tone}`}>
+    <span className={`hm-badge hm-tone-${tone}`} title={STATUS_HINT[health.status]}>
       <ToneIcon tone={tone} />
-      {text}
+      {health.label}
     </span>
   );
 }
 
-/** Status cell: verdict badge with the reason as tooltip and second line, or the host state. */
-function StatusCell({ host }) {
-  const problem = stateLabel(host.state);
-  if (host.state !== 'ok' && !host.snapshot) {
-    const tone = host.state === 'unreachable' || host.state === 'no_sudo' ? 'critical' : 'neutral';
-    return (
-      <>
-        <Badge text={problem || host.state} tone={tone} />
-        {host.error ? <div className="hm-reason">{host.error}</div> : null}
-      </>
-    );
-  }
-  const stale = staleInfo(host);
-  if (stale) {
-    return (
-      <>
-        <span title="The collector stopped writing: the numbers below are its last data.">
-          <Badge text="Stale" tone="warning" />
-        </span>
-        <div className="hm-reason">{stale.text}</div>
-      </>
-    );
-  }
-  const label = statusLabel(host.verdict?.status);
-  const reason = host.verdict?.reason;
-  return (
-    <>
-      <span title={reason || undefined}><Badge text={label.text} tone={label.tone} /></span>
-      {reason ? <div className="hm-reason">{reason}</div> : null}
-      {problem ? (
-        <div className="hm-reason">
-          {problem}{host.version ? ` (${host.version})` : ''}: use Apply to host.
-        </div>
-      ) : null}
-    </>
-  );
+function sinceText(since, now) {
+  if (!Number.isFinite(since)) return '';
+  const ago = Number.isFinite(now) ? ` (${fmtDuration(now - since)} ago)` : '';
+  return `since ${fmtTime(since)}${ago}`;
 }
 
-/** Busiest core's 24 h p95, with every core as the second line and tooltip. */
-function CoresCell({ snapshot }) {
-  const peaks = corePeaks(snapshot);
-  if (!peaks) return <span className="hm-muted">-</span>;
-  const detail = peaks.cores.map((c) => `${c.core}: ${fmtPct(c.p95)}`).join('  ');
+/** Top strip: one tile per status, then the open problems of every host. */
+function Summary({ entries, onOpen, now }) {
+  const counts = healthCounts(entries.map((e) => e.health));
+  const problems = [];
+  for (const e of entries) {
+    for (const item of e.health.items) {
+      if (item.level === 'problem') problems.push({ row: e.row, item });
+    }
+  }
   return (
-    <div title={`p95 of per-minute busy %, last 24 h, per core: ${detail}`}>
-      <span className={peaks.peak >= 95 ? 'hm-core-hot' : undefined}>{fmtPct(peaks.peak)}</span>
-      {peaks.cores.length > 1 ? <div className="hm-reason hm-num">{detail}</div> : null}
+    <div className="hm-board-summary">
+      <div className="hm-tiles">
+        {STATUS_ORDER.map((s) => (
+          <div key={s} className={`hm-tile hm-health-${s}`} title={STATUS_HINT[s]}>
+            <span className="hm-tile-value hm-num">{counts[s]}</span>
+            <StatusBadge health={{ status: s, label: STATUS_LABEL[s] }} />
+          </div>
+        ))}
+      </div>
+      <div className="hm-problems">
+        <div className="hm-section-title">Open problems</div>
+        {problems.length === 0 ? (
+          <div className="hm-muted">No open problems.</div>
+        ) : (
+          <ul>
+            {problems.map(({ row, item }, i) => (
+              <li key={`${row.id}-${i}`}>
+                <button type="button" className="hm-host-link" onClick={() => onOpen(row)}>{row.name}</button>
+                <span className="hm-problem-what">{item.what}</span>
+                {item.since !== null ? (
+                  <span className="hm-muted hm-num">{sinceText(item.since, row.snapshot?.now ?? now)}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
-  );
-}
-
-/** Late frames over 24 h, summed over instances, with the share of all frames. */
-function LateCell({ snapshot }) {
-  const r = lateFrames24h(snapshot);
-  if (!r) return <span className="hm-muted">-</span>;
-  return (
-    <span title={`${r.late} late of ${r.frames} frames, last 24 h`}>
-      {r.late} <span className="hm-muted">({fmtPct(r.pct)})</span>
-    </span>
   );
 }
 
 function memText(snapshot) {
   const avail = snapshot?.mem_avail_now;
   const total = snapshot?.mem_total;
-  if (avail === null || avail === undefined) return '-';
-  return total ? `${fmtBytes(avail)} of ${fmtBytes(total)}` : fmtBytes(avail);
+  if (avail === null || avail === undefined) return null;
+  return total ? `${fmtBytes(avail)} free of ${fmtBytes(total)}` : `${fmtBytes(avail)} free`;
 }
 
-function HostRow({ host, onOpen }) {
-  const s = host.snapshot;
+/** The numbers behind the status, in one muted line (only the known ones). */
+function metricsText(s) {
+  if (!s) return null;
+  const peaks = corePeaks(s);
+  const late = lateFrames24h(s);
+  const parts = [
+    peaks ? `busiest core p95 ${fmtPct(peaks.peak)} (24 h)` : null,
+    Number.isFinite(s.steal_p95) ? `steal p95 ${fmtPct(s.steal_p95)} (7 d)` : null,
+    memText(s) ? `RAM ${memText(s)}` : null,
+    diskUsedPct(s.host) !== null ? `disk ${fmtPct(diskUsedPct(s.host))} used` : null,
+    late ? `${late.late} late frames (24 h)` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' | ') : null;
+}
+
+function Fact({ label, value, title }) {
+  return (
+    <span className="hm-fact" title={title}>
+      <span className="hm-muted">{label}</span> <span className="hm-num">{value}</span>
+    </span>
+  );
+}
+
+function HostCard({ row, health, onOpen }) {
+  const s = row.snapshot;
+  const hw = hardwareLine(s?.hardware);
   const instances = s ? (s.insts_last || []).length : null;
   const players = s ? playersNow(s) : null;
-  const events = s ? eventsTotal(s) : null;
-  const dash = <span className="hm-muted">-</span>;
+  const open = s ? openEvents(s) : null;
+  const metrics = metricsText(s);
+  const live = row.state !== 'stale';
   return (
-    <tr>
-      <td><button type="button" className="hm-host-link" onClick={() => onOpen(host)}>{host.name}</button></td>
-      <td><StatusCell host={host} /></td>
-      <td className="hm-num">
-        {host.verdict ? slotsText(host.verdict) : '-'}
-        {refNote(host.verdict) ? (
-          <div className="hm-reason" title="No data under load on this host: the slot count uses the fleet median load.">
-            {refNote(host.verdict)}
-          </div>
-        ) : null}
-      </td>
-      <td>{s ? <CoresCell snapshot={s} /> : dash}</td>
-      <td className="hm-num">{s ? fmtPct(s.steal_p95) : dash}</td>
-      <td className="hm-num">{s ? memText(s) : dash}</td>
-      <td className="hm-num">{s ? fmtPct(diskUsedPct(s.host)) : dash}</td>
-      <td className="hm-num">{instances === null ? dash : instances}</td>
-      <td className="hm-num">{players === null ? dash : players}</td>
-      <td className="hm-num">{s ? <LateCell snapshot={s} /> : dash}</td>
-      <td className="hm-num">{events === null ? dash : events}</td>
-    </tr>
+    <article className={`hm-hcard hm-health-${health.status}`}>
+      <div className="hm-hcard-head">
+        <StatusBadge health={health} />
+        <span className="hm-hcard-name">{row.name}</span>
+        <span className="hm-footer-spacer" />
+        <Button onClick={() => onOpen(row)}>Details</Button>
+      </div>
+      <div className="hm-hcard-reason">{health.reason}</div>
+      {s ? (
+        <div className={`hm-hcard-hw${hw ? '' : ' hm-muted'}`} title="CPU, cores, RAM, root disk, provider (read by the collector every hour)">
+          {hw || 'Hardware not read yet (collector before 1.1, or its first read is pending).'}
+        </div>
+      ) : null}
+      {s && live ? (
+        <div className="hm-facts">
+          <Fact label="Instances" value={instances} />
+          <Fact label="Players now" value={players === null ? '-' : players} />
+          {open ? (
+            <Fact label="Open events" value={open.filter((e) => e.kind !== 'instance_new' && e.kind !== 'instance_gone').length} />
+          ) : (
+            <Fact label="Events 24 h" value={eventsTotal(s)} title="This collector does not report open events yet." />
+          )}
+          {row.verdict && Number.isFinite(row.verdict.slots) ? (
+            <Fact
+              label="Capacity"
+              value={`${slotsText(row.verdict)}${refNote(row.verdict) ? ' (fleet reference)' : ''}`}
+              title={row.verdict.reason || undefined}
+            />
+          ) : null}
+        </div>
+      ) : null}
+      {metrics && live ? <div className="hm-hcard-metrics hm-muted" title={P95_GLOSS}>{metrics}</div> : null}
+    </article>
   );
 }
 
 /**
- * Tier-2 `page`: one row per host. The host name opens the same dialog as the host menu.
+ * Tier-2 `page`: the health board, one card per host, problems first. "Details" opens the
+ * same dialog as the host menu; `?host=<id>` in the URL opens it on load (notification links).
  */
 function Page({ ctx }) {
   const [hosts, setHosts] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [loadedAt, setLoadedAt] = useState(null);
@@ -151,6 +190,16 @@ function Page({ ctx }) {
   const token = useRef(0);
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx; // core rebuilds ctx on every render
+  // ?host=<id> (notification links): read on every render, because the bell navigates inside
+  // the app and keeps this page mounted; popstate (back/forward) forces a render too.
+  const [, bumpUrl] = useState(0);
+  const linkedNow = hostIdFromSearch(typeof window !== 'undefined' ? window.location?.search : '');
+  const linkHandled = useRef(null); // the id already opened (or reported) for the current link
+  useEffect(() => {
+    const onPop = () => bumpUrl((n) => n + 1);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   const load = useCallback(async (refresh) => {
     const mine = ++token.current;
@@ -159,7 +208,8 @@ function Page({ ctx }) {
     try {
       const data = await ctxRef.current.api('GET', 'hosts', refresh ? { params: { refresh: 1 } } : undefined);
       if (token.current !== mine) return;
-      setHosts(data?.hosts || []);
+      const list = data?.hosts || [];
+      setHosts(list);
       setLoadedAt(Date.now() / 1000);
     } catch (e) {
       if (token.current === mine) setError(errorText(e, 'Could not load the hosts.'));
@@ -170,46 +220,83 @@ function Page({ ctx }) {
 
   useEffect(() => { load(false); }, [load]);
 
+  // open the host of the link once its list is there; a new id in the URL opens that host again
+  useEffect(() => {
+    if (linkedNow === null) { linkHandled.current = null; return; }
+    if (!hosts || linkHandled.current === linkedNow) return;
+    linkHandled.current = linkedNow;
+    const row = hosts.find((h) => h.id === linkedNow);
+    if (row) setOpen(row);
+    else setError(`Host ${linkedNow} from the link is not in the host list.`);
+  }, [linkedNow, hosts]);
+
+  // closing the dialog drops ?host= from the URL, otherwise the next render would reopen it
+  const closeOpen = useCallback(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('host')) {
+        url.searchParams.delete('host');
+        window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+      }
+    } catch (e) { /* no history API: the link stays, harmless */ }
+    linkHandled.current = null;
+    setOpen(null);
+  }, []);
+
+  // Thresholds for the findings (defaults until they arrive, or when the call fails).
+  useEffect(() => {
+    let alive = true;
+    ctxRef.current.api('GET', 'settings')
+      .then((d) => { if (alive) setSettings(d || null); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const entries = useMemo(() => sortByHealth((hosts || []).map((row) => {
+    const list = row.snapshot ? findings({
+      snapshot: row.snapshot,
+      events: openEvents(row.snapshot) || undefined,
+      settings,
+      verdict: row.verdict || null,
+    }) : [];
+    return { row, health: hostHealth(row, list) };
+  })), [hosts, settings]);
+
   return (
     <div className="hm-root hm-page">
-      <div className="hm-toolbar">
-        <button type="button" className="hm-btn" onClick={() => load(true)} disabled={loading}>
+      <div className="hm-header">
+        <div className="hm-title">
+          <svg className="hm-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" />
+          </svg>
+          <h1>Host Metrics</h1>
+        </div>
+        <Button onClick={() => load(true)} disabled={loading}>
           {loading ? 'Loading...' : 'Refresh'}
-        </button>
+        </Button>
+      </div>
+      <div className="hm-toolbar">
         <span className="hm-muted">
           {loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : ''}
-          Core p95 is the busiest core's p95 of per-minute busy over 24 h (hover for every core); steal is the 7-day p95.
+          One card per host, problems first. Details opens the charts and events of the host. {P95_GLOSS}
         </span>
       </div>
       {error ? <div className="hm-error">{error}</div> : null}
       {hosts === null && loading ? <div className="hm-muted">Loading hosts (one SSH query per host)...</div> : null}
       {hosts && hosts.length === 0 ? <div className="hm-muted">No hosts.</div> : null}
       {hosts && hosts.length > 0 ? (
-        <div className={`hm-table-wrap${loading ? ' hm-dim' : ''}`}>
-          <table className="hm-table">
-            <thead>
-              <tr>
-                <th>Host</th>
-                <th>Status</th>
-                <th>Capacity</th>
-                <th>Core p95 24 h</th>
-                <th>Steal p95</th>
-                <th>RAM available</th>
-                <th>Disk used</th>
-                <th>Instances</th>
-                <th>Players now</th>
-                <th>Late frames 24 h</th>
-                <th>Events 24 h</th>
-              </tr>
-            </thead>
-            <tbody>
-              {hosts.map((h) => <HostRow key={h.id} host={h} onOpen={setOpen} />)}
-            </tbody>
-          </table>
+        <div className={loading ? 'hm-dim' : undefined}>
+          <Summary entries={entries} onOpen={setOpen} now={loadedAt} />
+          <div className="hm-board">
+            {entries.map(({ row, health }) => (
+              <HostCard key={row.id} row={row} health={health} onOpen={setOpen} />
+            ))}
+          </div>
         </div>
       ) : null}
       {open ? (
-        <HostModal ctx={ctx} host={open} isOpen onClose={() => setOpen(null)} />
+        <HostModal ctx={ctx} host={open} isOpen onClose={closeOpen} />
       ) : null}
     </div>
   );

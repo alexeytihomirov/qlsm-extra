@@ -15,6 +15,11 @@ const {
   useState: useState$2
 } = React;
 const ui = runtime.ui;
+function Button({ variant = "secondary", className = "", ...rest }) {
+  if (ui.Button) return React.createElement(ui.Button, { variant, className, ...rest });
+  const cls = `hm-btn${variant === "primary" ? " hm-btn-primary" : ""}${className ? ` ${className}` : ""}`;
+  return React.createElement("button", { type: "button", className: cls, ...rest });
+}
 const FEAT_TIME = true;
 const pre = "u-";
 const UPLOT = "uplot";
@@ -140,19 +145,19 @@ function off(ev, el, cb, capt) {
   el.removeEventListener(ev, cb, evOpts);
 }
 domEnv && setPxRatio();
-function closestIdx(num, arr, lo, hi) {
+function closestIdx(num2, arr, lo, hi) {
   let mid;
   lo = lo || 0;
   hi = hi || arr.length - 1;
   let bitwise = hi <= 2147483647;
   while (hi - lo > 1) {
     mid = bitwise ? lo + hi >> 1 : floor((lo + hi) / 2);
-    if (arr[mid] < num)
+    if (arr[mid] < num2)
       lo = mid;
     else
       hi = mid;
   }
-  if (num - arr[lo] <= arr[hi] - num)
+  if (num2 - arr[lo] <= arr[hi] - num2)
     return lo;
   return hi;
 }
@@ -337,8 +342,8 @@ const inf = Infinity;
 function numIntDigits(x) {
   return (log10((x ^ x >> 31) - (x >> 31)) | 0) + 1;
 }
-function clamp(num, _min, _max) {
-  return min(max(num, _min), _max);
+function clamp(num2, _min, _max) {
+  return min(max(num2, _min), _max);
 }
 function fnOrSelf(v) {
   return typeof v == "function" ? v : () => v;
@@ -360,19 +365,19 @@ const fixFloat = (val) => {
     return val;
   let len = match[0].length - 1;
   if (str.indexOf("e-") != -1) {
-    let [num, exp] = str.split("e");
-    return +`${fixFloat(num)}e${exp}`;
+    let [num2, exp] = str.split("e");
+    return +`${fixFloat(num2)}e${exp}`;
   }
   return roundDec(val, len);
 };
-function incrRound(num, incr) {
-  return fixFloat(roundDec(fixFloat(num / incr)) * incr);
+function incrRound(num2, incr) {
+  return fixFloat(roundDec(fixFloat(num2 / incr)) * incr);
 }
-function incrRoundUp(num, incr) {
-  return fixFloat(ceil(fixFloat(num / incr)) * incr);
+function incrRoundUp(num2, incr) {
+  return fixFloat(ceil(fixFloat(num2 / incr)) * incr);
 }
-function incrRoundDn(num, incr) {
-  return fixFloat(floor(fixFloat(num / incr)) * incr);
+function incrRoundDn(num2, incr) {
+  return fixFloat(floor(fixFloat(num2 / incr)) * incr);
 }
 function roundDec(val, dec = 0) {
   if (isInt(val))
@@ -382,8 +387,8 @@ function roundDec(val, dec = 0) {
   return round(n) / p;
 }
 const fixedDec = /* @__PURE__ */ new Map();
-function guessDec(num) {
-  return (("" + num).split(".")[1] || "").length;
+function guessDec(num2) {
+  return (("" + num2).split(".")[1] || "").length;
 }
 function genIncrs(base, minExp, maxExp, mults) {
   let incrs = [];
@@ -2242,11 +2247,11 @@ function uPlot(opts, data, then) {
         indic.style.background = markers.fill(self, i);
       }
     }
-    let text = placeDiv(LEGEND_LABEL, label);
-    text.textContent = s.label;
+    let text2 = placeDiv(LEGEND_LABEL, label);
+    text2.textContent = s.label;
     if (i > 0) {
       if (!markers.show)
-        text.style.color = s.width > 0 ? markers.stroke(self, i) : markers.fill(self, i);
+        text2.style.color = s.width > 0 ? markers.stroke(self, i) : markers.fill(self, i);
       onMouse("click", label, (e) => {
         if (cursor._lock)
           return;
@@ -3212,15 +3217,15 @@ function uPlot(opts, data, then) {
           val = "" + val;
           let _parts = val.indexOf("\n") == -1 ? [val] : val.split(/\n/gm);
           for (let j = 0; j < _parts.length; j++) {
-            let text = _parts[j];
+            let text2 = _parts[j];
             if (angle) {
               ctx.save();
               ctx.translate(x, y + j * lineHeight);
               ctx.rotate(angle);
-              ctx.fillText(text, 0, 0);
+              ctx.fillText(text2, 0, 0);
               ctx.restore();
             } else
-              ctx.fillText(text, x, y + j * lineHeight);
+              ctx.fillText(text2, x, y + j * lineHeight);
           }
         }
       }
@@ -4264,14 +4269,14 @@ uPlot.sync = _sync;
   paths.bars = bars;
   paths.spline = monotoneCubic;
 }
-const isNum$1 = (v) => typeof v === "number" && Number.isFinite(v);
+const isNum$3 = (v) => typeof v === "number" && Number.isFinite(v);
 function fmtPct(v) {
-  if (!isNum$1(v)) return "-";
+  if (!isNum$3(v)) return "-";
   return v < 10 ? `${v.toFixed(1)}%` : `${Math.round(v)}%`;
 }
 const UNITS = ["B", "KB", "MB", "GB", "TB"];
 function fmtBytes(b) {
-  if (!isNum$1(b)) return "-";
+  if (!isNum$3(b)) return "-";
   let value = b;
   let unit = 0;
   while (value >= 1024 && unit < UNITS.length - 1) {
@@ -4281,33 +4286,13 @@ function fmtBytes(b) {
   if (unit === 0) return `${Math.round(value)} B`;
   return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${UNITS[unit]}`;
 }
-const STATUS = {
-  ok: { text: "OK", tone: "good" },
-  tight: { text: "Tight", tone: "warning" },
-  overloaded: { text: "Overloaded", tone: "critical" },
-  unknown: { text: "No data under load", tone: "neutral" }
-};
-function statusLabel(status) {
-  return { ...STATUS[status] || STATUS.unknown };
-}
 function slotsText(verdict) {
   const slots = verdict == null ? void 0 : verdict.slots;
-  if (!isNum$1(slots)) return "-";
+  if (!isNum$3(slots)) return "-";
   return slots > 0 ? `room for ${slots} more` : "no room";
 }
-const STATES = {
-  not_installed: "Not installed",
-  outdated: "Outdated collector",
-  unreachable: "Unreachable",
-  no_sudo: "No sudo",
-  no_data: "No data yet",
-  stale: "Stale"
-};
-function stateLabel(state) {
-  return STATES[state] || null;
-}
 function fmtDuration(seconds) {
-  if (!isNum$1(seconds)) return "-";
+  if (!isNum$3(seconds)) return "-";
   const s = Math.max(0, Math.round(seconds));
   if (s < 60) return `${s}s`;
   if (s < 3600) return `${Math.floor(s / 60)}m`;
@@ -4319,16 +4304,92 @@ function fmtDuration(seconds) {
   return `${Math.floor(s / 86400)}d${h ? ` ${h}h` : ""}`;
 }
 function fmtTime(ts, seconds = false) {
-  if (!isNum$1(ts)) return "-";
+  if (!isNum$3(ts)) return "-";
   const d = new Date(ts * 1e3);
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}${seconds ? `:${p(d.getSeconds())}` : ""}`;
 }
-const isNum = (v) => typeof v === "number" && Number.isFinite(v);
+const KIND_LABELS = {
+  core_saturated: "Core saturated",
+  steal_high: "Steal high",
+  mem_low: "Memory low",
+  disk_low: "Disk low",
+  frames_late: "Late frames",
+  oom_kill: "OOM kill",
+  instance_new: "Instance appeared",
+  instance_gone: "Instance gone"
+};
+function kindLabel(kind) {
+  return KIND_LABELS[kind] || String(kind);
+}
+const text = (v) => typeof v === "string" && v.trim() ? v.trim().replace(/\s+/g, " ") : null;
+function cpuCount(hw) {
+  if (!isNum$3(hw.vcpus)) return null;
+  return hw.hypervisor === false ? `${hw.vcpus} CPU threads` : `${hw.vcpus} vCPU`;
+}
+function diskText(hw) {
+  if (!isNum$3(hw.disk_total)) return null;
+  let kind = "disk";
+  if (hw.disk_rotational === true) kind = "HDD";
+  else if (hw.disk_rotational === false) kind = "SSD";
+  return `${fmtBytes(hw.disk_total)} ${kind}`;
+}
+function productOf(hw) {
+  const product = text(hw.product_name);
+  if (!product || product === text(hw.provider) || product === text(hw.sys_vendor)) return null;
+  return product;
+}
+function hardwareLine(hw) {
+  if (!hw || typeof hw !== "object") return null;
+  const provider = text(hw.provider);
+  const product = productOf(hw);
+  const parts = [
+    text(hw.cpu_model),
+    cpuCount(hw),
+    isNum$3(hw.mem_total) ? `${fmtBytes(hw.mem_total)} RAM` : null,
+    diskText(hw),
+    provider ? `${provider}${product ? ` (${product})` : ""}` : null
+  ].filter(Boolean);
+  return parts.length ? parts.join(", ") : null;
+}
+function hardwareDetails(hw) {
+  if (!hw || typeof hw !== "object") return [];
+  const out = [];
+  const add = (label, value) => {
+    if (value) out.push([label, value]);
+  };
+  add("CPU", text(hw.cpu_model));
+  let cores = cpuCount(hw);
+  if (cores) {
+    const topo = [];
+    if (isNum$3(hw.threads_per_core)) topo.push(`${hw.threads_per_core} ${hw.threads_per_core === 1 ? "thread" : "threads"} per core`);
+    if (isNum$3(hw.sockets)) topo.push(`${hw.sockets} ${hw.sockets === 1 ? "socket" : "sockets"}`);
+    if (topo.length) cores += ` (${topo.join(", ")})`;
+  }
+  const clock = [cores, isNum$3(hw.mhz) ? `${Math.round(hw.mhz)} MHz` : null, text(hw.cache) ? `cache ${text(hw.cache)}` : null].filter(Boolean);
+  add("Cores", clock.length ? clock.join(", ") : null);
+  const mem = [];
+  if (isNum$3(hw.mem_total)) mem.push(`${fmtBytes(hw.mem_total)} RAM`);
+  if (isNum$3(hw.swap_total)) mem.push(hw.swap_total > 0 ? `${fmtBytes(hw.swap_total)} swap` : "no swap");
+  add("Memory", mem.length ? mem.join(", ") : null);
+  add("Disk", diskText(hw));
+  let virt = null;
+  if (hw.hypervisor === true) virt = "virtual machine";
+  else if (hw.hypervisor === false) virt = "no hypervisor detected";
+  const provider = text(hw.provider);
+  const extras = [productOf(hw), virt].filter(Boolean);
+  if (provider) add("Provider", `${provider}${extras.length ? ` (${extras.join(", ")})` : ""}`);
+  else if (virt) add("Provider", virt.charAt(0).toUpperCase() + virt.slice(1));
+  const sys = [text(hw.os), text(hw.kernel) ? `kernel ${text(hw.kernel)}` : null].filter(Boolean);
+  add("System", sys.length ? sys.join(", ") : null);
+  add("Booted", isNum$3(hw.boot_time) ? fmtTime(hw.boot_time) : null);
+  return out;
+}
+const isNum$2 = (v) => typeof v === "number" && Number.isFinite(v);
 function pick(row, ...keys) {
   if (!row) return null;
   for (const key of keys) {
-    if (isNum(row[key])) return row[key];
+    if (isNum$2(row[key])) return row[key];
   }
   return null;
 }
@@ -4336,7 +4397,7 @@ function mergeTimes(...lists) {
   const seen = /* @__PURE__ */ new Set();
   for (const rows of lists) {
     for (const r of rows || []) {
-      if (isNum(r.ts)) seen.add(r.ts);
+      if (isNum$2(r.ts)) seen.add(r.ts);
     }
   }
   return [...seen].sort((a, b) => a - b);
@@ -4365,7 +4426,7 @@ function stackColumns(columns) {
     let total = 0;
     let any = false;
     columns.forEach((col, k) => {
-      if (isNum(col[i])) {
+      if (isNum$2(col[i])) {
         total += col[i];
         any = true;
       }
@@ -4376,27 +4437,27 @@ function stackColumns(columns) {
 }
 function lastValue(col) {
   for (let i = (col || []).length - 1; i >= 0; i -= 1) {
-    if (isNum(col[i])) return col[i];
+    if (isNum$2(col[i])) return col[i];
   }
   return null;
 }
 function eventsTotal(snapshot) {
   const map = (snapshot == null ? void 0 : snapshot.events_24h) || {};
-  return Object.values(map).reduce((a, v) => a + (isNum(v) ? v : 0), 0);
+  return Object.values(map).reduce((a, v) => a + (isNum$2(v) ? v : 0), 0);
 }
 function playersNow(snapshot) {
   const rows = (snapshot == null ? void 0 : snapshot.insts_last) || [];
-  const vals = rows.map((r) => r.players).filter(isNum);
+  const vals = rows.map((r) => r.players).filter(isNum$2);
   return vals.length ? vals.reduce((a, v) => a + v, 0) : null;
 }
 function diskUsedPct(host) {
-  if (!host || !isNum(host.disk_used) || !isNum(host.disk_total) || host.disk_total <= 0) return null;
+  if (!host || !isNum$2(host.disk_used) || !isNum$2(host.disk_total) || host.disk_total <= 0) return null;
   return host.disk_used / host.disk_total * 100;
 }
 function corePeaks(snapshot) {
   const map = snapshot == null ? void 0 : snapshot.core_p95_24h;
   if (!map || typeof map !== "object") return null;
-  const cores = Object.keys(map).map((k) => ({ core: Number(k), p95: map[k] })).filter((c) => Number.isInteger(c.core) && c.core >= 0 && isNum(c.p95)).sort((a, b) => a.core - b.core);
+  const cores = Object.keys(map).map((k) => ({ core: Number(k), p95: map[k] })).filter((c) => Number.isInteger(c.core) && c.core >= 0 && isNum$2(c.p95)).sort((a, b) => a.core - b.core);
   if (!cores.length) return null;
   return { peak: Math.max(...cores.map((c) => c.p95)), cores };
 }
@@ -4406,67 +4467,408 @@ function lateFrames24h(snapshot) {
   let late = 0;
   let frames = 0;
   for (const i of insts) {
-    if (isNum(i.late_24h)) late += i.late_24h;
-    if (isNum(i.frames_24h)) frames += i.frames_24h;
+    if (isNum$2(i.late_24h)) late += i.late_24h;
+    if (isNum$2(i.frames_24h)) frames += i.frames_24h;
   }
   if (frames <= 0) return null;
   return { late, frames, pct: late / frames * 100 };
 }
-function staleInfo(host) {
-  var _a, _b;
-  if ((host == null ? void 0 : host.state) !== "stale") return null;
-  const age = (_a = host == null ? void 0 : host.snapshot) == null ? void 0 : _a.data_age_s;
-  const ageS = isNum(age) ? age : null;
-  return { ageS, text: ((_b = host == null ? void 0 : host.verdict) == null ? void 0 : _b.reason) || "collector data is old" };
-}
 function refNote(verdict) {
   return (verdict == null ? void 0 : verdict.ref_source) === "fleet" ? "fleet reference" : null;
 }
+const QUIET_KINDS = /* @__PURE__ */ new Set(["instance_new", "instance_gone"]);
+const KIND_AREA = {
+  core_saturated: "cpu",
+  steal_high: "steal",
+  mem_low: "memory",
+  oom_kill: "memory",
+  disk_low: "disk",
+  frames_late: "frames"
+};
+const HEALTH_LABEL = { problem: "Problem", watch: "Watch", nodata: "No data", ok: "OK" };
+const HEALTH_RANK = { problem: 0, watch: 1, nodata: 2, ok: 3 };
+const STALE_PROBLEM_S = 300;
+function openEvents(snapshot) {
+  const list = snapshot == null ? void 0 : snapshot.events_open;
+  if (!Array.isArray(list)) return null;
+  return list.filter((e) => e && e.state === "open" && isNum$2(e.ts)).sort((a, b) => a.ts - b.ts || (a.id || 0) - (b.id || 0));
+}
+const plural$1 = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+function overloadText(verdict) {
+  const reason = String((verdict == null ? void 0 : verdict.reason) || "");
+  let m = /^frames_late (\d+) with players/.exec(reason);
+  if (m) return `${plural$1(Number(m[1]), "late-frame event", "late-frame events")} with players in the last 24 hours.`;
+  m = /^core_saturated (\d+) with players/.exec(reason);
+  if (m) return `${plural$1(Number(m[1]), "core saturation event", "core saturation events")} with players in the last 24 hours.`;
+  return null;
+}
+function recentEventsText(snapshot) {
+  const map = (snapshot == null ? void 0 : snapshot.events_24h) || {};
+  const kinds = Object.keys(map).filter((k) => !QUIET_KINDS.has(k) && isNum$2(map[k]) && map[k] > 0).sort();
+  if (!kinds.length) return null;
+  const n = kinds.reduce((a, k) => a + map[k], 0);
+  return `${plural$1(n, "event", "events")} in the last 24 hours (${kinds.map((k) => `${kindLabel(k)} ${map[k]}`).join(", ")}).`;
+}
+function health(status, reason, items) {
+  return { status, label: HEALTH_LABEL[status], reason, items };
+}
+function hostHealth(row, list) {
+  var _a;
+  const found = Array.isArray(list) ? list : [];
+  const state = row == null ? void 0 : row.state;
+  const snapshot = row == null ? void 0 : row.snapshot;
+  if (state === "unreachable" || state === "no_sudo") {
+    const what = (row == null ? void 0 : row.error) || (state === "no_sudo" ? "The SSH user has no passwordless sudo." : "The host did not answer the SSH query.");
+    return health("problem", what, [{ level: "problem", what, since: null }]);
+  }
+  if (state === "not_installed") {
+    return health("nodata", "Host metrics are not installed on this host: use Apply to host.", []);
+  }
+  if (!row || state === "no_data" || !snapshot || typeof snapshot !== "object") {
+    return health("nodata", "The collector has not written any data yet.", []);
+  }
+  if (state === "stale") {
+    const age = snapshot.data_age_s;
+    const since = isNum$2(snapshot.now) && isNum$2(age) ? snapshot.now - age : null;
+    if (isNum$2(age) && age > STALE_PROBLEM_S) {
+      const what2 = `Collector data is ${Math.floor(age / 60)} min old - the collector or the host is down.`;
+      return health("problem", what2, [{ level: "problem", what: what2, since }]);
+    }
+    const data = found.find((f) => (f == null ? void 0 : f.area) === "data");
+    const what = (data == null ? void 0 : data.text) || "Collector data is old - the collector or the host is down.";
+    return health("watch", what, [{ level: "watch", what, since }]);
+  }
+  const evItems = [];
+  for (const e of openEvents(snapshot) || []) {
+    if (QUIET_KINDS.has(e.kind)) continue;
+    evItems.push({
+      area: KIND_AREA[e.kind] || null,
+      level: e.severity === "crit" ? "problem" : "watch",
+      what: `${kindLabel(e.kind)}${e.message ? `: ${e.message}` : ""}`,
+      since: e.ts
+    });
+  }
+  const findingItems = [];
+  for (const f of found) {
+    if (!f || f.level !== "problem" && f.level !== "warning") continue;
+    const level = f.level === "problem" ? "problem" : "watch";
+    const same = evItems.filter((i) => i.area && i.area === f.area);
+    if (same.length) {
+      if (level === "problem") for (const i of same) i.level = "problem";
+      continue;
+    }
+    findingItems.push({ level, what: f.text, since: null });
+  }
+  const problems = [];
+  const watch = [];
+  for (const { area, ...item } of evItems) (item.level === "problem" ? problems : watch).push(item);
+  const verdict = row.verdict;
+  const overload = (verdict == null ? void 0 : verdict.status) === "overloaded" ? overloadText(verdict) : null;
+  if (overload) problems.push({ level: "problem", what: overload, since: null });
+  for (const item of findingItems) (item.level === "problem" ? problems : watch).push(item);
+  if ((verdict == null ? void 0 : verdict.status) === "overloaded" && !problems.length) {
+    problems.push({ level: "problem", what: `Overloaded: ${verdict.reason}.`, since: null });
+  }
+  if ((verdict == null ? void 0 : verdict.status) === "tight" && !problems.length && !watch.length) {
+    watch.push({ level: "watch", what: `Capacity is tight: ${verdict.reason}.`, since: null });
+  }
+  if (state === "outdated") {
+    watch.push({ level: "watch", what: `Collector ${row.version || "version unknown"} is outdated: use Apply to host.`, since: null });
+  }
+  const recent = recentEventsText(snapshot);
+  if (recent && !problems.length && !watch.length) watch.push({ level: "watch", what: recent, since: null });
+  const items = [...problems, ...watch];
+  if (problems.length) return health("problem", problems[0].what, items);
+  if (watch.length) return health("watch", watch[0].what, items);
+  if (!verdict || verdict.status === "unknown") {
+    return health("nodata", "No data yet", []);
+  }
+  const room = found.find((f) => (f == null ? void 0 : f.area) === "room");
+  return health("ok", (room == null ? void 0 : room.text) || ((_a = found[0]) == null ? void 0 : _a.text) || "All checks passed.", []);
+}
+function sortByHealth(entries) {
+  return [...entries || []].sort((a, b) => {
+    var _a, _b, _c, _d;
+    return (HEALTH_RANK[(_a = a.health) == null ? void 0 : _a.status] ?? 9) - (HEALTH_RANK[(_b = b.health) == null ? void 0 : _b.status] ?? 9) || String(((_c = a.row) == null ? void 0 : _c.name) || "").localeCompare(String(((_d = b.row) == null ? void 0 : _d.name) || ""), void 0, { sensitivity: "base" });
+  });
+}
+function healthCounts(healths) {
+  const out = { problem: 0, watch: 0, nodata: 0, ok: 0 };
+  for (const h of healths || []) if (h && h.status in out) out[h.status] += 1;
+  return out;
+}
+function hostIdFromSearch(search) {
+  if (typeof search !== "string" || !search) return null;
+  const raw = new URLSearchParams(search).get("host");
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  const id = Number(raw);
+  return id > 0 ? id : null;
+}
+const isNum$1 = (v) => typeof v === "number" && Number.isFinite(v);
+const DEFAULT_TICK_MS = 25;
+const LATE_FACTOR = 1.5;
+const DEFAULTS = {
+  verdict_target_pct: 70,
+  core_saturated_pct: 95,
+  steal_tight_pct: 5,
+  disk_low_pct: 90,
+  mem_reserve_pct: 20
+};
+function setting$1(settings, key) {
+  const raw = settings == null ? void 0 : settings[key];
+  if (raw === null || raw === void 0 || typeof raw === "string" && !raw.trim()) return DEFAULTS[key];
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : DEFAULTS[key];
+}
+const num = (v) => String(Math.round(v * 10) / 10);
+function chartLimits(settings, tickMs) {
+  const target = setting$1(settings, "verdict_target_pct");
+  const sat = setting$1(settings, "core_saturated_pct");
+  const steal = setting$1(settings, "steal_tight_pct");
+  const disk = setting$1(settings, "disk_low_pct");
+  const reserve = setting$1(settings, "mem_reserve_pct");
+  const tickKnown = isNum$1(tickMs) && tickMs > 0;
+  const tick = tickKnown ? tickMs : DEFAULT_TICK_MS;
+  const late = tick * LATE_FACTOR;
+  return {
+    cpu: [
+      {
+        value: target,
+        tone: "warning",
+        label: `${num(target)} % planning limit`,
+        hint: `Capacity planning keeps every core below ${num(target)} %; sustained load above it means no room for another server.`
+      },
+      {
+        value: sat,
+        tone: "critical",
+        label: `${num(sat)} % saturated`,
+        hint: `Above ${num(sat)} % the core is saturated: server frames come late and players see lag.`
+      }
+    ],
+    steal: [{
+      value: steal,
+      tone: "warning",
+      label: `${num(steal)} % noisy neighbour`,
+      hint: `Steal above ${num(steal)} % means other customers of the provider take CPU time from this host.`
+    }],
+    disk: [{
+      value: disk,
+      tone: "warning",
+      label: `${num(disk)} % disk low`,
+      hint: `Above ${num(disk)} % used the collector opens a disk low event.`
+    }],
+    frameGap: [
+      {
+        value: tick,
+        tone: "neutral",
+        label: `${num(tick)} ms tick${tickKnown ? "" : " (default)"}`,
+        hint: tickKnown ? `The server runs a frame every ${num(tick)} ms; a gap near this line is normal.` : `No tick measured yet: the QLDS default of 40 frames per second (${num(tick)} ms) is shown.`
+      },
+      {
+        value: late,
+        tone: "warning",
+        label: `${num(late)} ms late`,
+        hint: `A gap above ${num(late)} ms (1.5 ticks) is a late frame: players see a hitch.`
+      }
+    ],
+    tickMs: tick,
+    tickKnown,
+    lateMs: late,
+    memReservePct: reserve,
+    /** Used-RAM line where the reserve starts, for a host with `total` bytes of RAM. */
+    memReserve(total) {
+      if (!isNum$1(total) || total <= 0) return [];
+      return [{
+        value: total * (1 - reserve / 100),
+        tone: "warning",
+        label: `${num(reserve)} % reserve`,
+        hint: `Capacity planning keeps ${num(reserve)} % of RAM free; used memory above this line eats into it.`
+      }];
+    }
+  };
+}
+function tickMsOf(series, snapshot) {
+  let best = null;
+  for (const rows of Object.values((series == null ? void 0 : series.insts) || {})) {
+    for (const r of Array.isArray(rows) ? rows : []) {
+      if (isNum$1(r == null ? void 0 : r.tick_ms) && r.tick_ms > 0 && isNum$1(r.ts) && (!best || r.ts > best.ts)) best = r;
+    }
+  }
+  if (best) return best.tick_ms;
+  for (const r of Array.isArray(snapshot == null ? void 0 : snapshot.insts_last) ? snapshot.insts_last : []) {
+    if (isNum$1(r == null ? void 0 : r.tick_ms) && r.tick_ms > 0) return r.tick_ms;
+  }
+  return null;
+}
+function peakOf(col) {
+  let peak = null;
+  for (const v of col || []) {
+    if (isNum$1(v) && (peak === null || v > peak)) peak = v;
+  }
+  return peak;
+}
+const RANK = { problem: 3, warning: 2, info: 1, ok: 0 };
+function findingFor(list, area, { core } = {}) {
+  let best = null;
+  for (const f of Array.isArray(list) ? list : []) {
+    if ((f == null ? void 0 : f.area) !== area) continue;
+    if (area === "cpu" && core !== void 0 && !String(f.text).startsWith(`Core ${core} `)) continue;
+    if (!best || (RANK[f.level] ?? 0) > (RANK[best.level] ?? 0)) best = f;
+  }
+  return best;
+}
+const FALLBACK = {
+  surface: "transparent",
+  line: "rgba(128, 128, 128, 0.35)",
+  lineStrong: "rgba(128, 128, 128, 0.6)",
+  ink: "rgb(128, 128, 128)"
+};
+function readToken(style, name, fallback) {
+  if (!style || typeof style.getPropertyValue !== "function") return fallback;
+  const v = String(style.getPropertyValue(name) || "").trim();
+  return v || fallback;
+}
+function chartColors(style) {
+  const t = (name, fallback) => readToken(style, name, fallback);
+  const muted = t("--text-muted", FALLBACK.ink);
+  const s0 = t("--hm-s0", muted);
+  const slots = [s0];
+  for (let i = 1; i <= 8; i += 1) slots.push(t(`--hm-s${i}`, s0));
+  return {
+    surface: t("--surface-raised", FALLBACK.surface),
+    grid: t("--surface-border", FALLBACK.line),
+    axis: t("--surface-border-strong", FALLBACK.lineStrong),
+    ink: t("--text-primary", FALLBACK.ink),
+    ink2: t("--text-secondary", FALLBACK.ink),
+    muted,
+    tone: {
+      warning: t("--accent-warning", FALLBACK.lineStrong),
+      critical: t("--accent-danger", FALLBACK.lineStrong),
+      neutral: muted
+    },
+    slots
+  };
+}
+function themeKey(doc2 = typeof document !== "undefined" ? document : void 0) {
+  var _a, _b;
+  return ((_b = (_a = doc2 == null ? void 0 : doc2.documentElement) == null ? void 0 : _a.classList) == null ? void 0 : _b.contains("dark")) ? "dark" : "light";
+}
+function watchTheme(onChange, doc2 = typeof document !== "undefined" ? document : void 0, Observer = typeof MutationObserver !== "undefined" ? MutationObserver : void 0) {
+  if (!(doc2 == null ? void 0 : doc2.documentElement) || !Observer) return () => {
+  };
+  const observer = new Observer(() => onChange(themeKey(doc2)));
+  observer.observe(doc2.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
+}
 const { useEffect: useEffect$1, useRef: useRef$1, useState: useState$1, useMemo: useMemo$1 } = React;
 const SYNC_KEY = "hm-time";
+const FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
 function useThemeKey() {
-  const read = () => typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light";
-  const [key, setKey] = useState$1(read);
-  useEffect$1(() => {
-    const observer = new MutationObserver(() => setKey(read()));
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
+  const [key, setKey] = useState$1(() => themeKey());
+  useEffect$1(() => watchTheme(setKey), []);
   return key;
 }
 function slotVar(slot) {
   return slot >= 1 && slot <= 8 ? `var(--hm-s${slot})` : "var(--hm-s0)";
 }
-function readColors(el) {
-  const cs = getComputedStyle(el);
-  const v = (name, fallback) => cs.getPropertyValue(name).trim() || fallback;
-  const slots = [];
-  for (let i = 0; i <= 8; i += 1) slots.push(v(`--hm-s${i}`, "#888888"));
-  return {
-    surface: v("--hm-surface", "#ffffff"),
-    muted: v("--hm-muted", "#898781"),
-    grid: v("--hm-grid", "#e1e0d9"),
-    axis: v("--hm-axis", "#c3c2b7"),
-    slots
-  };
-}
+const TONE_VAR = {
+  warning: "var(--accent-warning)",
+  critical: "var(--accent-danger)",
+  neutral: "var(--text-muted)"
+};
 function seriesColor(colors, slot) {
   return colors.slots[slot >= 1 && slot <= 8 ? slot : 0];
+}
+function drawThresholds(u, lines, colors) {
+  if (!lines || !lines.length) return;
+  const pr = uPlot.pxRatio || 1;
+  const c = u.ctx;
+  const { left, top, width, height } = u.bbox;
+  c.save();
+  c.font = `${Math.round(11 * pr)}px ${FONT}`;
+  c.textAlign = "right";
+  const placed = [];
+  for (const l of lines) {
+    const y = Math.round(u.valToPos(l.value, "y", true)) + 0.5;
+    if (!Number.isFinite(y) || y < top || y > top + height) continue;
+    c.strokeStyle = colors.tone[l.tone] || colors.muted;
+    c.lineWidth = 1.5 * pr;
+    c.setLineDash([5 * pr, 4 * pr]);
+    c.beginPath();
+    c.moveTo(left, y);
+    c.lineTo(left + width, y);
+    c.stroke();
+    c.setLineDash([]);
+    const above = y - top > 16 * pr;
+    c.textBaseline = above ? "bottom" : "top";
+    const ty = above ? y - 3 * pr : y + 3 * pr;
+    const tw = c.measureText(l.label).width;
+    const boxTop = above ? ty - 13 * pr : ty - 1 * pr;
+    let right = left + width - 4 * pr;
+    for (const p of placed) {
+      if (Math.abs(p.top - boxTop) < 14 * pr) right = Math.min(right, p.left - 10 * pr);
+    }
+    c.fillStyle = colors.surface;
+    c.fillRect(right - tw - 4 * pr, boxTop, tw + 6 * pr, 14 * pr);
+    c.fillStyle = colors.ink2;
+    c.fillText(l.label, right, ty);
+    placed.push({ top: boxTop, left: right - tw - 4 * pr });
+  }
+  c.restore();
+}
+function DirectionChip({ direction }) {
+  if (direction === "lower") {
+    return /* @__PURE__ */ React.createElement("span", { className: "hm-chip", title: "Smaller values are better on this chart." }, /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 12 12", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: "M6 2v8M3 7l3 3 3-3" })), "Lower is better");
+  }
+  if (direction === "higher") {
+    return /* @__PURE__ */ React.createElement("span", { className: "hm-chip", title: "Larger values are better on this chart." }, /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 12 12", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: "M6 10V2M3 5l3-3 3 3" })), "Higher is better");
+  }
+  if (direction === "context") {
+    return /* @__PURE__ */ React.createElement("span", { className: "hm-chip", title: "No good or bad value: read it next to the other charts." }, "For context");
+  }
+  return null;
+}
+const FINDING_TONE = { problem: "critical", warning: "warning", info: "neutral", ok: "good" };
+function FindingLine({ finding }) {
+  if (!finding) return null;
+  const tone = FINDING_TONE[finding.level] || "neutral";
+  const props = {
+    viewBox: "0 0 16 16",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": true
+  };
+  let icon;
+  if (tone === "good") icon = /* @__PURE__ */ React.createElement("svg", { ...props }, /* @__PURE__ */ React.createElement("circle", { cx: "8", cy: "8", r: "6.5" }), /* @__PURE__ */ React.createElement("path", { d: "M5 8.2l2.2 2.2L11 6" }));
+  else if (tone === "warning") icon = /* @__PURE__ */ React.createElement("svg", { ...props }, /* @__PURE__ */ React.createElement("path", { d: "M8 2l6.5 11.5h-13z" }), /* @__PURE__ */ React.createElement("path", { d: "M8 6.5v3M8 11.6v.1" }));
+  else if (tone === "critical") icon = /* @__PURE__ */ React.createElement("svg", { ...props }, /* @__PURE__ */ React.createElement("circle", { cx: "8", cy: "8", r: "6.5" }), /* @__PURE__ */ React.createElement("path", { d: "M5.5 5.5l5 5M10.5 5.5l-5 5" }));
+  else icon = /* @__PURE__ */ React.createElement("svg", { ...props }, /* @__PURE__ */ React.createElement("circle", { cx: "8", cy: "8", r: "6.5" }), /* @__PURE__ */ React.createElement("path", { d: "M8 7.2v4M8 4.9v.1" }));
+  const label = { good: "OK", warning: "Warning", critical: "Problem", neutral: "Note" }[tone];
+  return /* @__PURE__ */ React.createElement("div", { className: `hm-finding hm-finding-${tone}` }, /* @__PURE__ */ React.createElement("span", { className: "hm-finding-icon", title: label }, icon), /* @__PURE__ */ React.createElement("span", null, finding.text));
 }
 function ChartCard({
   title,
   subtitle,
+  howTo,
+  direction,
+  finding,
   series,
+  thresholds = [],
   xs,
   columns,
   xRange,
   yFmt,
   axisFmt,
+  yLabel,
   yRange,
   stacked = false,
   height = 150,
   seconds = false,
-  dim = false
+  dim = false,
+  emptyText = "No data in this range."
 }) {
   const theme = useThemeKey();
   const wrapRef = useRef$1(null);
@@ -4476,14 +4878,22 @@ function ChartCard({
   const [hover, setHover] = useState$1(null);
   const [width, setWidth] = useState$1(0);
   const hasData2 = xs.length > 0 && columns.some((c) => c.some((v) => v !== null && v !== void 0));
-  const sig = `${series.map((s) => `${s.label}:${s.slot}:${s.step ? 1 : 0}`).join("|")}|${stacked}|${height}|${theme}|${hasData2}`;
+  const lineSig = thresholds.map((t) => `${t.value}:${t.tone}:${t.label}`).join("|");
+  const sig = `${series.map((s) => `${s.label}:${s.slot}:${s.step ? 1 : 0}`).join("|")}|${stacked}|${height}|${theme}|${hasData2}|${lineSig}|${yLabel || ""}`;
   const display = useMemo$1(() => {
     if (!stacked) return { cols: columns, order: series.map((_2, i) => i) };
     const cum = stackColumns(columns);
     const order = series.map((_2, i) => series.length - 1 - i);
     return { cols: order.map((i) => cum[i]), order };
   }, [columns, series, stacked]);
-  live.current = { xs, display, xRange, yRange };
+  const peaks = useMemo$1(() => columns.map((c) => peakOf(c)), [columns]);
+  live.current = {
+    xs,
+    display,
+    xRange,
+    yRange,
+    thresholds
+  };
   useEffect$1(() => {
     const el = wrapRef.current;
     if (!el) return void 0;
@@ -4496,8 +4906,8 @@ function ChartCard({
   useEffect$1(() => {
     const host = plotRef.current;
     if (!host || !hasData2 || width < 40) return void 0;
-    const colors = readColors(host);
-    const font2 = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
+    const colors = chartColors(getComputedStyle(host));
+    const font2 = `11px ${FONT}`;
     const axisBase = {
       font: font2,
       stroke: colors.muted,
@@ -4545,26 +4955,37 @@ function ChartCard({
       },
       scales: {
         x: { time: true, range: () => live.current.xRange },
-        y: { range: (u2, min2, max2) => live.current.yRange(max2) }
+        y: {
+          range: (u2, min2, max2) => {
+            const [lo, hi] = live.current.yRange(max2);
+            let top = hi;
+            for (const t of live.current.thresholds || []) {
+              if (Number.isFinite(t.value) && t.value * 1.05 > top) top = t.value * 1.15;
+            }
+            return [lo, top];
+          }
+        }
       },
       axes: [
         { ...axisBase, size: 28 },
         {
           ...axisBase,
           size: 58,
-          values: (u2, vals) => vals.map((v) => (axisFmt || yFmt)(v))
+          values: (u2, vals) => vals.map((v) => (axisFmt || yFmt)(v)),
+          ...yLabel ? { label: yLabel, labelSize: 16, labelFont: font2 } : {}
         }
       ],
       series: uSeries,
       hooks: {
+        draw: [(u2) => drawThresholds(u2, live.current.thresholds, colors)],
         setCursor: [(u2) => {
-          const idx2 = u2.cursor.idx;
-          if (idx2 === null || idx2 === void 0 || u2.cursor.left < 0) {
+          const idx = u2.cursor.idx;
+          if (idx === null || idx === void 0 || u2.cursor.left < 0) {
             setHover((h) => h === null ? h : null);
             return;
           }
           const left = u2.over.offsetLeft + u2.cursor.left;
-          setHover((h) => h && h.idx === idx2 && h.left === left ? h : { idx: idx2, left });
+          setHover((h) => h && h.idx === idx && h.left === left ? h : { idx, left });
         }]
       }
     };
@@ -4581,47 +5002,409 @@ function ChartCard({
   useEffect$1(() => {
     if (uRef.current && width > 40) uRef.current.setSize({ width, height });
   }, [width, height]);
-  const idx = hover ? hover.idx : null;
-  const valueAt = (col) => {
-    const v = idx !== null ? col[idx] : lastValue(col);
-    return v === null || v === void 0 ? "no data" : yFmt(v);
-  };
+  const fmtValue = (v) => v === null || v === void 0 ? "no data" : yFmt(v);
+  const latestAt = (col) => fmtValue(lastValue(col));
+  const hoveredAt = (col) => fmtValue(hover ? col[hover.idx] : lastValue(col));
   const flipLeft = hover && width && hover.left > width * 0.6;
-  return /* @__PURE__ */ React.createElement("div", { className: `hm-card${dim ? " hm-dim" : ""}` }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "hm-card-title" }, title), subtitle ? /* @__PURE__ */ React.createElement("span", { className: "hm-card-sub" }, subtitle) : null), /* @__PURE__ */ React.createElement("div", { className: "hm-legend" }, series.map((s, i) => /* @__PURE__ */ React.createElement("span", { className: "hm-legend-item", key: s.label }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: `hm-card${dim ? " hm-dim" : ""}` }, /* @__PURE__ */ React.createElement("div", { className: "hm-card-head" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "hm-card-title" }, title), subtitle ? /* @__PURE__ */ React.createElement("span", { className: "hm-card-sub" }, subtitle) : null), /* @__PURE__ */ React.createElement(DirectionChip, { direction })), howTo ? /* @__PURE__ */ React.createElement("div", { className: "hm-howto" }, howTo) : null, /* @__PURE__ */ React.createElement(FindingLine, { finding }), /* @__PURE__ */ React.createElement("div", { className: "hm-legend" }, series.map((s, i) => /* @__PURE__ */ React.createElement("span", { className: "hm-legend-item", key: s.label, title: s.hint || void 0 }, /* @__PURE__ */ React.createElement(
     "span",
     {
       className: stacked ? "hm-swatch-box" : "hm-swatch-line",
       style: { background: slotVar(s.slot) }
     }
-  ), /* @__PURE__ */ React.createElement("span", null, s.label), /* @__PURE__ */ React.createElement("span", { className: "hm-legend-value" }, valueAt(columns[i] || [])))), /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, idx !== null ? fmtTime(xs[idx], seconds) : "latest")), /* @__PURE__ */ React.createElement("div", { className: "hm-chart", ref: wrapRef }, hasData2 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { ref: plotRef }), hover ? /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("span", null, s.label), /* @__PURE__ */ React.createElement("span", { className: "hm-legend-value" }, latestAt(columns[i] || [])), peaks[i] !== null ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "peak ", yFmt(peaks[i])) : null)), thresholds.map((t) => /* @__PURE__ */ React.createElement("span", { className: "hm-legend-item", key: `t-${t.label}`, title: t.hint || void 0 }, /* @__PURE__ */ React.createElement("span", { className: "hm-swatch-dash", style: { borderColor: TONE_VAR[t.tone] || TONE_VAR.neutral } }), /* @__PURE__ */ React.createElement("span", null, t.label))), /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "latest values; peak over the range")), /* @__PURE__ */ React.createElement("div", { className: "hm-chart", ref: wrapRef }, hasData2 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { ref: plotRef }), hover ? /* @__PURE__ */ React.createElement(
     "div",
     {
       className: "hm-tip",
       style: flipLeft ? { left: hover.left - 12, transform: "translateX(-100%)" } : { left: hover.left + 12 }
     },
     /* @__PURE__ */ React.createElement("div", { className: "hm-tip-time" }, fmtTime(xs[hover.idx], seconds)),
-    series.map((s, i) => /* @__PURE__ */ React.createElement("div", { className: "hm-tip-row", key: s.label }, /* @__PURE__ */ React.createElement("span", { className: "hm-swatch-line", style: { background: slotVar(s.slot) } }), /* @__PURE__ */ React.createElement("span", { className: "hm-tip-name" }, s.label), /* @__PURE__ */ React.createElement("span", { className: "hm-tip-val" }, valueAt(columns[i] || []))))
-  ) : null) : /* @__PURE__ */ React.createElement("div", { className: "hm-chart-empty", style: { height } }, "No data in this range")));
+    series.map((s, i) => /* @__PURE__ */ React.createElement("div", { className: "hm-tip-row", key: s.label }, /* @__PURE__ */ React.createElement("span", { className: "hm-swatch-line", style: { background: slotVar(s.slot) } }), /* @__PURE__ */ React.createElement("span", { className: "hm-tip-name" }, s.label), /* @__PURE__ */ React.createElement("span", { className: "hm-tip-val" }, hoveredAt(columns[i] || []))))
+  ) : null) : /* @__PURE__ */ React.createElement("div", { className: "hm-chart-empty", style: { height } }, emptyText)));
+}
+const isNum = (v) => typeof v === "number" && Number.isFinite(v);
+const STALE_S = 120;
+const RANGE_TEXT = {
+  "1h": "the last hour",
+  "6h": "the last 6 hours",
+  "24h": "the last 24 hours",
+  "7d": "the last 7 days",
+  "30d": "the last 30 days"
+};
+function setting(settings, key, fallback) {
+  const raw = settings == null ? void 0 : settings[key];
+  if (raw === null || raw === void 0 || typeof raw === "string" && !raw.trim()) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+const pct0$1 = (v) => `${Math.round(v)}`;
+const gb1 = (bytes) => (bytes / 1073741824).toFixed(1);
+function p95(values) {
+  const v = values.filter(isNum).sort((a, b) => a - b);
+  if (!v.length) return null;
+  return v[Math.max(Math.ceil(0.95 * v.length) - 1, 0)];
+}
+const hhmm = (ts) => {
+  const d = new Date(ts * 1e3);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const P95_GLOSS = "p95 = the level it stays under 95 % of the time.";
+function bigCount(n) {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1).replace(/\.0$/, "")} million`;
+  if (n >= 1e4) return `${Math.round(n / 1e3)} thousand`;
+  return String(n);
+}
+function dataFinding(snapshot) {
+  const age = snapshot == null ? void 0 : snapshot.data_age_s;
+  if (!isNum(age)) {
+    return { level: "info", area: "data", text: "No data collected on this host yet." };
+  }
+  if (age > STALE_S) {
+    return {
+      level: "problem",
+      area: "data",
+      text: `Collector data is ${fmtDuration(age)} old - the collector or the host is down.`
+    };
+  }
+  return null;
+}
+function coresFromSeries(series) {
+  const rows = Array.isArray(series == null ? void 0 : series.cores) ? series.cores : null;
+  if (!rows) return null;
+  const by = /* @__PURE__ */ new Map();
+  for (const r of rows) {
+    if (!Number.isInteger(r == null ? void 0 : r.core) || r.core < 0) continue;
+    if (!by.has(r.core)) by.set(r.core, []);
+    by.get(r.core).push(r);
+  }
+  if (!by.size) return null;
+  return [...by.keys()].sort((a, b) => a - b).map((core) => {
+    const list = by.get(core);
+    const busy = list.map((r) => r.busy);
+    const maxes = list.map((r) => isNum(r.busy_max) ? r.busy_max : r.busy).filter(isNum);
+    return { core, p95: p95(busy), max: maxes.length ? Math.max(...maxes) : null };
+  }).filter((c) => c.p95 !== null);
+}
+function coresFromSnapshot(snapshot) {
+  const map = snapshot == null ? void 0 : snapshot.core_p95_24h;
+  if (!map || typeof map !== "object") return null;
+  const list = Object.keys(map).map((k) => ({ core: Number(k), p95: map[k], max: null })).filter((c) => Number.isInteger(c.core) && c.core >= 0 && isNum(c.p95)).sort((a, b) => a.core - b.core);
+  return list.length ? list : null;
+}
+function playersAt(series, from, to) {
+  for (const rows of Object.values((series == null ? void 0 : series.insts) || {})) {
+    for (const r of rows || []) {
+      const p = isNum(r.players) ? r.players : r.players_max;
+      if (isNum(r.ts) && r.ts >= from && r.ts <= to && isNum(p) && p >= 2) return true;
+    }
+  }
+  return false;
+}
+function saturation(events, series, now) {
+  const out = /* @__PURE__ */ new Map();
+  for (const e of Array.isArray(events) ? events : []) {
+    if ((e == null ? void 0 : e.kind) !== "core_saturated" || !isNum(e.ts)) continue;
+    const m = /^core (\d+)/.exec(e.message || "");
+    if (!m) continue;
+    const core = Number(m[1]);
+    const end = isNum(e.closed_ts) ? e.closed_ts : isNum(now) ? now : null;
+    const cur = out.get(core) || { seconds: null, matches: false };
+    if (end !== null) {
+      cur.seconds = (cur.seconds || 0) + Math.max(end - e.ts, 0);
+      if (series && playersAt(series, e.ts, end)) cur.matches = true;
+    }
+    out.set(core, cur);
+  }
+  return out;
+}
+function cpuFindings({ snapshot, series, events, settings, range }) {
+  var _a;
+  const target = setting(settings, "verdict_target_pct", 70);
+  const sat = setting(settings, "core_saturated_pct", 95);
+  const fromSeries = coresFromSeries(series);
+  const cores = fromSeries || coresFromSnapshot(snapshot);
+  const span = fromSeries ? RANGE_TEXT[range] || "the selected range" : "the last 24 hours";
+  const note = fromSeries ? "" : " (24 h snapshot)";
+  const out = [];
+  const satMap = saturation(events, series, (series == null ? void 0 : series.now) ?? (snapshot == null ? void 0 : snapshot.now));
+  const byCore = new Map((cores || []).map((c) => [c.core, c]));
+  const ids = [.../* @__PURE__ */ new Set([...byCore.keys(), ...satMap.keys()])].sort((a, b) => a - b);
+  for (const id of ids) {
+    const c = byCore.get(id);
+    const s = satMap.get(id);
+    if (s) {
+      let dur = "";
+      if (s.seconds !== null) {
+        dur = s.seconds < 60 ? " for less than a minute" : ` for ${plural(Math.round(s.seconds / 60), "minute", "minutes")}`;
+      }
+      out.push({
+        level: "problem",
+        area: "cpu",
+        text: `Core ${id} was above ${pct0$1(sat)} %${dur}${s.matches ? ", during matches" : ""}.`
+      });
+    } else if (c.p95 > target) {
+      out.push({
+        level: "warning",
+        area: "cpu",
+        text: `Core ${c.core} p95 was ${pct0$1(c.p95)} % over ${span}${note}, above the ${pct0$1(target)} % planning limit.`
+      });
+    } else if (fromSeries && isNum(c.max)) {
+      out.push({
+        level: "ok",
+        area: "cpu",
+        text: `Core ${c.core} stayed below ${pct0$1(c.max)} % (p95 ${pct0$1(c.p95)} %) over ${span}; limit for planning is ${pct0$1(target)} %.`
+      });
+    } else {
+      out.push({
+        level: "ok",
+        area: "cpu",
+        text: `Core ${c.core} p95 was ${pct0$1(c.p95)} % over ${span}${note}; limit for planning is ${pct0$1(target)} %.`
+      });
+    }
+  }
+  if (!cores) {
+    const n = (_a = snapshot == null ? void 0 : snapshot.events_24h) == null ? void 0 : _a.core_saturated;
+    if (isNum(n) && n > 0 && !satMap.size) {
+      out.push({
+        level: "warning",
+        area: "cpu",
+        text: `${plural(n, "core saturation event", "core saturation events")} in the last 24 hours (24 h snapshot).`
+      });
+    }
+  }
+  return out;
+}
+function roomFindings({ snapshot, verdict }) {
+  if (!verdict) return [];
+  const slots = verdict.slots;
+  const ref = verdict.ref_load;
+  if (verdict.ref_source === null || verdict.ref_source === void 0 || !isNum(ref)) {
+    const anyBusy = ((snapshot == null ? void 0 : snapshot.insts) || []).some((i) => isNum(i == null ? void 0 : i.busy_p95));
+    if (anyBusy) return [];
+    return [{
+      level: "info",
+      area: "room",
+      text: "No match played on this host yet and no other host has data, so room cannot be estimated."
+    }];
+  }
+  const refText = `reference: one instance uses ${pct0$1(ref)} % of a core in a match`;
+  const prefix = verdict.ref_source === "fleet" ? "No match played on this host yet, so room is estimated from other hosts. " : "";
+  if (!isNum(slots)) return [];
+  if (slots > 0) {
+    return [{
+      level: "ok",
+      area: "room",
+      text: `${prefix}Room for ${slots} more ${slots === 1 ? "instance" : "instances"} (${refText}).`
+    }];
+  }
+  const reason = String(verdict.reason || "");
+  let why = "";
+  if (/^0 slots, memory:/.test(reason)) why = ": RAM is the limit";
+  else if (/^0 slots, core \d+:/.test(reason)) why = ` (CPU is the limit; ${refText})`;
+  return [{
+    level: verdict.status === "overloaded" ? "problem" : "warning",
+    area: "room",
+    text: `${prefix}No room for more instances${why}.`
+  }];
+}
+function frameStats(snapshot, series) {
+  const rowsByPort = (series == null ? void 0 : series.insts) && typeof series.insts === "object" ? series.insts : null;
+  const fromSeries = !!rowsByPort && sortedPorts(rowsByPort).length > 0;
+  const out = [];
+  if (fromSeries) {
+    for (const port of sortedPorts(rowsByPort)) {
+      let late = 0;
+      let frames = 0;
+      let worst = null;
+      for (const r of rowsByPort[String(port)] || []) {
+        if (isNum(r.late)) late += r.late;
+        if (isNum(r.frames)) frames += r.frames;
+        if (isNum(r.max_ms) && isNum(r.ts) && (!worst || r.max_ms > worst.ms)) {
+          const p = isNum(r.players) ? r.players : r.players_max;
+          worst = { ms: r.max_ms, ts: r.ts, players: isNum(p) ? p : null };
+        }
+      }
+      out.push({ port, late, frames, worst });
+    }
+    return { fromSeries, list: out };
+  }
+  for (const i of Array.isArray(snapshot == null ? void 0 : snapshot.insts) ? snapshot.insts : []) {
+    if (!Number.isInteger(i == null ? void 0 : i.port)) continue;
+    out.push({
+      port: i.port,
+      late: isNum(i.late_24h) ? i.late_24h : 0,
+      frames: isNum(i.frames_24h) ? i.frames_24h : 0,
+      worst: null
+    });
+  }
+  return { fromSeries, list: out };
+}
+function frameFindings({ snapshot, series, events, settings, range }) {
+  const { fromSeries, list } = frameStats(snapshot, series);
+  const withFrames = list.filter((s) => s.frames > 0);
+  if (!withFrames.length) {
+    return [{ level: "info", area: "frames", text: "No frame statistics yet (no instance is running or reporting)." }];
+  }
+  const span = fromSeries ? RANGE_TEXT[range] || "the selected range" : "the last 24 hours";
+  const note = fromSeries ? "" : " (24 h snapshot)";
+  const openLate = new Set(
+    (Array.isArray(events) ? events : []).filter((e) => (e == null ? void 0 : e.kind) === "frames_late" && e.state === "open" && Number.isInteger(e.port)).map((e) => e.port)
+  );
+  const limitPct = setting(settings, "frames_late_pct", 1);
+  const gapMs = setting(settings, "frame_gap_ms", 100);
+  const out = [];
+  for (const s of withFrames) {
+    if (s.late <= 0) continue;
+    const isOpen = openLate.has(s.port);
+    const latePct = s.late / s.frames * 100;
+    if (!isOpen && latePct <= limitPct && !(s.worst && s.worst.ms > gapMs)) {
+      out.push({
+        level: "info",
+        area: "frames",
+        text: `${plural(s.late, "late frame", "late frames")} out of ${bigCount(s.frames)} on :${s.port} in ${span}${note} - normal.`
+      });
+      continue;
+    }
+    let text2 = `${plural(s.late, "late frame", "late frames")} on :${s.port}`;
+    if (s.worst) {
+      text2 += `, worst gap ${Math.round(s.worst.ms)} ms at ${hhmm(s.worst.ts)}`;
+      if (s.worst.players !== null) text2 += ` (players: ${s.worst.players})`;
+    } else {
+      text2 += ` in ${span}${note}`;
+    }
+    text2 += ". A late frame means players see a hitch.";
+    out.push({ level: isOpen ? "problem" : "warning", area: "frames", text: text2 });
+  }
+  if (!out.length) {
+    out.push({ level: "ok", area: "frames", text: `No late server frames in ${span}${note}.` });
+  }
+  return out;
+}
+function stealFindings({ snapshot, series, settings, range }) {
+  const tight = setting(settings, "steal_tight_pct", 5);
+  const over = setting(settings, "steal_overload_pct", 15);
+  let value = null;
+  let span;
+  const rows = Array.isArray(series == null ? void 0 : series.cores) ? series.cores.filter((r) => (r == null ? void 0 : r.core) === -1) : [];
+  if (rows.length) {
+    value = p95(rows.map((r) => r.steal));
+    span = RANGE_TEXT[range] || "the selected range";
+  }
+  if (value === null && isNum(snapshot == null ? void 0 : snapshot.steal_p95)) {
+    value = snapshot.steal_p95;
+    span = "the last 7 days";
+  }
+  if (value === null) return [];
+  const shown = value < 10 ? value.toFixed(1) : pct0$1(value);
+  const level = value > over ? "problem" : value > tight ? "warning" : "ok";
+  return [{
+    level,
+    area: "steal",
+    text: `The provider took ${shown} % of CPU time (steal), p95 over ${span}; above ${pct0$1(tight)} % means a noisy neighbour.`
+  }];
+}
+function memoryFindings({ snapshot, events, settings }) {
+  const total = snapshot == null ? void 0 : snapshot.mem_total;
+  const avail = snapshot == null ? void 0 : snapshot.mem_avail_now;
+  if (!isNum(total) || !isNum(avail) || total <= 0) return [];
+  const reserve = setting(settings, "mem_reserve_pct", 20);
+  const rss = ((snapshot == null ? void 0 : snapshot.insts) || []).map((i) => i == null ? void 0 : i.rss_max).filter((v) => isNum(v) && v > 0);
+  const lowOpen = (Array.isArray(events) ? events : []).some((e) => (e == null ? void 0 : e.kind) === "mem_low" && e.state === "open");
+  let text2 = `RAM: ${gb1(avail)} GB free of ${gb1(total)} GB`;
+  let level = "ok";
+  const spare = avail - reserve / 100 * total;
+  if (spare < 0) {
+    level = "warning";
+    text2 += `, below the ${pct0$1(reserve)} % reserve.`;
+  } else if (rss.length) {
+    const n = Math.floor(spare / Math.max(...rss));
+    text2 += `, enough for about ${n} more ${n === 1 ? "instance" : "instances"}.`;
+  } else {
+    text2 += ".";
+  }
+  if (lowOpen) level = "problem";
+  return [{ level, area: "memory", text: text2 }];
+}
+function diskFindings({ snapshot, events, settings }) {
+  const pct = diskUsedPct(snapshot == null ? void 0 : snapshot.host);
+  if (pct === null) return [];
+  const limit = setting(settings, "disk_low_pct", 90);
+  const lowOpen = (Array.isArray(events) ? events : []).some((e) => (e == null ? void 0 : e.kind) === "disk_low" && e.state === "open");
+  const over = pct > limit || lowOpen;
+  return [{
+    level: over ? "problem" : "ok",
+    area: "disk",
+    text: `Disk / is ${pct0$1(pct)} % full${over ? "" : ` (${gb1(snapshot.host.disk_total - snapshot.host.disk_used)} GB free)`}.`
+  }];
+}
+function findings({ snapshot, series, events, settings, range, verdict } = {}) {
+  if (!snapshot || typeof snapshot !== "object") {
+    return [{ level: "info", area: "data", text: "No data collected on this host yet." }];
+  }
+  const data = dataFinding(snapshot);
+  if (data) return [data];
+  const ctx = { snapshot, series, events, settings, range, verdict };
+  return [
+    ...cpuFindings(ctx),
+    ...roomFindings(ctx),
+    ...frameFindings(ctx),
+    ...stealFindings(ctx),
+    ...memoryFindings(ctx),
+    ...diskFindings(ctx)
+  ];
+}
+const FAST_RANGES = ["1h", "6h"];
+const FAST_INTERVAL_MS = 1e4;
+const SLOW_INTERVAL_MS = 6e4;
+const SNAPSHOT_INTERVAL_MS = 6e4;
+function refreshIntervalMs(range) {
+  return FAST_RANGES.includes(range) ? FAST_INTERVAL_MS : SLOW_INTERVAL_MS;
+}
+function shouldRefresh({
+  enabled,
+  isOpen,
+  visible,
+  inFlight,
+  lastAttemptAt,
+  now,
+  intervalMs
+}) {
+  if (!enabled || !isOpen || !visible || inFlight) return false;
+  if (lastAttemptAt === null || lastAttemptAt === void 0) return false;
+  return now - lastAttemptAt >= intervalMs;
+}
+function ageSeconds(at, now) {
+  if (at === null || at === void 0) return null;
+  return Math.max(0, Math.floor((now - at) / 1e3));
+}
+function updatedText(at, now) {
+  const s = ageSeconds(at, now);
+  if (s === null) return "";
+  if (s < 60) return `Updated ${s} s ago`;
+  return `Updated ${Math.floor(s / 60)} min ago`;
 }
 const { Modal } = ui;
 const { useCallback, useEffect, useMemo, useRef, useState } = React;
 const RANGES = ["1h", "6h", "24h", "7d", "30d"];
 const RANGE_SECONDS = { "1h": 3600, "6h": 21600, "24h": 86400, "7d": 604800, "30d": 2592e3 };
 const MAX_EVENT_ROWS = 100;
-const KIND_LABELS = {
-  core_saturated: "Core saturated",
-  steal_high: "Steal high",
-  mem_low: "Memory low",
-  disk_low: "Disk low",
-  frames_late: "Late frames",
-  oom_kill: "OOM kill",
-  instance_new: "Instance appeared",
-  instance_gone: "Instance gone"
-};
 const pct0 = (v) => `${Math.round(v)}%`;
 const int = (v) => String(Math.round(v));
 const ms = (v) => `${v < 10 ? v.toFixed(1) : Math.round(v)} ms`;
 const rate = (v) => `${fmtBytes(v)}/s`;
+const EMPTY_NO_DATA = "No samples in this range yet. The collector writes one every 10 s; if this stays empty, check the collector status below.";
+const EMPTY_NO_FRAMES = "No frame timing in this range: the servers did not report frame statistics (no instance running, or the server plugin does not publish them).";
+const AUTO_KEY = "hm-auto-refresh";
+function readAuto() {
+  try {
+    return window.localStorage.getItem(AUTO_KEY) !== "0";
+  } catch (e) {
+    return true;
+  }
+}
+const isVisible = () => typeof document === "undefined" || document.visibilityState === "visible";
 function errorText(e, fallback) {
   var _a, _b, _c;
   return ((_c = (_b = (_a = e == null ? void 0 : e.response) == null ? void 0 : _a.data) == null ? void 0 : _b.error) == null ? void 0 : _c.message) || (e == null ? void 0 : e.message) || fallback;
@@ -4657,7 +5440,7 @@ function scopeText(ev) {
 function EventsTable({ events, dim }) {
   if (!events.length) return /* @__PURE__ */ React.createElement("div", { className: `hm-muted${dim ? " hm-dim" : ""}` }, "No events in this range.");
   const shown = events.slice(0, MAX_EVENT_ROWS);
-  return /* @__PURE__ */ React.createElement("div", { className: dim ? "hm-dim" : void 0 }, /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "hm-events" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Time"), /* @__PURE__ */ React.createElement("th", null, "Severity"), /* @__PURE__ */ React.createElement("th", null, "Event"), /* @__PURE__ */ React.createElement("th", null, "Scope"), /* @__PURE__ */ React.createElement("th", null, "Duration"), /* @__PURE__ */ React.createElement("th", null, "Detail"))), /* @__PURE__ */ React.createElement("tbody", null, shown.map((ev) => /* @__PURE__ */ React.createElement("tr", { key: ev.id }, /* @__PURE__ */ React.createElement("td", { className: "hm-num", style: { whiteSpace: "nowrap" } }, fmtTime(ev.ts, true)), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement("span", { className: `hm-sev ${SEVERITY_TONE[ev.severity] || "hm-tone-neutral"}` }, /* @__PURE__ */ React.createElement(SeverityIcon, { severity: ev.severity }), SEVERITY_TEXT[ev.severity] || ev.severity)), /* @__PURE__ */ React.createElement("td", null, KIND_LABELS[ev.kind] || ev.kind), /* @__PURE__ */ React.createElement("td", null, scopeText(ev)), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, ev.state === "open" ? "ongoing" : fmtDuration((ev.closed_ts || ev.ts) - ev.ts)), /* @__PURE__ */ React.createElement("td", { className: "hm-ink-2" }, ev.message)))))), events.length > shown.length ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted", style: { marginTop: 4 } }, "Showing the newest ", shown.length, " of ", events.length, ".") : null);
+  return /* @__PURE__ */ React.createElement("div", { className: dim ? "hm-dim" : void 0 }, /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "hm-events" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Time"), /* @__PURE__ */ React.createElement("th", null, "Severity"), /* @__PURE__ */ React.createElement("th", null, "Event"), /* @__PURE__ */ React.createElement("th", null, "Scope"), /* @__PURE__ */ React.createElement("th", null, "Duration"), /* @__PURE__ */ React.createElement("th", null, "Detail"))), /* @__PURE__ */ React.createElement("tbody", null, shown.map((ev) => /* @__PURE__ */ React.createElement("tr", { key: ev.id }, /* @__PURE__ */ React.createElement("td", { className: "hm-num", style: { whiteSpace: "nowrap" } }, fmtTime(ev.ts, true)), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement("span", { className: `hm-sev ${SEVERITY_TONE[ev.severity] || "hm-tone-neutral"}` }, /* @__PURE__ */ React.createElement(SeverityIcon, { severity: ev.severity }), SEVERITY_TEXT[ev.severity] || ev.severity)), /* @__PURE__ */ React.createElement("td", null, kindLabel(ev.kind)), /* @__PURE__ */ React.createElement("td", null, scopeText(ev)), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, ev.state === "open" ? "ongoing" : fmtDuration((ev.closed_ts || ev.ts) - ev.ts)), /* @__PURE__ */ React.createElement("td", { className: "hm-ink-2" }, ev.message)))))), events.length > shown.length ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted", style: { marginTop: 4 } }, "Showing the newest ", shown.length, " of ", events.length, ".") : null);
 }
 function buildCharts(series, res) {
   const raw = res === "raw";
@@ -4677,10 +5460,17 @@ function buildCharts(series, res) {
   const ports = sortedPorts(insts);
   const instXs = mergeTimes(...ports.map((p) => insts[String(p)]));
   const perPort = (...keys) => ports.map((p) => column(insts[String(p)], instXs, (r) => pick(r, ...keys)));
-  const portSeries = (step) => ports.map((p, i) => ({ label: `Port ${p}`, slot: slotOf(i), step }));
+  const portSeries = (step, hint) => ports.map((p, i) => ({
+    label: `Port ${p}`,
+    slot: slotOf(i),
+    step,
+    hint: hint ? hint(p) : void 0
+  }));
   const memTotal = lastValue(hostCol((r) => pick(r, "mem_total")));
+  const all = cores.find((c) => c.core < 0);
   return {
     cores,
+    steal: all ? { xs: all.xs, column: all.columns[2] } : null,
     hostXs,
     instXs,
     ports,
@@ -4768,7 +5558,7 @@ function Footer({ ctx, host, isOpen }) {
     const outdated = status.version && status.expected_version && status.version !== status.expected_version;
     statusText = `Collector ${version}${outdated ? ` (current ${status.expected_version})` : ""} | service ${status.service || "unknown"}` + (status.db_bytes !== null && status.db_bytes !== void 0 ? ` | database ${fmtBytes(status.db_bytes)}` : "");
   } else statusText = "";
-  return /* @__PURE__ */ React.createElement("div", { className: "hm-footer" }, /* @__PURE__ */ React.createElement("span", null, statusText), /* @__PURE__ */ React.createElement("button", { type: "button", className: "hm-btn", onClick: loadStatus, disabled: statusBusy }, "Check"), /* @__PURE__ */ React.createElement("label", null, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-footer" }, /* @__PURE__ */ React.createElement("span", null, statusText), /* @__PURE__ */ React.createElement(Button, { onClick: loadStatus, disabled: statusBusy }, "Check"), /* @__PURE__ */ React.createElement("label", null, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "checkbox",
@@ -4776,9 +5566,10 @@ function Footer({ ctx, host, isOpen }) {
       disabled: enabled === null,
       onChange: (e) => toggle(e.target.checked)
     }
-  ), "Collect metrics on this host"), /* @__PURE__ */ React.createElement("span", { className: "hm-footer-spacer" }), note ? /* @__PURE__ */ React.createElement("span", { className: "hm-note" }, note) : null, /* @__PURE__ */ React.createElement("button", { type: "button", className: "hm-btn hm-btn-primary", onClick: apply, disabled: applyBusy }, "Apply to host"));
+  ), "Collect metrics on this host"), /* @__PURE__ */ React.createElement("span", { className: "hm-footer-spacer" }), note ? /* @__PURE__ */ React.createElement("span", { className: "hm-note" }, note) : null, /* @__PURE__ */ React.createElement(Button, { variant: "primary", onClick: apply, disabled: applyBusy }, "Apply to host"));
 }
 function HostModal({ ctx, host, isOpen, onClose }) {
+  var _a;
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
   const [range, setRange] = useState("24h");
@@ -4787,12 +5578,74 @@ function HostModal({ ctx, host, isOpen, onClose }) {
   const [series, setSeries] = useState(null);
   const [events, setEvents] = useState([]);
   const [fetchedAt, setFetchedAt] = useState(null);
+  const [settings, setSettings] = useState(null);
+  const [hostRow, setHostRow] = useState(null);
   const token = useRef(0);
-  const load = useCallback(async () => {
+  const [autoRefresh, setAutoRefresh] = useState(readAuto);
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const [clock, setClock] = useState(() => Date.now());
+  const inFlight = useRef(false);
+  const attemptAt = useRef(null);
+  const snapshotAt = useRef(null);
+  const snapshotInFlight = useRef(false);
+  const snapshotToken = useRef(0);
+  const hostIdRef = useRef(host == null ? void 0 : host.id);
+  hostIdRef.current = host == null ? void 0 : host.id;
+  const loadSnapshot = useCallback(async (background = false) => {
+    if (!(host == null ? void 0 : host.id) || snapshotInFlight.current) return;
+    const mine = ++snapshotToken.current;
+    snapshotInFlight.current = true;
+    snapshotAt.current = Date.now();
+    try {
+      const d = await ctxRef.current.api("GET", "hosts");
+      if (snapshotToken.current !== mine || hostIdRef.current !== host.id) return;
+      const r = ((d == null ? void 0 : d.hosts) || []).find((h) => h.id === host.id);
+      if (r) setHostRow({ snapshot: r.snapshot, verdict: r.verdict || null, state: r.state });
+      else if (!background) setHostRow(null);
+    } catch (e) {
+    } finally {
+      if (snapshotToken.current === mine) snapshotInFlight.current = false;
+    }
+  }, [host == null ? void 0 : host.id]);
+  useEffect(() => {
+    if (!isOpen) return void 0;
+    let alive = true;
+    ctxRef.current.api("GET", "settings").then((d) => {
+      if (alive) setSettings(d || null);
+    }).catch(() => {
+      if (alive) setSettings(null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isOpen]);
+  useEffect(() => {
+    snapshotToken.current += 1;
+    snapshotInFlight.current = false;
+    snapshotAt.current = null;
+  }, [host == null ? void 0 : host.id]);
+  useEffect(() => {
+    if (!isOpen || !(host == null ? void 0 : host.id)) return void 0;
+    if (host.snapshot !== void 0) {
+      setHostRow({ snapshot: host.snapshot, verdict: host.verdict || null, state: host.state });
+      if (snapshotAt.current === null) snapshotAt.current = Date.now();
+      return void 0;
+    }
+    setHostRow(null);
+    loadSnapshot();
+    return void 0;
+  }, [isOpen, host == null ? void 0 : host.id, host == null ? void 0 : host.snapshot, host == null ? void 0 : host.verdict, host == null ? void 0 : host.state, loadSnapshot]);
+  const load = useCallback(async (background = false) => {
     if (!(host == null ? void 0 : host.id)) return;
+    if (background && inFlight.current) return;
     const mine = ++token.current;
-    setLoading(true);
-    setError(null);
+    inFlight.current = true;
+    attemptAt.current = Date.now();
+    if (!background) {
+      setLoading(true);
+      setError(null);
+      setRefreshFailed(false);
+    }
     try {
       const params = { range };
       const [s, e] = await Promise.all([
@@ -4803,19 +5656,66 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       setSeries(s);
       setEvents((e == null ? void 0 : e.events) || []);
       setFetchedAt(Date.now());
+      setRefreshFailed(false);
     } catch (err) {
-      if (token.current === mine) setError(errorText(err, "Could not load the metrics."));
+      if (token.current === mine) {
+        if (background) setRefreshFailed(true);
+        else setError(errorText(err, "Could not load the metrics."));
+      }
     } finally {
-      if (token.current === mine) setLoading(false);
+      if (token.current === mine) {
+        inFlight.current = false;
+        if (!background) setLoading(false);
+      }
     }
   }, [host == null ? void 0 : host.id, range]);
   useEffect(() => {
     if (isOpen) load();
   }, [isOpen, load]);
+  const toggleAuto = (value) => {
+    setAutoRefresh(value);
+    try {
+      window.localStorage.setItem(AUTO_KEY, value ? "1" : "0");
+    } catch (e) {
+    }
+  };
+  useEffect(() => {
+    if (!isOpen) return void 0;
+    setClock(Date.now());
+    const tick = () => {
+      const t = Date.now();
+      setClock(t);
+      const state = {
+        enabled: autoRefresh,
+        isOpen,
+        visible: isVisible(),
+        now: t
+      };
+      if (shouldRefresh({
+        ...state,
+        inFlight: inFlight.current,
+        lastAttemptAt: attemptAt.current,
+        intervalMs: refreshIntervalMs(range)
+      })) load(true);
+      if (shouldRefresh({
+        ...state,
+        inFlight: snapshotInFlight.current,
+        lastAttemptAt: snapshotAt.current,
+        intervalMs: SNAPSHOT_INTERVAL_MS
+      })) loadSnapshot(true);
+    };
+    const timer = setInterval(tick, 1e3);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [isOpen, autoRefresh, range, load, loadSnapshot]);
   useEffect(() => {
     setSeries(null);
     setEvents([]);
     setError(null);
+    setRefreshFailed(false);
   }, [host == null ? void 0 : host.id]);
   const charts = useMemo(() => series ? buildCharts(series, series.res) : null, [series]);
   const now = (series == null ? void 0 : series.now) || Math.floor(Date.now() / 1e3);
@@ -4824,6 +5724,28 @@ function HostModal({ ctx, host, isOpen, onClose }) {
   const dim = loading && Boolean(series);
   const common = { xRange, seconds, dim };
   const noInstances = charts && charts.ports.length === 0;
+  const limits = useMemo(
+    () => chartLimits(settings, tickMsOf(series, hostRow == null ? void 0 : hostRow.snapshot)),
+    [settings, series, hostRow]
+  );
+  const allEvents = useMemo(() => {
+    const seen = new Set(events.map((e) => e.id));
+    return [...events, ...(openEvents(hostRow == null ? void 0 : hostRow.snapshot) || []).filter((e) => !seen.has(e.id))];
+  }, [events, hostRow]);
+  const found = useMemo(() => hostRow ? findings({
+    snapshot: hostRow.snapshot,
+    series: series || void 0,
+    events: allEvents,
+    settings,
+    range: (series == null ? void 0 : series.range) || range,
+    verdict: hostRow.verdict
+  }) : [], [hostRow, series, allEvents, settings, range]);
+  const hardware = (_a = hostRow == null ? void 0 : hostRow.snapshot) == null ? void 0 : _a.hardware;
+  const hwLine = hardwareLine(hardware);
+  const hwRows = hardwareDetails(hardware);
+  const lateMs = `${Math.round(limits.lateMs * 10) / 10} ms`;
+  const tickMs = `${Math.round(limits.tickMs * 10) / 10} ms`;
+  const [planPct, satPct] = limits.cpu.map((t) => `${t.value} %`);
   return /* @__PURE__ */ React.createElement(
     Modal,
     {
@@ -4831,21 +5753,32 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       onClose,
       size: "2xl",
       height: "85vh",
-      title: /* @__PURE__ */ React.createElement(React.Fragment, null, "Host Metrics", /* @__PURE__ */ React.createElement("span", { className: "mt-0.5 block font-mono text-xs font-normal normal-case tracking-normal text-theme-secondary" }, host == null ? void 0 : host.name, fetchedAt ? ` | loaded ${fmtTime(fetchedAt / 1e3, true)}` : "")),
-      headerActions: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { type: "button", className: "hm-btn", onClick: load, disabled: loading }, loading ? "Loading..." : "Refresh"), /* @__PURE__ */ React.createElement("button", { type: "button", className: "hm-btn", onClick: onClose, "aria-label": "Close" }, "Close")),
+      title: /* @__PURE__ */ React.createElement(React.Fragment, null, "Host Metrics", /* @__PURE__ */ React.createElement("span", { className: "mt-0.5 block font-mono text-xs font-normal normal-case tracking-normal text-theme-secondary" }, host == null ? void 0 : host.name, fetchedAt ? ` | loaded ${fmtTime(fetchedAt / 1e3, true)}` : ""), hwLine ? /* @__PURE__ */ React.createElement(
+        "span",
+        {
+          className: "block text-xs font-normal normal-case tracking-normal text-theme-secondary",
+          title: hwRows.map(([k, v]) => `${k}: ${v}`).join(" | ")
+        },
+        hwLine
+      ) : null),
+      headerActions: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { onClick: load, disabled: loading }, loading ? "Loading..." : "Refresh"), /* @__PURE__ */ React.createElement(Button, { onClick: onClose, "aria-label": "Close" }, "Close")),
       footer: /* @__PURE__ */ React.createElement(Footer, { ctx, host, isOpen })
     },
-    /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-modal-body" }, /* @__PURE__ */ React.createElement("div", { className: "hm-controls" }, /* @__PURE__ */ React.createElement("div", { className: "hm-range", role: "group", "aria-label": "Time range" }, RANGES.map((r) => /* @__PURE__ */ React.createElement("button", { key: r, type: "button", "aria-pressed": r === range, onClick: () => setRange(r) }, r))), series ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, series.res === "raw" ? "10 s samples" : "1 minute averages") : null), error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, !series && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading...") : null, charts ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "CPU per core"), charts.cores.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No core data in this range.") : /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, charts.cores.map((c) => /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-modal-body" }, /* @__PURE__ */ React.createElement("div", { className: "hm-controls" }, /* @__PURE__ */ React.createElement("div", { className: "hm-range", role: "group", "aria-label": "Time range" }, RANGES.map((r) => /* @__PURE__ */ React.createElement("button", { key: r, type: "button", "aria-pressed": r === range, onClick: () => setRange(r) }, r))), /* @__PURE__ */ React.createElement("label", { className: "hm-auto" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: autoRefresh, onChange: (e) => toggleAuto(e.target.checked) }), "Auto-refresh"), series ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, series.res === "raw" ? "10 s samples" : "1 minute averages") : null, fetchedAt ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, updatedText(fetchedAt, clock)) : null, refreshFailed ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "refresh failed, retrying") : null), hostRow ? /* @__PURE__ */ React.createElement("div", { className: "hm-overview" }, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Summary"), /* @__PURE__ */ React.createElement("ul", { className: "hm-summary" }, hostRow.state === "outdated" ? /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement(FindingLine, { finding: { level: "warning", area: "data", text: "The collector on this host is outdated: use Apply to host below." } })) : null, found.map((f, i) => /* @__PURE__ */ React.createElement("li", { key: `${f.area}-${i}` }, /* @__PURE__ */ React.createElement(FindingLine, { finding: f })))), found.some((f) => /p95/.test(f.text)) ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, P95_GLOSS) : null), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Hardware"), hwRows.length ? /* @__PURE__ */ React.createElement("dl", { className: "hm-hw" }, hwRows.map(([k, v]) => /* @__PURE__ */ React.createElement(React.Fragment, { key: k }, /* @__PURE__ */ React.createElement("dt", null, k), /* @__PURE__ */ React.createElement("dd", null, v)))) : /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Not read yet: the collector reads it at start and every hour (collector 1.1 or later)."))) : null, error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, !series && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading...") : null, charts ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "CPU per core"), charts.cores.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, EMPTY_NO_DATA) : /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, charts.cores.map((c) => /* @__PURE__ */ React.createElement(
       ChartCard,
       {
         key: c.core,
         title: c.core < 0 ? "All cores" : `Core ${c.core}`,
         subtitle: "% of the core, stacked",
+        howTo: `${c.core < 0 ? "Average load of all cores" : "How busy this core is"}, split by who used it; the top of the stack is the total. Sustained above the dashed ${planPct} line means no room for more servers on it; at ${satPct} the core is saturated and players see lag.`,
+        direction: "lower",
+        finding: c.core < 0 ? null : findingFor(found, "cpu", { core: c.core }),
         series: [
-          { label: "User", slot: 1 },
-          { label: "System", slot: 2 },
-          { label: "Steal", slot: 3 }
+          { label: "User", slot: 1, hint: "Time spent in programs, the game servers included." },
+          { label: "System", slot: 2, hint: "Time spent in the kernel (network, disk, scheduling)." },
+          { label: "Steal", slot: 3, hint: "Time the provider gave to other virtual machines on the same hardware." }
         ],
+        thresholds: limits.cpu,
         xs: c.xs,
         columns: c.columns,
         stacked: true,
@@ -4853,20 +5786,45 @@ function HostModal({ ctx, host, isOpen, onClose }) {
         yFmt: fmtPct,
         axisFmt: pct0,
         yRange: () => [0, 100],
+        emptyText: EMPTY_NO_DATA,
         ...common
       }
-    )))), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "CPU per instance"), noInstances ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No instance data in this range.") : /* @__PURE__ */ React.createElement("div", { className: "flex flex-col gap-3" }, /* @__PURE__ */ React.createElement(
+    )), charts.steal ? /* @__PURE__ */ React.createElement(
+      ChartCard,
+      {
+        title: "Steal",
+        subtitle: "% of CPU time, all cores",
+        howTo: `CPU time the provider took for other customers on the same hardware. Sustained above the dashed ${limits.steal[0].value} % line means a noisy neighbour: the host is slower than its specification.`,
+        direction: "lower",
+        finding: findingFor(found, "steal"),
+        series: [{ label: "Steal", slot: 3, hint: "Share of CPU time taken by the hypervisor for other virtual machines." }],
+        thresholds: limits.steal,
+        xs: charts.steal.xs,
+        columns: [charts.steal.column],
+        height: 120,
+        yFmt: fmtPct,
+        axisFmt: pct0,
+        yRange: (max2) => [0, Math.max(2, max2 * 1.1)],
+        emptyText: EMPTY_NO_DATA,
+        ...common
+      }
+    ) : null)), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "CPU per instance"), noInstances ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No game server ran on this host in this range.") : /* @__PURE__ */ React.createElement("div", { className: "flex flex-col gap-3" }, /* @__PURE__ */ React.createElement(
       ChartCard,
       {
         title: "CPU",
         subtitle: "% of one core",
-        series: charts.portSeries(false),
+        howTo: `% of one CPU core used by each server. Sustained above the dashed ${planPct} line means no room for more servers; at ${satPct} the server's core is saturated.`,
+        direction: "lower",
+        finding: findingFor(found, "room"),
+        series: charts.portSeries(false, (p) => `CPU of the server on port ${p}, in % of one core.`),
+        thresholds: limits.cpu,
         xs: charts.instXs,
         columns: charts.cpu,
         height: 150,
         yFmt: fmtPct,
         axisFmt: pct0,
-        yRange: (max2) => [0, Math.max(10, max2 * 1.1)],
+        yRange: (max2) => [0, Math.max(100, max2 * 1.1)],
+        emptyText: EMPTY_NO_DATA,
         ...common
       }
     ), /* @__PURE__ */ React.createElement(
@@ -4874,24 +5832,34 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       {
         title: "Players",
         subtitle: "same time axis as CPU",
-        series: charts.portSeries(true),
+        howTo: "Players connected to each server. Read it with the CPU chart above: CPU and frame peaks during matches matter, peaks on an empty server do not.",
+        direction: "context",
+        series: charts.portSeries(true, (p) => `Players connected to the server on port ${p}.`),
         xs: charts.instXs,
         columns: charts.players,
         height: 90,
         yFmt: int,
+        yLabel: "players",
         yRange: (max2) => [0, Math.max(4, Math.ceil(max2))],
+        emptyText: EMPTY_NO_DATA,
         ...common
       }
-    ))), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Frame timing per instance"), noInstances ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No instance data in this range.") : /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, /* @__PURE__ */ React.createElement(
+    ))), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Frame timing per instance"), noInstances ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No game server ran on this host in this range.") : /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, /* @__PURE__ */ React.createElement(
       ChartCard,
       {
         title: "Max frame gap",
-        series: charts.portSeries(false),
+        subtitle: "ms between two server frames",
+        howTo: `Longest pause between two server frames. The server should run a frame every ${tickMs} (first dashed line); a gap above ${lateMs} is a late frame and players see a hitch.`,
+        direction: "lower",
+        finding: findingFor(found, "frames"),
+        series: charts.portSeries(false, (p) => `Longest frame gap of the server on port ${p} in each sample.`),
+        thresholds: limits.frameGap,
         xs: charts.instXs,
         columns: charts.maxGap,
         height: 130,
         yFmt: ms,
         yRange: (max2) => [0, Math.max(10, max2 * 1.1)],
+        emptyText: EMPTY_NO_FRAMES,
         ...common
       }
     ), /* @__PURE__ */ React.createElement(
@@ -4899,12 +5867,16 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       {
         title: "Late frames",
         subtitle: charts.lateUnit,
-        series: charts.portSeries(true),
+        howTo: `Server frames that came more than ${lateMs} after the previous one, ${charts.lateUnit}. The goal is 0; every late frame is a hitch players can feel.`,
+        direction: "lower",
+        series: charts.portSeries(true, (p) => `Late frames of the server on port ${p}, ${charts.lateUnit}.`),
         xs: charts.instXs,
         columns: charts.late,
         height: 130,
         yFmt: int,
+        yLabel: "frames",
         yRange: (max2) => [0, Math.max(4, Math.ceil(max2 * 1.1))],
+        emptyText: EMPTY_NO_FRAMES,
         ...common
       }
     ))), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Memory"), /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, /* @__PURE__ */ React.createElement(
@@ -4912,24 +5884,35 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       {
         title: "Host memory",
         subtitle: charts.memTotal ? `of ${fmtBytes(charts.memTotal)}` : void 0,
-        series: [{ label: "Used", slot: 1 }, { label: "Swap", slot: 2 }],
+        howTo: `RAM in use on the host (the top of the scale is all of it) and swap. Above the dashed line the ${limits.memReservePct} % reserve is eaten into: no room for more servers. Swap in use means RAM ran short.`,
+        direction: "lower",
+        finding: findingFor(found, "memory"),
+        series: [
+          { label: "Used", slot: 1, hint: "RAM in use: total minus available." },
+          { label: "Swap", slot: 2, hint: "Swap in use; above zero means RAM ran short at some point." }
+        ],
+        thresholds: limits.memReserve(charts.memTotal),
         xs: charts.hostXs,
         columns: [charts.memUsed, charts.swap],
         height: 130,
         yFmt: fmtBytes,
         yRange: (max2) => [0, charts.memTotal || Math.max(1, max2 * 1.1)],
+        emptyText: EMPTY_NO_DATA,
         ...common
       }
     ), noInstances ? null : /* @__PURE__ */ React.createElement(
       ChartCard,
       {
         title: "Memory per instance",
-        series: charts.portSeries(false),
+        howTo: "RAM used by each server. A flat line is normal; a line that keeps rising over days points to a leak.",
+        direction: "lower",
+        series: charts.portSeries(false, (p) => `RAM used by the server on port ${p}.`),
         xs: charts.instXs,
         columns: charts.instMem,
         height: 130,
         yFmt: fmtBytes,
         yRange: (max2) => [0, Math.max(1, max2 * 1.1)],
+        emptyText: EMPTY_NO_DATA,
         ...common
       }
     ))), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Network and disk"), /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, /* @__PURE__ */ React.createElement(
@@ -4937,12 +5920,18 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       {
         title: "Network",
         subtitle: "bytes per second",
-        series: [{ label: "Received", slot: 1 }, { label: "Sent", slot: 2 }],
+        howTo: "Traffic in and out of the host. No good or bad value: it grows with players; a jump without players is worth a look.",
+        direction: "context",
+        series: [
+          { label: "Received", slot: 1, hint: "Bytes per second coming into the host." },
+          { label: "Sent", slot: 2, hint: "Bytes per second going out of the host." }
+        ],
         xs: charts.hostXs,
         columns: [charts.rx, charts.tx],
         height: 130,
         yFmt: rate,
         yRange: (max2) => [0, Math.max(1024, max2 * 1.1)],
+        emptyText: EMPTY_NO_DATA,
         ...common
       }
     ), /* @__PURE__ */ React.createElement(
@@ -4950,13 +5939,18 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       {
         title: "Disk",
         subtitle: "root filesystem used",
-        series: [{ label: "Used", slot: 1 }],
+        howTo: `Share of the root filesystem (/) in use. Above the dashed ${limits.disk[0].value} % line the collector reports disk low; a full disk stops logs and data from being written.`,
+        direction: "lower",
+        finding: findingFor(found, "disk"),
+        series: [{ label: "Used", slot: 1, hint: "Used space of / in % of its size." }],
+        thresholds: limits.disk,
         xs: charts.hostXs,
         columns: [charts.disk],
         height: 130,
         yFmt: fmtPct,
         axisFmt: pct0,
         yRange: () => [0, 100],
+        emptyText: EMPTY_NO_DATA,
         ...common
       }
     )))) : null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Events"), /* @__PURE__ */ React.createElement(EventsTable, { events, dim })))
@@ -4967,20 +5961,27 @@ function HostPanel({ ctx }) {
   return /* @__PURE__ */ React.createElement(HostModal, { ctx, host: modal.entity, isOpen: Boolean(modal.isOpen), onClose: modal.onClose });
 }
 export {
+  Button as B,
   HostModal as H,
+  P95_GLOSS as P,
   React as R,
-  fmtPct as a,
-  stateLabel as b,
-  staleInfo as c,
-  diskUsedPct as d,
+  hostHealth as a,
+  fmtTime as b,
+  healthCounts as c,
+  hardwareLine as d,
   eventsTotal as e,
-  fmtTime as f,
-  statusLabel as g,
-  corePeaks as h,
-  fmtBytes as i,
-  HostPanel as j,
+  findings as f,
+  slotsText as g,
+  hostIdFromSearch as h,
+  corePeaks as i,
+  fmtPct as j,
+  diskUsedPct as k,
   lateFrames24h as l,
+  fmtDuration as m,
+  fmtBytes as n,
+  openEvents as o,
   playersNow as p,
+  HostPanel as q,
   refNote as r,
-  slotsText as s
+  sortByHealth as s
 };

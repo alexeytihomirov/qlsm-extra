@@ -154,7 +154,7 @@ def test_no_busy_samples_anywhere_gives_no_slot_count():
     assert r["slots"] is None
     assert r["status"] == "unknown"
     assert r["ref_load"] is None and r["ref_source"] is None
-    assert "no data under load" in r["reason"]
+    assert "no data yet" in r["reason"]
 
 
 def test_no_data_still_overloaded_by_steal_or_events():

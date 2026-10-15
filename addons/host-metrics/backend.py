@@ -7,6 +7,9 @@
   Update Plugins does not fire host.payload_sync: use Apply to host after an
   addon update or a settings change.
 - The status route runs playbooks/status_host_metrics.yml.
+- On a qlsm core with poller.tick and ctx.notify, on_tick puts host problems under
+  the notification bell (notifier.py); an older core gets neither and loses nothing
+  else.
 
 Contract with the playbooks: sync gets hm_enabled (bool), hm_version (the
 manifest version, written to VERSION) and hm_config_json (settings.
@@ -19,13 +22,15 @@ Every route needs a logged-in qlsm user (@jwt_required).
 import json
 import re
 import statistics
+import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from types import SimpleNamespace
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required
 
+from . import notifier as hm_notifier
 from . import settings as hm_settings
 from . import ssh as hm_ssh
 from . import verdict as hm_verdict
@@ -123,7 +128,14 @@ def parse_status(stdout, expected_version):
 # ---- routes -------------------------------------------------------------------
 
 def _editable(values):
-    return {key: str(values.get(key, hm_settings.DEFAULTS[key])) for key in hm_settings.EDITABLE_KEYS}
+    out = {key: str(values.get(key, hm_settings.DEFAULTS[key])) for key in hm_settings.FIELDS}
+    try:
+        enabled, severity = hm_settings.notify_settings(values)
+    except ValueError:
+        enabled, severity = (hm_settings.NOTIFY_DEFAULTS['notify_enabled'],
+                             hm_settings.NOTIFY_DEFAULTS['notify_min_severity'])
+    out.update(notify_enabled=enabled, notify_min_severity=severity)
+    return out
 
 
 @bp.route('/settings', methods=['GET'], endpoint='get_settings')
@@ -149,7 +161,8 @@ def put_settings():
     except ValueError as e:
         return _error(str(e), 400)
     try:
-        values = CTX.settings.set('global', 0, {k: str(v) for k, v in checked.items()})
+        values = CTX.settings.set('global', 0, {k: v if isinstance(v, bool) else str(v)
+                                                for k, v in checked.items()})
     except ValueError as e:
         db.session.rollback()
         return _error(str(e), 400)
@@ -453,6 +466,172 @@ def host_events(host_id):
     return _passthrough(host_id, ['events', '--range', range_])
 
 
+# ---- bell notifications (qlsm's poller.tick + ctx.notify, newer cores only) -------
+#
+# on_tick runs in the `flask run-status-poller` process, inline in its 15 s loop: real
+# work only every NOTIFY_EVERY_TICKS-th tick, all hosts' snapshots in parallel (the 5 s
+# path of the host list) and a hard budget, so a slow or dead host cannot stall the
+# poller. State-based (ruling R8, notifier.py): desired keys from the snapshots, notify
+# them all, resolve open ones absent twice in a row. Redis keeps the absent counts and
+# each host's outage start, so a poller restart does not reset the 5-minute clock.
+
+NOTIFY_EVERY_TICKS = 4
+NOTIFY_BUDGET_SECONDS = 8.0
+NOTIFY_GATHER_SECONDS = 6.5     # waiting for the hosts; the rest is for the DB writes
+NOTIFY_STATE_KEY = 'addon:host-metrics:notify:absent'
+NOTIFY_DOWN_KEY = 'addon:host-metrics:notify:%d:down'
+NOTIFY_STATE_TTL = 7 * 86400
+
+_TICKS = [0]
+
+
+def _wall():
+    return time.time()
+
+
+def _notify_capable():
+    return hasattr(CTX, 'notify') and hasattr(CTX, 'resolve')
+
+
+def on_tick():
+    """poller.tick handler. Never raises: a failure is logged and the poller goes on."""
+    try:
+        count = _TICKS[0]
+        _TICKS[0] = count + 1
+        if count % NOTIFY_EVERY_TICKS:
+            return
+        notify_check()
+    except Exception:
+        try:
+            CTX.logger.warning('host-metrics: notification check failed', exc_info=True)
+        except Exception:
+            pass
+
+
+def _redis_json(client, key):
+    raw = client.get(key)
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return None
+
+
+def _open_keys():
+    """Keys of this addon's open notifications, read through core's model; None on a core
+    without it (then nothing is resolved)."""
+    try:
+        from ui.models import Notification
+    except ImportError:
+        return None
+    source = getattr(CTX, 'addon_id', None) or 'host-metrics'
+    rows = (Notification.query.with_entities(Notification.key)
+            .filter_by(source=source, resolved_at=None).all())
+    return {row[0] for row in rows if row[0]}
+
+
+def _result(future):
+    if future is None or not future.done() or future.cancelled():
+        return None
+    try:
+        return future.result()
+    except Exception:
+        return None
+
+
+def _gather(connections, expected_version):
+    """{host_id: snapshot row}; a host not back within NOTIFY_GATHER_SECONDS gets None
+    (the worker threads finish on their own SSH timeouts, the check does not wait)."""
+    if not connections:
+        return {}
+    pool = ThreadPoolExecutor(max_workers=max(1, min(FETCH_WORKERS * 2, len(connections))))
+    try:
+        jobs = {c.id: pool.submit(_fetch_snapshot, c, expected_version) for c in connections}
+        wait(list(jobs.values()), timeout=NOTIFY_GATHER_SECONDS)
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+    return {host_id: _result(future) for host_id, future in jobs.items()}
+
+
+def notify_check():
+    """One reconciliation pass (app context). Reads first, every DB write at the end."""
+    if not _notify_capable():
+        return
+    started = time.monotonic()
+    client = _redis()
+    if client is None:
+        return
+    from ui.models import Host
+
+    try:
+        enabled, min_severity = hm_settings.notify_settings(CTX.settings.get('global', 0))
+    except ValueError as e:
+        CTX.logger.warning('host-metrics: notification settings invalid, treated as off: %s', e)
+        enabled, min_severity = False, 'warning'
+    hosts = Host.query.order_by(Host.id).all()
+    active = [h for h in hosts if CTX.settings.get('host', h.id).get('enabled')] if enabled else []
+    connections = [_safe_connection(h) for h in active]
+    active_ids = {h.id for h in active}
+    for h in hosts:
+        if h.id not in active_ids:
+            client.delete(NOTIFY_DOWN_KEY % h.id)   # a later switch-on starts a fresh clock
+    snaps = _gather(connections, CTX.manifest.get('version') or '')
+
+    wall_now = _wall()
+    desired, unknown = {}, set()
+    for conn in connections:
+        snap = snaps.get(conn.id) or {'state': 'unreachable', 'snapshot': None}
+        snapshot = snap.get('snapshot')
+        down_redis = NOTIFY_DOWN_KEY % conn.id
+        down, item = hm_notifier.down_update(
+            conn.id, conn.name, snap.get('state'), data_age(snapshot) if snapshot else None,
+            _redis_json(client, down_redis), wall_now, min_severity)
+        if down:
+            client.setex(down_redis, NOTIFY_STATE_TTL, json.dumps(down))
+        else:
+            client.delete(down_redis)
+        if item:
+            desired[hm_notifier.down_key(conn.id)] = item
+        events = (hm_notifier.host_events_desired(conn.id, conn.name, snapshot, min_severity)
+                  if snap.get('state') in hm_notifier.FRESH_STATES else None)
+        if events is None:
+            unknown.add(conn.id)
+        else:
+            desired.update(events)
+
+    # ---- DB writes (ctx.notify / ctx.resolve commit), nothing else touches the DB below
+    resolve_keys, absent = hm_notifier.reconcile(
+        desired, {c.id for c in connections}, unknown, _open_keys(),
+        _redis_json(client, NOTIFY_STATE_KEY) or {})
+    client.setex(NOTIFY_STATE_KEY, NOTIFY_STATE_TTL, json.dumps(absent))
+    writes = [('resolve', k, None) for k in resolve_keys]
+    writes += [('notify', k, desired[k]) for k in sorted(desired)]
+    for action, k, item in writes:
+        if time.monotonic() - started > NOTIFY_BUDGET_SECONDS:
+            CTX.logger.warning('host-metrics: notification check over %.0f s, rest next check',
+                               NOTIFY_BUDGET_SECONDS)
+            break
+        try:
+            if action == 'resolve':
+                CTX.resolve(k)
+            else:
+                severity, title, body = item
+                CTX.notify(severity, title, body, hm_notifier.link(hm_notifier.host_of_key(k)), k)
+        except Exception as e:
+            CTX.logger.warning('host-metrics: %s of %s failed (retried next check): %s',
+                               action, k, e)
+
+
+def _core_has_hook(name):
+    """An older qlsm core lacks poller.tick, and ctx.on() raises for an unknown hook."""
+    try:
+        from ui.addons.hooks import HOOK_SCOPES
+    except Exception:
+        return False
+    return name in HOOK_SCOPES
+
+
 def register(ctx):
     global CTX
     CTX = ctx
@@ -473,3 +652,7 @@ def register(ctx):
         if not host_enabled(host_id):
             return
         apply_host(host_id)
+
+    if _core_has_hook('poller.tick'):
+        # bell notifications; on_tick itself checks that the core has ctx.notify
+        ctx.on('poller.tick', on_tick)

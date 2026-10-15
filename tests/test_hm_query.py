@@ -256,3 +256,75 @@ def test_version_file(tmp_path, capsys, monkeypatch):
     (tmp_path / "VERSION").write_text("1.2.3\n")
     code, r = _run(capsys, "--db", str(tmp_path / "nope.db"), "snapshot")
     assert code == 3 and r["version"] == "1.2.3"
+
+
+def test_snapshot_hardware_from_store(db, capsys):
+    conn = hm_store.open_db(db)
+    hm_store.set_hardware(conn, NOW, {"cpu_model": "AMD EPYC-Rome Processor", "vcpus": 2})
+    conn.close()
+    code, s = _run(capsys, "--db", str(db), "--now", str(NOW), "snapshot")
+    assert code == 0
+    assert s["hardware"] == {"cpu_model": "AMD EPYC-Rome Processor", "vcpus": 2}
+
+
+def test_snapshot_hardware_none_before_first_read(db, capsys):
+    code, s = _run(capsys, "--db", str(db), "--now", str(NOW), "snapshot")
+    assert code == 0 and s["hardware"] is None
+
+
+def test_snapshot_events_open_oldest_first_whatever_their_age(tmp_path, capsys):
+    p, a, b = _events_db(tmp_path)
+    conn = hm_store.open_db(p)
+    old = hm_store.insert_event(conn, NOW - 3 * 86400, "disk_low", "host", None, "crit", "d")
+    conn.close()
+    code, s = _run(capsys, "--db", str(p), "--now", str(NOW), "snapshot")
+    assert code == 0
+    # a is closed; an event opened 3 days ago and still open is reported (no 24 h window)
+    assert [e["id"] for e in s["events_open"]] == [old, b]
+    assert s["events_open"][0]["severity"] == "crit" and s["events_open"][0]["ts"] == NOW - 3 * 86400
+    assert all(e["state"] == "open" for e in s["events_open"])
+
+
+def test_empty_store_snapshot_has_no_open_events(tmp_path, capsys):
+    p = tmp_path / "m.db"
+    hm_store.open_db(p).close()
+    _, s = _run(capsys, "--db", str(p), "--now", str(NOW), "snapshot")
+    assert s["events_open"] == []
+
+
+def _events_db(tmp_path):
+    p = tmp_path / "e.db"
+    conn = hm_store.open_db(p)
+    a = hm_store.insert_event(conn, NOW - 500, "mem_low", "host", None, "warn", "a")
+    b = hm_store.insert_event(conn, NOW - 400, "frames_late", "inst", PORT, "warn", "b")
+    hm_store.close_event(conn, a, NOW - 100)
+    conn.close()
+    return p, a, b
+
+
+def test_events_since_returns_opened_and_closed_after(tmp_path, capsys):
+    p, a, b = _events_db(tmp_path)
+    code, r = _run(capsys, "--db", str(p), "--now", str(NOW), "events", "--since",
+                   str(NOW - 450))
+    assert code == 0
+    assert r["now"] == NOW and r["since"] == NOW - 450 and "version" in r and "range" not in r
+    assert [e["id"] for e in r["events"]] == [b, a]  # b changed at -400, a closed at -100
+    assert set(r["events"][0]) == {"id", "ts", "closed_ts", "kind", "scope", "port",
+                                   "severity", "state", "message"}
+    assert r["events"][1]["state"] == "closed" and r["events"][1]["closed_ts"] == NOW - 100
+    # a opened before since but closed after it: still reported
+    _, r = _run(capsys, "--db", str(p), "--now", str(NOW), "events", "--since", str(NOW - 200))
+    assert [e["id"] for e in r["events"]] == [a]
+    _, r = _run(capsys, "--db", str(p), "--now", str(NOW), "events", "--since", "0")
+    assert len(r["events"]) == 2
+    _, r = _run(capsys, "--db", str(p), "--now", str(NOW), "events", "--since", str(NOW))
+    assert r["events"] == []
+
+
+def test_events_since_bad_args_exit_2(tmp_path):
+    p, _, _ = _events_db(tmp_path)
+    for extra in (["--since", "-1"], ["--since", "abc"], ["--since", "1.5"],
+                  ["--since", "5", "--range", "24h"], []):
+        with pytest.raises(SystemExit) as e:
+            hm_query.main(["--db", str(p), "events"] + extra)
+        assert e.value.code == 2

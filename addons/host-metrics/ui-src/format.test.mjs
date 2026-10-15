@@ -28,8 +28,8 @@ test('statusLabel: text and tone per verdict status', () => {
   assert.deepEqual(statusLabel('ok'), { text: 'OK', tone: 'good' });
   assert.deepEqual(statusLabel('tight'), { text: 'Tight', tone: 'warning' });
   assert.deepEqual(statusLabel('overloaded'), { text: 'Overloaded', tone: 'critical' });
-  assert.deepEqual(statusLabel('unknown'), { text: 'No data under load', tone: 'neutral' });
-  assert.deepEqual(statusLabel(undefined), { text: 'No data under load', tone: 'neutral' });
+  assert.deepEqual(statusLabel('unknown'), { text: 'No data yet', tone: 'neutral' });
+  assert.deepEqual(statusLabel(undefined), { text: 'No data yet', tone: 'neutral' });
 });
 
 test('slotsText: room for N more, no room, dash without a count', () => {

@@ -2,6 +2,7 @@
 
 Stdlib only. One writer (the collector) and separate readers (query CLI) via WAL.
 """
+import json
 import sqlite3
 from pathlib import Path
 
@@ -51,6 +52,8 @@ CREATE TABLE IF NOT EXISTS events(
   message TEXT, closed_ts INTEGER);
 CREATE INDEX IF NOT EXISTS events_ts ON events(ts);
 CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS hardware(
+  id INTEGER PRIMARY KEY CHECK(id=1), ts INTEGER, data TEXT);
 """
 
 
@@ -246,3 +249,38 @@ def close_all_open(conn, ts):
 def events(conn, since):
     """Events with ts >= since, newest first."""
     return _rows(conn, "SELECT * FROM events WHERE ts>=? ORDER BY ts DESC, id DESC", (since,))
+
+
+def events_open(conn):
+    """Events still open, oldest first (whatever their age: the snapshot's 'since when')."""
+    return _rows(conn, "SELECT * FROM events WHERE state='open' ORDER BY ts, id", ())
+
+
+def events_changed_since(conn, ts):
+    """Events opened or closed after ts (ts > since or closed_ts > since), oldest change first."""
+    return _rows(
+        conn,
+        "SELECT * FROM events WHERE ts>? OR closed_ts>?"
+        " ORDER BY MAX(ts, COALESCE(closed_ts, 0)), id", (ts, ts))
+
+
+def set_hardware(conn, ts, hw):
+    """Replace the single hardware row."""
+    with conn:
+        conn.execute("INSERT OR REPLACE INTO hardware(id, ts, data) VALUES(1, ?, ?)",
+                     (ts, json.dumps(hw, sort_keys=True)))
+
+
+def get_hardware(conn):
+    """The stored hardware dict, None when absent (also on a DB from before the table)."""
+    try:
+        row = conn.execute("SELECT data FROM hardware WHERE id=1").fetchone()
+    except sqlite3.OperationalError:
+        return None
+    if not row:
+        return None
+    try:
+        val = json.loads(row[0])
+    except (TypeError, ValueError):
+        return None
+    return val if isinstance(val, dict) else None

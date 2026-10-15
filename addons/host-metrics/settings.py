@@ -1,4 +1,5 @@
-"""Settings of the host-metrics addon -> the collector's config.json and the verdict knobs.
+"""Settings of the host-metrics addon -> the collector's config.json, the verdict knobs and
+the bell notification switches.
 
 Pure and stdlib only: values arrive as strings (manifest `string` settings) or numbers; a bad
 value raises ValueError naming the field, so nothing unchecked reaches config.json.
@@ -29,8 +30,11 @@ VERDICT_FIELDS = {
     'steal_overload_pct': (15, 0, 100),
 }
 FIELDS = dict(THRESHOLD_FIELDS, **VERDICT_FIELDS)
-EDITABLE_KEYS = tuple(FIELDS)
 DEFAULTS = {key: str(spec[0]) for key, spec in FIELDS.items()}
+# Bell notifications (qlsm cores with ctx.notify): backend only, never in config.json.
+NOTIFY_SEVERITIES = ('info', 'warning', 'critical')
+NOTIFY_DEFAULTS = {'notify_enabled': True, 'notify_min_severity': 'warning'}
+EDITABLE_KEYS = tuple(FIELDS) + tuple(NOTIFY_DEFAULTS)
 
 
 def addon_version():
@@ -55,9 +59,38 @@ def _number(values, key):
     return number
 
 
+def _notify_enabled(values):
+    raw = values.get('notify_enabled')
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return NOTIFY_DEFAULTS['notify_enabled']
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, str) and raw.strip().lower() in ('true', 'false', '1', '0'):
+        return raw.strip().lower() in ('true', '1')
+    raise ValueError('notify_enabled must be true or false.')
+
+
+def _notify_min_severity(values):
+    raw = values.get('notify_min_severity')
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return NOTIFY_DEFAULTS['notify_min_severity']
+    text = raw.strip().lower() if isinstance(raw, str) else None
+    if text not in NOTIFY_SEVERITIES:
+        raise ValueError('notify_min_severity must be one of: %s.' % ', '.join(NOTIFY_SEVERITIES))
+    return text
+
+
+def notify_settings(values):
+    """(enabled, minimum severity) of the bell notifications. Raises ValueError naming the field."""
+    return _notify_enabled(values), _notify_min_severity(values)
+
+
 def validate_settings(values):
-    """Every editable key checked; returns {key: int}. Raises ValueError naming the field."""
-    return {key: _number(values, key) for key in FIELDS}
+    """Every editable key checked; returns {key: int} for the numbers plus notify_enabled
+    (bool) and notify_min_severity (str). Raises ValueError naming the field."""
+    checked = {key: _number(values, key) for key in FIELDS}
+    checked['notify_enabled'], checked['notify_min_severity'] = notify_settings(values)
+    return checked
 
 
 def collector_config(values):

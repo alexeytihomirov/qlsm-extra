@@ -123,7 +123,7 @@ def verdict(inp, settings, fleet_busy_median):
         return result("tight", "steal p95 %s%% > %s%%, noisy neighbour" % (_g(steal), _g(steal_tight)))
 
     if slots is None:
-        return result("unknown", "no data under load")
+        return result("unknown", "no data yet")
     if mem_slots is not None and slots == mem_slots and (cpu_text is None or mem_slots < cpu_slots):
         return result("ok", "room for %d more, %s" % (slots, mem_text))
     return result("ok", "room for %d more, %s" % (slots, cpu_text))
