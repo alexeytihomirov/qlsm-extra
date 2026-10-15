@@ -296,11 +296,11 @@ export function ChartCard({
     if (uRef.current && width > 40) uRef.current.setSize({ width, height });
   }, [width, height]);
 
-  const idx = hover ? hover.idx : null;
-  const valueAt = (col) => {
-    const v = idx !== null ? col[idx] : lastValue(col);
-    return v === null || v === undefined ? 'no data' : yFmt(v);
-  };
+  // The legend never changes on hover (latest value and peak), so the card
+  // keeps its layout; the value under the crosshair lives in the tooltip.
+  const fmtValue = (v) => (v === null || v === undefined ? 'no data' : yFmt(v));
+  const latestAt = (col) => fmtValue(lastValue(col));
+  const hoveredAt = (col) => fmtValue(hover ? col[hover.idx] : lastValue(col));
   const flipLeft = hover && width && hover.left > width * 0.6;
 
   return (
@@ -322,8 +322,8 @@ export function ChartCard({
               style={{ background: slotVar(s.slot) }}
             />
             <span>{s.label}</span>
-            <span className="hm-legend-value">{valueAt(columns[i] || [])}</span>
-            {idx === null && peaks[i] !== null ? (
+            <span className="hm-legend-value">{latestAt(columns[i] || [])}</span>
+            {peaks[i] !== null ? (
               <span className="hm-muted">peak {yFmt(peaks[i])}</span>
             ) : null}
           </span>
@@ -334,7 +334,7 @@ export function ChartCard({
             <span>{t.label}</span>
           </span>
         ))}
-        <span className="hm-muted">{idx !== null ? fmtTime(xs[idx], seconds) : 'latest values; peak over the range'}</span>
+        <span className="hm-muted">latest values; peak over the range</span>
       </div>
       <div className="hm-chart" ref={wrapRef}>
         {hasData ? (
@@ -352,7 +352,7 @@ export function ChartCard({
                   <div className="hm-tip-row" key={s.label}>
                     <span className="hm-swatch-line" style={{ background: slotVar(s.slot) }} />
                     <span className="hm-tip-name">{s.label}</span>
-                    <span className="hm-tip-val">{valueAt(columns[i] || [])}</span>
+                    <span className="hm-tip-val">{hoveredAt(columns[i] || [])}</span>
                   </div>
                 ))}
               </div>
