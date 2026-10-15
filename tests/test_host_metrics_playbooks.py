@@ -15,6 +15,7 @@ import yaml
 pytestmark = pytest.mark.standalone
 
 ADDON = Path(__file__).resolve().parent.parent / 'addons' / 'host-metrics'
+VERSION = json.loads((ADDON / 'qlsm-addon.json').read_text(encoding='utf-8'))['version']
 PLAYBOOKS = ADDON / 'playbooks'
 ASSETS = ADDON / 'assets'
 NAMES = ('sync_host_metrics.yml', 'status_host_metrics.yml')
@@ -186,7 +187,7 @@ def test_collector_config_defaults():
         'thresholds': {'core_saturated_pct': 95, 'steal_event_pct': 10, 'mem_low_pct': 10,
                        'disk_low_pct': 90, 'frames_late_pct': 1, 'frame_gap_ms': 100,
                        'event_window_s': 60},
-        'version': '1.1.0',
+        'version': VERSION,
     }
     assert _settings().collector_config(GLOBAL_DEFAULTS) == config
 

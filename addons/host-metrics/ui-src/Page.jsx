@@ -18,7 +18,7 @@ const STATUS_LABEL = { problem: 'Problem', watch: 'Watch', nodata: 'No data', ok
 const STATUS_HINT = {
   problem: 'Overloaded, an open critical event, or the host does not answer.',
   watch: 'Tight capacity, noisy neighbour, stale data, or warnings in the last 24 hours.',
-  nodata: 'Not installed, or no data under load yet.',
+  nodata: 'Not installed, or no data yet.',
   ok: 'Room for more and nothing to look at.',
 };
 

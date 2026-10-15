@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 ADDON_DIR = Path(__file__).resolve().parent.parent / 'addons' / 'host-metrics'
+VERSION = json.loads((ADDON_DIR / 'qlsm-addon.json').read_text(encoding='utf-8'))['version']
 API = '/api/addons/host-metrics'
 MODULE = 'qlsm_addon_host_metrics'
 
@@ -36,7 +37,7 @@ def test_manifest_validates(app):
     manifest, errors = read_manifest(str(ADDON_DIR))
     assert errors == []
     assert manifest['id'] == 'host-metrics'
-    assert manifest['version'] == '1.1.0'
+    assert manifest['version'] == VERSION
     assert manifest['scopes'] == ['global', 'host']
     fields = {f['key']: f for f in manifest['settings']['global']}
     assert {k: f['default'] for k, f in fields.items()} == SETTINGS
@@ -184,7 +185,7 @@ def test_status_is_parsed_from_the_playbook(app, client, auth, monkeypatch):
     assert response.status_code == 200
     data = response.get_json()['data']
     assert data == {'version': '1.0.0', 'service': 'active', 'db_bytes': 1234567,
-                    'expected_version': '1.1.0', 'error': None}
+                    'expected_version': VERSION, 'error': None}
     assert fake.calls == [(host_id, 'status_host_metrics.yml', {})]
 
 
@@ -209,7 +210,7 @@ def test_status_of_an_unreachable_host_is_200_with_nulls(app, client, auth, monk
     assert response.status_code == 200
     data = response.get_json()['data']
     assert data['version'] is None and data['service'] is None and data['db_bytes'] is None
-    assert data['expected_version'] == '1.1.0' and data['error']
+    assert data['expected_version'] == VERSION and data['error']
     assert client.get(f'{API}/hosts/9999/status', headers=auth).status_code == 404
 
 
@@ -250,9 +251,9 @@ def test_payload_sync_deploys_an_enabled_host(app, monkeypatch):
     called_host, name, extravars = fake.calls[0]
     assert (called_host, name) == (host_id, 'sync_host_metrics.yml')
     assert extravars['hm_enabled'] is True
-    assert extravars['hm_version'] == '1.1.0'
+    assert extravars['hm_version'] == VERSION
     config = json.loads(extravars['hm_config_json'])
-    assert config['version'] == '1.1.0' and config['redis_db'] == 1
+    assert config['version'] == VERSION and config['redis_db'] == 1
     assert config['thresholds']['event_window_s'] == 60
     assert not any(k.startswith('verdict') for k in config['thresholds'])
 
@@ -341,7 +342,7 @@ def test_apply_on_an_unknown_host_is_404(client, auth, queue):
 
 # ---- read routes over ssh ---------------------------------------------------------
 
-def _snapshot(version='1.1.0', busy=30.0):
+def _snapshot(version=VERSION, busy=30.0):
     return {'version': version, 'now': 1, 'cores': 2, 'mem_total': 8 * 2**30,
             'mem_avail_now': 6 * 2**30, 'steal_p95': 0.0, 'core_other_p95': {},
             'insts': [{'port': 27960, 'core': 0, 'busy_p95': busy, 'rss_max': 2**30}],
@@ -582,10 +583,10 @@ def test_old_collector_data_is_stale_without_slots(app, client, auth, monkeypatc
 
 def test_classify_stale_only_after_120_s(app):
     classify = _backend().classify
-    assert classify(0, _aged_snapshot(120), '', '1.1.0')[0] == 'ok'
-    assert classify(0, _aged_snapshot(121), '', '1.1.0')[0] == 'stale'
+    assert classify(0, _aged_snapshot(120), '', VERSION)[0] == 'ok'
+    assert classify(0, _aged_snapshot(121), '', VERSION)[0] == 'stale'
     assert classify(0, _aged_snapshot(121), '', '2.0.0')[0] == 'stale'
-    assert classify(0, dict(_snapshot(), host=None), '', '1.1.0')[0] == 'ok'
+    assert classify(0, dict(_snapshot(), host=None), '', VERSION)[0] == 'ok'
 
 
 @pytest.mark.parametrize('path', ['hosts', 'hosts/1/series?range=1h', 'hosts/1/events?range=1h'])
@@ -712,7 +713,7 @@ def bell(app, monkeypatch):
 
 def _tick_snapshot(events=(), players=None, age=10, now=5000, ooms=0):
     players = {27960: 4} if players is None else players
-    return {'version': '1.1.0', 'now': now, 'data_age_s': age, 'host': {'ts': now - age},
+    return {'version': VERSION, 'now': now, 'data_age_s': age, 'host': {'ts': now - age},
             'insts_last': [{'port': p, 'players': n, 'core': 0} for p, n in players.items()],
             'insts': [], 'cores': 2, 'events_open': list(events),
             'events_24h': {'oom_kill': ooms} if ooms else {}}

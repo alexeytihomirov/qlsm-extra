@@ -4581,7 +4581,7 @@ function hostHealth(row, list) {
   if (problems.length) return health("problem", problems[0].what, items);
   if (watch.length) return health("watch", watch[0].what, items);
   if (!verdict || verdict.status === "unknown") {
-    return health("nodata", "No data under load yet: no match has been played on this host, so its capacity is unknown.", []);
+    return health("nodata", "No data yet", []);
   }
   const room = found.find((f) => (f == null ? void 0 : f.area) === "room");
   return health("ok", (room == null ? void 0 : room.text) || ((_a = found[0]) == null ? void 0 : _a.text) || "All checks passed.", []);

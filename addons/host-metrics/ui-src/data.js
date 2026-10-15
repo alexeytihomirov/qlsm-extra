@@ -204,7 +204,7 @@ function health(status, reason, items) {
  *   watch   - stale data (up to 5 min; older is a problem), verdict tight, an open warning event, a warning finding (noisy
  *             neighbour, CPU above the planning limit, ...), warnings in the last 24 h, an
  *             outdated collector;
- *   nodata  - not installed, no data yet, no data under load (verdict unknown);
+ *   nodata  - not installed, no data yet (verdict unknown);
  *   ok      - everything else.
  * Returns `{ status, label, reason, items }`: `reason` is one sentence for the card, `items`
  * the things to look at (`{ level: problem|watch, what, since }`, problems first, `since` a
@@ -288,7 +288,7 @@ export function hostHealth(row, list) {
   if (problems.length) return health('problem', problems[0].what, items);
   if (watch.length) return health('watch', watch[0].what, items);
   if (!verdict || verdict.status === 'unknown') {
-    return health('nodata', 'No data under load yet: no match has been played on this host, so its capacity is unknown.', []);
+    return health('nodata', 'No data yet', []);
   }
   const room = found.find((f) => f?.area === 'room');
   return health('ok', room?.text || found[0]?.text || 'All checks passed.', []);

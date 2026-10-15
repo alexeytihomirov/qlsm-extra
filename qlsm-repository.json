@@ -151,10 +151,10 @@
     {
       "id": "host-metrics",
       "zip": "packages/host-metrics.zip",
-      "sha256": "fcee2ca211e25a257e170c9ec8f036831b0114263800bd537a46d933f3bfa378",
+      "sha256": "4793b3534e8a6a6afef4f8051c329e6e1e175fcbc46bb40d09d731ade92dac36",
       "version": "1.1.1",
       "label": "Host Metrics",
-      "description": "Per-core CPU (including steal), memory, disk and per-instance CPU, memory, players and frame timing for every game host, kept for 30 days in a small SQLite file on the host by a low-priority collector service, with a capacity verdict (how many more instances the host takes). The collector is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry Host Metrics has the host switch, the status and Apply to host; the Host Metrics page lists every host. On a QLSM core with notifications, host problems also appear under the navbar bell and the page gets a Hosts health navbar entry."
+      "description": "CPU, memory, disk and per-instance load of every game host, with a capacity verdict."
     },
     {
       "id": "player-ranks",

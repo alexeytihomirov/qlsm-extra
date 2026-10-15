@@ -59,10 +59,10 @@ test('hostHealth: not installed and no data yet are No data', () => {
   assert.match(b.reason, /not written any data yet/);
 });
 
-test('hostHealth: no data under load (verdict unknown) is No data', () => {
-  const h = hostHealth(row({ verdict: { status: 'unknown', slots: null, reason: 'no data under load', ref_load: null, ref_source: null } }), [CPU_OK]);
+test('hostHealth: no data yet (verdict unknown) is No data', () => {
+  const h = hostHealth(row({ verdict: { status: 'unknown', slots: null, reason: 'no data yet', ref_load: null, ref_source: null } }), [CPU_OK]);
   assert.equal(h.status, 'nodata');
-  assert.match(h.reason, /No data under load yet/);
+  assert.match(h.reason, /No data yet/);
 });
 
 test('hostHealth: stale data under 5 min is Watch, since the last sample, with the data finding as reason', () => {

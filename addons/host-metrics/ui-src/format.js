@@ -27,7 +27,7 @@ const STATUS = {
   ok: { text: 'OK', tone: 'good' },
   tight: { text: 'Tight', tone: 'warning' },
   overloaded: { text: 'Overloaded', tone: 'critical' },
-  unknown: { text: 'No data under load', tone: 'neutral' },
+  unknown: { text: 'No data yet', tone: 'neutral' },
 };
 
 /** Verdict status -> badge text and tone (good / warning / critical / neutral). */
