@@ -69,16 +69,71 @@ def test_sync_paths_owners_and_smoke_check():
     text = (PLAYBOOKS / 'sync_host_metrics.yml').read_text(encoding='utf-8')
     for fragment in ('hm_dir: /home/ql/host-metrics', 'hm_data_dir: /var/lib/host-metrics',
                      'hm_conf_dir: /etc/host-metrics', '{{ hm_version }}', '{{ hm_config_json }}',
-                     'sudo -u ql python3 /home/ql/host-metrics/hm_collect.py '
-                     '--config /etc/host-metrics/config.json --once --dry-run'):
+                     'sudo -u ql python3 /home/ql/host-metrics/hm_collect.py'):
         assert fragment in text, fragment
     data_dir = next(t for t in _tasks('sync_host_metrics.yml') if t['name'] == 'Create the data directory')
     assert data_dir['file']['owner'] == 'ql' and data_dir['file']['mode'] == '0750'
-    enable = next(t for t in _tasks('sync_host_metrics.yml') if t['name'].startswith('Enable'))
+    enable = next(t for t in _flat('sync_host_metrics.yml') if t['name'].startswith('Enable and (re)start'))
     assert enable['systemd']['enabled'] in (True, 'yes') and enable['systemd']['state'] == 'restarted'
     disable = next(t for t in _tasks('sync_host_metrics.yml') if t['name'].startswith('Stop and disable'))
     assert disable['systemd']['state'] == 'stopped' and disable['systemd']['enabled'] in (False, 'no')
-    assert not any('absent' in json.dumps(t) for t in _tasks('sync_host_metrics.yml'))  # data is kept
+    assert not any('absent' in json.dumps(t) and 'hm_smoke' not in json.dumps(t)
+                   for t in _flat('sync_host_metrics.yml'))  # only the throwaway dir is removed, data is kept
+
+
+def _flat(name, keys=('block', 'rescue', 'always')):
+    out = []
+
+    def walk(tasks):
+        for task in tasks:
+            out.append(task)
+            for key in keys:
+                walk(task.get(key, []))
+    walk(_tasks(name))
+    return out
+
+
+def _top(name, title):
+    return next(t for t in _tasks(name) if t['name'].startswith(title))
+
+
+def test_smoke_check_runs_the_real_write_path_against_a_throwaway_db():
+    block = _top('sync_host_metrics.yml', 'Smoke check')
+    assert 'block' in block and 'always' in block
+    run = next(t for t in block['block'] if t['name'] == 'Run one tick')
+    command = run['command']
+    assert '--dry-run' not in command and '--once' in command
+    assert command.startswith('sudo -u ql python3 /home/ql/host-metrics/hm_collect.py')
+    assert '/etc/host-metrics/config.json' not in command  # a throwaway config, not the live one
+    config = next(t for t in block['block'] if t['name'].startswith('Write the throwaway config'))
+    assert "'db_path'" in config['copy']['content']
+    assert '/var/lib/host-metrics' not in json.dumps(block)
+    mk = next(t for t in block['block'] if t['name'].startswith('Create the throwaway'))
+    assert mk['command'].startswith('sudo -u ql mktemp -d /tmp/')
+    assert block['always'][0]['file']['state'] == 'absent'
+
+
+def test_live_version_and_config_are_written_after_the_smoke_check():
+    names = [t['name'] for t in _tasks('sync_host_metrics.yml')]
+    smoke = names.index(next(n for n in names if n.startswith('Smoke check')))
+    assert smoke < names.index('Write the VERSION file') < names.index('Write config.json')
+
+
+def test_restart_is_checked_and_a_failure_stops_and_disables_the_unit():
+    block = _top('sync_host_metrics.yml', 'Enable and restart')
+    assert block['when'] == 'hm_enabled | bool'
+    text = json.dumps(block['block'])
+    assert 'NRestarts' in text and 'is-active' in text and "== 'active'" in text
+    assert any('pause' in t and t['pause']['seconds'] >= 15 for t in block['block'])
+    rescue = block['rescue']
+    stop = next(t for t in rescue if 'systemd' in t)
+    assert stop['systemd']['name'] == 'host-metrics.service'
+    assert stop['systemd']['state'] == 'stopped' and stop['systemd']['enabled'] in (False, 'no')
+    fail = next(t for t in rescue if 'fail' in t)
+    assert 'host-metrics failed to start, service stopped' in fail['fail']['msg']
+    assert any('journalctl -u host-metrics.service -n 20' in json.dumps(t) for t in rescue)
+    # the rescue writes nothing else
+    assert not any(k in t for t in rescue for k in ('copy', 'template', 'file', 'lineinfile'))
 
 
 def test_unit_asset():

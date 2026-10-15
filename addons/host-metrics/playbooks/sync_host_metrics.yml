@@ -55,6 +55,43 @@
         mode: "0644"
       loop: "{{ hm_modules }}"
 
+    - name: Install the systemd service
+      copy:
+        src: "{{ playbook_dir }}/../assets/host-metrics.service"
+        dest: /etc/systemd/system/host-metrics.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    # Smoke check of the real write path (open_db, schema, insert, event
+    # tracker): one non-dry tick as ql against a throwaway database, never the
+    # live one. VERSION and config.json are written only after it passed.
+    - name: Smoke check, one real tick against a throwaway database
+      when: hm_enabled | bool
+      block:
+        - name: Create the throwaway directory as ql
+          command: sudo -u ql mktemp -d /tmp/hm-smoke.XXXXXX
+          register: hm_smoke
+          changed_when: false
+
+        - name: Write the throwaway config (db_path under the throwaway directory)
+          copy:
+            content: "{{ (hm_config_json | from_json) | combine({'db_path': (hm_smoke.stdout | trim) ~ '/metrics.db'}) | to_json }}\n"
+            dest: "{{ hm_smoke.stdout | trim }}/config.json"
+            owner: ql
+            group: ql
+            mode: "0600"
+
+        - name: Run one tick
+          command: sudo -u ql python3 /home/ql/host-metrics/hm_collect.py --config {{ hm_smoke.stdout | trim }}/config.json --once
+          changed_when: false
+      always:
+        - name: Remove the throwaway directory
+          file:
+            path: "{{ hm_smoke.stdout | trim }}"
+            state: absent
+          when: hm_smoke is defined and hm_smoke.stdout is defined and (hm_smoke.stdout | trim) | length > 0
+
     - name: Write the VERSION file
       copy:
         content: "{{ hm_version }}\n"
@@ -71,29 +108,55 @@
         group: root
         mode: "0644"
 
-    - name: Install the systemd service
-      copy:
-        src: "{{ playbook_dir }}/../assets/host-metrics.service"
-        dest: /etc/systemd/system/host-metrics.service
-        owner: root
-        group: root
-        mode: "0644"
-
     - name: Reload systemd
       systemd:
         daemon_reload: yes
 
-    - name: Smoke check, one dry-run tick as ql
-      command: sudo -u ql python3 /home/ql/host-metrics/hm_collect.py --config /etc/host-metrics/config.json --once --dry-run
-      changed_when: false
+    - name: Enable and restart the collector, then check it stays up
       when: hm_enabled | bool
+      block:
+        - name: Enable and (re)start the collector
+          systemd:
+            name: host-metrics.service
+            enabled: yes
+            state: restarted
 
-    - name: Enable and (re)start the collector
-      systemd:
-        name: host-metrics.service
-        enabled: yes
-        state: restarted
-      when: hm_enabled | bool
+        - name: Read the restart counter right after the start
+          command: systemctl show -p NRestarts --value host-metrics.service
+          register: hm_nrestarts_before
+          changed_when: false
+
+        - name: Wait for the collector to prove it keeps running
+          pause:
+            seconds: 15
+
+        - name: Read the service state and the restart counter
+          shell: "echo \"$(systemctl is-active host-metrics.service || true) $(systemctl show -p NRestarts --value host-metrics.service)\""
+          register: hm_after
+          changed_when: false
+
+        - name: Assert the service is active and did not restart
+          assert:
+            that:
+              - (hm_after.stdout | trim).split()[0] == 'active'
+              - (hm_after.stdout | trim).split()[1] | int <= (hm_nrestarts_before.stdout | trim | int)
+            fail_msg: "host-metrics is not stable after the restart ({{ hm_after.stdout | trim }})"
+      rescue:
+        - name: Stop the failed collector
+          systemd:
+            name: host-metrics.service
+            enabled: no
+            state: stopped
+
+        - name: Read the last log lines
+          command: journalctl -u host-metrics.service -n 20 --no-pager
+          register: hm_journal
+          changed_when: false
+          failed_when: false
+
+        - name: Fail the play
+          fail:
+            msg: "host-metrics failed to start, service stopped: {{ hm_journal.stdout | default('') }}"
 
     - name: Stop and disable the collector (data is kept)
       systemd:
