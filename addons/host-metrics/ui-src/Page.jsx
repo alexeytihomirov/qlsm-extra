@@ -44,7 +44,7 @@ function Badge({ text, tone }) {
 function StatusCell({ host }) {
   const problem = stateLabel(host.state);
   if (host.state !== 'ok' && !host.snapshot) {
-    const tone = host.state === 'unreachable' ? 'critical' : 'neutral';
+    const tone = host.state === 'unreachable' || host.state === 'no_sudo' ? 'critical' : 'neutral';
     return (
       <>
         <Badge text={problem || host.state} tone={tone} />

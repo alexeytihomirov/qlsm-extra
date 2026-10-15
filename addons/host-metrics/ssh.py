@@ -6,6 +6,7 @@ connection() first and passes that on.
 """
 import json
 import os
+import re
 import shlex
 from types import SimpleNamespace
 
@@ -17,13 +18,19 @@ QUERY_SCRIPT = '/home/ql/host-metrics/hm_query.py'
 # rc 127 = the script is not there (python3 itself would exit 2 for a missing
 # script, which collides with argparse's exit 2 for bad arguments).
 MISSING_RC = 127
+SSH_USER_RE = re.compile(r'^[a-z_][a-z0-9_-]{0,31}$')
+INVALID_USER_ERROR = 'The SSH user of this host is not a valid account name.'
 
 
 def connection(host):
     """Plain, thread-safe copy of what open_ssh needs. Call in the request thread."""
     from ui.rcon_transport import rcon_target_for_host
 
+    error = None
+    if host.ssh_user and not SSH_USER_RE.match(host.ssh_user):
+        error = INVALID_USER_ERROR
     return SimpleNamespace(
+        error=error,
         id=host.id,
         name=host.name,
         target=rcon_target_for_host(host),
@@ -66,11 +73,18 @@ def open_ssh(conn):
     return client
 
 
-def remote_command(argv):
+def remote_command(argv, ssh_user='root'):
     """The one command line that is ever sent. argv is built by the backend from
     allow-listed values; shlex still quotes every word. nice 19: the query must not
-    compete with QLDS for CPU on the game host."""
-    return ('test -f %s || exit %d; nice -n 19 python3 %s %s'
+    compete with QLDS for CPU on the game host. A non-root SSH user goes through
+    passwordless sudo as user ql (the collector files and the DB belong to ql);
+    ssh_user is validated here too, so it is never interpolated unchecked."""
+    if not isinstance(ssh_user, str) or not SSH_USER_RE.match(ssh_user):
+        raise ValueError('invalid ssh user')
+    if ssh_user == 'root':
+        return ('test -f %s || exit %d; nice -n 19 python3 %s %s'
+                % (QUERY_SCRIPT, MISSING_RC, QUERY_SCRIPT, shlex.join(argv)))
+    return ('sudo -n -u ql test -f %s || exit %d; sudo -n -u ql nice -n 19 python3 %s %s'
             % (QUERY_SCRIPT, MISSING_RC, QUERY_SCRIPT, shlex.join(argv)))
 
 
@@ -83,7 +97,7 @@ def exec_json(conn, argv, timeout=5.0):
     """
     client = open_ssh(conn)
     try:
-        _stdin, stdout, stderr = client.exec_command(remote_command(argv), timeout=timeout)
+        _stdin, stdout, stderr = client.exec_command(remote_command(argv, conn.ssh_user), timeout=timeout)
         stdout.channel.settimeout(timeout)
         out = stdout.read().decode('utf-8', errors='replace')
         err = stderr.read().decode('utf-8', errors='replace')

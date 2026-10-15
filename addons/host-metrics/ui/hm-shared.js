@@ -4299,6 +4299,7 @@ const STATES = {
   not_installed: "Not installed",
   outdated: "Outdated collector",
   unreachable: "Unreachable",
+  no_sudo: "No sudo",
   no_data: "No data yet",
   stale: "Stale"
 };

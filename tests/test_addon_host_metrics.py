@@ -34,7 +34,7 @@ def test_manifest_validates(app):
     manifest, errors = read_manifest(str(ADDON_DIR))
     assert errors == []
     assert manifest['id'] == 'host-metrics'
-    assert manifest['version'] == '1.0.0'
+    assert manifest['version'] == '1.0.1'
     assert manifest['scopes'] == ['global', 'host']
     fields = {f['key']: f for f in manifest['settings']['global']}
     assert {k: f['default'] for k, f in fields.items()} == DEFAULTS
@@ -179,7 +179,7 @@ def test_status_is_parsed_from_the_playbook(app, client, auth, monkeypatch):
     assert response.status_code == 200
     data = response.get_json()['data']
     assert data == {'version': '1.0.0', 'service': 'active', 'db_bytes': 1234567,
-                    'expected_version': '1.0.0', 'error': None}
+                    'expected_version': '1.0.1', 'error': None}
     assert fake.calls == [(host_id, 'status_host_metrics.yml', {})]
 
 
@@ -204,7 +204,7 @@ def test_status_of_an_unreachable_host_is_200_with_nulls(app, client, auth, monk
     assert response.status_code == 200
     data = response.get_json()['data']
     assert data['version'] is None and data['service'] is None and data['db_bytes'] is None
-    assert data['expected_version'] == '1.0.0' and data['error']
+    assert data['expected_version'] == '1.0.1' and data['error']
     assert client.get(f'{API}/hosts/9999/status', headers=auth).status_code == 404
 
 
@@ -245,9 +245,9 @@ def test_payload_sync_deploys_an_enabled_host(app, monkeypatch):
     called_host, name, extravars = fake.calls[0]
     assert (called_host, name) == (host_id, 'sync_host_metrics.yml')
     assert extravars['hm_enabled'] is True
-    assert extravars['hm_version'] == '1.0.0'
+    assert extravars['hm_version'] == '1.0.1'
     config = json.loads(extravars['hm_config_json'])
-    assert config['version'] == '1.0.0' and config['redis_db'] == 1
+    assert config['version'] == '1.0.1' and config['redis_db'] == 1
     assert config['thresholds']['event_window_s'] == 60
     assert not any(k.startswith('verdict') for k in config['thresholds'])
 
@@ -336,7 +336,7 @@ def test_apply_on_an_unknown_host_is_404(client, auth, queue):
 
 # ---- read routes over ssh ---------------------------------------------------------
 
-def _snapshot(version='1.0.0', busy=30.0):
+def _snapshot(version='1.0.1', busy=30.0):
     return {'version': version, 'now': 1, 'cores': 2, 'mem_total': 8 * 2**30,
             'mem_avail_now': 6 * 2**30, 'steal_p95': 0.0, 'core_other_p95': {},
             'insts': [{'port': 27960, 'core': 0, 'busy_p95': busy, 'rss_max': 2**30}],
@@ -478,6 +478,44 @@ def test_remote_command_is_quoted_and_checks_the_script():
     assert "'a b; ls'" in ssh.remote_command(['a b; ls'])
 
 
+def test_remote_command_for_a_non_root_user_goes_through_sudo():
+    ssh = _backend().hm_ssh
+    assert ssh.remote_command(['snapshot'], 'ubuntu') == (
+        'sudo -n -u ql test -f /home/ql/host-metrics/hm_query.py || exit 127; '
+        'sudo -n -u ql nice -n 19 python3 /home/ql/host-metrics/hm_query.py snapshot')
+    assert ssh.remote_command(['snapshot'], 'root') == ssh.remote_command(['snapshot'])
+    for bad in ('', 'Root', 'a b', 'x;ls', '$(id)', '1abc', 'a' * 33, None):
+        with pytest.raises(ValueError):
+            ssh.remote_command(['snapshot'], bad)
+
+
+def test_invalid_ssh_user_is_unreachable_and_never_executed(app, client, auth, monkeypatch):
+    host_id = _host(app, 'h-bad')
+    with app.app_context():
+        from ui.models import Host
+        from ui import db
+        Host.query.get(host_id).ssh_user = 'x;rm -rf /'
+        db.session.commit()
+    fake = _fake_exec({'h-bad': (0, _snapshot(), '')})
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', fake)
+    row = client.get(f'{API}/hosts?refresh=1', headers=auth).get_json()['data']['hosts'][0]
+    assert row['state'] == 'unreachable' and row['error'] == _backend().hm_ssh.INVALID_USER_ERROR
+    assert fake.calls == []
+
+
+def test_sudo_refusal_maps_to_no_sudo(app, client, auth, monkeypatch):
+    host_id = _host(app, 'h-nosudo')
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', _fake_exec({
+        'h-nosudo': (1, None, 'sudo: a password is required')}))
+    row = client.get(f'{API}/hosts?refresh=1', headers=auth).get_json()['data']['hosts'][0]
+    assert row['state'] == 'no_sudo'
+    assert row['error'].startswith('SSH user ') and row['error'].endswith(' has no passwordless sudo')
+    assert row['snapshot'] is None
+    response = client.get(f'{API}/hosts/{host_id}/series?range=1h', headers=auth)
+    assert response.status_code == 502
+    assert 'no passwordless sudo' in response.get_json()['error']['message']
+
+
 def test_series_and_events_get_a_longer_timeout_than_the_snapshot(app, client, auth, monkeypatch):
     host_id = _host(app, 'h-t')
     seen = []
@@ -522,10 +560,10 @@ def test_old_collector_data_is_stale_without_slots(app, client, auth, monkeypatc
 
 def test_classify_stale_only_after_120_s(app):
     classify = _backend().classify
-    assert classify(0, _aged_snapshot(120), '', '1.0.0')[0] == 'ok'
-    assert classify(0, _aged_snapshot(121), '', '1.0.0')[0] == 'stale'
+    assert classify(0, _aged_snapshot(120), '', '1.0.1')[0] == 'ok'
+    assert classify(0, _aged_snapshot(121), '', '1.0.1')[0] == 'stale'
     assert classify(0, _aged_snapshot(121), '', '2.0.0')[0] == 'stale'
-    assert classify(0, dict(_snapshot(), host=None), '', '1.0.0')[0] == 'ok'
+    assert classify(0, dict(_snapshot(), host=None), '', '1.0.1')[0] == 'ok'
 
 
 @pytest.mark.parametrize('path', ['hosts', 'hosts/1/series?range=1h', 'hosts/1/events?range=1h'])

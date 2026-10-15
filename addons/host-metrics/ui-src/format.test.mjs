@@ -45,6 +45,7 @@ test('stateLabel: host row states other than ok', () => {
   assert.equal(stateLabel('not_installed'), 'Not installed');
   assert.equal(stateLabel('outdated'), 'Outdated collector');
   assert.equal(stateLabel('unreachable'), 'Unreachable');
+  assert.equal(stateLabel('no_sudo'), 'No sudo');
   assert.equal(stateLabel('no_data'), 'No data yet');
 });
 

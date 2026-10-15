@@ -152,6 +152,8 @@ def test_status_prints_three_lines():
     assert 'systemctl is-active host-metrics.service' in text
     assert '/home/ql/host-metrics/VERSION' in text
     assert '/var/lib/host-metrics/metrics.db' in text
+    assert '/var/lib/host-metrics/metrics.db-wal' in text
+    assert '/var/lib/host-metrics/metrics.db-shm' in text
 
 
 @pytest.mark.skipif(shutil.which('ansible-playbook') is None, reason='ansible-playbook not installed')
@@ -182,7 +184,7 @@ def test_collector_config_defaults():
         'thresholds': {'core_saturated_pct': 95, 'steal_event_pct': 10, 'mem_low_pct': 10,
                        'disk_low_pct': 90, 'frames_late_pct': 1, 'frame_gap_ms': 100,
                        'event_window_s': 60},
-        'version': '1.0.0',
+        'version': '1.0.1',
     }
     assert _settings().collector_config(GLOBAL_DEFAULTS) == config
 

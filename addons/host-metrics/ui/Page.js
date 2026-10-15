@@ -32,7 +32,7 @@ function StatusCell({ host }) {
   var _a, _b;
   const problem = stateLabel(host.state);
   if (host.state !== "ok" && !host.snapshot) {
-    const tone = host.state === "unreachable" ? "critical" : "neutral";
+    const tone = host.state === "unreachable" || host.state === "no_sudo" ? "critical" : "neutral";
     return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Badge, { text: problem || host.state, tone }), host.error ? /* @__PURE__ */ React.createElement("div", { className: "hm-reason" }, host.error) : null);
   }
   const stale = staleInfo(host);

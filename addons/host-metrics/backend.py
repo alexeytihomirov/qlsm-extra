@@ -283,9 +283,20 @@ def data_age(snapshot):
     return None
 
 
+def is_no_sudo(rc, stderr):
+    """sudo -n refused (no passwordless sudo): rc 1 and a `sudo:` message on stderr."""
+    return rc == 1 and 'sudo:' in (stderr or '')
+
+
+def no_sudo_error(conn):
+    return 'SSH user %s has no passwordless sudo' % conn.ssh_user
+
+
 def classify(rc, parsed, stderr, expected_version):
     """(state, version, snapshot) of one host's `snapshot` answer. `stale`: the collector
     stopped writing (its last data is kept and shown, but gets no slot count)."""
+    if is_no_sudo(rc, stderr):
+        return 'no_sudo', None, None
     if rc == hm_ssh.MISSING_RC or 'No such file' in (stderr or ''):
         return 'not_installed', None, None
     version = parsed.get('version') if parsed else None
@@ -316,7 +327,10 @@ def _fetch_snapshot(conn, expected_version):
     except Exception:
         return {'state': 'unreachable', 'version': None, 'snapshot': None}
     state, version, snapshot = classify(rc, parsed, stderr, expected_version)
-    return {'state': state, 'version': version, 'snapshot': snapshot}
+    result = {'state': state, 'version': version, 'snapshot': snapshot}
+    if state == 'no_sudo':
+        result['error'] = no_sudo_error(conn)
+    return result
 
 
 def _fleet_busy_median(rows):
@@ -397,6 +411,8 @@ def _passthrough(host_id, argv):
     except Exception as e:
         CTX.logger.warning('host-metrics: query to host %s failed: %s', host.name, e)
         return _error('The host did not answer.', 502)
+    if is_no_sudo(rc, stderr):
+        return _error(no_sudo_error(conn), 502)
     if rc == hm_ssh.MISSING_RC or 'No such file' in (stderr or ''):
         return _error('Host metrics are not installed on this host.', 409)
     if rc not in (0, 3) or parsed is None:
