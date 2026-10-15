@@ -27,6 +27,10 @@
 }
 
 @layer utilities {
+  .visible {
+    visibility: visible;
+  }
+
   .fixed {
     position: fixed;
   }
@@ -63,6 +67,10 @@
     overflow-x: auto;
   }
 
+  .rounded {
+    border-radius: .25rem;
+  }
+
   .border {
     border-style: var(--tw-border-style);
     border-width: 1px;
@@ -94,13 +102,13 @@
 
 .hm-root {
   color-scheme: light;
-  --hm-surface: var(--surface-elevated, #fcfcfb);
-  --hm-ink: var(--text-primary, #0b0b0b);
-  --hm-ink-2: var(--text-secondary, #52514e);
-  --hm-muted: var(--text-muted, #898781);
-  --hm-grid: #e1e0d9;
-  --hm-axis: #c3c2b7;
-  --hm-line: var(--surface-border, #0b0b0b1a);
+  --hm-surface: var(--surface-raised);
+  --hm-ink: var(--text-primary);
+  --hm-ink-2: var(--text-secondary);
+  --hm-muted: var(--text-muted);
+  --hm-grid: var(--surface-border);
+  --hm-axis: var(--surface-border-strong);
+  --hm-line: var(--surface-border);
   --hm-s1: #2a78d6;
   --hm-s2: #eb6834;
   --hm-s3: #1baf7a;
@@ -109,17 +117,15 @@
   --hm-s6: #008300;
   --hm-s7: #6250d6;
   --hm-s8: #e34948;
-  --hm-s0: #898781;
-  --hm-good: #0ca30c;
-  --hm-warning: #fab219;
-  --hm-critical: #d03b3b;
-  --hm-good-ink: #006300;
+  --hm-s0: var(--text-muted);
+  --hm-good: var(--accent-primary);
+  --hm-warning: var(--accent-warning);
+  --hm-critical: var(--accent-danger);
+  --hm-good-ink: var(--accent-primary-dim);
 }
 
 .dark .hm-root {
   color-scheme: dark;
-  --hm-grid: #2c2c2a;
-  --hm-axis: #383835;
   --hm-s1: #3987e5;
   --hm-s2: #d95926;
   --hm-s3: #199e70;
@@ -128,7 +134,7 @@
   --hm-s6: #008300;
   --hm-s7: #9085e9;
   --hm-s8: #e66767;
-  --hm-good-ink: #0ca30c;
+  --hm-good-ink: var(--accent-primary);
 }
 
 .hm-root {
@@ -153,9 +159,9 @@
 }
 
 .hm-btn {
-  border: 1px solid var(--surface-border-strong, var(--hm-line));
-  background: var(--surface-elevated, transparent);
-  color: var(--hm-ink);
+  border: 1px solid var(--surface-border-strong);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
   cursor: pointer;
   border-radius: 6px;
   align-items: center;
@@ -166,7 +172,7 @@
 }
 
 .hm-btn:hover:not(:disabled) {
-  border-color: var(--accent-primary, var(--hm-s1));
+  border-color: var(--accent-primary);
 }
 
 .hm-btn:disabled {
@@ -175,22 +181,30 @@
 }
 
 .hm-btn-primary {
-  border-color: var(--accent-primary, var(--hm-s1));
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--surface-overlay);
+  font-weight: 600;
+}
+
+.hm-btn-sm {
+  padding: 4px 12px;
+  font-size: 12px;
 }
 
 .hm-range {
-  border: 1px solid var(--surface-border-strong, var(--hm-line));
+  border: 1px solid var(--surface-border-strong);
   border-radius: 6px;
   display: inline-flex;
   overflow: hidden;
 }
 
 .hm-range button {
-  color: var(--hm-ink-2);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
   border: 0;
-  border-right: 1px solid var(--hm-line);
+  border-right: 1px solid var(--surface-border);
   cursor: pointer;
-  background: none;
   padding: 4px 12px;
   font-size: 12px;
 }
@@ -200,12 +214,13 @@
 }
 
 .hm-range button:hover {
-  background: var(--hm-grid);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
 }
 
 .hm-range button[aria-pressed="true"] {
-  background: var(--accent-primary, var(--hm-s1));
-  color: #fff;
+  background: var(--accent-primary);
+  color: var(--surface-overlay);
   font-weight: 600;
 }
 
@@ -379,6 +394,89 @@
   font-weight: 600;
 }
 
+.hm-card-head {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  display: flex;
+}
+
+.hm-howto {
+  color: var(--hm-ink-2);
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.hm-chip {
+  white-space: nowrap;
+  color: var(--hm-ink-2);
+  background: var(--surface-elevated);
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  display: inline-flex;
+}
+
+.hm-chip svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  width: 10px;
+  height: 10px;
+}
+
+.hm-finding {
+  color: var(--hm-ink);
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  display: flex;
+}
+
+.hm-finding-icon {
+  flex: none;
+  margin-top: 1px;
+  display: inline-flex;
+}
+
+.hm-finding-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.hm-finding-good .hm-finding-icon {
+  color: var(--hm-good-ink);
+}
+
+.hm-finding-warning .hm-finding-icon {
+  color: var(--hm-warning);
+}
+
+.hm-finding-critical .hm-finding-icon {
+  color: var(--hm-critical);
+}
+
+.hm-finding-neutral .hm-finding-icon {
+  color: var(--hm-muted);
+}
+
+.hm-swatch-dash {
+  border-top: 2px dashed;
+  flex: none;
+  width: 16px;
+  height: 0;
+}
+
 .hm-card-sub {
   color: var(--hm-muted);
   margin-left: 6px;
@@ -443,13 +541,13 @@
   pointer-events: none;
   background: var(--hm-surface);
   border: 1px solid var(--hm-axis);
-  border-radius: 6px;
   min-width: 140px;
+  box-shadow: var(--shadow-elevated);
+  border-radius: 6px;
   padding: 6px 8px;
   font-size: 11px;
   position: absolute;
   top: 4px;
-  box-shadow: 0 4px 14px #0000002e;
 }
 
 .hm-tip-time {

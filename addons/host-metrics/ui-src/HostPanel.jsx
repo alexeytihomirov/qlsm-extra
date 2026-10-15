@@ -1,5 +1,7 @@
-import React, { ui } from './runtime';
+import React, { Button, ui } from './runtime';
 import { ChartCard } from './charts';
+import { chartLimits, findingFor, tickMsOf } from './chartinfo';
+import { findings } from './findings';
 import {
   column, coreIds, coreRows, lastValue, mergeTimes, pick, sortedPorts,
 } from './data';
@@ -28,6 +30,11 @@ const pct0 = (v) => `${Math.round(v)}%`;
 const int = (v) => String(Math.round(v));
 const ms = (v) => `${v < 10 ? v.toFixed(1) : Math.round(v)} ms`;
 const rate = (v) => `${fmtBytes(v)}/s`;
+
+const EMPTY_NO_DATA = 'No samples in this range yet. The collector writes one every 10 s; '
+  + 'if this stays empty, check the collector status below.';
+const EMPTY_NO_FRAMES = 'No frame timing in this range: the servers did not report frame '
+  + 'statistics (no instance running, or the server plugin does not publish them).';
 
 function errorText(e, fallback) {
   return e?.response?.data?.error?.message || e?.message || fallback;
@@ -123,11 +130,15 @@ function buildCharts(series, res) {
   const ports = sortedPorts(insts);
   const instXs = mergeTimes(...ports.map((p) => insts[String(p)]));
   const perPort = (...keys) => ports.map((p) => column(insts[String(p)], instXs, (r) => pick(r, ...keys)));
-  const portSeries = (step) => ports.map((p, i) => ({ label: `Port ${p}`, slot: slotOf(i), step }));
+  const portSeries = (step, hint) => ports.map((p, i) => ({
+    label: `Port ${p}`, slot: slotOf(i), step, hint: hint ? hint(p) : undefined,
+  }));
 
   const memTotal = lastValue(hostCol((r) => pick(r, 'mem_total')));
+  const all = cores.find((c) => c.core < 0);
   return {
     cores,
+    steal: all ? { xs: all.xs, column: all.columns[2] } : null,
     hostXs,
     instXs,
     ports,
@@ -225,9 +236,9 @@ function Footer({ ctx, host, isOpen }) {
   } else statusText = '';
 
   return (
-    <div className="hm-footer">
+    <div className="hm-root hm-footer">
       <span>{statusText}</span>
-      <button type="button" className="hm-btn" onClick={loadStatus} disabled={statusBusy}>Check</button>
+      <Button onClick={loadStatus} disabled={statusBusy}>Check</Button>
       <label>
         <input
           type="checkbox"
@@ -239,9 +250,9 @@ function Footer({ ctx, host, isOpen }) {
       </label>
       <span className="hm-footer-spacer" />
       {note ? <span className="hm-note">{note}</span> : null}
-      <button type="button" className="hm-btn hm-btn-primary" onClick={apply} disabled={applyBusy}>
+      <Button variant="primary" onClick={apply} disabled={applyBusy}>
         Apply to host
-      </button>
+      </Button>
     </div>
   );
 }
@@ -259,7 +270,39 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
   const [series, setSeries] = useState(null);
   const [events, setEvents] = useState([]);
   const [fetchedAt, setFetchedAt] = useState(null);
+  const [settings, setSettings] = useState(null);
+  const [hostRow, setHostRow] = useState(null);
   const token = useRef(0);
+
+  // Thresholds of the charts come from the addon settings (defaults until they arrive).
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    let alive = true;
+    ctxRef.current.api('GET', 'settings')
+      .then((d) => { if (alive) setSettings(d || null); })
+      .catch(() => { if (alive) setSettings(null); });
+    return () => { alive = false; };
+  }, [isOpen]);
+
+  // Snapshot and verdict for the finding above each chart: the page passes its host row;
+  // from the host menu the (30 s cached) host list is read.
+  useEffect(() => {
+    if (!isOpen || !host?.id) return undefined;
+    if (host.snapshot !== undefined) {
+      setHostRow({ snapshot: host.snapshot, verdict: host.verdict || null });
+      return undefined;
+    }
+    let alive = true;
+    setHostRow(null);
+    ctxRef.current.api('GET', 'hosts')
+      .then((d) => {
+        if (!alive) return;
+        const r = (d?.hosts || []).find((h) => h.id === host.id);
+        setHostRow(r ? { snapshot: r.snapshot, verdict: r.verdict || null } : null);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [isOpen, host?.id, host?.snapshot, host?.verdict]);
 
   const load = useCallback(async () => {
     if (!host?.id) return;
@@ -303,6 +346,22 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
 
   const noInstances = charts && charts.ports.length === 0;
 
+  const limits = useMemo(
+    () => chartLimits(settings, tickMsOf(series, hostRow?.snapshot)),
+    [settings, series, hostRow],
+  );
+  const found = useMemo(() => (hostRow && series ? findings({
+    snapshot: hostRow.snapshot,
+    series,
+    events,
+    settings,
+    range: series.range || range,
+    verdict: hostRow.verdict,
+  }) : []), [hostRow, series, events, settings, range]);
+  const lateMs = `${Math.round(limits.lateMs * 10) / 10} ms`;
+  const tickMs = `${Math.round(limits.tickMs * 10) / 10} ms`;
+  const [planPct, satPct] = limits.cpu.map((t) => `${t.value} %`);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -320,10 +379,10 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
       )}
       headerActions={(
         <>
-          <button type="button" className="hm-btn" onClick={load} disabled={loading}>
+          <Button onClick={load} disabled={loading}>
             {loading ? 'Loading...' : 'Refresh'}
-          </button>
-          <button type="button" className="hm-btn" onClick={onClose} aria-label="Close">Close</button>
+          </Button>
+          <Button onClick={onClose} aria-label="Close">Close</Button>
         </>
       )}
       footer={<Footer ctx={ctx} host={host} isOpen={isOpen} />}
@@ -350,7 +409,7 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
             <section>
               <div className="hm-section-title">CPU per core</div>
               {charts.cores.length === 0 ? (
-                <div className="hm-muted">No core data in this range.</div>
+                <div className="hm-muted">{EMPTY_NO_DATA}</div>
               ) : (
                 <div className="hm-grid-2">
                   {charts.cores.map((c) => (
@@ -358,9 +417,16 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
                       key={c.core}
                       title={c.core < 0 ? 'All cores' : `Core ${c.core}`}
                       subtitle="% of the core, stacked"
+                      howTo={`${c.core < 0 ? 'Average load of all cores' : 'How busy this core is'}, split by who used it; the top of the stack is the total. `
+                        + `Sustained above the dashed ${planPct} line means no room for more servers on it; at ${satPct} the core is saturated and players see lag.`}
+                      direction="lower"
+                      finding={c.core < 0 ? null : findingFor(found, 'cpu', { core: c.core })}
                       series={[
-                        { label: 'User', slot: 1 }, { label: 'System', slot: 2 }, { label: 'Steal', slot: 3 },
+                        { label: 'User', slot: 1, hint: 'Time spent in programs, the game servers included.' },
+                        { label: 'System', slot: 2, hint: 'Time spent in the kernel (network, disk, scheduling).' },
+                        { label: 'Steal', slot: 3, hint: 'Time the provider gave to other virtual machines on the same hardware.' },
                       ]}
+                      thresholds={limits.cpu}
                       xs={c.xs}
                       columns={c.columns}
                       stacked
@@ -368,38 +434,67 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
                       yFmt={fmtPct}
                       axisFmt={pct0}
                       yRange={() => [0, 100]}
+                      emptyText={EMPTY_NO_DATA}
                       {...common}
                     />
                   ))}
+                  {charts.steal ? (
+                    <ChartCard
+                      title="Steal"
+                      subtitle="% of CPU time, all cores"
+                      howTo={`CPU time the provider took for other customers on the same hardware. Sustained above the dashed ${limits.steal[0].value} % line means a noisy neighbour: the host is slower than its specification.`}
+                      direction="lower"
+                      finding={findingFor(found, 'steal')}
+                      series={[{ label: 'Steal', slot: 3, hint: 'Share of CPU time taken by the hypervisor for other virtual machines.' }]}
+                      thresholds={limits.steal}
+                      xs={charts.steal.xs}
+                      columns={[charts.steal.column]}
+                      height={120}
+                      yFmt={fmtPct}
+                      axisFmt={pct0}
+                      yRange={(max) => [0, Math.max(2, max * 1.1)]}
+                      emptyText={EMPTY_NO_DATA}
+                      {...common}
+                    />
+                  ) : null}
                 </div>
               )}
             </section>
 
             <section>
               <div className="hm-section-title">CPU per instance</div>
-              {noInstances ? <div className="hm-muted">No instance data in this range.</div> : (
+              {noInstances ? <div className="hm-muted">No game server ran on this host in this range.</div> : (
                 <div className="flex flex-col gap-3">
                   <ChartCard
                     title="CPU"
                     subtitle="% of one core"
-                    series={charts.portSeries(false)}
+                    howTo={`% of one CPU core used by each server. Sustained above the dashed ${planPct} line means no room for more servers; at ${satPct} the server's core is saturated.`}
+                    direction="lower"
+                    finding={findingFor(found, 'room')}
+                    series={charts.portSeries(false, (p) => `CPU of the server on port ${p}, in % of one core.`)}
+                    thresholds={limits.cpu}
                     xs={charts.instXs}
                     columns={charts.cpu}
                     height={150}
                     yFmt={fmtPct}
                     axisFmt={pct0}
-                    yRange={(max) => [0, Math.max(10, max * 1.1)]}
+                    yRange={(max) => [0, Math.max(100, max * 1.1)]}
+                    emptyText={EMPTY_NO_DATA}
                     {...common}
                   />
                   <ChartCard
                     title="Players"
                     subtitle="same time axis as CPU"
-                    series={charts.portSeries(true)}
+                    howTo="Players connected to each server. Read it with the CPU chart above: CPU and frame peaks during matches matter, peaks on an empty server do not."
+                    direction="context"
+                    series={charts.portSeries(true, (p) => `Players connected to the server on port ${p}.`)}
                     xs={charts.instXs}
                     columns={charts.players}
                     height={90}
                     yFmt={int}
+                    yLabel="players"
                     yRange={(max) => [0, Math.max(4, Math.ceil(max))]}
+                    emptyText={EMPTY_NO_DATA}
                     {...common}
                   />
                 </div>
@@ -408,27 +503,37 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
 
             <section>
               <div className="hm-section-title">Frame timing per instance</div>
-              {noInstances ? <div className="hm-muted">No instance data in this range.</div> : (
+              {noInstances ? <div className="hm-muted">No game server ran on this host in this range.</div> : (
                 <div className="hm-grid-2">
                   <ChartCard
                     title="Max frame gap"
-                    series={charts.portSeries(false)}
+                    subtitle="ms between two server frames"
+                    howTo={`Longest pause between two server frames. The server should run a frame every ${tickMs} (first dashed line); a gap above ${lateMs} is a late frame and players see a hitch.`}
+                    direction="lower"
+                    finding={findingFor(found, 'frames')}
+                    series={charts.portSeries(false, (p) => `Longest frame gap of the server on port ${p} in each sample.`)}
+                    thresholds={limits.frameGap}
                     xs={charts.instXs}
                     columns={charts.maxGap}
                     height={130}
                     yFmt={ms}
                     yRange={(max) => [0, Math.max(10, max * 1.1)]}
+                    emptyText={EMPTY_NO_FRAMES}
                     {...common}
                   />
                   <ChartCard
                     title="Late frames"
                     subtitle={charts.lateUnit}
-                    series={charts.portSeries(true)}
+                    howTo={`Server frames that came more than ${lateMs} after the previous one, ${charts.lateUnit}. The goal is 0; every late frame is a hitch players can feel.`}
+                    direction="lower"
+                    series={charts.portSeries(true, (p) => `Late frames of the server on port ${p}, ${charts.lateUnit}.`)}
                     xs={charts.instXs}
                     columns={charts.late}
                     height={130}
                     yFmt={int}
+                    yLabel="frames"
                     yRange={(max) => [0, Math.max(4, Math.ceil(max * 1.1))]}
+                    emptyText={EMPTY_NO_FRAMES}
                     {...common}
                   />
                 </div>
@@ -441,23 +546,34 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
                 <ChartCard
                   title="Host memory"
                   subtitle={charts.memTotal ? `of ${fmtBytes(charts.memTotal)}` : undefined}
-                  series={[{ label: 'Used', slot: 1 }, { label: 'Swap', slot: 2 }]}
+                  howTo={`RAM in use on the host (the top of the scale is all of it) and swap. Above the dashed line the ${limits.memReservePct} % reserve is eaten into: no room for more servers. Swap in use means RAM ran short.`}
+                  direction="lower"
+                  finding={findingFor(found, 'memory')}
+                  series={[
+                    { label: 'Used', slot: 1, hint: 'RAM in use: total minus available.' },
+                    { label: 'Swap', slot: 2, hint: 'Swap in use; above zero means RAM ran short at some point.' },
+                  ]}
+                  thresholds={limits.memReserve(charts.memTotal)}
                   xs={charts.hostXs}
                   columns={[charts.memUsed, charts.swap]}
                   height={130}
                   yFmt={fmtBytes}
                   yRange={(max) => [0, charts.memTotal || Math.max(1, max * 1.1)]}
+                  emptyText={EMPTY_NO_DATA}
                   {...common}
                 />
                 {noInstances ? null : (
                   <ChartCard
                     title="Memory per instance"
-                    series={charts.portSeries(false)}
+                    howTo="RAM used by each server. A flat line is normal; a line that keeps rising over days points to a leak."
+                    direction="lower"
+                    series={charts.portSeries(false, (p) => `RAM used by the server on port ${p}.`)}
                     xs={charts.instXs}
                     columns={charts.instMem}
                     height={130}
                     yFmt={fmtBytes}
                     yRange={(max) => [0, Math.max(1, max * 1.1)]}
+                    emptyText={EMPTY_NO_DATA}
                     {...common}
                   />
                 )}
@@ -470,24 +586,35 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
                 <ChartCard
                   title="Network"
                   subtitle="bytes per second"
-                  series={[{ label: 'Received', slot: 1 }, { label: 'Sent', slot: 2 }]}
+                  howTo="Traffic in and out of the host. No good or bad value: it grows with players; a jump without players is worth a look."
+                  direction="context"
+                  series={[
+                    { label: 'Received', slot: 1, hint: 'Bytes per second coming into the host.' },
+                    { label: 'Sent', slot: 2, hint: 'Bytes per second going out of the host.' },
+                  ]}
                   xs={charts.hostXs}
                   columns={[charts.rx, charts.tx]}
                   height={130}
                   yFmt={rate}
                   yRange={(max) => [0, Math.max(1024, max * 1.1)]}
+                  emptyText={EMPTY_NO_DATA}
                   {...common}
                 />
                 <ChartCard
                   title="Disk"
                   subtitle="root filesystem used"
-                  series={[{ label: 'Used', slot: 1 }]}
+                  howTo={`Share of the root filesystem (/) in use. Above the dashed ${limits.disk[0].value} % line the collector reports disk low; a full disk stops logs and data from being written.`}
+                  direction="lower"
+                  finding={findingFor(found, 'disk')}
+                  series={[{ label: 'Used', slot: 1, hint: 'Used space of / in % of its size.' }]}
+                  thresholds={limits.disk}
                   xs={charts.hostXs}
                   columns={[charts.disk]}
                   height={130}
                   yFmt={fmtPct}
                   axisFmt={pct0}
                   yRange={() => [0, 100]}
+                  emptyText={EMPTY_NO_DATA}
                   {...common}
                 />
               </div>

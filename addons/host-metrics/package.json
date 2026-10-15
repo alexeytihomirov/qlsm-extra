@@ -6,7 +6,7 @@
   "description": "Build for the host-metrics addon's tier-2 QLSM components (ui/Page.js, ui/HostPanel.js, ui/Panel.css).",
   "scripts": {
     "build": "vite build",
-    "test": "node --test ui-src/format.test.mjs ui-src/data.test.mjs ui-src/findings.test.mjs"
+    "test": "node --test ui-src/format.test.mjs ui-src/data.test.mjs ui-src/findings.test.mjs ui-src/theme.test.mjs ui-src/chartinfo.test.mjs"
   },
   "dependencies": {
     "uplot": "1.6.31"

@@ -9,20 +9,25 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---- tokens -------------------------------------------------------------------
- * Chart palette: the dataviz reference palette, categorical slots in fixed order
- * (validated light and dark with validate_palette.js). Ink and surface come from QLSM's
- * own variables so the charts sit on the same card as the rest of the dialog.
- * Status colors are fixed, never used as a series color.
+ * Everything that is not a data colour comes from QLSM's own tokens (frontend-react/src/
+ * index.css: `:root` light, `.dark` dark), so the addon follows the theme switch with no
+ * colour of its own. No prefers-color-scheme: QLSM decides the theme with the `.dark` class.
+ *
+ * The one exception is the categorical chart palette (--hm-s1..8): QLSM has no series
+ * colours. It is the dataviz reference palette in fixed slot order, a selected step per
+ * theme, validated with validate_palette.js against QLSM's --surface-raised of each theme
+ * (light #FAFBFC: pass, contrast warn on 3 slots -> legend values and tooltip carry the
+ * numbers; dark #111820: pass). Slot 0 is the muted "other" series.
  */
 .hm-root {
   color-scheme: light;
-  --hm-surface: var(--surface-elevated, #fcfcfb);
-  --hm-ink: var(--text-primary, #0b0b0b);
-  --hm-ink-2: var(--text-secondary, #52514e);
-  --hm-muted: var(--text-muted, #898781);
-  --hm-grid: #e1e0d9;
-  --hm-axis: #c3c2b7;
-  --hm-line: var(--surface-border, rgba(11, 11, 11, 0.10));
+  --hm-surface: var(--surface-raised);
+  --hm-ink: var(--text-primary);
+  --hm-ink-2: var(--text-secondary);
+  --hm-muted: var(--text-muted);
+  --hm-grid: var(--surface-border);
+  --hm-axis: var(--surface-border-strong);
+  --hm-line: var(--surface-border);
   --hm-s1: #2a78d6;
   --hm-s2: #eb6834;
   --hm-s3: #1baf7a;
@@ -31,16 +36,14 @@
   --hm-s6: #008300;
   --hm-s7: #6250d6;
   --hm-s8: #e34948;
-  --hm-s0: #898781;
-  --hm-good: #0ca30c;
-  --hm-warning: #fab219;
-  --hm-critical: #d03b3b;
-  --hm-good-ink: #006300;
+  --hm-s0: var(--text-muted);
+  --hm-good: var(--accent-primary);
+  --hm-warning: var(--accent-warning);
+  --hm-critical: var(--accent-danger);
+  --hm-good-ink: var(--accent-primary-dim);
 }
 .dark .hm-root {
   color-scheme: dark;
-  --hm-grid: #2c2c2a;
-  --hm-axis: #383835;
   --hm-s1: #3987e5;
   --hm-s2: #d95926;
   --hm-s3: #199e70;
@@ -49,7 +52,7 @@
   --hm-s6: #008300;
   --hm-s7: #9085e9;
   --hm-s8: #e66767;
-  --hm-good-ink: #0ca30c;
+  --hm-good-ink: var(--accent-primary);
 }
 
 .hm-root { color: var(--hm-ink); font-size: 13px; }
@@ -58,26 +61,30 @@
 .hm-mono { font-family: "Share Tech Mono", "Consolas", monospace; }
 .hm-num { font-variant-numeric: tabular-nums; }
 
-/* ---- buttons, range switch ------------------------------------------------------ */
+/* ---- buttons, range switch ------------------------------------------------------
+ * Buttons are QLSM's own (ui.Button -> .btn .btn-secondary/.btn-primary). .hm-btn is the
+ * fallback for a core without ui.Button, styled like .btn-secondary from the same tokens.
+ */
 .hm-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 5px 12px; border-radius: 6px;
-  border: 1px solid var(--surface-border-strong, var(--hm-line));
-  background: var(--surface-elevated, transparent); color: var(--hm-ink);
+  border: 1px solid var(--surface-border-strong);
+  background: var(--surface-elevated); color: var(--text-primary);
   font-size: 12px; cursor: pointer;
 }
-.hm-btn:hover:not(:disabled) { border-color: var(--accent-primary, var(--hm-s1)); }
+.hm-btn:hover:not(:disabled) { border-color: var(--accent-primary); }
 .hm-btn:disabled { opacity: 0.5; cursor: default; }
-.hm-btn-primary { border-color: var(--accent-primary, var(--hm-s1)); }
+.hm-btn-primary { background: var(--accent-primary); border-color: var(--accent-primary); color: var(--surface-overlay); font-weight: 600; }
+.hm-btn-sm { padding: 4px 12px; font-size: 12px; }
 
-.hm-range { display: inline-flex; border: 1px solid var(--surface-border-strong, var(--hm-line)); border-radius: 6px; overflow: hidden; }
+.hm-range { display: inline-flex; border: 1px solid var(--surface-border-strong); border-radius: 6px; overflow: hidden; }
 .hm-range button {
-  padding: 4px 12px; background: transparent; color: var(--hm-ink-2);
-  border: 0; border-right: 1px solid var(--hm-line); font-size: 12px; cursor: pointer;
+  padding: 4px 12px; background: var(--surface-raised); color: var(--text-secondary);
+  border: 0; border-right: 1px solid var(--surface-border); font-size: 12px; cursor: pointer;
 }
 .hm-range button:last-child { border-right: 0; }
-.hm-range button:hover { background: var(--hm-grid); }
-.hm-range button[aria-pressed="true"] { background: var(--accent-primary, var(--hm-s1)); color: #fff; font-weight: 600; }
+.hm-range button:hover { background: var(--surface-elevated); color: var(--text-primary); }
+.hm-range button[aria-pressed="true"] { background: var(--accent-primary); color: var(--surface-overlay); font-weight: 600; }
 
 /* ---- status badge (icon + label, never color alone) ----------------------------- */
 .hm-badge { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; font-size: 12px; white-space: nowrap; }
@@ -120,6 +127,22 @@
 /* ---- chart card ---------------------------------------------------------------------- */
 .hm-card { background: var(--hm-surface); border: 1px solid var(--hm-line); border-radius: 8px; padding: 10px 12px 8px; min-width: 0; }
 .hm-card-title { font-size: 12px; font-weight: 600; color: var(--hm-ink); }
+.hm-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.hm-howto { font-size: 11px; line-height: 1.4; color: var(--hm-ink-2); margin-top: 2px; }
+.hm-chip {
+  display: inline-flex; align-items: center; gap: 3px; flex: none; white-space: nowrap;
+  padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 600;
+  color: var(--hm-ink-2); background: var(--surface-elevated); border: 1px solid var(--surface-border);
+}
+.hm-chip svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.hm-finding { display: flex; align-items: flex-start; gap: 6px; margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--hm-ink); }
+.hm-finding-icon { display: inline-flex; flex: none; margin-top: 1px; }
+.hm-finding-icon svg { width: 14px; height: 14px; }
+.hm-finding-good .hm-finding-icon { color: var(--hm-good-ink); }
+.hm-finding-warning .hm-finding-icon { color: var(--hm-warning); }
+.hm-finding-critical .hm-finding-icon { color: var(--hm-critical); }
+.hm-finding-neutral .hm-finding-icon { color: var(--hm-muted); }
+.hm-swatch-dash { width: 16px; height: 0; border-top: 2px dashed; flex: none; }
 .hm-card-sub { font-size: 11px; color: var(--hm-muted); margin-left: 6px; font-weight: 400; }
 .hm-legend { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 4px 0 2px; font-size: 11px; color: var(--hm-ink-2); }
 .hm-legend-item { display: inline-flex; align-items: center; gap: 5px; }
@@ -132,7 +155,7 @@
 .hm-tip {
   position: absolute; top: 4px; z-index: 5; pointer-events: none; min-width: 140px;
   background: var(--hm-surface); border: 1px solid var(--hm-axis); border-radius: 6px;
-  padding: 6px 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); font-size: 11px;
+  padding: 6px 8px; box-shadow: var(--shadow-elevated); font-size: 11px;
 }
 .hm-tip-time { color: var(--hm-muted); margin-bottom: 3px; }
 .hm-tip-row { display: flex; align-items: center; gap: 6px; line-height: 1.5; }

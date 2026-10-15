@@ -24,3 +24,13 @@ export const {
 
 /** The shared component kit (Modal, Button, Icon, ...). */
 export const ui = runtime.ui;
+
+/**
+ * QLSM's own button (ui.Button: .btn + .btn-primary/.btn-secondary, theme-aware), or a
+ * token-styled stand-in on a core whose kit has no Button.
+ */
+export function Button({ variant = 'secondary', className = '', ...rest }) {
+  if (ui.Button) return React.createElement(ui.Button, { variant, className, ...rest });
+  const cls = `hm-btn${variant === 'primary' ? ' hm-btn-primary' : ''}${className ? ` ${className}` : ''}`;
+  return React.createElement('button', { type: 'button', className: cls, ...rest });
+}

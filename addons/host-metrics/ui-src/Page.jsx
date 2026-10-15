@@ -1,4 +1,4 @@
-import React from './runtime';
+import React, { Button } from './runtime';
 import { HostModal } from './HostPanel';
 import {
   corePeaks, diskUsedPct, eventsTotal, lateFrames24h, playersNow, refNote, staleInfo,
@@ -173,9 +173,9 @@ function Page({ ctx }) {
   return (
     <div className="hm-root hm-page">
       <div className="hm-toolbar">
-        <button type="button" className="hm-btn" onClick={() => load(true)} disabled={loading}>
+        <Button onClick={() => load(true)} disabled={loading}>
           {loading ? 'Loading...' : 'Refresh'}
-        </button>
+        </Button>
         <span className="hm-muted">
           {loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : ''}
           Core p95 is the busiest core's p95 of per-minute busy over 24 h (hover for every core); steal is the 7-day p95.
