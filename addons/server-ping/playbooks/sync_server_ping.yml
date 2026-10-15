@@ -1,0 +1,177 @@
+---
+# Idempotent rollout of ql-ping-echo to a game host: the binary, the firewall
+# script, the port file, VERSION, the shared DTLS certificate and the systemd
+# service. Extravars come from backend.py: sp_enabled (bool), sp_port (digits),
+# sp_cert_file (a PEM file on the qlsm side, '' when disabled), sp_version.
+# Enabled: the firewall chain QLPING-INPUT is ensured, the service restarted and
+# checked to stay up for 15 s (rescue stops it). Disabled: the service is
+# stopped and disabled, the QLPING-INPUT hook and chain and the certificate are
+# removed. QLSM-INPUT is never touched.
+
+- name: Deploy ql-ping-echo
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  vars:
+    sp_dir: /opt/ql-ping-echo
+    sp_conf_dir: /etc/ql-ping-echo
+
+  tasks:
+    - name: Create the ql-ping group
+      group:
+        name: ql-ping
+        system: yes
+
+    - name: Create the ql-ping system user
+      user:
+        name: ql-ping
+        group: ql-ping
+        system: yes
+        shell: /usr/sbin/nologin
+        create_home: no
+
+    - name: Create the program directory
+      file:
+        path: "{{ sp_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create the config directory
+      file:
+        path: "{{ sp_conf_dir }}"
+        state: directory
+        owner: root
+        group: ql-ping
+        mode: "0750"
+
+    # The binary is committed with mode 0644 and the addon zip carries 0644 for
+    # every file: the mode here is what makes it executable.
+    - name: Install the ql-ping-echo binary
+      copy:
+        src: "{{ playbook_dir }}/../assets/ql-ping-echo"
+        dest: "{{ sp_dir }}/ql-ping-echo"
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install the firewall script
+      copy:
+        src: "{{ playbook_dir }}/../assets/ql-ping-firewall"
+        dest: "{{ sp_dir }}/ql-ping-firewall"
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install the systemd service
+      copy:
+        src: "{{ playbook_dir }}/../assets/ql-ping-echo.service"
+        dest: /etc/systemd/system/ql-ping-echo.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Write the port file
+      copy:
+        content: "{{ sp_port }}\n"
+        dest: "{{ sp_conf_dir }}/port"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Write the VERSION file
+      copy:
+        content: "{{ sp_version }}\n"
+        dest: "{{ sp_dir }}/VERSION"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Install the certificate, open the port, start and check the service
+      when: sp_enabled | bool
+      block:
+        - name: Install the DTLS key and certificate
+          copy:
+            src: "{{ sp_cert_file }}"
+            dest: "{{ sp_conf_dir }}/cert.pem"
+            owner: ql-ping
+            group: ql-ping
+            mode: "0600"
+          no_log: true
+
+        - name: Ensure the QLPING-INPUT chain and its INPUT hook
+          command: "{{ sp_dir }}/ql-ping-firewall apply"
+          changed_when: false
+
+        - name: Enable and (re)start ql-ping-echo
+          systemd:
+            name: ql-ping-echo.service
+            enabled: yes
+            state: restarted
+
+        - name: Read the restart counter right after the start
+          command: systemctl show -p NRestarts --value ql-ping-echo.service
+          register: sp_nrestarts_before
+          changed_when: false
+
+        - name: Wait for the service to prove it keeps running
+          pause:
+            seconds: 15
+
+        - name: Read the service state and the restart counter
+          shell: "echo \"$(systemctl is-active ql-ping-echo.service || true) $(systemctl show -p NRestarts --value ql-ping-echo.service)\""
+          register: sp_after
+          changed_when: false
+
+        - name: Assert the service is active and did not restart
+          assert:
+            that:
+              - (sp_after.stdout | trim).split()[0] == 'active'
+              - (sp_after.stdout | trim).split()[1] | int <= (sp_nrestarts_before.stdout | trim | int)
+            fail_msg: "ql-ping-echo is not stable after the restart ({{ sp_after.stdout | trim }})"
+      rescue:
+        - name: Stop the failed service
+          systemd:
+            name: ql-ping-echo.service
+            enabled: no
+            state: stopped
+          failed_when: false
+
+        - name: Close the port again
+          command: "{{ sp_dir }}/ql-ping-firewall remove"
+          failed_when: false
+          changed_when: false
+
+        - name: Read the last log lines
+          command: journalctl -u ql-ping-echo.service -n 20 --no-pager
+          register: sp_journal
+          changed_when: false
+          failed_when: false
+
+        - name: Fail the play
+          fail:
+            msg: "ql-ping-echo failed to start, service stopped: {{ sp_journal.stdout | default('') }}"
+
+    - name: Stop ql-ping-echo, close its port, remove the key
+      when: not (sp_enabled | bool)
+      block:
+        - name: Stop and disable ql-ping-echo
+          systemd:
+            name: ql-ping-echo.service
+            enabled: no
+            state: stopped
+
+        - name: Remove the QLPING-INPUT hook and chain
+          command: "{{ sp_dir }}/ql-ping-firewall remove"
+          changed_when: false
+
+        - name: Remove the DTLS key and certificate
+          file:
+            path: "{{ sp_conf_dir }}/cert.pem"
+            state: absent

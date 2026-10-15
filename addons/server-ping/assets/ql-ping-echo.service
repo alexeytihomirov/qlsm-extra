@@ -1,0 +1,30 @@
+[Unit]
+Description=ql-ping-echo, WebRTC UDP echo for the browser ping
+After=network-online.target netfilter-persistent.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ql-ping
+Group=ql-ping
+Nice=19
+CPUWeight=1
+# The port is above 1024: no capabilities at all.
+AmbientCapabilities=
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+# "+" runs the firewall script as root, outside the sandbox above: it puts the
+# QLPING-INPUT chain and its INPUT hook back after anything flushed them.
+ExecStartPre=+/opt/ql-ping-echo/ql-ping-firewall
+# "$$" is systemd's escape for a literal "$": the shell reads the port file.
+ExecStart=/bin/sh -c 'exec /opt/ql-ping-echo/ql-ping-echo -listen ":$$(cat /etc/ql-ping-echo/port)" -cert /etc/ql-ping-echo/cert.pem'
+# Restart=always with a 10 s delay stays below systemd's start limit, so a
+# service whose socket died keeps coming back instead of being given up on.
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

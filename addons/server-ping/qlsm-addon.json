@@ -1,0 +1,40 @@
+{
+  "id": "server-ping",
+  "version": "1.0.0",
+  "name": "Server Ping",
+  "description": "Browser ping to game hosts: deploys ql-ping-echo (a low-priority WebRTC UDP echo, one shared DTLS certificate) to each enabled host and opens its UDP port in its own firewall chain QLPING-INPUT.",
+  "scopes": ["global", "host"],
+  "ui_api": 3,
+
+  "settings": {
+    "global": [
+      { "key": "port", "type": "string", "label": "UDP port", "default": "28111" },
+      { "key": "dtls_cert", "type": "secret", "label": "DTLS key and certificate (PEM)", "default": "" }
+    ],
+    "host": [
+      { "key": "enabled", "type": "bool", "label": "Run the ping service on this host", "default": true }
+    ]
+  },
+
+  "ui": {
+    "icon": "radio",
+
+    "page": { "label": "Server Ping", "icon": "radio", "component": "Page.js" },
+    "settings_section": [
+      { "label": "Server Ping", "icon": "radio", "panel": "global_settings" }
+    ],
+
+    "panels": {
+      "global_settings": {
+        "kind": "form",
+        "description": "UDP port of ql-ping-echo on every host (1024-65535; reaches a host with Apply on the Server Ping page or its next host setup). The DTLS certificate is generated once on the Server Ping page; its fingerprint goes into the ql-tournament env as PING_DTLS_FINGERPRINT.",
+        "load": "GET settings",
+        "submit": "PUT settings",
+        "status": { "load": "GET fingerprint" },
+        "fields": [
+          { "key": "port", "type": "string", "label": "UDP port", "default": "28111" }
+        ]
+      }
+    }
+  }
+}

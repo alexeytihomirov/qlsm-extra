@@ -1,0 +1,41 @@
+#!/bin/sh
+# Opens the ql-ping-echo UDP port in its own chain QLPING-INPUT, hooked into
+# INPUT at position 1. qlsm flushes and rebuilds only its own QLSM-INPUT, so
+# this chain survives a qlsm network apply; a full host setup restores
+# iptables.rules and drops the hook, then host.payload_sync re-runs the addon
+# playbook, and every service start runs this script again (ExecStartPre).
+#
+# Usage: ql-ping-firewall [apply|remove]   (apply is the default)
+# The port is read from /etc/ql-ping-echo/port (QLPING_PORT_FILE overrides it).
+# Idempotent: a second apply adds no second hook and no second rule.
+set -eu
+
+CHAIN=QLPING-INPUT
+PORT_FILE=${QLPING_PORT_FILE:-/etc/ql-ping-echo/port}
+action=${1:-apply}
+
+case "$action" in
+  apply)
+    port=$(tr -d ' \t\r\n' < "$PORT_FILE")
+    case "$port" in
+      ''|*[!0-9]*) echo "ql-ping-firewall: no valid port in $PORT_FILE" >&2; exit 1 ;;
+    esac
+    if [ "${#port}" -gt 5 ] || [ "$port" -lt 1024 ] || [ "$port" -gt 65535 ]; then
+      echo "ql-ping-firewall: port $port is outside 1024-65535" >&2
+      exit 1
+    fi
+    iptables -w -N "$CHAIN" 2>/dev/null || true
+    iptables -w -C INPUT -j "$CHAIN" 2>/dev/null || iptables -w -I INPUT 1 -j "$CHAIN"
+    iptables -w -F "$CHAIN"
+    iptables -w -A "$CHAIN" -p udp --dport "$port" -j ACCEPT
+    ;;
+  remove)
+    while iptables -w -D INPUT -j "$CHAIN" 2>/dev/null; do :; done
+    iptables -w -F "$CHAIN" 2>/dev/null || true
+    iptables -w -X "$CHAIN" 2>/dev/null || true
+    ;;
+  *)
+    echo "usage: ql-ping-firewall [apply|remove]" >&2
+    exit 2
+    ;;
+esac

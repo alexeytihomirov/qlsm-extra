@@ -28,3 +28,5 @@ tests/fixtures/host-metrics/** -text
 
 # Static linux/amd64 build of addons/server-ping/echo (build.sh).
 addons/server-ping/assets/ql-ping-echo binary
+# Shell script without an extension, run by /bin/sh on the host.
+addons/server-ping/assets/ql-ping-firewall text eol=lf

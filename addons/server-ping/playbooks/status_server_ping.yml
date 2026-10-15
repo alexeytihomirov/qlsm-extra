@@ -1,0 +1,44 @@
+---
+# Read-only status of ql-ping-echo on a host. Prints exactly four lines the
+# backend parses (SP_VERSION=, SP_SERVICE=, SP_FIREWALL=, SP_FINGERPRINT=).
+
+- name: Server ping status
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  tasks:
+    - name: Read the installed version
+      shell: cat /opt/ql-ping-echo/VERSION 2>/dev/null || true
+      register: sp_version
+      changed_when: false
+
+    - name: Read the service state
+      shell: systemctl is-active ql-ping-echo.service || true
+      register: sp_service
+      changed_when: false
+
+    - name: Check the QLPING-INPUT hook and its port rule
+      shell: |
+        port=$(cat /etc/ql-ping-echo/port 2>/dev/null) || { echo no; exit 0; }
+        if iptables -w -C INPUT -j QLPING-INPUT 2>/dev/null &&
+           iptables -w -C QLPING-INPUT -p udp --dport "$port" -j ACCEPT 2>/dev/null; then
+          echo yes
+        else
+          echo no
+        fi
+      register: sp_firewall
+      changed_when: false
+
+    - name: Read the fingerprint of the installed certificate
+      shell: openssl x509 -in /etc/ql-ping-echo/cert.pem -noout -fingerprint -sha256 2>/dev/null || true
+      register: sp_fingerprint
+      changed_when: false
+
+    - name: Report
+      debug:
+        msg:
+          - "SP_VERSION={{ sp_version.stdout | trim }}"
+          - "SP_SERVICE={{ sp_service.stdout | trim }}"
+          - "SP_FIREWALL={{ sp_firewall.stdout | trim }}"
+          - "SP_FINGERPRINT={{ sp_fingerprint.stdout | trim }}"

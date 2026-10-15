@@ -181,6 +181,14 @@
       "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins, for example the alexeytihomirov/minqlxtended fork that native demo capture needs. Enable it for a host, enter the repository and a commit, then run Re-run Host Setup. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (host.setup hook)."
     },
     {
+      "id": "server-ping",
+      "zip": "packages/server-ping.zip",
+      "sha256": "0d188fc42bac7c31674ebba78f7dd5021f3542aa1f4e83401ef6f55742232919",
+      "version": "1.0.0",
+      "label": "Server Ping",
+      "description": "Browser ping to game hosts: deploys ql-ping-echo (a low-priority WebRTC UDP echo, one shared DTLS certificate) to each enabled host and opens its UDP port in its own firewall chain QLPING-INPUT."
+    },
+    {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
       "sha256": "39f98b61e95b8fedc466d94c4b7b193ca733ff7b6076165a31edde4b4dbe675f",
