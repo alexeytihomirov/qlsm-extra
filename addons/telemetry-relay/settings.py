@@ -22,6 +22,11 @@ from ui.models import AppSetting
 # Re-exported so this addon's other modules have one obvious place to
 # import from.
 from .stats_hub import (  # noqa: F401
+    HubAccessError,
+    allow_host,
+    firewall_label,
+    host_access_status,
+    release_host,
     get_effective_stats_hub_ingest_token,
     get_effective_stats_hub_url,
     get_host_stats_hub_ingest_token,
@@ -70,3 +75,13 @@ def is_relay_enabled(host_id):
 
 def set_relay_enabled(host_id, enabled):
     _set(f'{_RELAY_ENABLED_PREFIX}{host_id}', '1' if enabled else '')
+
+
+_DEMO_STREAM_TUNNEL_PREFIX = 'demo_stream_tunnel_enabled:'
+
+
+def is_demo_stream_tunnel_enabled(host_id):
+    """Whether the demo-stream addon's tunnel is on for this host. Read-only:
+    demo-stream's key, read here so turning the relay off does not take the
+    host out of stats-hub's firewall while the tunnel still needs it."""
+    return _get(f'{_DEMO_STREAM_TUNNEL_PREFIX}{host_id}') == '1'

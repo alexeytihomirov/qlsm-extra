@@ -44,6 +44,11 @@ from ui.models import AppSetting
 # Re-exported so this addon's other modules have one obvious place to
 # import from.
 from .stats_hub import (  # noqa: F401
+    HubAccessError,
+    allow_host,
+    firewall_label,
+    host_access_status,
+    release_host,
     get_effective_stats_hub_ingest_token,
     get_effective_stats_hub_url,
     get_instance_server_id,
@@ -154,3 +159,14 @@ def get_telemetry_stats_hub_url(host_id):
     keys and must stay in step with addons/telemetry-relay/stats_hub.py."""
     return (_get(f'{_TELEMETRY_HOST_URL_PREFIX}{host_id}') or _get(_TELEMETRY_URL_KEY) or '') \
         .rstrip('/') or None
+
+
+_TELEMETRY_RELAY_ENABLED_PREFIX = 'telemetry_relay_enabled:'
+
+
+def is_telemetry_relay_enabled(host_id):
+    """Whether telemetry-relay's sidecar is on for this host. Read-only:
+    telemetry's key (must stay in step with addons/telemetry-relay/settings.py),
+    read so turning the tunnel off does not take the host out of stats-hub's
+    firewall while the relay still needs it."""
+    return _get(f'{_TELEMETRY_RELAY_ENABLED_PREFIX}{host_id}') == '1'

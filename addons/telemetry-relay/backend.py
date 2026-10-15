@@ -21,6 +21,7 @@ AddonState while the shared relay logic kept reading AppSetting, giving a
 production credential two sources of truth that silently disagree. One store,
 one reader, for as long as both code paths exist.
 """
+import time
 import uuid
 
 from flask import Blueprint, current_app, jsonify, request
@@ -67,7 +68,7 @@ def get_host_relay_status(host_id):
     """
     from .relay_ops import get_relay_status_logic
 
-    _, error = _host_or_404(host_id)
+    host, error = _host_or_404(host_id)
     if error:
         return error
 
@@ -82,12 +83,38 @@ def get_host_relay_status(host_id):
         label = f'Reachable, {routed} instance(s) routed'
     else:
         label = status.get('error') or 'Unreachable'
+    label = f'{label}; {_access_line(host)}'
 
     return jsonify({"data": {
         'ok': bool(status.get('enabled') and status.get('reachable')),
         'label': label,
         'routed_instances': status.get('routed_instances') or [],
     }})
+
+
+def _allow_or_error(host):
+    """None once stats-hub lets the host in, else the error response."""
+    from .settings import HubAccessError, allow_host
+
+    try:
+        allow_host(host)
+    except HubAccessError as exc:
+        return jsonify({"error": {"message": f"stats-hub did not let this host in: {exc}"}}), exc.status
+    return None
+
+
+def _access_line(host):
+    """'Firewall ok; telemetry 5 s ago' from stats-hub, or why it is unknown."""
+    from .settings import HubAccessError, firewall_label, host_access_status
+
+    try:
+        state = host_access_status(host)
+    except HubAccessError as exc:
+        return f'firewall status: {exc.label}'
+    seen = state.get('last_telemetry_at')
+    telemetry = (f'telemetry {max(0, int(time.time() - seen))} s ago'
+                 if isinstance(seen, (int, float)) else 'no telemetry seen')
+    return f'{firewall_label(state)}; {telemetry}'
 
 
 @bp.route('/hosts/<int:host_id>', methods=['PUT'], endpoint='update_host_relay')
@@ -131,6 +158,10 @@ def update_host_relay(host_id):
     if wanted == is_relay_enabled(host_id):
         # Nothing to install or remove -- just re-push the config so an edited
         # URL/token reaches a relay that is already running.
+        if wanted:
+            error = _allow_or_error(host)
+            if error:
+                return error
         push_relay_config_logic(host_id)
         return jsonify({"data": {"enabled": wanted}, "message": "Relay configuration updated."})
 
@@ -144,6 +175,14 @@ def update_host_relay(host_id):
         return jsonify({"error": {
             "message": f'Another operation is running on host "{host.name}". Please wait for it to complete.'
         }}), 409
+    if wanted:
+        # The hub must accept the host before the relay starts sending to it;
+        # only now, with the job certain to be queued, so a refused save leaves
+        # no stale entry behind.
+        error = _allow_or_error(host)
+        if error:
+            release_lock('host', host.id, lock_token)
+            return error
     try:
         update_host(host.id, status=HostStatus.CONFIGURING)
         enqueue_task(TASKS['configure_host_relay'], host.id, wanted,
