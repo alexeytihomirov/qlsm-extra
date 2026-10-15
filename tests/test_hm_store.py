@@ -190,3 +190,21 @@ def test_close_all_open_closes_only_open_events(conn):
     assert rows[a]["state"] == "closed" and rows[a]["closed_ts"] == 500
     assert rows[b]["closed_ts"] == 120
     assert hm_store.close_all_open(conn, 600) == 0
+
+
+def test_hardware_row_is_replaced_and_roundtrips(conn):
+    assert hm_store.get_hardware(conn) is None
+    hm_store.set_hardware(conn, T0, {"vcpus": 2, "cpu_model": "A", "provider": None})
+    hm_store.set_hardware(conn, T0 + 3600, {"vcpus": 4, "cpu_model": "B", "provider": "Vultr"})
+    assert conn.execute("SELECT COUNT(*) FROM hardware").fetchone()[0] == 1
+    assert hm_store.get_hardware(conn) == {"vcpus": 4, "cpu_model": "B", "provider": "Vultr"}
+
+
+def test_get_hardware_on_old_db_without_table_is_none(tmp_path):
+    p = tmp_path / "old.db"
+    c = sqlite3.connect(str(p))
+    c.execute("CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT)")
+    c.commit()
+    c.close()
+    ro = hm_store.open_db(p, readonly=True)
+    assert hm_store.get_hardware(ro) is None

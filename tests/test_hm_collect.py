@@ -318,3 +318,31 @@ def test_short_interval_skips_rates(env):
     assert all(c["busy"] is None for c in s["cores"])
     env.advance(10, usage_s=5)
     assert _inst(col.tick())["cpu"] == pytest.approx(50.0)
+
+
+# ---- hardware (B4) ----
+
+def test_hardware_read_on_first_tick_and_hourly(env):
+    col = env.collector()
+    col.tick()
+    hw = hm_store.get_hardware(col.conn)
+    assert hw["cpu_model"] == "AMD EPYC-Rome Processor" and hw["provider"] == "Hetzner"
+    (env.root / "sys/class/dmi/id/sys_vendor").write_text("Vultr\n")
+    env.advance(10)
+    col.tick()
+    assert hm_store.get_hardware(col.conn)["provider"] == "Hetzner"   # not re-read yet
+    env.advance(3600)
+    col.tick()
+    assert hm_store.get_hardware(col.conn)["provider"] == "Vultr"
+
+
+def test_hardware_failure_never_breaks_tick_and_logs_once(env, monkeypatch, capsys):
+    def boom(root="/"):
+        raise RuntimeError("no hw")
+    monkeypatch.setattr(hm_readers, "read_hardware", boom)
+    col = env.collector()
+    assert col.tick()["ts"] == T0
+    env.advance(3600)
+    assert col.tick()["ts"] == T0 + 3600
+    assert capsys.readouterr().err.count("hardware read failed") == 1
+    assert hm_store.get_hardware(col.conn) is None

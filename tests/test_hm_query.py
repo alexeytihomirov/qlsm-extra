@@ -256,3 +256,17 @@ def test_version_file(tmp_path, capsys, monkeypatch):
     (tmp_path / "VERSION").write_text("1.2.3\n")
     code, r = _run(capsys, "--db", str(tmp_path / "nope.db"), "snapshot")
     assert code == 3 and r["version"] == "1.2.3"
+
+
+def test_snapshot_hardware_from_store(db, capsys):
+    conn = hm_store.open_db(db)
+    hm_store.set_hardware(conn, NOW, {"cpu_model": "AMD EPYC-Rome Processor", "vcpus": 2})
+    conn.close()
+    code, s = _run(capsys, "--db", str(db), "--now", str(NOW), "snapshot")
+    assert code == 0
+    assert s["hardware"] == {"cpu_model": "AMD EPYC-Rome Processor", "vcpus": 2}
+
+
+def test_snapshot_hardware_none_before_first_read(db, capsys):
+    code, s = _run(capsys, "--db", str(db), "--now", str(NOW), "snapshot")
+    assert code == 0 and s["hardware"] is None

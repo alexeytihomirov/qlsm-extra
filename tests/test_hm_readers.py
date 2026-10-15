@@ -210,3 +210,63 @@ def test_redis_socket_unreachable_raises_oserror(tmp_path):
     r = hm_readers.RedisSocket(str(tmp_path / "none.sock"), 1)
     with pytest.raises(OSError):
         r.get("k")
+
+
+# ---- hardware ----
+
+def test_read_hardware_germany_fixture():
+    hw = hm_readers.read_hardware(ROOT)
+    assert hw == {
+        "cpu_model": "AMD EPYC-Rome Processor", "vcpus": 2, "threads_per_core": 1,
+        "sockets": 1, "mhz": 2495.312, "cache": "512 KB", "hypervisor": True,
+        "sys_vendor": "Hetzner", "product_name": "vServer", "provider": "Hetzner",
+        "mem_total": 3911572 * 1024, "swap_total": 0, "disk_total": 80003072 * 512,
+        "disk_rotational": False, "kernel": "6.8.0-137-generic", "os": "Ubuntu 24.04.4 LTS",
+        "boot_time": 1787262499,
+    }
+
+
+def test_read_hardware_empty_root_gives_all_none(tmp_path):
+    hw = hm_readers.read_hardware(str(tmp_path))
+    assert set(hw) == set(hm_readers.HARDWARE_KEYS)
+    assert all(v is None for v in hw.values())
+
+
+def _write(root, rel, text):
+    p = Path(root) / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text, encoding="utf-8")
+
+
+def test_read_hardware_nvme_partition_and_amazon_provider(tmp_path):
+    _write(tmp_path, "proc/mounts", "/dev/nvme0n1p1 / ext4 rw 0 0\n")
+    _write(tmp_path, "sys/block/nvme0n1/queue/rotational", "0\n")
+    _write(tmp_path, "sys/block/nvme0n1/size", "16777216\n")
+    _write(tmp_path, "sys/class/dmi/id/sys_vendor", "Amazon EC2\n")
+    hw = hm_readers.read_hardware(str(tmp_path))
+    assert hw["provider"] == "Amazon EC2"
+    assert hw["disk_rotational"] is False and hw["disk_total"] == 8 * 1024 ** 3
+
+
+def test_read_hardware_provider_map_and_raw_vendor(tmp_path):
+    for vendor, want in (("Vultr", "Vultr"), ("Hetzner", "Hetzner"), ("QEMU", "QEMU")):
+        _write(tmp_path, "sys/class/dmi/id/sys_vendor", vendor + "\n")
+        assert hm_readers.read_hardware(str(tmp_path))["provider"] == want
+
+
+def test_read_hardware_rotational_disk_and_smt_sockets(tmp_path):
+    _write(tmp_path, "proc/mounts", "/dev/sda2 / ext4 rw 0 0\n")
+    _write(tmp_path, "sys/block/sda/queue/rotational", "1\n")
+    block = ("processor\t: %d\nmodel name\t: X CPU\nphysical id\t: %d\nsiblings\t: 4\n"
+             "cpu cores\t: 2\nflags\t\t: fpu\n\n")
+    _write(tmp_path, "proc/cpuinfo", "".join(block % (i, i // 4) for i in range(8)))
+    hw = hm_readers.read_hardware(str(tmp_path))
+    assert hw["disk_rotational"] is True and hw["disk_total"] is None
+    assert (hw["vcpus"], hw["sockets"], hw["threads_per_core"]) == (8, 2, 2)
+    assert hw["hypervisor"] is False and hw["mhz"] is None and hw["cache"] is None
+
+
+def test_read_hardware_overlay_root_has_no_disk(tmp_path):
+    _write(tmp_path, "proc/mounts", "overlay / overlay rw 0 0\n")
+    hw = hm_readers.read_hardware(str(tmp_path))
+    assert hw["disk_total"] is None and hw["disk_rotational"] is None
