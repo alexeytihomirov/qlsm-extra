@@ -6,7 +6,7 @@ created: 2026-10-15
 updated: 2026-10-15
 verified:
 depends_on: []
-related: [root-0014]
+related: [root-0016]
 ---
 
 # Helper modules listed in qlx_plugins fail to load on every server start
@@ -17,7 +17,7 @@ related: [root-0014]
 
 ## Контекст
 
-Найдено 2026-10-15 при живой проверке `root-0014` (journald `qlds@27960` на germany, 91.99.3.72). При каждом старте сервера пять модулей падают с `PluginLoadError: The plugin needs to have a class with the exact name as the file, minus the .py.`:
+Найдено 2026-10-15 при живой проверке `root-0016` (journald `qlds@27960` на germany, 91.99.3.72). При каждом старте сервера пять модулей падают с `PluginLoadError: The plugin needs to have a class with the exact name as the file, minus the .py.`:
 
 - `chat_rcon_acl`, `match_restore_util`, `qlmatch_packer_cmd`, `stats_hub_pause`, `telemetry_unified_sched`.
 
@@ -38,7 +38,7 @@ related: [root-0014]
 
 ## Журнал
 
-- 2026-10-15 - created (найдено в `root-0014`, журнал germany)
+- 2026-10-15 - created (найдено в `root-0016`, журнал germany)
 - 2026-10-15 - причина (по коду qlsm, `frontend-react/src/components/fileManager/pluginSelection.js`): `applyPluginDependencies` кладёт `depends_on`-модули в checked-набор, `toQlxPluginNames` пишет их в `qlx_plugins`. Так попали `match_restore_util`, `qlmatch_packer_cmd`, `telemetry_unified_sched`, `stats_hub_pause`. `chat_rcon_acl` не зависимость ничего - добавлен вручную. Переименование `_name.py` не помогло бы: зависимость всё равно попадает в список
 - 2026-10-15 - выбор оператора: PR в upstream qlsm. Ветка `upstream-pr/helper-module-not-enabled` (worktree `C:/Users/hellp/orca/workspaces/qlsm/pr-helper-module`), коммит c5514609: `toQlxPluginNames(checked, tree)` не пишет dependency-only файлы в список. vitest: pluginSelection + EditInstanceConfigModal (85) и addInstance (101) зелёные. PR не открыт автоматически: fine-grained токен gh получил "Resource not accessible by personal access token (createPullRequest)" на dngrtech/qlsm. Ветка запушена в origin; PR открывает оператор: https://github.com/dngrtech/qlsm/compare/main...alexeytihomirov:qlsm:upstream-pr/helper-module-not-enabled
 - 2026-10-15 - germany (instance 1) почищен через qlsm API (`PUT /api/instances/1/config` с `qlx_plugins`, JWT выпущен в контейнере `qlsm-web-1`): 26 -> 21 имя, убраны 5 помощников, инстанс перезапущен 02:38 CEST. В журнале `qlds@27960` после перезапуска 0 `PluginLoadError`, все плагины загрузились. sweden пока не трогали (решение оператора)
