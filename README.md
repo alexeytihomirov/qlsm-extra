@@ -171,8 +171,10 @@ notifications (`poller.tick`, `ctx.notify`) and `page.nav` it also:
 
 On an older core the addon loads and works as before, without the bell
 notifications and without the navbar entry (the page stays at
-`/addons/host-metrics`). Hosts need **Apply to host** after the update (the
-collector gains hardware info and `events --since`).
+`/addons/host-metrics`). Hosts need **Apply to host** after the update to 1.1.0
+(the collector gains hardware info and the list of open events; the bell
+notifications are state-based and read that list, so a host that was not
+re-applied only gets the "unreachable" and "collector silent" notifications).
 
 ### player-ranks
 

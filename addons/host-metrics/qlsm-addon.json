@@ -61,6 +61,7 @@
           { "key": "notify_enabled", "type": "bool", "label": "Notifications under the bell", "default": true,
             "description": "Host problems (late frames or a saturated core with players on, high steal, low memory, OOM kills, a full disk, a host unreachable for over 5 minutes) appear under the bell in the navbar. Needs a QLSM core with notifications; an older core ignores this." },
           { "key": "notify_min_severity", "type": "select", "label": "Notify from severity", "default": "warning",
+            "description": "Lowest severity that reaches the bell. No problem is reported as info, so info behaves like warning for now.",
             "options": ["info", "warning", "critical"] }
         ]
       }
