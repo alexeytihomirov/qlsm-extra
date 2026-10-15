@@ -68,16 +68,19 @@ class EventTracker:
 
         for c in sample.get("cores") or []:
             n = c.get("core")
+            if n == -1:
+                steal = c.get("steal")
+                self.observe(ts, "steal_high", "host",
+                             steal is not None and steal > th["steal_event_pct"],
+                             "host steal %.0f%% (limit %s%%)" % (steal or 0, th["steal_event_pct"]))
+                continue
             if n is None or n < 0:
                 continue
-            busy, steal = c.get("busy"), c.get("steal")
+            busy = c.get("busy")
             sk = "core:%d" % n
             self.observe(ts, "core_saturated", sk,
                          busy is not None and busy > th["core_saturated_pct"],
                          "core %d busy %.0f%% (limit %s%%)" % (n, busy or 0, th["core_saturated_pct"]))
-            self.observe(ts, "steal_high", sk,
-                         steal is not None and steal > th["steal_event_pct"],
-                         "core %d steal %.0f%% (limit %s%%)" % (n, steal or 0, th["steal_event_pct"]))
 
         total, avail = host.get("mem_total"), host.get("mem_avail")
         if total and avail is not None:
@@ -106,6 +109,9 @@ class EventTracker:
             port = i["port"]
             ports.add(port)
             frames, late, max_ms = i.get("frames"), i.get("late"), i.get("max_ms")
+            if frames is None:
+                # no fresh frame stats this tick (seq unchanged): keep the window state
+                continue
             active = False
             msg = ""
             if frames:

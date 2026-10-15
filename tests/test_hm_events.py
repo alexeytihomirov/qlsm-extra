@@ -68,9 +68,16 @@ def test_flapping_makes_no_event(tracker, conn):
     assert _kinds(conn) == []
 
 
-def test_steal_high_window(tracker, conn):
+def test_steal_high_is_host_level(tracker, conn):
+    for t in range(0, 61, 10):
+        tracker.evaluate(T0 + t, {
+            "host": {}, "insts": [], "oom_delta": 0,
+            "cores": [{"core": -1, "busy": 10.0, "steal": 5.0},
+                      {"core": 0, "busy": 10.0, "steal": 30.0}]})
+    assert _kinds(conn, "steal_high") == []
     _run(tracker, 60, steal=12.0)
-    assert len(_kinds(conn, "steal_high")) == 1
+    ev = _kinds(conn, "steal_high")
+    assert len(ev) == 1 and ev[0]["scope"] == "host" and ev[0]["port"] is None
 
 
 def test_mem_low_window(tracker, conn):
@@ -115,11 +122,21 @@ def test_frames_late_by_gap(tracker, conn):
     assert len(_kinds(conn, "frames_late")) == 1
 
 
-def test_frames_null_is_inactive(tracker, conn):
+def test_frames_null_keeps_window(tracker, conn):
+    for i, t in enumerate(range(0, 61, 10)):
+        inst = (_inst(27960, late=5) if i % 2 == 0
+                else _inst(27960, frames=None, late=None, max_ms=None))
+        tracker.evaluate(T0 + t, _sample(insts=[inst]))
+    assert len(_kinds(conn, "frames_late")) == 1
+
+
+def test_frames_ok_tick_closes_event(tracker, conn):
     for t in range(0, 61, 10):
-        tracker.evaluate(T0 + t, _sample(insts=[_inst(27960, late=5)] if t < 30 else
-                                         [_inst(27960, frames=None, late=None, max_ms=None)]))
-    assert _kinds(conn, "frames_late") == []
+        tracker.evaluate(T0 + t, _sample(insts=[_inst(27960, late=5)]))
+    tracker.evaluate(T0 + 70, _sample(insts=[_inst(27960, frames=None, late=None, max_ms=None)]))
+    assert _kinds(conn, "frames_late")[0]["state"] == "open"
+    tracker.evaluate(T0 + 80, _sample(insts=[_inst(27960)]))
+    assert _kinds(conn, "frames_late")[0]["state"] == "closed"
 
 
 def test_instance_new_and_gone(tracker, conn):
