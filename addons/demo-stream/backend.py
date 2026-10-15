@@ -114,6 +114,28 @@ def get_host_tunnel(host_id):
     }})
 
 
+@bp.route('/hosts/<int:host_id>/status', methods=['GET'], endpoint='get_host_tunnel_status')
+@jwt_required()
+def get_host_tunnel_status(host_id):
+    """Whether stats-hub lets this host in and has a demo-stream link from it,
+    shaped for the tunnel panel's status badge. One call to stats-hub."""
+    from .settings import HubAccessError, firewall_label, host_access_status
+
+    host, error = _host_or_404(host_id)
+    if error:
+        return error
+    try:
+        state = host_access_status(host)
+    except HubAccessError as exc:
+        return jsonify({"data": {'ok': False, 'label': exc.label}})
+    firewall = firewall_label(state)
+    connected = (state.get('demo_stream_links') or 0) > 0
+    return jsonify({"data": {
+        'ok': firewall == 'Firewall ok' and connected,
+        'label': f"{firewall}; demo stream {'connected' if connected else 'not connected'}",
+    }})
+
+
 @bp.route('/hosts/<int:host_id>', methods=['PUT'], endpoint='update_host_tunnel')
 @jwt_required()
 def update_host_tunnel(host_id):
@@ -127,8 +149,8 @@ def update_host_tunnel(host_id):
     from ui.task_logic.job_failure_handlers import host_job_failure_handler
     from ui.tasks import enqueue_task
     from .settings import (
-        DEFAULT_TUNNEL_PORT, is_host_tunnel_enabled, is_relay_configured,
-        set_host_tunnel_port,
+        DEFAULT_TUNNEL_PORT, HubAccessError, allow_host, is_host_tunnel_enabled,
+        is_relay_configured, set_host_tunnel_port,
     )
     from .tunnel_ops import TunnelCertError, fetch_hub_tls_cert
 
@@ -170,6 +192,13 @@ def update_host_tunnel(host_id):
         return jsonify({"error": {
             "message": f"Host must be ACTIVE to change the tunnel. Current state: {host.status.value}"
         }}), 400
+
+    if wanted:
+        # The hub must accept the host before the tunnel starts streaming to it.
+        try:
+            allow_host(host)
+        except HubAccessError as exc:
+            return jsonify({"error": {"message": f"stats-hub did not let this host in: {exc}"}}), exc.status
 
     lock_token = str(uuid.uuid4())
     if not acquire_lock('host', host.id, lock_token, ttl=360):

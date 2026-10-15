@@ -282,3 +282,95 @@ def read_cvars_from_text(text, cvar_names):
         if m and m.group(1) in names:
             found[m.group(1)] = m.group(2)
     return found
+
+
+# ---- host access through the hub firewall --------------------------------
+# The hub lets only listed game hosts reach its ports (ufw). These calls add the
+# host, remove it and read its state over the hub API (ql-stats-hub
+# docs/FIREWALL.md, "Managed from qlsm through the hub API").
+
+ACCESS_TIMEOUT_SEC = 35  # the hub gives hub-allow 30 s
+
+
+class HubAccessError(Exception):
+    """The hub did not let the host in / out / report. `status` is what this
+    addon's own endpoint answers with, `label` the short form for a badge.
+    The text never carries the ingest token."""
+
+    def __init__(self, message, status, label):
+        super().__init__(message)
+        self.status = status
+        self.label = label
+
+
+def hub_host_name(host):
+    """The name hub-allow lists the host under: [a-z0-9-]{1,32}."""
+    name = re.sub(r'[^a-z0-9-]', '-', (host.name or '').lower())
+    name = re.sub(r'-+', '-', name).strip('-')[:32].strip('-')
+    return name or f'host-{host.id}'
+
+
+def _access_call(send, host, suffix='', **kwargs):
+    if not (host.ip_address or '').strip():
+        raise HubAccessError('This host has no IP address yet.', 409, 'No IP address')
+    if not is_stats_hub_configured_for_host(host.id):
+        raise HubAccessError('Set the stats-hub URL and ingest token in Settings first.',
+                             409, 'Stats-hub not configured')
+    url = (f"{get_effective_stats_hub_url(host.id)}/api/admin/firewall/hosts/"
+           f"{host.ip_address.strip()}{suffix}")
+    headers = {'Authorization': f'Bearer {get_effective_stats_hub_ingest_token(host.id)}'}
+    try:
+        resp = send(url, headers=headers, timeout=ACCESS_TIMEOUT_SEC, allow_redirects=False,
+                    **kwargs)
+    except requests.RequestException as exc:
+        raise HubAccessError(
+            f"Could not reach stats-hub ({type(exc).__name__}). Check the stats-hub URL "
+            "in Settings and that the hub is up.", 502, 'Stats-hub unreachable') from None
+
+    try:
+        body = resp.json()
+    except ValueError:
+        body = None
+    detail = body.get('detail') if isinstance(body, dict) else None
+
+    if 300 <= resp.status_code < 400:
+        raise HubAccessError(
+            f"stats-hub redirected the call (HTTP {resp.status_code}). Check the scheme "
+            "and host of the stats-hub URL in Settings.", 502, 'Stats-hub redirected the call')
+    if resp.status_code in (401, 403):
+        raise HubAccessError(
+            f"stats-hub rejected the ingest token (HTTP {resp.status_code}). It must be the "
+            "hub's STATS_HUB_INGEST_TOKEN.", 502, 'Ingest token rejected')
+    if resp.status_code in (404, 405):
+        raise HubAccessError(
+            f"stats-hub answered HTTP {resp.status_code}: it is older than the firewall API "
+            "and needs an update.", 502, 'Stats-hub has no firewall API')
+    if resp.status_code != 200 or not isinstance(body, dict):
+        text = f": {detail}" if isinstance(detail, str) else ''
+        raise HubAccessError(f"stats-hub could not change its firewall (HTTP "
+                             f"{resp.status_code}){text}", 502,
+                             f'Stats-hub firewall error (HTTP {resp.status_code})')
+    return body
+
+
+def allow_host(host):
+    """Let the host reach the hub. A host already listed (under any name) is
+    left as it is."""
+    return _access_call(requests.put, host, json={'name': hub_host_name(host)})
+
+
+def release_host(host):
+    return _access_call(requests.delete, host)
+
+
+def host_access_status(host):
+    return _access_call(requests.get, host, '/status')
+
+
+def firewall_label(state):
+    """'Firewall ok' or 'Firewall missing 8090, 27999' from a status answer.
+    A port still open to everyone counts as reachable."""
+    public = state.get('public') or {}
+    missing = [port for port, rule in (state.get('ports') or {}).items()
+               if rule == 'missing' and not public.get(port)]
+    return 'Firewall ok' if not missing else f"Firewall missing {', '.join(missing)}"

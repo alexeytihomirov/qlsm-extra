@@ -19,6 +19,16 @@ def auth(app):
     return auth_headers(app, 'demoop')
 
 
+@pytest.fixture(autouse=True)
+def hub_lets_hosts_in():
+    """Enabling the tunnel first asks stats-hub's firewall API to let the host in
+    (tests/test_addon_demo_stream_access.py covers that); here it always agrees."""
+    answer = Mock(status_code=200)
+    answer.json.return_value = {'ok': True, 'ip': '10.0.0.1', 'name': 'germany', 'changed': False}
+    with patch('requests.put', return_value=answer):
+        yield
+
+
 @pytest.fixture
 def host_id(app):
     with app.app_context():
@@ -267,6 +277,10 @@ def _set_relay_and_hub():
     set_relay_host('70.34.223.191')
     set_relay_port('27999')
     _set_hub()
+    # enabling the tunnel lets the host in to the hub's firewall: needs the token too
+    from qlsm_addon_demo_stream.settings import set_stats_hub_ingest_token
+    set_stats_hub_ingest_token('tok')
+    db.session.commit()
 
 
 def test_get_host_tunnel_defaults(client, auth, host_id):
@@ -523,7 +537,7 @@ def test_status_reports_tunnel_off(app, client, auth, instance_id):
 def test_manifest_declares_host_tunnel_panel():
     import json
     m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.3.0'
+    assert m['version'] == '1.4.0'
     assert m['ui_api'] == 1
     assert m['ui']['host_menu'][0]['panel'] == 'host_tunnel'
     p = m['ui']['panels']['host_tunnel']

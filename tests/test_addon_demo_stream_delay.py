@@ -443,7 +443,7 @@ def test_put_delay_non_object_body_is_400(client, auth, streaming, body):
 
 def test_manifest_declares_the_delay_panel():
     m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.3.0'
+    assert m['version'] == '1.4.0'
     entry = next(e for e in m['ui']['instance_menu'] if e['id'] == 'demo-stream-delay')
     assert entry['panel'] == 'instance_delay'
     p = m['ui']['panels']['instance_delay']

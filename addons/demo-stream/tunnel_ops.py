@@ -20,9 +20,13 @@ PLAYBOOK = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         'playbooks', 'install_demo_stream_tunnel.yml')
 
 from .settings import (
+    HubAccessError,
     get_effective_stats_hub_url,
     get_relay_host,
     get_relay_port,
+    is_stats_hub_configured_for_host,
+    is_telemetry_relay_enabled,
+    release_host,
     set_host_tunnel_enabled,
     set_host_tunnel_port,
 )
@@ -69,6 +73,20 @@ def build_tunnel_extravars(enabled, port, cert_pem):
     }
 
 
+def _release_from_hub(host):
+    """Takes the host out of stats-hub's firewall unless the telemetry relay
+    still needs it. Returns a log line for a failure ('' otherwise): the tunnel
+    is off either way, a host left listed only keeps a port open."""
+    if is_telemetry_relay_enabled(host.id) or not is_stats_hub_configured_for_host(host.id):
+        return ''
+    try:
+        release_host(host)
+    except HubAccessError as exc:
+        current_app.logger.warning(f"Demo stream: could not remove host {host.name} from stats-hub: {exc}")
+        return f"Warning: host not removed from the stats-hub firewall: {exc}\n"
+    return ''
+
+
 def configure_host_demo_stream_tunnel_logic(host_id, enabled, port, cert_pem):
     """Enables/disables the stunnel client on a host. Does not touch any
     instance's cvars."""
@@ -92,7 +110,8 @@ def configure_host_demo_stream_tunnel_logic(host_id, enabled, port, cert_pem):
         host.status = HostStatus.ACTIVE
         line = (f"Demo stream tunnel enabled on port {port}." if enabled
                 else "Demo stream tunnel disabled.")
-        host.logs = f"{line}\n{host.logs or ''}"
+        warning = '' if enabled else _release_from_hub(host)
+        host.logs = f"{line}\n{warning}{host.logs or ''}"
     else:
         current_app.logger.error(f"Failed to configure demo-stream tunnel for host {host.name}.")
         host.status = HostStatus.ERROR
