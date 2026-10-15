@@ -1,8 +1,10 @@
-"""Enables telemetry-relay wiring for a single QL instance:
-reserve a cluster-wide server_id from ql-stats-hub, flip
-qlx_statsHubUnifiedEnabled on, push the host's relay routes, and apply+
-restart the instance (same mechanism the Plugins tab config-save flow
-already uses).
+"""Enables and disables telemetry-relay wiring for a single QL instance.
+
+Enable: reserve a cluster-wide server_id from ql-stats-hub (or reuse the one
+reserved before), flip qlx_statsHubUnifiedEnabled on, push the host's relay
+routes, and apply+restart the instance (same mechanism the Plugins tab
+config-save flow already uses). Disable: flip it off, drop the relay route,
+apply+restart; the reserved server_id is kept for the next enable.
 
 The instance itself never stores or sends the stats-hub URL/ingest token -
 those live only in per-host settings (ui/telemetry_relay_settings.py) and
@@ -23,12 +25,14 @@ from ui.models import InstanceStatus, QLInstance
 from .relay_ops import push_relay_config_logic
 from .settings import (
     get_instance_server_id,
+    get_reserved_server_id,
     instance_ids_sharing_server_id,
     is_relay_enabled,
     is_stats_hub_configured_for_host,
     read_cvars_from_text,
     reserve_server_id,
     set_instance_server_id,
+    set_reserved_server_id,
     strip_cvars_from_text,
     upsert_cvars_in_text,
 )
@@ -39,6 +43,22 @@ _RESERVE_TIMEOUT_SEC = 10
 # server.cfg still carrying them from before this change so the file doesn't
 # keep advertising stale/duplicated secrets.
 _LEGACY_INSTANCE_CVARS = ('qlx_statsHubUrl', 'qlx_statsHubToken')
+_TELEMETRY_CVARS = ('qlx_statsHubUnifiedEnabled', 'qlx_statsHubServerId')
+
+
+def _config_path(instance):
+    return os.path.join('configs', instance.host.name, str(instance.id), 'server.cfg')
+
+
+def read_instance_telemetry_cvars(instance):
+    """qlx_statsHubUnifiedEnabled / qlx_statsHubServerId as qlsm's copy of the
+    instance's server.cfg carries them; {} when there is no server.cfg."""
+    try:
+        with open(_config_path(instance), 'r', encoding='utf-8') as f:
+            text = f.read()
+    except FileNotFoundError:
+        return {}
+    return read_cvars_from_text(text, _TELEMETRY_CVARS)
 
 
 def sync_instance_server_id_from_config(instance):
@@ -61,16 +81,10 @@ def sync_instance_server_id_from_config(instance):
     assisted enable_instance_telemetry_logic flow itself) keeps this in
     sync automatically, in whatever order the operator did the setup steps.
     """
-    if not instance.host:
-        return
-    config_path = os.path.join('configs', instance.host.name, str(instance.id), 'server.cfg')
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-    except FileNotFoundError:
+    if not instance.host or not os.path.exists(_config_path(instance)):
         return
 
-    cvars = read_cvars_from_text(text, ('qlx_statsHubUnifiedEnabled', 'qlx_statsHubServerId'))
+    cvars = read_instance_telemetry_cvars(instance)
     enabled = cvars.get('qlx_statsHubUnifiedEnabled') == '1'
     try:
         server_id = int(cvars.get('qlx_statsHubServerId') or 0)
@@ -130,7 +144,7 @@ def enable_instance_telemetry_logic(instance_id, previous_status=None):
     if not is_relay_enabled(host_id):
         return _finish(instance, False, "Enable the telemetry relay for this host first.", previous_status)
 
-    server_id = get_instance_server_id(instance.id)
+    server_id = get_instance_server_id(instance.id) or get_reserved_server_id(instance.id)
     if server_id is None:
         try:
             server_id = reserve_server_id(instance.name, host_id)
@@ -139,10 +153,10 @@ def enable_instance_telemetry_logic(instance_id, previous_status=None):
                 f"Failed to reserve stats-hub server_id for instance {instance.id}: {exc}"
             )
             return _finish(instance, False, f"Could not reserve a server_id from stats-hub: {exc}", previous_status)
-        set_instance_server_id(instance.id, server_id)
-        db.session.commit()
+    set_instance_server_id(instance.id, server_id)
+    db.session.commit()
 
-    config_path = os.path.join('configs', instance.host.name, str(instance.id), 'server.cfg')
+    config_path = _config_path(instance)
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             text = f.read()
@@ -182,4 +196,56 @@ def enable_instance_telemetry_logic(instance_id, previous_status=None):
     return _finish(
         instance, True,
         f"Telemetry enabled, server_id={server_id}. Applying config and restarting (job {job.id}).",
+    )
+
+
+def disable_instance_telemetry_logic(instance_id, previous_status=None):
+    """Switches telemetry off: qlx_statsHubUnifiedEnabled 0, the relay route
+    dropped, apply + restart. The reserved server_id is kept (and stays in
+    server.cfg) so a re-enable gets the same one. Returns (ok, message)."""
+    instance = db.session.get(QLInstance, instance_id)
+    if not instance:
+        return False, "Instance or associated host not found."
+    if not instance.host:
+        return _finish(instance, False, "Instance or associated host not found.", previous_status)
+
+    server_id = get_reserved_server_id(instance.id)
+    set_reserved_server_id(instance.id, server_id)
+    set_instance_server_id(instance.id, None)
+    db.session.commit()
+
+    config_path = _config_path(instance)
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+    except FileNotFoundError:
+        text = ''
+    text = upsert_cvars_in_text(text, {'qlx_statsHubUnifiedEnabled': '0'})
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    with open(config_path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(text)
+
+    # A failed push leaves a route the instance no longer sends to; the
+    # switch-off itself is what matters, so the apply still runs.
+    warning = '' if push_relay_config_logic(instance.host_id) else (
+        " Pushing the relay's routes failed; the relay keeps this instance's "
+        "route until its next push.")
+
+    from ui.tasks import apply_instance_config, enqueue_task
+    from ui.task_logic.job_failure_handlers import instance_job_failure_handler
+
+    job = enqueue_task(
+        apply_instance_config,
+        instance.id,
+        restart=True,
+        on_failure=instance_job_failure_handler,
+    )
+    if not job:
+        return _finish(instance, False, "Telemetry switched off in server.cfg, but queuing the "
+                       "config apply/restart failed." + warning, previous_status)
+
+    kept = f" server_id {server_id} stays reserved." if server_id else ''
+    return _finish(
+        instance, True,
+        f"Telemetry disabled.{kept}{warning} Applying config and restarting (job {job.id}).",
     )

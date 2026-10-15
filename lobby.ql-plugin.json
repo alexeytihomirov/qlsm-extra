@@ -1,6 +1,6 @@
 {
   "label": "Lobby",
-  "description": "For a lobby server: tells each player which game server to join and shows its /connect address on screen after a short countdown. Quake Live does not let a server move a player, so players type the command themselves. A player's destination comes from a personal route set by a referee, a tournament assignment the hub writes into the server's Redis, or the default destination.",
+  "description": "For a lobby server: tells each player which game server to join and shows its /connect address after a short countdown, since a server cannot move a player itself. The destination comes from a referee's personal route, a tournament assignment from the hub, or the default destination.",
   "commands": [
     { "name": "lobby", "permission": 0, "description": "Lists the destination servers and your own route." },
     { "name": "servers", "permission": 0, "description": "Alias for !lobby." },

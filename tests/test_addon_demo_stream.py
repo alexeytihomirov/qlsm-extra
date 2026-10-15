@@ -83,7 +83,15 @@ def test_telemetry_server_id_reads_telemetry_key(app, instance_id):
         db.session.add(row)
         db.session.commit()
         assert get_telemetry_server_id(instance_id) == 42
+        # telemetry's reserved ID (kept while telemetry is off) wins
+        reserved = AppSetting(key=f'stats_hub_reserved_server_id:{instance_id}', value='43')
+        db.session.add(reserved)
+        db.session.commit()
+        assert get_telemetry_server_id(instance_id) == 43
         db.session.delete(row)
+        db.session.commit()
+        assert get_telemetry_server_id(instance_id) == 43
+        db.session.delete(reserved)
         db.session.commit()
         assert get_telemetry_server_id(instance_id) is None
 
@@ -537,14 +545,14 @@ def test_status_reports_tunnel_off(app, client, auth, instance_id):
 def test_manifest_declares_host_tunnel_panel():
     import json
     m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.4.0'
+    assert m['version'] == '1.5.0'
     assert m['ui_api'] == 1
     assert m['ui']['host_menu'][0]['panel'] == 'host_tunnel'
     p = m['ui']['panels']['host_tunnel']
     assert (p['load'], p['submit']) == ('GET hosts/{host_id}', 'PUT hosts/{host_id}')
     assert [f['key'] for f in p['fields']] == ['enabled', 'local_port']
     assert next(f for f in p['fields'] if f['key'] == 'local_port')['placeholder'] == '27999'
-    relay_port = next(f for f in m['ui']['panels']['relay_settings']['fields'] if f['key'] == 'port')
+    relay_port = next(f for f in m['ui']['panels']['settings']['fields'] if f['key'] == 'relay_port')
     assert relay_port['placeholder'] == '27999'
 
 

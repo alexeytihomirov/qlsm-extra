@@ -28,6 +28,7 @@ _TOKEN_KEY = 'stats_hub_ingest_token'
 _HOST_URL_PREFIX = 'telemetry_relay_host_stats_hub_url:'
 _HOST_TOKEN_PREFIX = 'telemetry_relay_host_stats_hub_token:'
 _SERVER_ID_PREFIX = 'stats_hub_server_id:'
+_RESERVED_ID_PREFIX = 'stats_hub_reserved_server_id:'
 
 RESERVE_TIMEOUT_SEC = 10
 
@@ -118,8 +119,46 @@ def get_instance_server_id(instance_id):
 
 
 def set_instance_server_id(instance_id, server_id):
+    """The ID the relay routes for this instance (None: not routed). Setting
+    one also remembers it as the reserved ID, which outlives a disable;
+    clearing it first copies the routed ID there when none is recorded (an
+    instance enabled before the reserved key existed)."""
+    if server_id:
+        set_reserved_server_id(instance_id, server_id)
+    elif not _get(f"{_RESERVED_ID_PREFIX}{instance_id}"):
+        set_reserved_server_id(instance_id, get_instance_server_id(instance_id))
     _set(f"{_SERVER_ID_PREFIX}{instance_id}",
          str(int(server_id)) if server_id else None)
+
+
+def get_reserved_server_id(instance_id):
+    """The ID reserved for this instance, kept while telemetry is off so a
+    re-enable gets the same one. Falls back to the routed ID for instances
+    enabled before this key existed."""
+    value = _get(f"{_RESERVED_ID_PREFIX}{instance_id}")
+    return int(value) if value else get_instance_server_id(instance_id)
+
+
+def set_reserved_server_id(instance_id, server_id):
+    _set(f"{_RESERVED_ID_PREFIX}{instance_id}",
+         str(int(server_id)) if server_id else None)
+
+
+def backfill_reserved_server_ids():
+    """Copies every routed ID with no reserved one yet to the reserved key:
+    instances enabled before 1.5.0 have only the routed key. Idempotent.
+    Does not commit; returns how many it copied."""
+    reserved = {row.key[len(_RESERVED_ID_PREFIX):] for row in
+                AppSetting.query.filter(AppSetting.key.like(f"{_RESERVED_ID_PREFIX}%")).all()}
+    copied = 0
+    for row in AppSetting.query.filter(AppSetting.key.like(f"{_SERVER_ID_PREFIX}%")).all():
+        suffix = row.key[len(_SERVER_ID_PREFIX):]
+        value = (row.value or '').strip()
+        if not suffix.isdigit() or suffix in reserved or not value.isdigit():
+            continue
+        db.session.add(AppSetting(key=f"{_RESERVED_ID_PREFIX}{suffix}", value=value))
+        copied += 1
+    return copied
 
 
 def instance_ids_sharing_server_id(server_id, exclude_instance_id=None):

@@ -1,4 +1,4 @@
 {
   "label": "Referee Call",
-  "description": "Adds the !call chat command, which any player or spectator can use to ask for a referee. It only answers the caller; the call reaches the referees as a chat line that stream_telemetry_unified forwards to ql-stats-hub, so that plugin must be enabled with Session Events (qlx_statsHubFeedSession) on. One call per player per 60 seconds."
+  "description": "Adds !call, which lets any player or spectator ask for a referee, once per 60 seconds. The call reaches the referees through stream_telemetry_unified, which needs Session Events (qlx_statsHubFeedSession) on."
 }

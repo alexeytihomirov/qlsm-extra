@@ -1,4 +1,4 @@
 {
-  "label": "⚠️ telemetry helper - do not enable",
-  "description": "Helper module for stream_telemetry_unified.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins."
+  "label": "stream_telemetry_unified helper",
+  "description": "Helper of stream_telemetry_unified.py, downloaded with it. Not a plugin."
 }

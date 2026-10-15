@@ -1,9 +1,0 @@
-# file-forwarder: the SFTP target's pinned host keys, copied from ql-tournament/deploy/known_hosts
-# (an addon release updates them; the vps_host setting must name a host listed here).
-# The sync playbook installs this file as the known_hosts_file of the forwarder's rclone sftp remote, so rclone refuses any other key.
-# After a reinstall of the host: ssh-keyscan 70.34.223.191, compare with the
-# fingerprints in the provider console, then replace these lines in an addon release.
-# 70.34.223.191 (Vultr, 1 GB): keys seen 2026-10-10 after the operator reinstalled the host with the root key and confirmed them.
-70.34.223.191 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG8UsyDC2Xn8vmsaUB8vzBU3ThwhlUU5UpUfT7GPxMHU
-70.34.223.191 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDE3lHXSEqk/dD4ojpKLBfUV7ajSH6OefOp1fvbKOsZOvYw5MYJUJmLCVLsCWnsLvaanAu51gKP7ixrT+KeFfGj9Kqi2meKRcrStYNEY9hAMvhttEYXxuOS8zfETg+oihnla7YmlT+4rTWIE0Bqcw+5PL7AYLQKWsJTuMku4lr+uYg5Y8NKih/goqHuJMs8nl6EO5hzM5ZIrGzvArjBhM1kuZRIWzq0K0260lbFn9pZzzzCMkq1ZLE5Bjo8xTK+7RUYNW3E/aESIxzqPzwXw0/XqK2Tjd6k2bwl8ogOqTziHQplVm9DC83VB88W5chpNWaKUhSwXH4LEn2yBagm2yTbrbS/M24xrVBKBHra84HO3Hzar+u8Fm2PPyu/d2dmc//vtVx1TSFWsHE3WcdVlJ9ZiKluQIj4wrzU31MVIG8fCzOEDiFg54I7wgUfEZbf2OGo7nTjYe3dNWCSRmESDxwTM6NZ7to3NoupgF4VkLuwuFZZAFITIeOBp+meUqXt6pc=
-70.34.223.191 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBK19LqnIB2oLUWiIa5kx73qeq5Zr4fnTfzcBeQJF9uXxxDe6LDG0Xjolv56g3ZdOU7T6F12Y3hFo3dJ+rVsXXmQ=

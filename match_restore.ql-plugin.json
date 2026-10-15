@@ -1,12 +1,12 @@
 {
   "label": "Match Restore",
-  "description": "Saves the state of a running match and puts it back later. A checkpoint holds player positions, health, armor, weapons, ammo, powerups and score, item respawn timers, dropped items and the match clock. Admins (permission 5) build, check and apply checkpoints with !restore, or restore a moment from a recorded .qlmatch demo pack. Needs the minqlxtended runtime; downloading it also fetches the restore/ folder.",
+  "description": "Saves the state of a running match (players, items, timers and the match clock) and puts it back later, or restores a moment from a recorded .qlmatch pack, with the admin command !restore. Needs the minqlxtended runtime and the restore/ folder, which downloads with it.",
   "commands": [
     { "name": "restore", "usage": "export | test [name] | quiet | loud | clear | time | map | player | item | apply | verify | show | players [slot:cid...] | match list [filter] [page] | match <N> <mm:ss>", "permission": 5, "description": "export writes the current state as checkpoint JSON to the server log. clear, time, map, player and item build a checkpoint line by line; show and verify check it; apply restores it. match list and match <N> <mm:ss> restore a moment from a .qlmatch pack on this server. test [name] loads a checkpoint file from a data/checkpoints/ folder next to the plugin; none ship with this repository." },
     { "name": "restorecheckpoint", "usage": "export | test [name] | quiet | loud | clear | time | map | player | item | apply | verify | show | players [slot:cid...] | match list [filter] [page] | match <N> <mm:ss>", "permission": 5, "description": "Alias for !restore." }
   ],
   "cvars": [
-    { "cvar": "qlx_matchRestoreLabEnabled", "label": "Enabled", "description": "Turns match_restore on or off. The match_restore_lab commands share this switch.", "type": "bool", "default": true },
+    { "cvar": "qlx_matchRestoreLabEnabled", "label": "Enabled", "description": "Turns match_restore on or off.", "type": "bool", "default": true },
     { "cvar": "qlx_matchRestoreNativeClock", "label": "Native Clock", "description": "Use the engine's own match clock instead of the plugin's tracked clock.", "type": "bool", "default": false },
     { "cvar": "qlx_matchRestoreUnfreezeDelaySec", "label": "Unfreeze Delay (s)", "description": "Seconds after an unpause before the match clock runs again, to cover the 3-2-1 unfreeze countdown.", "type": "number", "default": 4, "min": 0 }
   ],

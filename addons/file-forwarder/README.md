@@ -13,9 +13,9 @@ the QL monorepo.
 | File | Role |
 |------|------|
 | `assets/forwarder.sh` | Runs on the host as `ql` from a systemd timer; ledger, cleanup, purge. Its header documents `forwarder.conf`. |
-| `assets/known_hosts_vps` | Pinned host keys of the VPS (copied from `ql-tournament/deploy/known_hosts`). |
 | `config_render.py` | Settings -> `forwarder.conf` text and the sync playbook vars; validates every value. |
 | `keypair.py` | The install-wide ed25519 SFTP key (generated with `cryptography`). |
+| `hostkeys.py` | `ssh-keyscan` of the VPS from qlsm and the SHA256 fingerprints of the pinned keys. |
 | `backend.py` | Routes, the `apply_task` / `sync_task` tasks, the `host.payload_sync` handler. |
 | `playbooks/` | `sync_file_forwarder.yml`, `run_forwarder.yml`, `status_file_forwarder.yml`. |
 | `ui/HostPanel.js` | The host menu dialog: switch, status table, action buttons. Hand-written, no build step. |
@@ -23,7 +23,7 @@ the QL monorepo.
 
 ## Settings
 
-Global (Settings -> Addons -> File Forwarder): VPS address, raw demo retention
+Global (Settings -> Addons -> File Forwarder): VPS address (no default), raw demo retention
 (days, 14), raw upload limit per run (MB, 2048), interval (minutes, 10) and
 the pattern table. Pattern rows are `glob remote_dir keep|expire`, separated by
 `;` (a newline also works through the API); the default is
@@ -38,11 +38,28 @@ Apply to host after an addon update or a settings change.
 
 Pinned in the addon, not settings: SFTP user `qldemos-in`, rclone remote name
 `qldemos`, source directories `/home/ql/qlds-*/demos`, state directory
-`/home/ql/.forwarder-state/`, the VPS host keys, the delivery grace (24 hours,
+`/home/ql/.forwarder-state/`, the delivery grace (24 hours,
 `DELIVERED_GRACE_HOURS`) and the remote raw budget (5000 MB,
 `MAX_RAW_REMOTE_MB`: a run that finds `raw/` on the VPS that full sends no raw
-demo; the `.qlmatch` files still go). Moving to another VPS address
-needs a release with that host's keys in `assets/known_hosts_vps`.
+demo; the `.qlmatch` files still go).
+
+## The VPS address and its host keys
+
+Nothing install-specific is in the addon: each install types its VPS address
+once. Saving the settings form with a new address runs `ssh-keyscan` in the
+qlsm container (`openssh-client`), stores the keys as the internal setting
+`vps_known_hosts` and shows their SHA256 fingerprints in the form's status
+line; compare them once with the VPS provider console. Saving the same address
+again does not re-scan. After a VPS reinstall, tick "Re-scan host keys" and
+save. A failed scan saves nothing. `vps_known_hosts` is never accepted from the
+form; it only comes from the scan. Apply to host writes it as the host's
+`known_hosts_qldemos`.
+
+Apply to host (and host setup) refuses while the address or its keys are not
+set. Upgrading from 1.1: a forwarder already installed on a host keeps running
+with the `known_hosts` it has; Apply refuses until the settings are saved once.
+An install that never saved the address (it relied on the old built-in
+default) sees the address field empty and types it once.
 
 File names are shared flat across hosts: each remote dir on the VPS is one
 directory for all hosts, so the same file name from two hosts would overwrite

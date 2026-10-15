@@ -6,10 +6,8 @@ qlsm-player-rating-sources-design.md section 9.4 for the rules this follows.
 
 qlstats and Slipgate keep their connection details (base_url, rating system,
 key) in settings.global, since qlstats.net/slipgate.gg do not vary per
-server. Whether each is shown is per instance: an instance whose Ranks tab
-was saved by this version decides for itself; any other instance follows the
-installation-wide default (see source_enabled). x76 (elo-service) is
-configured entirely per instance.
+server. Whether each is shown is per instance, on that instance's Ranks tab
+(see source_enabled). x76 (elo-service) is configured entirely per instance.
 """
 import json
 
@@ -21,8 +19,8 @@ from .providers.elo_service import DEFAULT_DISPLAY
 from .steam_ids import parse_steam_ids
 
 _PROVIDER_IDS = ('qlstats', 'slipgate', 'elo_service')
-# Sources whose connection details are installation-wide and whose on/off
-# state follows an installation-wide default until an instance saves its own.
+# Sources whose connection details are installation-wide (settings.global);
+# whether they are shown is still chosen per instance.
 GLOBAL_PROVIDERS = ('qlstats', 'slipgate')
 _API_KEY_FIELD = {
     'slipgate': 'slipgate_api_key',
@@ -76,19 +74,107 @@ def _global_key_for(provider_id, global_cfg):
     return (global_cfg.get(field) or '').strip() or None
 
 
-def source_enabled(provider_id, global_cfg, instance_cfg):
-    """qlstats/Slipgate: an instance whose source checkboxes were never saved
-    follows the installation-wide default; once saved, its own checkbox
-    decides. `sources_saved` is needed because settings.get() fills a missing
-    bool with False, so "never saved" and "unticked" would look the same.
-    x76 is always per-instance.
-
-    The one place this rule lives: fetch_ranks() uses it to decide what is
-    served, and backend.py uses it for what the Ranks tab shows and saves, so
-    the two cannot disagree."""
-    if provider_id in GLOBAL_PROVIDERS and not instance_cfg.get('sources_saved'):
-        return bool(global_cfg.get(f'{provider_id}_enabled'))
+def source_enabled(provider_id, instance_cfg):
+    """Whether this instance shows the source: its own checkbox, nothing else.
+    A new instance has every source off."""
     return bool(instance_cfg.get(f'{provider_id}_enabled'))
+
+
+# Keys 0.3.x stored that the manifest no longer declares. The settings API
+# drops undeclared keys on read, so the migration reads the raw rows.
+_LEGACY_INSTANCE_KEYS = ('configured', 'sources_saved')
+_LEGACY_GLOBAL_KEYS = tuple(f'{p}_enabled' for p in GLOBAL_PROVIDERS)
+
+
+def migrate_instance(global_cfg, stored):
+    """The qlstats/Slipgate checkboxes an instance must store so it keeps
+    showing what the 0.3.x rule gave it, or None when nothing changes.
+
+    The old rule: an instance whose checkboxes were never saved
+    (`sources_saved` falsy) followed the installation-wide "on by default"
+    switch; a saved one used its own. `global_cfg` and `stored` are the raw
+    stored dicts. A checkbox already present on an unsaved instance was
+    written by this migration and is kept, so running it twice is a no-op."""
+    saved = bool(stored.get('sources_saved'))
+    values = {}
+    for provider_id in GLOBAL_PROVIDERS:
+        key = f'{provider_id}_enabled'
+        if saved or key in stored:
+            values[key] = bool(stored.get(key))
+        else:
+            values[key] = bool(global_cfg.get(key))
+    if all(key in stored and stored[key] == value for key, value in values.items()):
+        return None
+    if all(not value and key not in stored for key, value in values.items()):
+        return None  # absent already reads as off
+    return values
+
+
+def _raw_settings(addon_id, scope, scope_id):
+    from ui.models import AddonState
+
+    row = AddonState.query.filter_by(addon_id=addon_id, scope=scope, scope_id=scope_id).first()
+    return row, (dict(row.settings) if row is not None else {})
+
+
+def _strip(row, keys):
+    kept = {k: v for k, v in row.settings.items() if k not in keys}
+    if len(kept) != len(row.settings):
+        row.settings_json = json.dumps(kept, ensure_ascii=False, sort_keys=True)
+        return True
+    return False
+
+
+def migrate_instance_row(settings, instance_id, global_cfg, commit=True):
+    """Apply migrate_instance() to one instance's stored row and drop its
+    legacy keys. Returns True when anything was written."""
+    from ui import db
+
+    row, stored = _raw_settings(settings.addon_id, 'instance', instance_id)
+    values = migrate_instance(global_cfg, stored)
+    changed = False
+    if values:
+        settings.set('instance', instance_id, values, commit=False)
+        row, _ = _raw_settings(settings.addon_id, 'instance', instance_id)
+        changed = True
+    if row is not None and _strip(row, _LEGACY_INSTANCE_KEYS):
+        changed = True
+    if changed and commit:
+        db.session.commit()
+    return changed
+
+
+def migrate_all(settings):
+    """Run once per startup over every instance qlsm knows (not only those
+    with stored rows: a never-opened instance showed the global default too),
+    then drop the global switches. Idempotent. If a concurrent request created
+    the same row first (unique constraint), that request migrated: roll back
+    and leave it."""
+    from sqlalchemy.exc import IntegrityError
+
+    from ui import db
+    from ui.models import QLInstance
+
+    try:
+        _, global_cfg = _raw_settings(settings.addon_id, 'global', 0)
+        for (instance_id,) in db.session.query(QLInstance.id).all():
+            migrate_instance_row(settings, instance_id, global_cfg, commit=False)
+        global_row, _ = _raw_settings(settings.addon_id, 'global', 0)
+        if global_row is not None:
+            _strip(global_row, _LEGACY_GLOBAL_KEYS)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+
+
+def ensure_migrated(settings, instance_id=None):
+    """Lazy fallback for the routes if the startup pass did not run. While the
+    old global switches are still stored the whole migration runs (it is
+    atomic and removes them); otherwise this is one cheap read and a no-op, so
+    an instance created later can never inherit an old default."""
+    _, global_cfg = _raw_settings(settings.addon_id, 'global', 0)
+    if any(key in global_cfg for key in _LEGACY_GLOBAL_KEYS):
+        migrate_all(settings)
 
 
 def _instantiate(provider_id, entry, base_url, api_key, rating_system, display):
@@ -113,7 +199,7 @@ def fetch_ranks(instance, provider_id, raw_steam_ids):
     is_global = provider_id in GLOBAL_PROVIDERS
     cfg = global_cfg if is_global else instance_cfg
 
-    if not source_enabled(provider_id, global_cfg, instance_cfg):
+    if not source_enabled(provider_id, instance_cfg):
         return dict(_NOT_CONFIGURED)
 
     registry = build_registry()

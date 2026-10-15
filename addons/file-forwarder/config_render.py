@@ -22,21 +22,30 @@ MIN_AGE_MIN = 2
 DELIVERED_GRACE_HOURS = 24
 MAX_RAW_REMOTE_MB = 5000
 RCLONE = 'rclone'
-KNOWN_HOSTS_FILE = os.path.join(ADDON_DIR, 'assets', 'known_hosts_vps')
 MANIFEST_FILE = os.path.join(ADDON_DIR, 'qlsm-addon.json')
 
 # Rows are separated by ";" or a newline: qlsm's declarative form renders a
 # string setting as a one-line <input>, which drops newlines.
 DEFAULT_PATTERNS = '*.qlmatch qlmatch keep; *.replay.json.gz qlmatch keep; *.dm_91 raw expire'
 
+# No default VPS address: each install types its own once, and saving it
+# scans and pins that host's SSH keys (`vps_known_hosts`, see hostkeys.py).
 DEFAULTS = {
-    'vps_host': '70.34.223.191',
+    'vps_host': '',
     'retention_days': '14',
     'max_raw_mb_per_run': '2048',
     'interval_minutes': '10',
     'patterns': DEFAULT_PATTERNS,
 }
 EDITABLE_KEYS = tuple(DEFAULTS)
+KNOWN_HOSTS_SETTING = 'vps_known_hosts'
+
+# The rest of a pinned known_hosts line after the host name.
+_KEY_LINE_TAIL = r' (ssh-ed25519|ecdsa-sha2-nistp(256|384|521)|ssh-rsa) [A-Za-z0-9+/]+={0,2}'
+
+NOT_CONFIGURED = ('The VPS address or its host keys are not set (or not valid): enter the address in '
+                  'Settings -> Addons -> File Forwarder and save, so its host keys are scanned. '
+                  'Apply to host refuses until then.')
 
 # key -> (label, min, max)
 _INT_FIELDS = {
@@ -106,7 +115,9 @@ def _vps_host(settings):
     host = settings.get('vps_host', DEFAULTS['vps_host'])
     if not isinstance(host, str) or not _HOST_RE.match(host.strip()):
         raise ValueError('vps_host must be a host name or an IPv4 address')
-    return host.strip()
+    # Lowercase: ssh-keyscan prints the host lowercased, and known_hosts()
+    # matches the stored lines against this exact name.
+    return host.strip().lower()
 
 
 def validate_settings(settings):
@@ -141,9 +152,35 @@ def render_conf(settings):
     return '\n'.join(lines) + '\n'
 
 
-def _read_text(path):
-    with open(path, 'r', encoding='utf-8') as f:
-        return f.read().replace('\r\n', '\n')
+def known_hosts(settings):
+    """The pinned known_hosts text for the configured address, or ValueError(NOT_CONFIGURED).
+
+    Every line must be exactly `<vps_host> <key type> <base64>`: keys scanned
+    for an earlier address never reach a host, and nothing else does either.
+    Core's generic state route can write `vps_known_hosts` directly, and the
+    text becomes an Ansible extravar (`copy: content:`), so a `{{ ... }}` in
+    it would be templated there.
+    """
+    host = settings.get('vps_host')
+    host = host.strip().lower() if isinstance(host, str) else ''
+    text = settings.get(KNOWN_HOSTS_SETTING)
+    text = text if isinstance(text, str) else ''
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not host or not _HOST_RE.match(host) or not lines:
+        raise ValueError(NOT_CONFIGURED)
+    line_re = re.compile(re.escape(host) + _KEY_LINE_TAIL)
+    if not all(line_re.fullmatch(line) for line in lines):
+        raise ValueError(NOT_CONFIGURED)
+    return '\n'.join(lines) + '\n'
+
+
+def vps_ready(settings):
+    """An address is set and its host keys are pinned."""
+    try:
+        known_hosts(settings)
+    except ValueError:
+        return False
+    return True
 
 
 def addon_version():
@@ -162,15 +199,13 @@ def playbook_vars(settings):
     private = (settings.get('sftp_private_key') or '').strip()
     if not private:
         raise ValueError('the SFTP key has not been generated yet')
+    pinned = known_hosts(settings)
     values = validate_settings(settings)
-    known_hosts = _read_text(KNOWN_HOSTS_FILE)
-    if not known_hosts.endswith('\n'):
-        known_hosts += '\n'
     return {
         'ff_conf_text': render_conf(settings),
         # OpenSSH refuses a private key file without its final newline.
         'ff_private_key': private + '\n',
-        'ff_known_hosts': known_hosts,
+        'ff_known_hosts': pinned,
         'ff_version': addon_version(),
         'ff_interval_minutes': values['interval_minutes'],
         'ff_vps_host': values['vps_host'],

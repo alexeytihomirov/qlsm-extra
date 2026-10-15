@@ -229,39 +229,63 @@ def update_stats_hub():
     return jsonify({"data": {'url': url.strip().rstrip('/'), 'ingest_token': token.strip()}})
 
 
-@bp.route('/instances/<int:instance_id>', methods=['GET'], endpoint='get_instance_telemetry')
-@jwt_required()
-def get_instance_telemetry(instance_id):
+def _instance_or_error(instance_id):
     from ui.database import get_instance
-    from .settings import get_instance_server_id
 
     instance = get_instance(instance_id)
     if not instance:
-        return jsonify({"error": {"message": "Instance not found."}}), 404
-    return jsonify({"data": {"server_id": get_instance_server_id(instance.id) or 0}})
+        return None, (jsonify({"error": {"message": "Instance not found."}}), 404)
+    if not instance.host:
+        return None, (jsonify({"error": {"message": "Instance has no associated host."}}), 400)
+    return instance, None
 
 
-@bp.route('/instances/<int:instance_id>/enable', methods=['POST', 'PUT'], endpoint='enable_instance_telemetry')
+def _cfg_enabled(instance):
+    """The switch: qlx_statsHubUnifiedEnabled in qlsm's copy of server.cfg."""
+    from .instance_ops import read_instance_telemetry_cvars
+
+    return read_instance_telemetry_cvars(instance).get('qlx_statsHubUnifiedEnabled') == '1'
+
+
+@bp.route('/instances/<int:instance_id>', methods=['GET'], endpoint='get_instance_telemetry')
 @jwt_required()
-def enable_instance_telemetry(instance_id):
-    """Reserve a server ID and wire the instance's cvars at the host relay.
+def get_instance_telemetry(instance_id):
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+    return jsonify({"data": {"enabled": _cfg_enabled(instance)}})
+
+
+@bp.route('/instances/<int:instance_id>/status', methods=['GET'], endpoint='get_instance_telemetry_status')
+@jwt_required()
+def get_instance_telemetry_status(instance_id):
+    """Badge for the panel and the menu entry. Local reads only."""
+    from .settings import get_instance_server_id, is_relay_enabled
+
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+    if not is_relay_enabled(instance.host_id):
+        return jsonify({"data": {'ok': False, 'label': 'Relay off on host'}})
+    if not _cfg_enabled(instance):
+        return jsonify({"data": {'ok': False, 'label': 'Off'}})
+    server_id = get_instance_server_id(instance.id)
+    if not server_id:
+        return jsonify({"data": {'ok': False, 'label': 'On, no server ID yet; save to repair'}})
+    return jsonify({"data": {'ok': True, 'label': f'Server ID {server_id}, relay on'}})
+
+
+BUSY_STATUSES = ('DEPLOYING', 'CONFIGURING', 'RESTARTING', 'DELETING', 'STOPPING', 'STARTING')
+
+
+def _enable_blocked(instance):
+    """An error response when telemetry cannot be switched on yet, else None.
 
     Refuses early with a readable reason rather than queueing a task that
     would fail on the host: the relay must already be on, since the instance
     points its cvars at a sidecar that has to exist.
     """
-    from ui.database import get_instance, update_instance
-    from ui.models import InstanceStatus
-    from ui.task_lock import acquire_lock, release_lock
-    from ui.task_logic.job_failure_handlers import instance_job_failure_handler
-    from ui.tasks import enqueue_task
     from .settings import is_relay_enabled, is_stats_hub_configured_for_host
-
-    instance = get_instance(instance_id)
-    if not instance:
-        return jsonify({"error": {"message": "Instance not found."}}), 404
-    if not instance.host:
-        return jsonify({"error": {"message": "Instance has no associated host."}}), 400
 
     if not is_relay_enabled(instance.host_id):
         return jsonify({"error": {
@@ -271,10 +295,19 @@ def enable_instance_telemetry(instance_id):
         return jsonify({"error": {
             "message": "Set the stats-hub URL and ingest token (globally or on this host) first."
         }}), 409
+    return None
 
-    busy = [InstanceStatus.DEPLOYING, InstanceStatus.CONFIGURING, InstanceStatus.RESTARTING,
-            InstanceStatus.DELETING, InstanceStatus.STOPPING, InstanceStatus.STARTING]
-    if instance.status in busy:
+
+def _queue_instance_task(instance, task_key, what):
+    """Busy check, instance lock, CONFIGURING, enqueue: shared by enable and
+    disable. Returns the response."""
+    from ui.database import update_instance
+    from ui.models import InstanceStatus
+    from ui.task_lock import acquire_lock, release_lock
+    from ui.task_logic.job_failure_handlers import instance_job_failure_handler
+    from ui.tasks import enqueue_task
+
+    if instance.status in [InstanceStatus[name] for name in BUSY_STATUSES]:
         return jsonify({"error": {
             "message": f'Instance "{instance.name}" is busy ({instance.status.value}). Try again shortly.'
         }}), 409
@@ -287,16 +320,76 @@ def enable_instance_telemetry(instance_id):
     try:
         previous_status = instance.status.value
         update_instance(instance.id, status=InstanceStatus.CONFIGURING)
-        enqueue_task(TASKS['enable_instance_telemetry'], instance.id,
+        enqueue_task(TASKS[task_key], instance.id,
                      previous_status=previous_status,
                      lock_token=lock_token, on_failure=instance_job_failure_handler)
     except Exception as e:
         release_lock('instance', instance.id, lock_token)
-        current_app.logger.error(f'Addon telemetry-relay: failed to queue instance {instance_id}: {e}',
+        current_app.logger.error(f'Addon telemetry-relay: failed to queue instance {instance.id}: {e}',
                                  exc_info=True)
-        return jsonify({"error": {"message": "Failed to queue telemetry enable."}}), 500
+        return jsonify({"error": {"message": f"Failed to queue telemetry {what}."}}), 500
 
-    return jsonify({"message": f'Telemetry enable queued for "{instance.name}".'}), 202
+    return jsonify({"message": f'Telemetry {what} queued for "{instance.name}".'}), 202
+
+
+def _wiring_drift(instance):
+    """Why an enabled instance needs the enable run again, or None when the
+    stored server ID and server.cfg agree with what the enable writes."""
+    from .instance_ops import read_instance_telemetry_cvars
+    from .settings import get_instance_server_id
+
+    server_id = get_instance_server_id(instance.id)
+    if not server_id:
+        return 'no stored server ID'
+    cvars = read_instance_telemetry_cvars(instance)
+    if cvars.get('qlx_statsHubUnifiedEnabled') != '1':
+        return 'qlx_statsHubUnifiedEnabled is not 1 in server.cfg'
+    if cvars.get('qlx_statsHubServerId') != str(server_id):
+        return 'qlx_statsHubServerId does not match the stored server ID'
+    return None
+
+
+@bp.route('/instances/<int:instance_id>', methods=['PUT'], endpoint='update_instance_telemetry')
+@jwt_required()
+def update_instance_telemetry(instance_id):
+    """The Telemetry panel's save: off -> on queues the enable, on -> off the
+    disable. Saving an enabled instance whose wiring drifted queues the
+    enable again, so a plain save repairs it (one restart)."""
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or not isinstance(body.get('enabled'), bool):
+        return jsonify({"error": {"message": "enabled must be true or false."}}), 400
+    wanted = body['enabled']
+    enabled = _cfg_enabled(instance)
+
+    if wanted and not enabled:
+        return _enable_blocked(instance) or _queue_instance_task(
+            instance, 'enable_instance_telemetry', 'enable')
+    if enabled and not wanted:
+        return _queue_instance_task(instance, 'disable_instance_telemetry', 'disable')
+    if wanted:
+        drift = _wiring_drift(instance)
+        if drift:
+            current_app.logger.info(
+                f'Addon telemetry-relay: re-enabling instance {instance.id} on save: {drift}')
+            return _enable_blocked(instance) or _queue_instance_task(
+                instance, 'enable_instance_telemetry', 'enable')
+    return jsonify({"message": "No changes."})
+
+
+@bp.route('/instances/<int:instance_id>/enable', methods=['POST', 'PUT'], endpoint='enable_instance_telemetry')
+@jwt_required()
+def enable_instance_telemetry(instance_id):
+    """Kept for one release for anything that still calls it; the panel
+    saves through PUT instances/{id} now."""
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+    return _enable_blocked(instance) or _queue_instance_task(
+        instance, 'enable_instance_telemetry', 'enable')
 
 
 # Set by register(); the endpoints enqueue through these rather than through
@@ -306,6 +399,29 @@ TASKS = {}
 
 def register(ctx):
     ctx.blueprint(bp)
+
+    def backfill_at_startup(state):
+        # Instances enabled before 1.5.0 have only the routed server ID key;
+        # copy it to the reserved key so a disable keeps it. The database may
+        # not be ready yet (first boot, tests): then set_instance_server_id
+        # copies it when the routed key is cleared.
+        from ui import db
+        from ui.models import AppSetting
+
+        from .settings import backfill_reserved_server_ids
+
+        try:
+            with state.app.app_context():
+                if not db.inspect(db.engine).has_table(AppSetting.__tablename__):
+                    return
+                if backfill_reserved_server_ids():
+                    db.session.commit()
+        except Exception:
+            state.app.logger.warning('telemetry-relay: reserved server ID backfill skipped', exc_info=True)
+            with state.app.app_context():
+                db.session.rollback()
+
+    bp.record_once(backfill_at_startup)
 
     @ctx.task(timeout=120, lock_scope='host')
     def configure_host_relay(host_id, enabled):
@@ -328,8 +444,16 @@ def register(ctx):
 
         return enable_instance_telemetry_logic(instance_id, previous_status=previous_status)
 
+    @ctx.task(timeout=300, lock_scope='instance')
+    def disable_instance_telemetry_task(instance_id, previous_status=None):
+        """Switch telemetry off; the reserved server_id is kept."""
+        from .instance_ops import disable_instance_telemetry_logic
+
+        return disable_instance_telemetry_logic(instance_id, previous_status=previous_status)
+
     TASKS['configure_host_relay'] = configure_host_relay
     TASKS['enable_instance_telemetry'] = enable_instance_telemetry_task
+    TASKS['disable_instance_telemetry'] = disable_instance_telemetry_task
 
     @ctx.on('instance.config_applied')
     def resync_server_id(instance_id):
@@ -368,5 +492,6 @@ def register(ctx):
 
     @ctx.on('instance.delete')
     def forget_instance(instance_id):
-        from .settings import set_instance_server_id
+        from .settings import set_instance_server_id, set_reserved_server_id
         set_instance_server_id(instance_id, None)
+        set_reserved_server_id(instance_id, None)

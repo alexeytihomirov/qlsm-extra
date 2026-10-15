@@ -36,7 +36,7 @@ import uuid
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from . import config_render, keypair
+from . import config_render, hostkeys, keypair
 
 bp = Blueprint('file_forwarder_addon', __name__)
 
@@ -108,6 +108,11 @@ def apply_host(host_id):
     host = _get_host(host_id)
     if not host:
         return {'success': False, 'message': 'Host not found.'}
+    if not config_render.vps_ready(CTX.settings.get('global', 0)):
+        # The forwarder already on the host keeps running with its known_hosts.
+        CTX.logger.warning('file-forwarder: not applied to host %s: VPS address or host keys not set',
+                           host.name)
+        return {'success': False, 'message': config_render.NOT_CONFIGURED}
     try:
         keypair.ensure_keypair(CTX.settings)
         values = CTX.settings.get('global', 0)
@@ -198,24 +203,54 @@ def _editable(values):
     return {key: str(values.get(key, config_render.DEFAULTS[key])) for key in config_render.EDITABLE_KEYS}
 
 
+# A form-only switch: saving with it on scans the VPS host keys again. It is
+# never stored and always reads back as off, so the next save does not rescan.
+RESCAN_KEY = 'rescan_keys'
+
+
+def _form_values(values):
+    return dict(_editable(values), **{RESCAN_KEY: False})
+
+
 @bp.route('/settings', methods=['GET'], endpoint='get_settings')
 @jwt_required()
 def get_settings():
-    return jsonify({'data': _editable(CTX.settings.get('global', 0))})
+    return jsonify({'data': _form_values(CTX.settings.get('global', 0))})
+
+
+@bp.route('/settings/status', methods=['GET'], endpoint='settings_status')
+@jwt_required()
+def settings_status():
+    values = CTX.settings.get('global', 0)
+    if not config_render.vps_ready(values):
+        return jsonify({'data': {'ok': False, 'label': 'VPS address or host keys not set'}})
+    prints = hostkeys.fingerprints(values.get(config_render.KNOWN_HOSTS_SETTING))
+    label = f'Host keys pinned (compare once with the VPS provider console): {", ".join(prints)}'
+    return jsonify({'data': {'ok': True, 'label': label}})
 
 
 @bp.route('/settings', methods=['PUT'], endpoint='put_settings')
 @jwt_required()
 def put_settings():
+    """Save the form. A new address (or rescan_keys) scans and pins the VPS host keys.
+
+    `vps_known_hosts` is never taken from the request, like the SFTP key: it
+    only ever comes from ssh-keyscan here. A failed scan saves nothing.
+    """
     from ui import db
 
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return _error('Expected a JSON object.', 400)
+    body = dict(body)
+    rescan = body.pop(RESCAN_KEY, False)
+    if not isinstance(rescan, bool):
+        return _error(f'{RESCAN_KEY} must be true or false.', 400)
     unknown = sorted(k for k in body if k not in config_render.EDITABLE_KEYS)
     if unknown:
         return _error(f'Not editable here: {", ".join(unknown)}.', 400)
-    merged = dict(_editable(CTX.settings.get('global', 0)), **body)
+    current = CTX.settings.get('global', 0)
+    merged = dict(_editable(current), **body)
     try:
         checked = config_render.validate_settings(merged)
     except ValueError as e:
@@ -227,13 +262,24 @@ def put_settings():
         'interval_minutes': str(checked['interval_minutes']),
         'patterns': config_render.format_patterns(checked['patterns']),
     }
+    pinned_for_host = config_render.vps_ready(dict(current, vps_host=checked['vps_host']))
+    if rescan or not pinned_for_host:
+        try:
+            stored[config_render.KNOWN_HOSTS_SETTING] = hostkeys.scan(checked['vps_host'])
+        except hostkeys.HostKeyScanError as e:
+            return _error(f'Nothing saved: could not reach {checked["vps_host"]} '
+                          f'to read its SSH host keys ({e}).', 409)
     try:
         values = CTX.settings.set('global', 0, stored)
     except ValueError as e:
         db.session.rollback()
         return _error(str(e), 400)
-    return jsonify({'data': _editable(values),
-                    'message': 'Saved. Use Apply to host to roll it out now.'})
+    prints = hostkeys.fingerprints(values.get(config_render.KNOWN_HOSTS_SETTING))
+    message = 'Saved. Use Apply to host to roll it out now.'
+    if config_render.KNOWN_HOSTS_SETTING in stored:
+        message = (f'Saved. Host keys of {checked["vps_host"]} pinned: {", ".join(prints)}. '
+                   'Compare them once with the VPS provider console, then use Apply to host.')
+    return jsonify({'data': dict(_form_values(values), fingerprints=prints), 'message': message})
 
 
 @bp.route('/hosts/<int:host_id>', methods=['GET'], endpoint='get_host_switch')
@@ -318,6 +364,8 @@ def apply_host_route(host_id):
         return _error('Host not found.', 404)
     if not host_enabled(host_id):
         return _error('The file forwarder is off for this host (or for QLSM); turn it on first.', 409)
+    if not config_render.vps_ready(CTX.settings.get('global', 0)):
+        return _error(config_render.NOT_CONFIGURED, 409)
     error = _enqueue(host_id, 'apply_task', APPLY_TIMEOUT_SECONDS + _LOCK_MARGIN_SECONDS)
     if error:
         return error

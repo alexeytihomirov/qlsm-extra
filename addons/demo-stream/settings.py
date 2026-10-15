@@ -33,7 +33,8 @@ database's current demo-stream settings.
 The host tunnel (a local stunnel client that wraps the engine's plain TCP in
 TLS to stats-hub) adds per-host keys `demo_stream_tunnel_enabled:<host_id>` and
 `demo_stream_tunnel_port:<host_id>`. The telemetry server_id and stats-hub URL
-are read directly from telemetry's own keys (`stats_hub_server_id:<instance_id>`,
+are read directly from telemetry's own keys (`stats_hub_reserved_server_id:` /
+`stats_hub_server_id:<instance_id>`,
 `stats_hub_url`, `telemetry_relay_host_stats_hub_url:<host_id>`), because the
 shared core `ui/stats_hub.py` no longer exists; those names must stay in step
 with `addons/telemetry-relay/stats_hub.py`. They are never written from here.
@@ -128,6 +129,7 @@ DEFAULT_TUNNEL_PORT = '27999'
 _TUNNEL_ENABLED_PREFIX = 'demo_stream_tunnel_enabled:'
 _TUNNEL_PORT_PREFIX = 'demo_stream_tunnel_port:'
 _TELEMETRY_SERVER_ID_PREFIX = 'stats_hub_server_id:'
+_TELEMETRY_RESERVED_ID_PREFIX = 'stats_hub_reserved_server_id:'
 _TELEMETRY_URL_KEY = 'stats_hub_url'
 _TELEMETRY_HOST_URL_PREFIX = 'telemetry_relay_host_stats_hub_url:'
 
@@ -149,7 +151,10 @@ def set_host_tunnel_port(host_id, value):
 
 
 def get_telemetry_server_id(instance_id):
-    value = _get(f'{_TELEMETRY_SERVER_ID_PREFIX}{instance_id}')
+    """Telemetry's reserved ID (kept while telemetry is off), else its routed
+    one (instances enabled before telemetry-relay 1.5.0)."""
+    value = (_get(f'{_TELEMETRY_RESERVED_ID_PREFIX}{instance_id}')
+             or _get(f'{_TELEMETRY_SERVER_ID_PREFIX}{instance_id}'))
     return int(value) if value else None
 
 

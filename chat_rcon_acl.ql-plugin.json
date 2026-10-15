@@ -1,4 +1,0 @@
-{
-  "label": "⚠️ chat_rcon test copy - not a plugin, do not enable",
-  "description": "A copy of chat_rcon's permission rules that this repository's tests import. chat_rcon.py has the same rules built in and does not need this file on a server."
-}

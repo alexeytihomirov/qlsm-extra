@@ -139,6 +139,14 @@ DELAY_MIN_SEC = 0
 DELAY_MAX_SEC = 300
 
 
+def format_seconds(value):
+    """A float as the operator types it: 5.0 -> '5', 12.5 -> '12.5'. repr
+    round-trips, so loading a value and saving it untouched writes the same
+    value back."""
+    text = repr(float(value))
+    return text[:-2] if text.endswith('.0') else text
+
+
 class HubDelayError(Exception):
     """The hub did not answer a delay call with a usable 200. `status` is
     what this addon's own endpoint should answer with, `label` the short form
@@ -186,11 +194,11 @@ def _server_delay_call(send, host_id, server_id, **kwargs):
         raise HubDelayError(
             f"stats-hub redirected the delay call (HTTP {resp.status_code}) instead of "
             "answering it. Check the scheme (http or https) and host of the Stats-hub URL "
-            "under Settings -> Demo Stream Stats Hub.", 502, 'Stats-hub redirected the call')
+            "under Settings -> Live Demo Stream.", 502, 'Stats-hub redirected the call')
     if resp.status_code in (401, 403):
         raise HubDelayError(
             f"stats-hub rejected the ingest token (HTTP {resp.status_code}). Check Ingest "
-            "token under Settings -> Demo Stream Stats Hub: it must be the hub's "
+            "token under Settings -> Live Demo Stream: it must be the hub's "
             "STATS_HUB_INGEST_TOKEN, not STATS_HUB_API_TOKEN.", 502, 'Ingest token rejected')
     if resp.status_code == 404 and detail == 'unknown server_id':
         raise HubDelayError(

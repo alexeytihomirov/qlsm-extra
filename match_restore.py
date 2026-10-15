@@ -14,12 +14,6 @@
 #       set_item_respawn_delay only bumps nextthink (no hide/show). Legacy wall-clock
 #       show if set_item_respawn_delay missing.
 #
-# Lab/debug commands (!spawnsec, !itemlab, !matchtime, !restoreplayer) live in the
-# optional match_restore_lab.py plugin (gated by qlx_matchRestoreLabEnabled), which
-# reaches back into this plugin via self.plugins["match_restore"] for the shared
-# item-runtime cache (_runtime_entity_by_alias/_slot_runtime_ids/_itemlab_engine_runtime_ids)
-# and player-apply engine (_apply_player_snapshot, clock helpers, etc).
-#
 # pause/unpause text commands drive the match clock only when issued by perm>=5
 # (or console/RCON); real sv_paused transitions are tracked via the frame poll.
 # View angles not required for cfg restore.

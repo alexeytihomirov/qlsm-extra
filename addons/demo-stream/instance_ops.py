@@ -22,12 +22,10 @@ here and addons/README.md in qlsm). Content unchanged by the move, apart from
 dropping the `feature` indirection that used to route through the shared
 ui/stats_hub.py -- .stats_hub here already only ever serves this feature.
 
-No disable_instance_demo_stream_logic - mirrors the telemetry-relay addon's
-own asymmetry (see its enable flow's docstring): an operator can flip
-sv_demoStream back to "0" by hand through the raw config editor, same as any
-other cvar. A stale registered route on stats-hub is harmless - QLDS simply
-never reconnects, so there is nothing that needs to notice and clean it up
-the way telemetry's server_id routing table does.
+disable_instance_demo_stream_logic switches the stream off: sv_demoStream "0"
+in server.cfg, apply + restart. The token, server_id and the hub's route are
+kept: a stale route is harmless (QLDS simply never connects), and a later
+enable reuses them.
 """
 import os
 import secrets
@@ -54,6 +52,7 @@ from .settings import (
     set_instance_server_id,
     upsert_cvars_in_text,
 )
+from .stats_hub import HubDelayError, format_seconds, set_server_delay
 
 _ROUTES_TIMEOUT_SEC = 10
 
@@ -99,8 +98,7 @@ def _resolve_server_id(instance, host_id):
     both features, only when both addons use the same stats-hub), else this addon's own, else a fresh reservation.
 
     A new reservation is stored only under this addon's own key: telemetry's
-    key is cleared by its config_applied hook when telemetry is not configured,
-    so a write there would be lost. Raises what reserve_server_id raises."""
+    keys are telemetry's to write. Raises what reserve_server_id raises."""
     telemetry_id = get_telemetry_server_id(instance.id)
     telemetry_url = get_telemetry_stats_hub_url(host_id)
     own_url = (get_effective_stats_hub_url(host_id) or '').rstrip('/')
@@ -119,8 +117,49 @@ def _resolve_server_id(instance, host_id):
     return server_id
 
 
-def enable_instance_demo_stream_logic(instance_id, previous_status=None):
-    """Returns (ok: bool, message: str)."""
+def _write_cvars(instance, cvars):
+    config_path = f"configs/{instance.host.name}/{instance.id}/server.cfg"
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+    except FileNotFoundError:
+        text = ''
+
+    text = upsert_cvars_in_text(text, cvars)
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    with open(config_path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(text)
+
+
+def _queue_apply_restart(instance_id):
+    from ui.tasks import apply_instance_config, enqueue_task
+    from ui.task_logic.job_failure_handlers import instance_job_failure_handler
+
+    return enqueue_task(
+        apply_instance_config,
+        instance_id,
+        restart=True,
+        on_failure=instance_job_failure_handler,
+    )
+
+
+def _set_delay_after_enable(instance, host_id, server_id, delay_sec):
+    """The enable's last step: the delay asked for in the same save. A hub
+    failure here does not undo the enable; it is logged and reported."""
+    if delay_sec is None:
+        return ''
+    try:
+        state = set_server_delay(host_id, server_id, delay_sec)
+    except HubDelayError as exc:
+        current_app.logger.error(
+            f"Demo-stream enabled for instance {instance.id} but its delay was not set: {exc}")
+        return f" The stream delay was not set: {exc}"
+    return f" Stream delay set to {format_seconds(state['delay_sec'])} s."
+
+
+def enable_instance_demo_stream_logic(instance_id, previous_status=None, delay_sec=None):
+    """Returns (ok: bool, message: str). `delay_sec` (seconds) is set on the
+    hub as the last step; None leaves the hub's delay alone."""
     instance = db.session.get(QLInstance, instance_id)
     if not instance:
         return False, "Instance or associated host not found."
@@ -159,42 +198,51 @@ def enable_instance_demo_stream_logic(instance_id, previous_status=None):
     set_instance_demo_stream_token(instance.id, token)
     db.session.commit()
 
-    config_path = f"configs/{instance.host.name}/{instance.id}/server.cfg"
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-    except FileNotFoundError:
-        text = ''
-
-    text = upsert_cvars_in_text(text, {
+    _write_cvars(instance, {
         'sv_demoStream': '1',
         'sv_demoStreamHost': '127.0.0.1',
         'sv_demoStreamPort': get_host_tunnel_port(host_id),
         'sv_demoStreamToken': token,
     })
-    os.makedirs(os.path.dirname(config_path), exist_ok=True)
-    with open(config_path, 'w', encoding='utf-8', newline='\n') as f:
-        f.write(text)
 
     set_instance_demo_stream_enabled(instance.id, True)
     db.session.commit()
 
-    from ui.tasks import apply_instance_config, enqueue_task
-    from ui.task_logic.job_failure_handlers import instance_job_failure_handler
-
-    job = enqueue_task(
-        apply_instance_config,
-        instance.id,
-        restart=True,
-        on_failure=instance_job_failure_handler,
-    )
+    job = _queue_apply_restart(instance.id)
     if not job:
         return _finish(
             instance, False, f"server_id {server_id} reserved and route registered, but queuing the config apply/restart failed.",
             previous_status,
         )
 
+    delay_note = _set_delay_after_enable(instance, host_id, server_id, delay_sec)
     return _finish(
         instance, True,
-        f"Live demo stream enabled, server_id={server_id}. Applying config and restarting (job {job.id}).",
+        f"Live demo stream enabled, server_id={server_id}. Applying config and restarting (job {job.id}).{delay_note}",
+    )
+
+
+def disable_instance_demo_stream_logic(instance_id, previous_status=None):
+    """Returns (ok: bool, message: str). Sets sv_demoStream "0" and restarts;
+    the token, server_id and hub route stay for a later enable."""
+    instance = db.session.get(QLInstance, instance_id)
+    if not instance:
+        return False, "Instance or associated host not found."
+    if not instance.host:
+        return _finish(instance, False, "Instance or associated host not found.", previous_status)
+
+    _write_cvars(instance, {'sv_demoStream': '0'})
+    set_instance_demo_stream_enabled(instance.id, False)
+    db.session.commit()
+
+    job = _queue_apply_restart(instance.id)
+    if not job:
+        return _finish(
+            instance, False, "sv_demoStream set to 0, but queuing the config apply/restart failed.",
+            previous_status,
+        )
+
+    return _finish(
+        instance, True,
+        f"Live demo stream disabled. Applying config and restarting (job {job.id}).",
     )

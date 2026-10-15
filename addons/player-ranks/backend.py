@@ -10,9 +10,10 @@ edited from the addon's own Settings-page panel (`global_sources`, a plain
 managed panel -- core's generic /state endpoint handles it, no route in this
 file). Which sources an instance shows is chosen on the instance's own
 'Ranks' tab, handled here: `update_instance_config` validates the x76 fields
-before writing, and `get_instance_config` shows the installation-wide
-defaults until the tab is first saved, and suggests x76 values read from
-server.cfg (server_cfg.py) the first time an instance is opened.
+before writing, and `get_instance_config` suggests x76 values read from
+server.cfg (server_cfg.py) while the instance's x76 URL is still blank.
+A new instance starts with every source off; 0.3.x instances that followed
+the old "on by default" switches are migrated at startup (ranks_service).
 """
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required
@@ -40,18 +41,13 @@ def get_instance_config(instance_id):
     if error:
         return error
 
-    from .ranks_service import GLOBAL_PROVIDERS, source_enabled
+    from .ranks_service import ensure_migrated
 
     addon = get_addon('player-ranks')
-    stored = addon.ctx.settings.get('instance', instance_id)
-    values = dict(stored)
-    # Show what is actually in effect: until this tab is saved, qlstats and
-    # Slipgate follow the installation-wide defaults.
-    global_cfg = addon.ctx.settings.get('global', 0)
-    for provider_id in GLOBAL_PROVIDERS:
-        values[f'{provider_id}_enabled'] = source_enabled(provider_id, global_cfg, stored)
+    ensure_migrated(addon.ctx.settings, instance_id)
+    values = addon.ctx.settings.get('instance', instance_id)
 
-    if stored.get('configured'):
+    if (values.get('elo_service_base_url') or '').strip():
         return jsonify({"data": {**values, "suggested": False}})
 
     from .server_cfg import suggest_from_server_cfg
@@ -59,6 +55,9 @@ def get_instance_config(instance_id):
     suggestion = suggest_from_server_cfg(instance)
     if not suggestion:
         return jsonify({"data": {**values, "suggested": False}})
+    # Pre-fills the x76 fields only; the x76 checkbox keeps its stored value,
+    # so saving the tab for another reason never turns x76 on.
+    suggestion.pop('elo_service_enabled', None)
     return jsonify({"data": {**values, **suggestion, "suggested": True}})
 
 
@@ -71,7 +70,7 @@ def update_instance_config(instance_id):
 
     from .cache import invalidate_instance
     from .providers.elo_service import DEFAULT_DISPLAY
-    from .ranks_service import GLOBAL_PROVIDERS, source_enabled
+    from .ranks_service import GLOBAL_PROVIDERS, ensure_migrated
 
     instance, error = _instance_or_404(instance_id)
     if error:
@@ -93,7 +92,6 @@ def update_instance_config(instance_id):
         return jsonify({"error": {"message": "x76: pool is required when x76 is ticked (e.g. 'ffa_auto')"}}), 400
 
     payload = {
-        'configured': True,
         'elo_service_enabled': x76_enabled,
         'elo_service_base_url': x76_base_url,
         'elo_service_api_key': body.get('elo_service_api_key') or '',
@@ -104,19 +102,15 @@ def update_instance_config(instance_id):
     addon = get_addon('player-ranks')
 
     # The qlstats/Slipgate checkboxes are only decided by a save that carries
-    # them. Before 0.3.0 this body was x76 fields only; a caller still sending
-    # just those must not switch the other two off, nor end the instance's
-    # follow-the-default state (`sources_saved` is one-way).
-    sent_flags = [f'{p}_enabled' for p in GLOBAL_PROVIDERS if f'{p}_enabled' in body]
-    if sent_flags:
-        stored = addon.ctx.settings.get('instance', instance_id)
-        global_cfg = addon.ctx.settings.get('global', 0)
-        for provider_id in GLOBAL_PROVIDERS:
-            key = f'{provider_id}_enabled'
-            # A checkbox this save does not carry keeps what was in effect,
-            # which until now may have been the installation-wide default.
-            payload[key] = bool(body[key]) if key in body else source_enabled(provider_id, global_cfg, stored)
-        payload['sources_saved'] = True
+    # them; a caller sending just the x76 fields leaves them as they are.
+    for provider_id in GLOBAL_PROVIDERS:
+        key = f'{provider_id}_enabled'
+        if key in body:
+            payload[key] = bool(body[key])
+
+    # Before the first write, so an old instance's inherited defaults are
+    # stored explicitly and not lost to the new rule.
+    ensure_migrated(addon.ctx.settings, instance_id)
 
     try:
         settings = addon.ctx.settings.set('instance', instance_id, payload)
@@ -140,8 +134,11 @@ def get_instance_ranks_all(instance_id):
     if error:
         return error
 
-    from .ranks_service import fetch_all_ranks
+    from ui.addons import get_addon
 
+    from .ranks_service import ensure_migrated, fetch_all_ranks
+
+    ensure_migrated(get_addon('player-ranks').ctx.settings, instance_id)
     payload = fetch_all_ranks(instance, request.args.get('steam_ids', ''))
     return jsonify(payload)
 
@@ -155,14 +152,39 @@ def get_instance_ranks(instance_id, provider_id):
     if error:
         return error
 
-    from .ranks_service import fetch_ranks
+    from ui.addons import get_addon
 
+    from .ranks_service import ensure_migrated, fetch_ranks
+
+    ensure_migrated(get_addon('player-ranks').ctx.settings, instance_id)
     payload = fetch_ranks(instance, provider_id, request.args.get('steam_ids', ''))
     return jsonify(payload)
 
 
 def register(ctx):
     ctx.blueprint(bp)
+
+    def migrate_at_startup(state):
+        # Runs when core mounts the blueprint. The database may not be ready
+        # yet (first boot, tests); the routes migrate lazily then.
+        from ui import db
+        from ui.models import AddonState, QLInstance
+
+        from .ranks_service import migrate_all
+
+        try:
+            with state.app.app_context():
+                inspector = db.inspect(db.engine)
+                if not all(inspector.has_table(m.__tablename__) for m in (AddonState, QLInstance)):
+                    state.app.logger.info('player-ranks: no database tables yet, startup migration skipped')
+                    return
+                migrate_all(ctx.settings)
+        except Exception:
+            state.app.logger.warning('player-ranks: startup migration skipped', exc_info=True)
+            with state.app.app_context():
+                db.session.rollback()
+
+    bp.record_once(migrate_at_startup)
     # No lifecycle hooks needed: core already drops this addon's AddonState
     # rows on instance/host delete (cleanup_scope), and nothing else here
     # keeps instance-keyed state that would outlive that row.

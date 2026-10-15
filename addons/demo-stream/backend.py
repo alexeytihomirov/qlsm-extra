@@ -31,6 +31,22 @@ def _instance_or_error(instance_id):
     return instance, None
 
 
+def _relay_error(host, port):
+    """The relay address check shared by PUT relay and PUT settings."""
+    if not isinstance(host, str) or not isinstance(port, str):
+        return jsonify({"error": {"message": "host and port must be strings."}}), 400
+    if port and not port.strip().isdigit():
+        return jsonify({"error": {"message": "port must be a number."}}), 400
+    return None
+
+
+def _stats_hub_error(url, token):
+    """The stats-hub target check shared by PUT stats-hub and PUT settings."""
+    if not isinstance(url, str) or not isinstance(token, str):
+        return jsonify({"error": {"message": "url and ingest_token must be strings."}}), 400
+    return None
+
+
 @bp.route('/relay', methods=['GET'], endpoint='get_relay')
 @jwt_required()
 def get_relay():
@@ -49,10 +65,9 @@ def update_relay():
     data = request.get_json(silent=True) or {}
     host = data.get('host', '')
     port = data.get('port', '')
-    if not isinstance(host, str) or not isinstance(port, str):
-        return jsonify({"error": {"message": "host and port must be strings."}}), 400
-    if port and not port.strip().isdigit():
-        return jsonify({"error": {"message": "port must be a number."}}), 400
+    error = _relay_error(host, port)
+    if error:
+        return error
 
     set_relay_host(host)
     set_relay_port(port)
@@ -82,13 +97,63 @@ def update_stats_hub():
     data = request.get_json(silent=True) or {}
     url = data.get('url', '')
     token = data.get('ingest_token', '')
-    if not isinstance(url, str) or not isinstance(token, str):
-        return jsonify({"error": {"message": "url and ingest_token must be strings."}}), 400
+    error = _stats_hub_error(url, token)
+    if error:
+        return error
 
     set_stats_hub_url(url)
     set_stats_hub_ingest_token(token)
     db.session.commit()
     return jsonify({"data": {'url': url.strip().rstrip('/'), 'ingest_token': token.strip()}})
+
+
+def _settings_data():
+    from .settings import get_relay_host, get_relay_port, get_stats_hub_url
+
+    # The ingest token is a secret: never sent back, a blank PUT keeps it.
+    return {
+        'relay_host': get_relay_host() or '',
+        'relay_port': get_relay_port() or '',
+        'stats_hub_url': get_stats_hub_url() or '',
+        'ingest_token': '',
+    }
+
+
+@bp.route('/settings', methods=['GET'], endpoint='get_settings')
+@jwt_required()
+def get_settings():
+    """The one settings section: relay address and stats-hub target."""
+    return jsonify({"data": _settings_data()})
+
+
+@bp.route('/settings', methods=['PUT'], endpoint='update_settings')
+@jwt_required()
+def update_settings():
+    """PUT relay and PUT stats-hub in one form, with their validation. A
+    blank ingest token keeps the stored one (the form never loads it)."""
+    from ui import db
+    from .settings import (
+        set_relay_host, set_relay_port, set_stats_hub_ingest_token, set_stats_hub_url,
+    )
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": {"message": "The request body must be a JSON object."}}), 400
+    host = data.get('relay_host', '')
+    port = data.get('relay_port', '')
+    url = data.get('stats_hub_url', '')
+    token = data.get('ingest_token', '')
+    error = _relay_error(host, port) or _stats_hub_error(url, token)
+    if error:
+        return error
+
+    set_relay_host(host)
+    set_relay_port(port)
+    set_stats_hub_url(url)
+    if token.strip():
+        set_stats_hub_ingest_token(token)
+    db.session.commit()
+    return jsonify({"data": _settings_data(), "message": "Live Demo Stream settings saved."})
 
 
 def _host_or_404(host_id):
@@ -223,22 +288,63 @@ def update_host_tunnel(host_id):
     }), 202
 
 
+def _hub_delay_state(instance):
+    """The hub's delay state for this streaming instance, or None when it
+    cannot be asked (not streaming, no stats-hub, hub error). One call."""
+    from .stats_hub import HubDelayError, get_server_delay
+
+    server_id, _ = _delay_target(instance)
+    if server_id is None:
+        return None
+    try:
+        return get_server_delay(instance.host_id, server_id)
+    except HubDelayError:
+        return None
+
+
+def _hub_delay_state_or_lost_route(instance):
+    """(state, None) like _hub_delay_state, or (None, reason) when the hub
+    says it has no route for this instance's server_id: the enable has to
+    run again to register it. Same single hub call."""
+    from .stats_hub import HubDelayError, get_server_delay
+
+    server_id, _ = _delay_target(instance)
+    if server_id is None:
+        return None, None
+    try:
+        return get_server_delay(instance.host_id, server_id), None
+    except HubDelayError as exc:
+        if exc.label == 'No route on stats-hub':
+            return None, 'stats-hub has no route for its server_id'
+        return None, None
+
+
+def _delay_field(state):
+    """The panel's delay_sec: the override, blank on the hub default."""
+    return _seconds(state['delay_sec']) if state and state['override'] else ''
+
+
 @bp.route('/instances/<int:instance_id>', methods=['GET'], endpoint='get_instance_stream')
 @jwt_required()
 def get_instance_stream(instance_id):
+    """The Live Demo Stream panel: the stream switch and the hub delay
+    (blank when not streaming, on the hub default, or the hub cannot be asked)."""
     from .settings import is_instance_demo_stream_enabled
 
     instance, error = _instance_or_error(instance_id)
     if error:
         return error
-    return jsonify({"data": {'enabled': is_instance_demo_stream_enabled(instance.id)}})
+    enabled = is_instance_demo_stream_enabled(instance.id)
+    state = _hub_delay_state(instance) if enabled else None
+    return jsonify({"data": {'enabled': enabled, 'delay_sec': _delay_field(state)}})
 
 
 @bp.route('/instances/<int:instance_id>/status', methods=['GET'], endpoint='get_instance_stream_status')
 @jwt_required()
 def get_instance_stream_status(instance_id):
-    """Badge for the panel: says why it cannot be switched on, before the
-    operator tries and gets a task that fails somewhere they cannot see."""
+    """Badge for the panel and the menu entry: says why it cannot be switched
+    on, before the operator tries and gets a task that fails somewhere they
+    cannot see; when streaming, the delay in effect (one hub call)."""
     from .settings import (
         get_instance_demo_stream_token, is_host_tunnel_enabled,
         is_instance_demo_stream_enabled, is_relay_configured,
@@ -254,47 +360,44 @@ def get_instance_stream_status(instance_id):
         return jsonify({"data": {'ok': False, 'label': 'Tunnel not enabled on host'}})
     if not is_instance_demo_stream_enabled(instance.id):
         return jsonify({"data": {'ok': False, 'label': 'Not streaming'}})
-    has_token = bool(get_instance_demo_stream_token(instance.id))
-    return jsonify({"data": {
-        'ok': has_token,
-        'label': 'Streaming' if has_token else 'Enabled, no route registered yet',
-    }})
+    if not get_instance_demo_stream_token(instance.id):
+        return jsonify({"data": {'ok': False, 'label': 'Enabled, no route registered yet'}})
+    state = _hub_delay_state(instance)
+    label = 'Streaming'
+    if state:
+        label += f", delay {_seconds(state['delay_sec'])} s"
+        if not state['override']:
+            label += ' (hub default)'
+    return jsonify({"data": {'ok': True, 'label': label}})
 
 
-@bp.route('/instances/<int:instance_id>/enable', methods=['POST', 'PUT'], endpoint='enable_instance_stream')
-@jwt_required()
-def enable_instance_stream(instance_id):
-    from ui.database import get_instance, update_instance
+BUSY_STATUSES = ('DEPLOYING', 'CONFIGURING', 'RESTARTING', 'DELETING', 'STOPPING', 'STARTING')
+
+
+def _enable_blocked(instance):
+    """An error response when the stream cannot be switched on yet, else None."""
     from .instance_ops import TUNNEL_REQUIRED_MESSAGE
     from .settings import is_host_tunnel_enabled, is_relay_configured
-    from ui.models import InstanceStatus
-    from ui.task_lock import acquire_lock, release_lock
-    from ui.task_logic.job_failure_handlers import instance_job_failure_handler
-    from ui.tasks import enqueue_task
-
-    instance, error = _instance_or_error(instance_id)
-    if error:
-        return error
-
-    if not (request.get_json(silent=True) or {}).get('enabled', True):
-        # The built-in feature has no disable path -- it only ever wires the
-        # cvars in. Saying so beats a toggle that silently does nothing.
-        return jsonify({"error": {
-            "message": "Turning the stream back off is not supported yet; "
-                       "remove the sv_demoStream* lines from server.cfg instead."
-        }}), 400
 
     if not is_relay_configured():
         return jsonify({"error": {
             "message": "Set the demo-stream relay host and port in Settings first."
         }}), 409
-
     if not is_host_tunnel_enabled(instance.host_id):
         return jsonify({"error": {"message": TUNNEL_REQUIRED_MESSAGE}}), 400
+    return None
 
-    busy = [InstanceStatus.DEPLOYING, InstanceStatus.CONFIGURING, InstanceStatus.RESTARTING,
-            InstanceStatus.DELETING, InstanceStatus.STOPPING, InstanceStatus.STARTING]
-    if instance.status in busy:
+
+def _queue_instance_task(instance, task_key, what, **task_kwargs):
+    """Busy check, instance lock, CONFIGURING, enqueue: shared by enable and
+    disable. Returns the response."""
+    from ui.database import update_instance
+    from ui.models import InstanceStatus
+    from ui.task_lock import acquire_lock, release_lock
+    from ui.task_logic.job_failure_handlers import instance_job_failure_handler
+    from ui.tasks import enqueue_task
+
+    if instance.status in [InstanceStatus[name] for name in BUSY_STATUSES]:
         return jsonify({"error": {
             "message": f'Instance "{instance.name}" is busy ({instance.status.value}). Try again shortly.'
         }}), 409
@@ -307,21 +410,142 @@ def enable_instance_stream(instance_id):
     try:
         previous_status = instance.status.value
         update_instance(instance.id, status=InstanceStatus.CONFIGURING)
-        enqueue_task(TASKS['enable_instance_demo_stream'], instance.id,
-                     previous_status=previous_status,
+        enqueue_task(TASKS[task_key], instance.id,
+                     previous_status=previous_status, **task_kwargs,
                      lock_token=lock_token, on_failure=instance_job_failure_handler)
     except Exception as e:
         release_lock('instance', instance.id, lock_token)
-        current_app.logger.error(f'Addon demo-stream: failed to queue instance {instance_id}: {e}',
+        current_app.logger.error(f'Addon demo-stream: failed to queue instance {instance.id}: {e}',
                                  exc_info=True)
-        return jsonify({"error": {"message": "Failed to queue demo-stream enable."}}), 500
+        return jsonify({"error": {"message": f"Failed to queue demo-stream {what}."}}), 500
 
-    return jsonify({"message": f'Demo-stream enable queued for "{instance.name}".'}), 202
+    return jsonify({"message": f'Demo-stream {what} queued for "{instance.name}".'}), 202
+
+
+def _wiring_drift(instance):
+    """Why a streaming instance needs the enable run again, or None when its
+    stored token and server.cfg agree with what the enable writes. Local
+    reads only: the stored token and server.cfg, no hub call."""
+    from .settings import (
+        get_host_tunnel_port, get_instance_demo_stream_token, read_cvars_from_text,
+    )
+
+    if not get_instance_demo_stream_token(instance.id):
+        return 'no stored stream token'
+    config_path = f"configs/{instance.host.name}/{instance.id}/server.cfg"
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+    except FileNotFoundError:
+        text = ''
+    cvars = read_cvars_from_text(
+        text, ('sv_demoStream', 'sv_demoStreamHost', 'sv_demoStreamPort'))
+    if cvars.get('sv_demoStream') != '1':
+        return 'sv_demoStream is not 1 in server.cfg'
+    if cvars.get('sv_demoStreamHost') != '127.0.0.1':
+        return 'sv_demoStreamHost is not 127.0.0.1 in server.cfg'
+    if cvars.get('sv_demoStreamPort') != get_host_tunnel_port(instance.host_id):
+        return "sv_demoStreamPort does not match the host tunnel's port"
+    return None
+
+
+@bp.route('/instances/<int:instance_id>', methods=['PUT'], endpoint='update_instance_stream')
+@jwt_required()
+def update_instance_stream(instance_id):
+    """The Live Demo Stream panel's save. The form sends both fields every
+    time; what happens depends on what changed against the current state:
+    off -> on queues the enable (which sets the delay last), on -> off queues
+    the disable, a delay change while streaming is one hub call. Saving a
+    streaming instance whose wiring drifted (no token, server.cfg not what
+    the enable writes) queues the enable again: a plain save repairs it."""
+    from .settings import is_instance_demo_stream_enabled
+
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": {
+            "message": "The request body must be a JSON object with enabled and delay_sec."
+        }}), 400
+    try:
+        delay = _parse_delay(body.get('delay_sec'))
+    except (ValueError, OverflowError):
+        return jsonify({"error": {"message": DELAY_VALUE_MESSAGE}}), 400
+
+    if 'enabled' in body and not isinstance(body['enabled'], bool):
+        return jsonify({"error": {"message": "enabled must be true or false."}}), 400
+
+    enabled = is_instance_demo_stream_enabled(instance.id)
+    wanted = body.get('enabled', enabled)
+
+    if not enabled and wanted:
+        blocked = _enable_blocked(instance)
+        if blocked:
+            return blocked
+        return _queue_instance_task(instance, 'enable_instance_demo_stream', 'enable',
+                                    delay_sec=delay)
+    if enabled and not wanted:
+        return _queue_instance_task(instance, 'disable_instance_demo_stream', 'disable')
+    if not enabled:
+        if delay is not None:
+            return jsonify({"error": {"message": NOT_STREAMING_MESSAGE}}), 409
+        return jsonify({"message": "No changes."})
+
+    # Streaming and staying on. Drifted wiring first (local state, then the
+    # hub saying it has no route): the enable re-registers the route,
+    # rewrites the cvars and restarts once, and takes the delay along as on
+    # off -> on (setting an unchanged delay again is harmless).
+    drift = _wiring_drift(instance)
+    state = None
+    if not drift:
+        state, drift = _hub_delay_state_or_lost_route(instance)
+    if drift:
+        current_app.logger.info(
+            f'Addon demo-stream: re-enabling instance {instance.id} on save: {drift}')
+        blocked = _enable_blocked(instance)
+        if blocked:
+            return blocked
+        return _queue_instance_task(instance, 'enable_instance_demo_stream', 'enable',
+                                    delay_sec=delay)
+
+    # Then the delay, compared with what the hub reports, the way the GET
+    # showed it. Blank with nothing to compare with is no change.
+    if delay is None and (state is None or not state['override']):
+        return jsonify({"message": "No changes."})
+    if delay is not None and state is not None and state['override'] \
+            and abs(state['delay_sec'] - delay) <= DELAY_MATCH_TOLERANCE_SEC:
+        return jsonify({"message": "No changes."})
+    return _set_delay(instance, delay)
+
+
+@bp.route('/instances/<int:instance_id>/enable', methods=['POST', 'PUT'], endpoint='enable_instance_stream')
+@jwt_required()
+def enable_instance_stream(instance_id):
+    """Kept for one release for anything that still calls it; the panel
+    saves through PUT instances/{id} now."""
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+
+    if not (request.get_json(silent=True) or {}).get('enabled', True):
+        return jsonify({"error": {
+            "message": "This route only switches the stream on; "
+                       "save the Live Demo Stream panel to switch it off."
+        }}), 400
+
+    blocked = _enable_blocked(instance)
+    if blocked:
+        return blocked
+    return _queue_instance_task(instance, 'enable_instance_demo_stream', 'enable')
 
 
 DELAY_MATCH_TOLERANCE_SEC = 0.001
 DELAY_VALUE_MESSAGE = ("delay_sec must be a number of seconds from 0 to 300, "
                        "or blank for the hub default.")
+NOT_STREAMING_MESSAGE = ("This instance is not streaming yet. Enable it from its Live Demo "
+                         "Stream menu entry first; the delay can be set once that has finished.")
 
 
 def _delay_target(instance):
@@ -335,20 +559,17 @@ def _delay_target(instance):
     if not is_stats_hub_configured_for_host(instance.host_id):
         return None, ('Stats-hub not configured',
                       "Set the stats-hub URL and ingest token in Settings first "
-                      "(Demo Stream Stats Hub).")
+                      "(Live Demo Stream).")
     server_id = get_instance_server_id(instance.id)
     if server_id is None or not is_instance_demo_stream_enabled(instance.id):
-        return None, ('Not streaming',
-                      "This instance is not streaming yet. Enable it from its Live Demo "
-                      "Stream menu entry first; the delay can be set once that has finished.")
+        return None, ('Not streaming', NOT_STREAMING_MESSAGE)
     return server_id, None
 
 
 def _seconds(value):
-    """A float as the operator types it. repr round-trips, so loading a value
-    and saving it untouched writes the same value back."""
-    text = repr(float(value))
-    return text[:-2] if text.endswith('.0') else text
+    from .stats_hub import format_seconds
+
+    return format_seconds(value)
 
 
 def _delay_data(state):
@@ -431,8 +652,6 @@ def get_instance_delay_status(instance_id):
 def update_instance_delay(instance_id):
     """One call to stats-hub. No server.cfg change, no instance lock, no
     restart: the hub applies the delay to the running stream."""
-    from .stats_hub import HubDelayError, set_server_delay
-
     instance, error = _instance_or_error(instance_id)
     if error:
         return error
@@ -446,6 +665,14 @@ def update_instance_delay(instance_id):
         delay = _parse_delay(body.get('delay_sec'))
     except (ValueError, OverflowError):
         return jsonify({"error": {"message": DELAY_VALUE_MESSAGE}}), 400
+
+    return _set_delay(instance, delay)
+
+
+def _set_delay(instance, delay):
+    """One call to stats-hub that sets (or, for None, resets) the delay and
+    checks the hub applied it. Returns the response."""
+    from .stats_hub import HubDelayError, set_server_delay
 
     server_id, blocked = _delay_target(instance)
     if server_id is None:
@@ -476,7 +703,7 @@ def update_instance_delay(instance_id):
     return jsonify({"data": _delay_data(state), "message": message})
 
 
-# Set by register(); the enable_instance_stream endpoint enqueues through
+# Set by register(); the instance endpoints enqueue through
 # this rather than through ui.tasks, which no longer knows demo-stream
 # exists.
 TASKS = {}
@@ -486,15 +713,25 @@ def register(ctx):
     ctx.blueprint(bp)
 
     @ctx.task(timeout=300, lock_scope='instance')
-    def enable_instance_demo_stream_task(instance_id, previous_status=None):
+    def enable_instance_demo_stream_task(instance_id, previous_status=None, delay_sec=None):
         """RQ task entry point for wiring an instance's sv_demoStream* cvars
         at the central demo-stream relay and registering its route with
-        stats-hub."""
+        stats-hub; sets the stream delay on the hub last when given."""
         from .instance_ops import enable_instance_demo_stream_logic
 
-        return enable_instance_demo_stream_logic(instance_id, previous_status=previous_status)
+        return enable_instance_demo_stream_logic(instance_id, previous_status=previous_status,
+                                                 delay_sec=delay_sec)
 
     TASKS['enable_instance_demo_stream'] = enable_instance_demo_stream_task
+
+    @ctx.task(timeout=300, lock_scope='instance')
+    def disable_instance_demo_stream_task(instance_id, previous_status=None):
+        """RQ task entry point for switching an instance's stream off."""
+        from .instance_ops import disable_instance_demo_stream_logic
+
+        return disable_instance_demo_stream_logic(instance_id, previous_status=previous_status)
+
+    TASKS['disable_instance_demo_stream'] = disable_instance_demo_stream_task
 
     @ctx.task(timeout=300, lock_scope='host')
     def configure_host_tunnel_task(host_id, enabled, port, cert_pem):

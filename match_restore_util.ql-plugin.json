@@ -1,4 +1,4 @@
 {
-  "label": "⚠️ match_restore helper - do not enable",
-  "description": "Helper module for match_restore.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins."
+  "label": "match_restore helper",
+  "description": "Helper of match_restore.py, downloaded with it. Not a plugin."
 }

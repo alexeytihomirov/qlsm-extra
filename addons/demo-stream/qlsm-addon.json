@@ -1,8 +1,8 @@
 {
   "id": "demo-stream",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "name": "Live Demo Stream",
-  "description": "Lets a spectator watch a player's view live: points an instance's sv_demoStream cvars at the central demo-stream relay and registers the instance with ql-stats-hub. The relay is one address for the whole cluster, but each game host runs a stunnel client that carries the stream to stats-hub over TLS with the hub's certificate pinned. Set the relay address and the stats-hub in Settings, turn on the tunnel from each host's Demo Stream Tunnel menu entry, then enable each instance from its Live Demo Stream menu entry, which restarts it. The delay stats-hub puts on a streaming instance is set from its Demo Stream Delay menu entry, without a restart. Needs a game server build that supports the sv_demoStream cvars.",
+  "description": "Streams players' views live from an instance to ql-stats-hub through a central relay, over a TLS tunnel on each host. Needs the relay set in Settings, the host's Demo Stream Tunnel on and a game server with the sv_demoStream cvars; each instance has a Live Demo Stream switch.",
   "scopes": ["global", "host", "instance"],
   "ui_api": 1,
 
@@ -10,71 +10,50 @@
     "icon": "share",
 
     "host_menu": [
-      { "id": "demo-stream-tunnel", "label": "Demo Stream Tunnel", "icon": "share", "panel": "host_tunnel" }
+      { "id": "demo-stream-tunnel", "label": "Demo Stream Tunnel", "icon": "share", "panel": "host_tunnel", "status": "GET hosts/{host_id}/status" }
     ],
     "instance_menu": [
-      { "id": "demo-stream", "label": "Live Demo Stream", "icon": "share", "panel": "instance_stream" },
-      { "id": "demo-stream-delay", "label": "Demo Stream Delay", "icon": "gauge", "panel": "instance_delay" }
+      { "id": "demo-stream", "label": "Live Demo Stream", "icon": "share", "panel": "instance_stream", "status": "GET instances/{instance_id}/status" }
     ],
     "settings_section": [
-      { "label": "Demo Stream Relay", "icon": "share", "panel": "relay_settings" },
-      { "label": "Demo Stream Stats Hub", "icon": "share", "panel": "stats_hub_settings" }
+      { "label": "Live Demo Stream", "icon": "share", "panel": "settings" }
     ],
 
     "panels": {
       "host_tunnel": {
         "kind": "form",
-        "description": "Installs stunnel on this host and pins the stats-hub TLS certificate, so instances stream to 127.0.0.1 and the tunnel carries it to the relay over TLS. Changing the port re-runs the setup; re-enable streaming on each instance afterwards so its server.cfg picks up the new port. After the hub's certificate changes, save this panel again with Enabled to re-pin it. Saving with Enabled first asks stats-hub to let this host's IP through its firewall; turning the tunnel off takes the host out again unless the Telemetry Relay is still on. The status shows the hub firewall and whether the hub has a demo-stream link from this host.",
+        "description": "Installs stunnel on this host and pins the stats-hub TLS certificate; save again with Enabled after the hub's certificate changes to re-pin it. Enabling lets this host's IP through the stats-hub firewall, and turning the tunnel off takes it out again unless the Telemetry Relay is still on.",
         "load": "GET hosts/{host_id}",
         "submit": "PUT hosts/{host_id}",
         "status": { "load": "GET hosts/{host_id}/status" },
         "fields": [
           { "key": "enabled", "type": "bool", "label": "Enabled", "default": false, "description": "Installs and starts the tunnel on this host." },
-          { "key": "local_port", "type": "string", "label": "Local port", "placeholder": "27999", "description": "Port the tunnel listens on at 127.0.0.1. Leave blank for 27999." }
+          { "key": "local_port", "type": "string", "label": "Local port", "placeholder": "27999", "description": "Port the tunnel listens on at 127.0.0.1. Leave blank for 27999. After a change, save each instance's Live Demo Stream again so its server.cfg picks up the new port." }
         ]
       },
 
       "instance_stream": {
         "kind": "form",
-        "description": "Wires sv_demoStream* into this instance's server.cfg and registers its per-instance token with stats-hub. Requires the relay address set below and the Demo Stream Tunnel enabled on this instance's host. Applies config and restarts the instance.",
+        "description": "Streams this instance to stats-hub so spectators can watch it live. Switching it on or off applies the config and restarts the instance; changing only the delay does not.",
         "load": "GET instances/{instance_id}",
-        "submit": "POST instances/{instance_id}/enable",
+        "submit": "PUT instances/{instance_id}",
         "status": { "load": "GET instances/{instance_id}/status" },
         "fields": [
-          { "key": "enabled", "type": "bool", "label": "Stream this instance", "description": "Saving with this on wires the cvars and restarts the instance." }
+          { "key": "enabled", "type": "bool", "label": "Stream this instance", "description": "Needs the relay set in Settings and the Demo Stream Tunnel on this host." },
+          { "key": "delay_sec", "type": "string", "label": "Delay (seconds)", "placeholder": "hub default", "description": "How far behind the live game viewers see it: 0 to 300, blank for the hub default." }
         ]
       },
 
-      "instance_delay": {
+      "settings": {
         "kind": "form",
-        "description": "How far behind the live game ql-stats-hub shows this instance's stream, in seconds. Saving is one call to stats-hub: it applies immediately, without restarting the instance or changing its server.cfg. Viewers already watching are reconnected when the delay goes down. The instance must already be streaming (Live Demo Stream); the badge shows the delay in effect. Needs a stats-hub with the per-server delay API.",
-        "load": "GET instances/{instance_id}/delay",
-        "submit": "PUT instances/{instance_id}/delay",
-        "status": { "load": "GET instances/{instance_id}/delay/status" },
+        "description": "The relay every streaming instance connects to and the stats-hub that registers the streams. Independent of the telemetry-relay addon's stats-hub target.",
+        "load": "GET settings",
+        "submit": "PUT settings",
         "fields": [
-          { "key": "delay_sec", "type": "string", "label": "Delay (seconds)", "placeholder": "hub default", "description": "0 to 300, decimals allowed. Leave blank to use the hub default." }
-        ]
-      },
-
-      "relay_settings": {
-        "kind": "form",
-        "description": "The central relay's TCP ingest address. One address for the whole cluster - every streaming instance connects to it.",
-        "load": "GET relay",
-        "submit": "PUT relay",
-        "fields": [
-          { "key": "host", "type": "string", "label": "Relay host", "placeholder": "stats.example or 10.0.0.5", "description": "Hostname or IP the game servers can reach." },
-          { "key": "port", "type": "string", "label": "Relay port", "placeholder": "27999", "description": "TLS ingest port of stats-hub (STATS_HUB_DEMO_STREAM_TCP_PORT on the stats-hub side)." }
-        ]
-      },
-
-      "stats_hub_settings": {
-        "kind": "form",
-        "description": "Where ql-stats-hub is for registering demo-stream routes. Independent of the telemetry-relay addon's stats-hub target - the two may point at different stats-hub instances.",
-        "load": "GET stats-hub",
-        "submit": "PUT stats-hub",
-        "fields": [
-          { "key": "url", "type": "string", "label": "Stats-hub URL", "placeholder": "https://stats.example", "description": "Base URL the demo stream registers routes against." },
-          { "key": "ingest_token", "type": "secret", "label": "Ingest token", "description": "STATS_HUB_INGEST_TOKEN, not STATS_HUB_API_TOKEN. The wrong one fails silently with a 401." }
+          { "key": "relay_host", "type": "string", "label": "Relay host", "placeholder": "stats.example or 10.0.0.5", "description": "Hostname or IP the game servers can reach." },
+          { "key": "relay_port", "type": "string", "label": "Relay port", "placeholder": "27999", "description": "TLS ingest port of stats-hub (STATS_HUB_DEMO_STREAM_TCP_PORT)." },
+          { "key": "stats_hub_url", "type": "string", "label": "Stats-hub URL", "placeholder": "https://stats.example", "description": "Base URL the streams are registered against." },
+          { "key": "ingest_token", "type": "secret", "label": "Ingest token", "description": "STATS_HUB_INGEST_TOKEN, not STATS_HUB_API_TOKEN. Never shown once saved; leave blank to keep the stored one." }
         ]
       }
     }

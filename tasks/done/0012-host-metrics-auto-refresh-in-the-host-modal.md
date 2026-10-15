@@ -1,10 +1,10 @@
 ---
 id: qlsm-extra-0012
 title: host-metrics: auto-refresh in the host modal
-status: done-unverified
+status: done
 created: 2026-10-15
 updated: 2026-10-15
-verified:
+verified: 2026-10-15
 depends_on: []
 related: [qlsm-extra-0011]
 ---
@@ -31,6 +31,7 @@ related: [qlsm-extra-0011]
 - 2026-10-15 - auto-refresh implemented in the host modal (ui-src/refresh.js + HostPanel.jsx), version 1.1.2, built, manifest regenerated, tests green; committed on host-metrics-autorefresh, not merged/pushed
 - 2026-10-15 - ревью: снимок для выводов не обновлялся при открытии с доски - исправлено (e2a3b3f); выпущено 1.1.2 (main e2a3b3f), установлено в прод, Apply на 7 хостах
 - 2026-10-15 - оператор: при наведении на график дёргалась вёрстка (в легенде пропадал peak, значение и подпись менялись). Легенда теперь не меняется при наведении, значения под курсором только во всплывающей подсказке; 1.1.3 (6f064aa) в проде, Apply на 7 хостах
+- 2026-10-15 - оператор подтвердил: всё ок
 
 ## Результат
 

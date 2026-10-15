@@ -1,22 +1,18 @@
 {
   "id": "player-ranks",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "name": "Player Ranks",
-  "description": "Shows each connected player's external rating in Live Status. Pick the sources per instance on its Ranks tab: qlstats, Slipgate and x76. qlstats and Slipgate connection details are set once for the installation; x76 is configured per instance. Every enabled source is fetched in one request and stacked in a single Rank column. Needs QLSM with ui_api 4 or newer.",
+  "description": "Shows each connected player's rating from qlstats, Slipgate and x76 in one Rank column in Live Status, with the sources chosen per instance on its Ranks tab. Needs QLSM with ui_api 4 or newer; qlstats and Slipgate are set up once in Settings, x76 per instance.",
   "scopes": ["global", "instance"],
   "ui_api": 4,
 
   "settings": {
     "global": [
-      { "key": "qlstats_enabled", "type": "bool", "label": "qlstats: on by default",
-        "description": "Applies to instances whose Ranks tab has not been saved yet. A saved Ranks tab decides for itself." },
       { "key": "qlstats_base_url", "type": "string", "label": "qlstats: Base URL", "placeholder": "http://qlstats.net",
         "description": "Blank defaults to http://qlstats.net." },
       { "key": "qlstats_rating_system", "type": "string", "label": "qlstats: rating path", "default": "elo", "placeholder": "elo",
         "description": "The API path ratings are fetched from. Use the same value as qlx_balanceApi on your servers, e.g. elo, elo_b or elo/bn, so Live Status matches !elo. Blank means elo." },
 
-      { "key": "slipgate_enabled", "type": "bool", "label": "Slipgate: on by default",
-        "description": "Applies to instances whose Ranks tab has not been saved yet. A saved Ranks tab decides for itself." },
       { "key": "slipgate_base_url", "type": "string", "label": "Slipgate: Base URL", "placeholder": "https://slipgate.gg",
         "description": "Blank defaults to https://slipgate.gg." },
       { "key": "slipgate_api_key", "type": "secret", "label": "Slipgate: API key / token",
@@ -26,8 +22,6 @@
         "description": "Used by instances that leave their own key blank. x76 returns nothing without a key, on any instance." }
     ],
     "instance": [
-      { "key": "configured", "type": "bool", "label": "internal: has this instance's Ranks tab ever been saved" },
-      { "key": "sources_saved", "type": "bool", "label": "internal: were the per-instance source checkboxes ever saved" },
 
       { "key": "qlstats_enabled", "type": "bool", "label": "qlstats: show on this instance" },
       { "key": "slipgate_enabled", "type": "bool", "label": "Slipgate: show on this instance" },
@@ -60,7 +54,7 @@
     "panels": {
       "instance_ranks": {
         "kind": "form",
-        "description": "Tick the rating sources this instance shows in Live Status. qlstats and Slipgate use the connection details from Settings -> Addons -> Player Ranks; until this tab is saved they follow the defaults set there. x76 is configured here. If server.cfg already carries qlx_rankedServiceUrl, the first load suggests matching x76 values -- nothing is written until you hit Save.",
+        "description": "Tick the rating sources this instance shows in Live Status; qlstats and Slipgate use the connection details from Settings, x76 is configured here. If server.cfg carries qlx_rankedServiceUrl, the first load suggests matching x76 values; nothing is written until you Save.",
         "load": "GET instances/{instance_id}/config",
         "submit": "PUT instances/{instance_id}/config",
         "fields": [
@@ -82,7 +76,7 @@
       },
       "global_sources": {
         "kind": "form",
-        "description": "Connection details for qlstats and Slipgate, and whether each is on by default. Which sources an instance actually shows is chosen on that instance's own Ranks tab; the defaults here apply only until that tab is saved. x76 is configured per instance."
+        "description": "Connection details for qlstats and Slipgate; x76 is configured per instance. Each instance picks the sources it shows on its own Ranks tab."
       }
     }
   }

@@ -1,8 +1,8 @@
 {
   "id": "runtime-source",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Runtime Source",
-  "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins, for example the alexeytihomirov/minqlxtended fork that native demo capture needs. Enable it for a host, enter the repository and a commit, then run Re-run Host Setup. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (host.setup hook).",
+  "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins, for example the fork native demo capture needs. Set the repository and commit in the host's Runtime Source entry, then Re-run Host Setup; needs a QLSM with the host.setup hook.",
   "scopes": ["global", "host"],
   "ui_api": 1,
 
@@ -27,7 +27,7 @@
     "panels": {
       "host_source": {
         "kind": "form",
-        "description": "Where this host's minqlxtended is built from. Takes effect on the next Re-run Host Setup, not on save. Ignored on a minqlx host.",
+        "description": "Where this host's minqlxtended is built from, ignored on a minqlx host. Takes effect on the next Re-run Host Setup, not on save.",
         "status": { "load": "GET hosts/{host_id}/status" }
       }
     }

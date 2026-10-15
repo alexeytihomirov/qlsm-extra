@@ -1,8 +1,8 @@
 {
   "id": "demo-management",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "name": "Demos",
-  "description": "Adds a Demos screen for each instance: lists the demo files the server recorded, newest first, with all files of one match grouped in one row labelled with map, mode, players and length, and downloads them. Filters by date, map, mode and pack state. Install qlmatch-packer as well to see and rebuild .qlmatch packs. Needs QLSM with ui_api 3 or newer.",
+  "description": "Adds a Demos screen to each instance that lists its recorded demos grouped by match, with filters and downloads. Needs QLSM with ui_api 3 or newer; install qlmatch-packer as well to see and rebuild .qlmatch packs.",
   "scopes": ["global", "host", "instance"],
   "ui_api": 3,
 
