@@ -28,6 +28,7 @@ _TOKEN_KEY = 'stats_hub_ingest_token'
 _HOST_URL_PREFIX = 'telemetry_relay_host_stats_hub_url:'
 _HOST_TOKEN_PREFIX = 'telemetry_relay_host_stats_hub_token:'
 _SERVER_ID_PREFIX = 'stats_hub_server_id:'
+_RESERVED_ID_PREFIX = 'stats_hub_reserved_server_id:'
 
 RESERVE_TIMEOUT_SEC = 10
 
@@ -118,7 +119,24 @@ def get_instance_server_id(instance_id):
 
 
 def set_instance_server_id(instance_id, server_id):
+    """The ID the relay routes for this instance (None: not routed). Setting
+    one also remembers it as the reserved ID, which outlives a disable."""
     _set(f"{_SERVER_ID_PREFIX}{instance_id}",
+         str(int(server_id)) if server_id else None)
+    if server_id:
+        set_reserved_server_id(instance_id, server_id)
+
+
+def get_reserved_server_id(instance_id):
+    """The ID reserved for this instance, kept while telemetry is off so a
+    re-enable gets the same one. Falls back to the routed ID for instances
+    enabled before this key existed."""
+    value = _get(f"{_RESERVED_ID_PREFIX}{instance_id}")
+    return int(value) if value else get_instance_server_id(instance_id)
+
+
+def set_reserved_server_id(instance_id, server_id):
+    _set(f"{_RESERVED_ID_PREFIX}{instance_id}",
          str(int(server_id)) if server_id else None)
 
 
