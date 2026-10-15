@@ -133,7 +133,7 @@ Answers "does the server keep its tick", which CPU percentages alone cannot.
 - Map load: the gap across `SV_SpawnServer` is huge by nature. The `map` hook marks the next gap as excluded.
 - Every 10 s a reload-safe worker thread (stop event on unload, per `skills/minqlx-plugin-review/SKILL.md`) swaps the counters for fresh ones and writes `minqlx:frame_stats:<port>` (JSON: window, frames, late, max_ms, p50/p99 from the histogram, tick_ms) with a 30 s TTL, through the shared minqlx Redis client.
 - Ships in the qlsm-extra plugin pool with its `.ql-plugin.json`, enabled per instance like the other plugins. Without it the dashboard still works, the frame columns show "no data".
-- Assumption to check in step 1 of the plan: the minqlx `frame` event fires once per game frame (from `G_RunFrame`). If the engine runs catch-up frames back to back after a stall, the data shows one long gap followed by near-zero gaps; max gap and late count capture that, an average would hide it.
+- The `frame` event fires once per game frame: in our fork `My_G_RunFrame` (`src/server/hooks.c:681`) calls `FrameDispatcher()` before the game frame (noted in `qlsm-extra/demo_stream_resync_hold.py:15`). If the engine runs catch-up frames back to back after a stall, the data shows one long gap followed by near-zero gaps; max gap and late count capture that, an average would hide it.
 
 ## 5. Addon (`addons/host-metrics/`)
 

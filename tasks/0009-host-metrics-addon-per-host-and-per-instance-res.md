@@ -6,7 +6,7 @@ created: 2026-10-15
 updated: 2026-10-15
 verified:
 depends_on: []
-related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md]
+related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md, qlsm-extra/docs/superpowers/plans/2026-10-15-host-metrics-addon.md]
 ---
 
 # host-metrics addon: per-host and per-instance resource dashboard with capacity verdict
@@ -36,9 +36,9 @@ related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-a
 
 ## Шаги
 
-- [x] Спека в `qlsm-extra/docs/superpowers/specs/` (написана, ждёт согласования оператора)
+- [x] Спека в `qlsm-extra/docs/superpowers/specs/` (согласована 2026-10-15)
 - [x] Проверить на живом хосте: `systemctl show qlds@<port> -p CPUUsageNSec,MemoryCurrent` возвращает числа (включён ли accounting)
-- [ ] План в `qlsm-extra/docs/superpowers/plans/`
+- [x] План в `qlsm-extra/docs/superpowers/plans/` (ждёт ревью оператора)
 - [ ] Сборщик на хосте + плейбук установки
 - [ ] Плагин времени кадра
 - [ ] Бэкенд аддона (забор по SSH, агрегация, вывод о запасе)
@@ -50,6 +50,7 @@ related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-a
 - 2026-10-15 - created; схема согласована, история 30 дней хватает, время кадра делаем плагином
 - 2026-10-15 - проба germany и sweden (только чтение): cgroup v2, CPU/RAM по qlds@<port> есть, 2 ядра, инстанс закреплён на ядре 0, steal 0 / ~0.45 %, ql-watchdog не установлен, serverchecker пишет minqlx:server_status:<port> в redis db1
 - 2026-10-15 - спека написана: docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md
+- 2026-10-15 - спека согласована (трафик только по хосту); хук frame подтверждён по коду форка; план: docs/superpowers/plans/2026-10-15-host-metrics-addon.md, 11 задач
 
 ## Результат
 
