@@ -469,7 +469,7 @@ def test_series_of_unreachable_or_uninstalled_host(app, client, auth, monkeypatc
     assert client.get(f'{API}/hosts/9999/series?range=1h', headers=auth).status_code == 404
 
 
-def test_remote_command_is_quoted_and_checks_the_script():
+def test_remote_command_is_quoted_and_checks_the_script(app):
     ssh = _backend().hm_ssh
     command = ssh.remote_command(['series', '--range', '24h', '--port', '27960'])
     assert command == ('test -f /home/ql/host-metrics/hm_query.py || exit 127; '
@@ -478,7 +478,7 @@ def test_remote_command_is_quoted_and_checks_the_script():
     assert "'a b; ls'" in ssh.remote_command(['a b; ls'])
 
 
-def test_remote_command_for_a_non_root_user_goes_through_sudo():
+def test_remote_command_for_a_non_root_user_goes_through_sudo(app):
     ssh = _backend().hm_ssh
     assert ssh.remote_command(['snapshot'], 'ubuntu') == (
         'sudo -n -u ql test -f /home/ql/host-metrics/hm_query.py || exit 127; '
@@ -503,10 +503,20 @@ def test_invalid_ssh_user_is_unreachable_and_never_executed(app, client, auth, m
     assert fake.calls == []
 
 
+def test_is_no_sudo_rcs_and_messages(app):
+    is_no_sudo = _backend().is_no_sudo
+    assert is_no_sudo(127, 'sudo: a password is required')
+    assert is_no_sudo(1, 'sudo: a password is required')
+    assert is_no_sudo(127, 'sudo: a terminal is required to read the password')
+    assert not is_no_sudo(127, '')
+    assert not is_no_sudo(127, 'python3: No such file or directory')
+    assert not is_no_sudo(0, 'sudo: a password is required')
+
+
 def test_sudo_refusal_maps_to_no_sudo(app, client, auth, monkeypatch):
     host_id = _host(app, 'h-nosudo')
     monkeypatch.setattr(_backend().hm_ssh, 'exec_json', _fake_exec({
-        'h-nosudo': (1, None, 'sudo: a password is required')}))
+        'h-nosudo': (127, None, 'sudo: a password is required')}))
     row = client.get(f'{API}/hosts?refresh=1', headers=auth).get_json()['data']['hosts'][0]
     assert row['state'] == 'no_sudo'
     assert row['error'].startswith('SSH user ') and row['error'].endswith(' has no passwordless sudo')

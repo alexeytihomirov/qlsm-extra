@@ -284,8 +284,11 @@ def data_age(snapshot):
 
 
 def is_no_sudo(rc, stderr):
-    """sudo -n refused (no passwordless sudo): rc 1 and a `sudo:` message on stderr."""
-    return rc == 1 and 'sudo:' in (stderr or '')
+    """sudo -n refused (no passwordless sudo): `sudo:` + a password/terminal message on stderr.
+    The command's `|| exit 127` turns sudo's rc 1 into 127, so both rcs count."""
+    text = stderr or ''
+    return (rc in (1, hm_ssh.MISSING_RC) and 'sudo:' in text
+            and ('password is required' in text or 'terminal is required' in text))
 
 
 def no_sudo_error(conn):
