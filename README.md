@@ -161,8 +161,10 @@ notifications (`poller.tick`, `ctx.notify`) and `page.nav` it also:
 - puts host problems under the navbar bell: late frames or a saturated core
   while players are on, high steal, low memory (warning); an OOM kill, a full
   disk, a host unreachable or a collector silent for more than 5 minutes
-  (critical). One notification per problem, resolved when it ends; checked
-  once a minute; a QLSM restart does not replay old events. Switch and minimum
+  (critical). Checked once a minute against what is open on the host now: one
+  notification per problem, resolved after it stayed clear for two checks (a
+  flapping condition does not flood the bell), an OOM kill stays for 24 hours,
+  a host switched off has its notifications resolved. Switch and minimum
   severity: Settings -> Addons -> Host Metrics (`notify_enabled`,
   `notify_min_severity`);
 - adds a **Hosts health** entry to the navbar.

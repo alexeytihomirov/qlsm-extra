@@ -469,17 +469,17 @@ def host_events(host_id):
 # ---- bell notifications (qlsm's poller.tick + ctx.notify, newer cores only) -------
 #
 # on_tick runs in the `flask run-status-poller` process, inline in its 15 s loop: real
-# work only every NOTIFY_EVERY_TICKS-th tick, all hosts in parallel with the 5 s
-# snapshot path, and a hard budget so a slow or dead host cannot stall the poller.
-# All state between checks lives in Redis (a poller restart neither replays events nor
-# resets the 5-minute outage clock).
+# work only every NOTIFY_EVERY_TICKS-th tick, all hosts' snapshots in parallel (the 5 s
+# path of the host list) and a hard budget, so a slow or dead host cannot stall the
+# poller. State-based (ruling R8, notifier.py): desired keys from the snapshots, notify
+# them all, resolve open ones absent twice in a row. Redis keeps the absent counts and
+# each host's outage start, so a poller restart does not reset the 5-minute clock.
 
 NOTIFY_EVERY_TICKS = 4
 NOTIFY_BUDGET_SECONDS = 8.0
-NOTIFY_GATHER_SECONDS = 6.5     # waiting for the hosts; the rest is for notify / Redis
-NOTIFY_OVERLAP_SECONDS = 60     # ruling R4: since = last now - 60, dedupe by event id
-NOTIFY_KEY = 'addon:host-metrics:notify:%d'          # last `now` (host clock) per host
-NOTIFY_LAST_TTL = 3600          # longer without a check: start from now, no replay
+NOTIFY_GATHER_SECONDS = 6.5     # waiting for the hosts; the rest is for the DB writes
+NOTIFY_STATE_KEY = 'addon:host-metrics:notify:absent'
+NOTIFY_DOWN_KEY = 'addon:host-metrics:notify:%d:down'
 NOTIFY_STATE_TTL = 7 * 86400
 
 _TICKS = [0]
@@ -518,20 +518,17 @@ def _redis_json(client, key):
         return None
 
 
-def _fetch_events(conn, since):
-    """Runs in a worker thread: `events --since`, or None when the answer is not usable
-    (a 1.0 collector without --since, an unreachable host)."""
-    if getattr(conn, 'error', None):
-        return None
+def _open_keys():
+    """Keys of this addon's open notifications, read through core's model; None on a core
+    without it (then nothing is resolved)."""
     try:
-        rc, parsed, _stderr = hm_ssh.exec_json(conn, ['events', '--since', str(int(since))],
-                                               timeout=QUERY_TIMEOUT_SECONDS)
-    except Exception:
+        from ui.models import Notification
+    except ImportError:
         return None
-    if (rc != 0 or not parsed or parsed.get('error') or not _is_num(parsed.get('now'))
-            or not isinstance(parsed.get('events'), list)):
-        return None
-    return parsed
+    source = getattr(CTX, 'addon_id', None) or 'host-metrics'
+    rows = (Notification.query.with_entities(Notification.key)
+            .filter_by(source=source, resolved_at=None).all())
+    return {row[0] for row in rows if row[0]}
 
 
 def _result(future):
@@ -543,102 +540,87 @@ def _result(future):
         return None
 
 
-def _gather(connections, lasts, expected_version):
-    """{host_id: (snapshot row, events answer)}; whatever is not back within
-    NOTIFY_GATHER_SECONDS counts as no answer (the worker threads finish on their own
-    SSH timeouts, the check does not wait for them)."""
-    jobs = {}
-    pool = ThreadPoolExecutor(max_workers=max(1, min(32, 2 * len(connections))))
+def _gather(connections, expected_version):
+    """{host_id: snapshot row}; a host not back within NOTIFY_GATHER_SECONDS gets None
+    (the worker threads finish on their own SSH timeouts, the check does not wait)."""
+    if not connections:
+        return {}
+    pool = ThreadPoolExecutor(max_workers=max(1, min(FETCH_WORKERS * 2, len(connections))))
     try:
-        for conn in connections:
-            snap = pool.submit(_fetch_snapshot, conn, expected_version)
-            last = lasts.get(conn.id)
-            events = (pool.submit(_fetch_events, conn, max(0, last - NOTIFY_OVERLAP_SECONDS))
-                      if last is not None else None)
-            jobs[conn.id] = (snap, events)
-        pending = [f for pair in jobs.values() for f in pair if f is not None]
-        wait(pending, timeout=NOTIFY_GATHER_SECONDS)
+        jobs = {c.id: pool.submit(_fetch_snapshot, c, expected_version) for c in connections}
+        wait(list(jobs.values()), timeout=NOTIFY_GATHER_SECONDS)
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
-    return {host_id: (_result(snap), _result(events)) for host_id, (snap, events) in jobs.items()}
-
-
-def _check_host(client, conn, snap, events, last, min_severity, wall_now):
-    host_id, name = conn.id, conn.name
-    prefix = NOTIFY_KEY % host_id
-    snap = snap or {'state': 'unreachable', 'snapshot': None}
-    snapshot = snap.get('snapshot')
-
-    down = _redis_json(client, prefix + ':down') or {}
-    down = hm_notifier.handle_down(host_id, name, snap.get('state'),
-                                   data_age(snapshot) if snapshot else None, down, wall_now,
-                                   min_severity, CTX.notify, CTX.resolve)
-    if down:
-        client.setex(prefix + ':down', NOTIFY_STATE_TTL, json.dumps(down))
-    else:
-        client.delete(prefix + ':down')
-
-    if last is None:
-        # first check of this host (or the last one is over an hour old): start from now
-        if snapshot and _is_num(snapshot.get('now')):
-            client.setex(prefix, NOTIFY_LAST_TTL, str(int(snapshot['now'])))
-        return
-    if events is None:
-        return      # retried next check from the same `last`
-
-    def on_error(event, exc):
-        CTX.logger.warning('host-metrics: notification for event %s of host %s failed: %s',
-                           event.get('id'), name, exc)
-
-    seen = _redis_json(client, prefix + ':seen') or {}
-    seen = hm_notifier.handle_events(host_id, name, events['events'], seen, snapshot,
-                                     min_severity, CTX.notify, CTX.resolve, events['now'],
-                                     NOTIFY_OVERLAP_SECONDS, on_error=on_error)
-    client.setex(prefix + ':seen', NOTIFY_STATE_TTL, json.dumps(seen))
-    client.setex(prefix, NOTIFY_LAST_TTL, str(int(events['now'])))
+    return {host_id: _result(future) for host_id, future in jobs.items()}
 
 
 def notify_check():
-    """One notification pass over every host with the addon switched on (app context)."""
+    """One reconciliation pass (app context). Reads first, every DB write at the end."""
     if not _notify_capable():
         return
     started = time.monotonic()
-    try:
-        enabled, min_severity = hm_settings.notify_settings(CTX.settings.get('global', 0))
-    except ValueError as e:
-        CTX.logger.warning('host-metrics: notifications skipped: %s', e)
-        return
-    if not enabled:
-        return
     client = _redis()
     if client is None:
         return
     from ui.models import Host
 
-    connections = [_safe_connection(h) for h in Host.query.order_by(Host.id).all()
-                   if CTX.settings.get('host', h.id).get('enabled')]
-    if not connections:
-        return
-    lasts = {}
-    for conn in connections:
-        try:
-            raw = client.get(NOTIFY_KEY % conn.id)
-            lasts[conn.id] = int(raw) if raw is not None else None
-        except (TypeError, ValueError):
-            lasts[conn.id] = None
-    answers = _gather(connections, lasts, CTX.manifest.get('version') or '')
+    try:
+        enabled, min_severity = hm_settings.notify_settings(CTX.settings.get('global', 0))
+    except ValueError as e:
+        CTX.logger.warning('host-metrics: notification settings invalid, treated as off: %s', e)
+        enabled, min_severity = False, 'warning'
+    hosts = Host.query.order_by(Host.id).all()
+    active = [h for h in hosts if CTX.settings.get('host', h.id).get('enabled')] if enabled else []
+    connections = [_safe_connection(h) for h in active]
+    active_ids = {h.id for h in active}
+    for h in hosts:
+        if h.id not in active_ids:
+            client.delete(NOTIFY_DOWN_KEY % h.id)   # a later switch-on starts a fresh clock
+    snaps = _gather(connections, CTX.manifest.get('version') or '')
+
     wall_now = _wall()
+    desired, unknown = {}, set()
     for conn in connections:
+        snap = snaps.get(conn.id) or {'state': 'unreachable', 'snapshot': None}
+        snapshot = snap.get('snapshot')
+        down_redis = NOTIFY_DOWN_KEY % conn.id
+        down, item = hm_notifier.down_update(
+            conn.id, conn.name, snap.get('state'), data_age(snapshot) if snapshot else None,
+            _redis_json(client, down_redis), wall_now, min_severity)
+        if down:
+            client.setex(down_redis, NOTIFY_STATE_TTL, json.dumps(down))
+        else:
+            client.delete(down_redis)
+        if item:
+            desired[hm_notifier.down_key(conn.id)] = item
+        events = (hm_notifier.host_events_desired(conn.id, conn.name, snapshot, min_severity)
+                  if snap.get('state') in hm_notifier.FRESH_STATES else None)
+        if events is None:
+            unknown.add(conn.id)
+        else:
+            desired.update(events)
+
+    # ---- DB writes (ctx.notify / ctx.resolve commit), nothing else touches the DB below
+    resolve_keys, absent = hm_notifier.reconcile(
+        desired, {c.id for c in connections}, unknown, _open_keys(),
+        _redis_json(client, NOTIFY_STATE_KEY) or {})
+    client.setex(NOTIFY_STATE_KEY, NOTIFY_STATE_TTL, json.dumps(absent))
+    writes = [('resolve', k, None) for k in resolve_keys]
+    writes += [('notify', k, desired[k]) for k in sorted(desired)]
+    for action, k, item in writes:
         if time.monotonic() - started > NOTIFY_BUDGET_SECONDS:
-            CTX.logger.warning('host-metrics: notification check over %.0f s, rest deferred',
+            CTX.logger.warning('host-metrics: notification check over %.0f s, rest next check',
                                NOTIFY_BUDGET_SECONDS)
             break
-        snap, events = answers.get(conn.id, (None, None))
         try:
-            _check_host(client, conn, snap, events, lasts.get(conn.id), min_severity, wall_now)
-        except Exception:
-            CTX.logger.warning('host-metrics: notification check of host %s failed',
-                               conn.name, exc_info=True)
+            if action == 'resolve':
+                CTX.resolve(k)
+            else:
+                severity, title, body = item
+                CTX.notify(severity, title, body, hm_notifier.link(hm_notifier.host_of_key(k)), k)
+        except Exception as e:
+            CTX.logger.warning('host-metrics: %s of %s failed (retried next check): %s',
+                               action, k, e)
 
 
 def _core_has_hook(name):

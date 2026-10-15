@@ -654,29 +654,44 @@ def test_tick_does_real_work_every_fourth_tick(app, monkeypatch):
     assert len(runs) == 2
 
 
-def test_tick_never_raises(app, monkeypatch):
+def test_tick_never_raises_and_logs(app, monkeypatch):
     backend = _backend()
+    logged = []
 
     def boom():
         raise RuntimeError('database is locked')
     monkeypatch.setattr(backend, 'notify_check', boom)
     monkeypatch.setattr(backend, '_TICKS', [0])
+    monkeypatch.setattr(_ctx(app).logger, 'warning', lambda *a, **k: logged.append(a))
     backend.on_tick()
+    assert logged
 
 
 class Bell:
+    """ctx.notify / ctx.resolve stand-in that also plays the notification table."""
+
     def __init__(self):
         self.calls = []
+        self.open = {}
+        self.fail_resolve = 0
 
     def notify(self, severity, title, body='', link=None, key=None):
         self.calls.append(('notify', severity, title, body, link, key))
+        self.open[key] = severity
 
     def resolve(self, key):
+        if self.fail_resolve:
+            self.fail_resolve -= 1
+            raise RuntimeError('database is locked')
         self.calls.append(('resolve', key))
+        self.open.pop(key, None)
 
     def take(self):
         calls, self.calls = self.calls, []
         return calls
+
+    def notified(self):
+        return [c[5] for c in self.take() if c[0] == 'notify']
 
 
 @pytest.fixture
@@ -685,6 +700,7 @@ def bell(app, monkeypatch):
     ctx = _ctx(app)
     monkeypatch.setattr(ctx, 'notify', b.notify, raising=False)
     monkeypatch.setattr(ctx, 'resolve', b.resolve, raising=False)
+    monkeypatch.setattr(_backend(), '_open_keys', lambda: set(b.open))
     b.redis = FakeRedis()
     app.extensions['redis'] = b.redis
     b.wall = [100_000.0]
@@ -694,41 +710,39 @@ def bell(app, monkeypatch):
     app.extensions.pop('redis', None)
 
 
-def _tick_snapshot(now=5000, players=None, age=10):
+def _tick_snapshot(events=(), players=None, age=10, now=5000, ooms=0):
     players = {27960: 4} if players is None else players
     return {'version': '1.1.0', 'now': now, 'data_age_s': age, 'host': {'ts': now - age},
             'insts_last': [{'port': p, 'players': n, 'core': 0} for p, n in players.items()],
-            'insts': [], 'cores': 2, 'events_open': []}
+            'insts': [], 'cores': 2, 'events_open': list(events),
+            'events_24h': {'oom_kill': ooms} if ooms else {}}
 
 
-def _ev(eid, kind, state='open', ts=4990, closed_ts=None, scope='host', port=None, message='m'):
-    return {'id': eid, 'ts': ts, 'kind': kind, 'scope': scope, 'port': port, 'severity': 'warn',
-            'state': state, 'message': message, 'closed_ts': closed_ts}
+def _ev(eid, kind, scope='host', port=None, message='m'):
+    return {'id': eid, 'ts': 4990, 'kind': kind, 'scope': scope, 'port': port,
+            'severity': 'warn', 'state': 'open', 'message': message, 'closed_ts': None}
 
 
 class TickHost:
-    """exec_json stand-in: per host a snapshot answer and an events answer."""
+    """exec_json stand-in: per host the answer to `snapshot`."""
 
     def __init__(self):
         self.snapshot = {}
-        self.events = {}
         self.calls = []
 
-    def set(self, name, snapshot=None, events=None, now=5000):
-        if snapshot is not None:
-            self.snapshot[name] = snapshot
-        if events is not None:
-            self.events[name] = (0, {'version': '1.1.0', 'now': now, 'since': 0, 'events': events}, '')
+    def set(self, name, answer):
+        self.snapshot[name] = answer
+
+    def ok(self, name, *events, **kw):
+        self.snapshot[name] = (0, _tick_snapshot(events, **kw), '')
 
     def __call__(self, conn, argv, timeout=5.0):
         self.calls.append((conn.name, list(argv)))
-        answer = self.snapshot[conn.name] if argv[0] == 'snapshot' else self.events.get(conn.name)
+        answer = self.snapshot[conn.name]
         if callable(answer):
             answer = answer()
         if isinstance(answer, Exception):
             raise answer
-        if answer is None:
-            return 0, {'version': '1.1.0', 'now': 5000, 'since': 0, 'events': []}, ''
         return answer
 
 
@@ -739,213 +753,238 @@ def hosts(app, monkeypatch):
     return fake
 
 
-def _check(app):
+def _check(app, bell=None, minutes=1):
     with app.app_context():
         _backend().notify_check()
+    if bell is not None:
+        bell.wall[0] += 60 * minutes
 
 
-def _last_key(host_id):
-    return f'addon:host-metrics:notify:{host_id}'
+DISK = _ev(1, 'disk_low', message='/ used 93.0% (limit 90%)')
 
 
-def test_first_check_starts_from_now_without_replay(app, bell, hosts):
+def test_first_check_notifies_what_is_open_now(app, bell, hosts):
     host_id = _host(app, 'h1')
-    hosts.set('h1', snapshot=(0, _tick_snapshot(now=5000), ''),
-              events=[_ev(1, 'disk_low', ts=100)])
+    hosts.ok('h1', DISK)
     _check(app)
-    assert [argv[0] for _, argv in hosts.calls] == ['snapshot']
-    assert int(bell.redis.store[_last_key(host_id)]) == 5000
-    assert bell.take() == []
-
-
-def test_open_event_notifies_once_and_close_resolves(app, bell, hosts):
-    host_id = _host(app, 'h1')
-    bell.redis.store[_last_key(host_id)] = '4900'
-    late = _ev(7, 'frames_late', scope='instance', port=27960,
-               message='port 27960 late frames 3.0%, max gap 140 ms')
-    hosts.set('h1', snapshot=(0, _tick_snapshot(), ''), events=[late], now=5000)
-    _check(app)
-    assert ['events', '--since', '4840'] in [argv for _, argv in hosts.calls]
+    assert [argv for _, argv in hosts.calls] == [['snapshot']]
     calls = bell.take()
     assert len(calls) == 1
     _, severity, title, body, link, key = calls[0]
-    assert severity == 'warning'
-    assert key == f'host-metrics:{host_id}:frames_late:port:27960'
+    assert (severity, key) == ('critical', f'host-metrics:{host_id}:disk_low:host')
     assert link == f'/addons/host-metrics?host={host_id}'
-    assert 'h1' in title and '27960' in title
-    assert body and '140 ms' in body
-    assert int(bell.redis.store[_last_key(host_id)]) == 5000
-
-    # the next check sees the same event again (one minute of overlap): nothing new
-    hosts.set('h1', events=[late], now=5060)
-    _check(app)
-    assert bell.take() == []
-
-    closed = dict(late, state='closed', closed_ts=5070)
-    hosts.set('h1', events=[closed], now=5120)
-    _check(app)
-    assert bell.take() == [('resolve', f'host-metrics:{host_id}:frames_late:port:27960')]
-    hosts.set('h1', events=[closed], now=5180)
-    _check(app)
-    assert bell.take() == []
-
-
-def test_long_open_event_closing_much_later_resolves_without_a_new_notify(app, bell, hosts):
-    host_id = _host(app, 'h1')
-    bell.redis.store[_last_key(host_id)] = '4900'
-    disk = _ev(3, 'disk_low')
-    hosts.set('h1', snapshot=(0, _tick_snapshot(), ''), events=[disk], now=5000)
-    _check(app)
-    assert len(bell.take()) == 1
-    for now in range(5060, 9000, 60):     # still open, no longer in the since window
-        hosts.set('h1', events=[], now=now)
-        _check(app)
-    hosts.set('h1', events=[dict(disk, state='closed', closed_ts=9010)], now=9020)
-    _check(app)
-    assert bell.take() == [('resolve', f'host-metrics:{host_id}:disk_low:host')]
-
-
-def test_busy_kinds_need_players_on(app, bell, hosts):
-    host_id = _host(app, 'h1')
-    bell.redis.store[_last_key(host_id)] = '4900'
-    hosts.set('h1', snapshot=(0, _tick_snapshot(players={27960: 0, 27961: 3}), ''), events=[
-        _ev(1, 'frames_late', scope='instance', port=27960),
-        _ev(2, 'core_saturated', scope='core', message='core 1 busy 99% (limit 95%)'),
-    ])
-    _check(app)
-    calls = bell.take()
-    assert [c[5] for c in calls] == [f'host-metrics:{host_id}:core_saturated:core:1']
-    assert calls[0][1] == 'warning'
-
-    hosts.set('h1', snapshot=(0, _tick_snapshot(players={}), ''), events=[
-        _ev(3, 'core_saturated', scope='core', message='core 0 busy 99% (limit 95%)')])
-    _check(app)
-    assert bell.take() == []
+    assert title == 'h1: disk almost full' and '93.0%' in body
 
 
 def test_kinds_and_severities(app, bell, hosts):
     host_id = _host(app, 'h1')
-    bell.redis.store[_last_key(host_id)] = '4900'
-    hosts.set('h1', snapshot=(0, _tick_snapshot(), ''), events=[
-        _ev(1, 'oom_kill', state='closed', closed_ts=4990, message='1 OOM kill(s) in the last tick'),
-        _ev(2, 'disk_low', message='/ used 93.0% (limit 90%)'),
-        _ev(3, 'steal_high', message='host steal 12% (limit 10%)'),
-        _ev(4, 'mem_low', message='MemAvailable 8.0% (limit 10%)'),
-        _ev(5, 'instance_new', state='closed', closed_ts=4990, scope='instance', port=27962),
-        _ev(6, 'instance_gone', state='closed', closed_ts=4990, scope='instance', port=27963),
-    ])
+    hosts.ok('h1', _ev(2, 'disk_low'), _ev(3, 'steal_high'), _ev(4, 'mem_low'),
+             _ev(5, 'instance_new', scope='instance', port=27962),
+             _ev(6, 'frames_late', scope='instance', port=27960,
+                 message='port 27960 late frames 3.0%, max gap 140 ms'),
+             _ev(7, 'core_saturated', scope='core', message='core 1 busy 99% (limit 95%)'),
+             ooms=2)
     _check(app)
     calls = bell.take()
-    notified = {c[5]: c[1] for c in calls if c[0] == 'notify'}
-    assert notified == {
+    assert {c[5]: c[1] for c in calls} == {
         f'host-metrics:{host_id}:oom_kill:host': 'critical',
         f'host-metrics:{host_id}:disk_low:host': 'critical',
         f'host-metrics:{host_id}:steal_high:host': 'warning',
         f'host-metrics:{host_id}:mem_low:host': 'warning',
+        f'host-metrics:{host_id}:frames_late:port:27960': 'warning',
+        f'host-metrics:{host_id}:core_saturated:core:1': 'warning',
     }
     for call in calls:
-        if call[0] == 'notify':
-            assert call[2].startswith('h1: ') and call[3]
+        assert call[2].startswith('h1: ') and call[3]
+    oom = next(c for c in calls if 'oom_kill' in c[5])
+    assert '2 out-of-memory kills in the last 24 hours' in oom[3]
 
 
-def test_a_second_oom_gets_its_own_notification(app, bell, hosts):
+def test_busy_kinds_need_players_on(app, bell, hosts):
     host_id = _host(app, 'h1')
-    key = f'host-metrics:{host_id}:oom_kill:host'
-    bell.redis.store[_last_key(host_id)] = '4900'
-    first = _ev(1, 'oom_kill', state='closed', closed_ts=4990)
-    hosts.set('h1', snapshot=(0, _tick_snapshot(), ''), events=[first], now=5000)
+    hosts.ok('h1', _ev(1, 'frames_late', scope='instance', port=27960),
+             _ev(2, 'core_saturated', scope='core', message='core 1 busy 99% (limit 95%)'),
+             players={27960: 0, 27961: 3})
     _check(app)
-    assert [c[0] for c in bell.take()] == ['resolve', 'notify']
-    hosts.set('h1', events=[first], now=5060)
+    assert bell.notified() == [f'host-metrics:{host_id}:core_saturated:core:1']
+    hosts.ok('h1', _ev(2, 'core_saturated', scope='core', message='core 1 busy 99% (limit 95%)'),
+             players={})
     _check(app)
+    assert bell.notified() == []
+
+
+def test_open_key_is_renotified_in_place_and_resolved_after_two_clear_checks(app, bell, hosts):
+    host_id = _host(app, 'h1')
+    key = f'host-metrics:{host_id}:disk_low:host'
+    hosts.ok('h1', DISK)
+    _check(app, bell)
+    _check(app, bell)
+    assert [(c[0], c[5]) for c in bell.take()] == [('notify', key), ('notify', key)]
+    hosts.ok('h1')
+    _check(app, bell)               # absent once: kept
     assert bell.take() == []
-    hosts.set('h1', events=[_ev(2, 'oom_kill', state='closed', ts=5100, closed_ts=5100)], now=5120)
-    _check(app)
-    assert [(c[0], c[-1]) for c in bell.take()] == [('resolve', key), ('notify', key)]
+    _check(app, bell)               # absent twice: resolved
+    assert bell.take() == [('resolve', key)]
+    _check(app, bell)
+    assert bell.take() == []
 
 
-def test_short_event_between_checks_is_notified_and_resolved(app, bell, hosts):
+def test_flapping_neither_resolves_nor_reopens(app, bell, hosts):
     host_id = _host(app, 'h1')
-    bell.redis.store[_last_key(host_id)] = '4900'
-    hosts.set('h1', snapshot=(0, _tick_snapshot(), ''),
-              events=[_ev(1, 'mem_low', state='closed', closed_ts=4995)])
-    _check(app)
-    assert [c[0] for c in bell.take()] == ['notify', 'resolve']
+    key = f'host-metrics:{host_id}:disk_low:host'
+    for present in (True, False, True, False, True, False, True):
+        if present:
+            hosts.ok('h1', DISK)
+        else:
+            hosts.ok('h1')
+        _check(app, bell)
+    calls = bell.take()
+    assert ('resolve', key) not in calls
+    assert key in bell.open
 
 
-def test_min_severity_and_switch(app, bell, hosts):
+def test_long_outage_then_recovery_resolves(app, bell, hosts):
     host_id = _host(app, 'h1')
-    bell.redis.store[_last_key(host_id)] = '4900'
-    hosts.set('h1', snapshot=(0, _tick_snapshot(), ''), events=[
-        _ev(1, 'steal_high'), _ev(2, 'disk_low')])
-    with app.app_context():
-        _ctx(app).settings.set('global', 0, {'notify_min_severity': 'critical'})
-    _check(app)
-    assert [c[5] for c in bell.take()] == [f'host-metrics:{host_id}:disk_low:host']
+    disk = f'host-metrics:{host_id}:disk_low:host'
+    down = f'host-metrics:{host_id}:stale:host'
+    hosts.ok('h1', DISK)
+    _check(app, bell)
+    hosts.set('h1', TimeoutError('timed out'))
+    for _ in range(90):             # 90 minutes unreachable: the disk event is unknown, kept
+        _check(app, bell)
+    calls = bell.take()
+    assert ('resolve', disk) not in calls
+    assert disk in bell.open and down in bell.open
+    assert any(c[0] == 'notify' and c[5] == down and c[1] == 'critical' for c in calls)
+    hosts.ok('h1')                  # back, the disk was cleaned meanwhile
+    _check(app, bell)
+    assert [c for c in bell.take() if c[0] == 'resolve'] == []
+    _check(app, bell)
+    assert sorted(c[1] for c in bell.take() if c[0] == 'resolve') == sorted([disk, down])
+    assert bell.open == {}
 
+
+def test_failed_resolve_is_retried_next_check(app, bell, hosts):
+    host_id = _host(app, 'h1')
+    key = f'host-metrics:{host_id}:disk_low:host'
+    hosts.ok('h1', DISK)
+    _check(app, bell)
+    hosts.ok('h1')
+    _check(app, bell)
+    bell.fail_resolve = 1
+    _check(app, bell)
+    assert key in bell.open
+    _check(app, bell)
+    assert key not in bell.open
+
+
+def test_failing_notify_does_not_stop_the_others(app, bell, hosts, monkeypatch):
+    host_id = _host(app, 'h1')
+    hosts.ok('h1', _ev(1, 'disk_low'), _ev(2, 'mem_low'))
+    real = bell.notify
+
+    def notify(severity, title, body='', link=None, key=None):
+        if 'disk_low' in key:
+            raise RuntimeError('database is locked')
+        real(severity, title, body, link, key)
+    monkeypatch.setattr(_ctx(app), 'notify', notify, raising=False)
+    _check(app)
+    assert bell.notified() == [f'host-metrics:{host_id}:mem_low:host']
+
+
+def test_switching_a_host_off_resolves_its_notifications(app, bell, hosts):
+    h1 = _host(app, 'h1')
+    h2 = _host(app, 'h2')
+    hosts.ok('h1', DISK)
+    hosts.ok('h2', DISK)
+    _check(app, bell)
+    bell.take()
+    _enable(app, h1, host_enabled=False)
+    hosts.calls.clear()
+    _check(app, bell)
+    assert ('resolve', f'host-metrics:{h1}:disk_low:host') in bell.take()
+    assert [name for name, _ in hosts.calls] == ['h2']
+    assert set(bell.open) == {f'host-metrics:{h2}:disk_low:host'}
+
+
+def test_notifications_off_resolves_everything_and_skips_ssh(app, bell, hosts):
+    host_id = _host(app, 'h1')
+    hosts.ok('h1', DISK)
+    _check(app, bell)
     with app.app_context():
         _ctx(app).settings.set('global', 0, {'notify_enabled': False})
     hosts.calls.clear()
-    _check(app)
-    assert hosts.calls == [] and bell.take() == []
-
-
-def test_a_switched_off_host_is_not_checked(app, bell, hosts):
-    host_id = _host(app, 'h1')
-    _enable(app, host_id, host_enabled=False)
-    _check(app)
+    _check(app, bell)
     assert hosts.calls == []
+    assert bell.open == {} and ('resolve', f'host-metrics:{host_id}:disk_low:host') in bell.take()
 
 
-def test_unreachable_for_five_minutes_is_critical_once_and_resolved_once(app, bell, hosts):
+def test_a_deleted_host_is_resolved(app, bell, hosts):
+    bell.open['host-metrics:999:disk_low:host'] = 'critical'
+    bell.open['other-key'] = 'info'
+    _check(app, bell)
+    assert bell.take() == [('resolve', 'host-metrics:999:disk_low:host')]
+
+
+def test_min_severity(app, bell, hosts):
+    host_id = _host(app, 'h1')
+    hosts.ok('h1', _ev(1, 'steal_high'), _ev(2, 'disk_low'))
+    with app.app_context():
+        _ctx(app).settings.set('global', 0, {'notify_min_severity': 'critical'})
+    _check(app)
+    assert bell.notified() == [f'host-metrics:{host_id}:disk_low:host']
+
+
+def test_unreachable_for_five_minutes_is_critical_and_resolved_when_back(app, bell, hosts):
     host_id = _host(app, 'h1')
     key = f'host-metrics:{host_id}:stale:host'
-    hosts.set('h1', snapshot=TimeoutError('timed out'))
-    for _ in range(5):              # 0..240 s: not yet
-        _check(app)
-        bell.wall[0] += 60
-    _check(app)                     # 300 s: not more than 5 min yet
+    hosts.set('h1', TimeoutError('timed out'))
+    for _ in range(6):              # 0..300 s: not more than 5 min yet
+        _check(app, bell)
     assert bell.take() == []
-    bell.wall[0] += 60
-    _check(app)                     # 360 s
+    _check(app, bell)               # 360 s
     calls = bell.take()
     assert [(c[0], c[1], c[5]) for c in calls] == [('notify', 'critical', key)]
-    assert 'h1' in calls[0][2] and calls[0][4] == f'/addons/host-metrics?host={host_id}'
-    bell.wall[0] += 60
-    _check(app)
-    assert bell.take() == []
-
-    hosts.set('h1', snapshot=(0, _tick_snapshot(), ''))
-    bell.wall[0] += 60
-    _check(app)
+    assert calls[0][2] == 'h1: unreachable' and '6 min' in calls[0][3]
+    hosts.ok('h1')
+    _check(app, bell)
+    _check(app, bell)
     assert bell.take() == [('resolve', key)]
-    bell.wall[0] += 60
-    _check(app)
-    assert bell.take() == []
 
 
 def test_down_clock_survives_a_poller_restart(app, bell, hosts, monkeypatch):
     """The clock lives in Redis: a restart (fresh module state) does not reset it."""
     host_id = _host(app, 'h1')
-    hosts.set('h1', snapshot=TimeoutError('timed out'))
-    _check(app)
-    bell.wall[0] += 240
+    hosts.set('h1', TimeoutError('timed out'))
+    _check(app, bell, minutes=4)
     monkeypatch.setattr(_backend(), '_TICKS', [0])
-    _check(app)
+    _check(app, bell, minutes=2)
     assert bell.take() == []
-    bell.wall[0] += 120
-    _check(app)
-    assert [c[5] for c in bell.take()] == [f'host-metrics:{host_id}:stale:host']
+    _check(app, bell)
+    assert bell.notified() == [f'host-metrics:{host_id}:stale:host']
 
 
 def test_stale_collector_counts_from_its_last_data(app, bell, hosts):
     host_id = _host(app, 'h1')
-    hosts.set('h1', snapshot=(0, _tick_snapshot(age=900), ''))
+    hosts.ok('h1', DISK, age=900)
     _check(app)
     calls = bell.take()
     assert [(c[0], c[1], c[5]) for c in calls] == [
         ('notify', 'critical', f'host-metrics:{host_id}:stale:host')]
-    assert '15 min' in calls[0][3]
+    assert calls[0][2] == 'h1: metrics stopped' and '15 min' in calls[0][3]
+
+
+def test_a_collector_without_events_open_keeps_open_keys(app, bell, hosts):
+    host_id = _host(app, 'h1')
+    key = f'host-metrics:{host_id}:disk_low:host'
+    hosts.ok('h1', DISK)
+    _check(app, bell)
+    old = _tick_snapshot()
+    del old['events_open']
+    hosts.set('h1', (0, old, ''))
+    for _ in range(3):
+        _check(app, bell)
+    assert key in bell.open
 
 
 def test_slow_host_does_not_stall_the_check(app, bell, hosts, monkeypatch):
@@ -953,14 +992,13 @@ def test_slow_host_does_not_stall_the_check(app, bell, hosts, monkeypatch):
     import time
     _host(app, 'h-slow')
     fast_id = _host(app, 'h-fast')
-    bell.redis.store[_last_key(fast_id)] = '4900'
     release = threading.Event()
 
     def slow():
         release.wait(5)
         return 0, _tick_snapshot(), ''
-    hosts.set('h-slow', snapshot=slow)
-    hosts.set('h-fast', snapshot=(0, _tick_snapshot(), ''), events=[_ev(1, 'disk_low')])
+    hosts.set('h-slow', slow)
+    hosts.ok('h-fast', DISK)
     monkeypatch.setattr(_backend(), 'NOTIFY_GATHER_SECONDS', 0.3)
     started = time.monotonic()
     try:
@@ -968,31 +1006,7 @@ def test_slow_host_does_not_stall_the_check(app, bell, hosts, monkeypatch):
     finally:
         release.set()
     assert time.monotonic() - started < 2
-    assert [c[5] for c in bell.take()] == [f'host-metrics:{fast_id}:disk_low:host']
-
-
-def test_failed_events_query_keeps_the_last_check(app, bell, hosts):
-    host_id = _host(app, 'h1')
-    bell.redis.store[_last_key(host_id)] = '4900'
-    hosts.set('h1', snapshot=(0, _tick_snapshot(), ''))
-    hosts.events['h1'] = (2, None, 'usage: hm_query.py')   # a 1.0 collector: no --since
-    _check(app)
-    assert bell.redis.store[_last_key(host_id)] == '4900'
-    assert bell.take() == []
-
-
-def test_a_failing_notify_does_not_stop_the_check(app, bell, hosts, monkeypatch):
-    host_id = _host(app, 'h1')
-    bell.redis.store[_last_key(host_id)] = '4900'
-    hosts.set('h1', snapshot=(0, _tick_snapshot(), ''), events=[_ev(1, 'disk_low'), _ev(2, 'mem_low')])
-
-    def notify(severity, title, body='', link=None, key=None):
-        if 'disk_low' in key:
-            raise RuntimeError('database is locked')
-        bell.calls.append(('notify', severity, title, body, link, key))
-    monkeypatch.setattr(_ctx(app), 'notify', notify, raising=False)
-    _check(app)
-    assert [c[5] for c in bell.take()] == [f'host-metrics:{host_id}:mem_low:host']
+    assert bell.notified() == [f'host-metrics:{fast_id}:disk_low:host']
 
 
 def test_a_core_without_notify_gets_no_check(app, hosts, monkeypatch):
@@ -1003,6 +1017,32 @@ def test_a_core_without_notify_gets_no_check(app, hosts, monkeypatch):
     monkeypatch.setattr(_backend(), 'CTX', old_ctx)
     _check(app)
     assert hosts.calls == []
+
+
+def test_real_bell_round_trip_on_a_core_with_notifications(app, hosts, monkeypatch):
+    """New core only: the real ctx.notify / ctx.resolve and the open-key read on the
+    notification table."""
+    pytest.importorskip('ui.notifications')
+    from ui.models import Notification
+    host_id = _host(app, 'h1')
+    _enable(app)
+    app.extensions['redis'] = FakeRedis()
+    try:
+        hosts.ok('h1', DISK)
+        _check(app)
+        _check(app)
+        with app.app_context():
+            rows = Notification.query.filter_by(source='host-metrics').all()
+            assert [(r.key, r.severity, r.resolved_at) for r in rows] == [
+                (f'host-metrics:{host_id}:disk_low:host', 'critical', None)]
+        hosts.ok('h1')
+        _check(app)
+        _check(app)
+        with app.app_context():
+            rows = Notification.query.filter_by(source='host-metrics').all()
+            assert len(rows) == 1 and rows[0].resolved_at is not None
+    finally:
+        app.extensions.pop('redis', None)
 
 
 def test_notify_settings_round_trip(app, client, auth):

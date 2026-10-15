@@ -1,15 +1,23 @@
-"""What host-metrics puts under qlsm's notification bell (spec B6). Pure and stdlib only.
+"""What host-metrics puts under qlsm's notification bell (spec B6, ruling R8). Pure, stdlib only.
 
-backend.notify_check() fetches each host's snapshot and its events changed since the last
-check, then calls the two functions here:
+State-based reconciliation, once a minute: backend.notify_check() fetches each enabled host's
+snapshot and asks the functions here for the DESIRED notifications (key -> severity, title,
+body). Every desired key is notified (ctx.notify with a key updates the open row in place);
+an open host-metrics notification whose key stayed out of the desired set for
+ABSENT_CHECKS_TO_RESOLVE checks in a row is resolved (a condition that flaps for one check
+neither resolves nor reopens), and one of a host that was switched off or deleted is
+resolved at once. A missed close, a failed resolve and a long outage all heal on the next
+check, and the first check notifies what is open now without replaying history.
 
-- handle_events(): an event opening -> ctx.notify(key), closing -> ctx.resolve(key).
-  `seen` remembers which event ids were handled, so the one minute of overlap of every
-  `events --since` query (ruling R4) and a long-open event closing days later never
-  notify twice.
-- handle_down(): collector stale or host unreachable for more than 5 minutes -> one
-  critical notification, resolved once data is back. `down` carries the start of the
-  outage between checks (kept in Redis, so a poller restart does not reset the clock).
+Desired, per host:
+- the snapshot's open events (`events_open`) of the notified kinds: frames_late and
+  core_saturated only while players are on, steal_high / mem_low warning, disk_low critical;
+- oom_kill (closed by the collector the moment it is recorded): critical while the
+  snapshot's `events_24h` counts an OOM kill in the last 24 hours;
+- `stale` critical when the collector is stale or the host unreachable for more than
+  5 minutes (the start of the outage is kept in Redis by the backend).
+A host whose snapshot is missing or has no `events_open` (unreachable, stale, a 1.0
+collector) is "unknown": its event keys are left as they are until it answers again.
 
 Keys: host-metrics:<host_id>:<kind>:<scope>, scope `host`, `core:<n>` or `port:<n>`.
 """
@@ -21,16 +29,17 @@ KIND_SEVERITY = {
     'core_saturated': 'warning',
     'steal_high': 'warning',
     'mem_low': 'warning',
-    'oom_kill': 'critical',
     'disk_low': 'critical',
 }
+OOM_KIND = 'oom_kill'
+OOM_SEVERITY = 'critical'
 # notified only while players are on (an idle server lagging hurts nobody)
 BUSY_KINDS = ('frames_late', 'core_saturated')
-# opened and closed in the same collector tick: every new one is its own notification
-POINT_KINDS = ('oom_kill',)
 DOWN_KIND = 'stale'
 DOWN_AFTER_SECONDS = 300
-SEEN_MAX = 500
+ABSENT_CHECKS_TO_RESOLVE = 2
+KEY_PREFIX = 'host-metrics:'
+FRESH_STATES = ('ok', 'outdated')
 
 _CORE_RE = re.compile(r'\bcore (\d+)\b')
 
@@ -44,7 +53,19 @@ def link(host_id):
 
 
 def key(host_id, kind, scope):
-    return 'host-metrics:%d:%s:%s' % (host_id, kind, scope)
+    return '%s%d:%s:%s' % (KEY_PREFIX, host_id, kind, scope)
+
+
+def down_key(host_id):
+    return key(host_id, DOWN_KIND, 'host')
+
+
+def host_of_key(k):
+    """Host id of one of our keys, None for anything else."""
+    if not isinstance(k, str) or not k.startswith(KEY_PREFIX):
+        return None
+    part = k[len(KEY_PREFIX):].split(':', 1)[0]
+    return int(part) if part.isascii() and part.isdigit() else None
 
 
 def _int(value):
@@ -106,10 +127,6 @@ def event_text(host_name, event):
         return ('%s: memory low' % host_name,
                 'Available memory is below the limit%s. '
                 'The kernel may start killing processes.' % detail)
-    if kind == 'oom_kill':
-        return ('%s: out-of-memory kill' % host_name,
-                'The kernel killed a process because the host ran out of memory%s. '
-                'A game server may have crashed.' % detail)
     if kind == 'disk_low':
         return ('%s: disk almost full' % host_name,
                 'The root disk is almost full%s. Free some space before logs or demos '
@@ -117,104 +134,96 @@ def event_text(host_name, event):
     return '%s: %s' % (host_name, kind), 'Host metrics reported %s%s.' % (kind, detail)
 
 
-def handle_events(host_id, host_name, events, seen, snapshot, min_severity, notify, resolve,
-                  now, overlap, on_error=None):
-    """Notify / resolve for the events of one `events --since` answer (oldest change first).
+def oom_text(host_name, count):
+    kills = '1 out-of-memory kill' if count == 1 else '%d out-of-memory kills' % count
+    return ('%s: out-of-memory kill' % host_name,
+            'The kernel killed a process because the host ran out of memory '
+            '(%s in the last 24 hours). A game server may have crashed.' % kills)
 
-    `seen` maps str(event id) -> closed_ts (None while open) of every event already
-    handled; returned pruned. notify(severity, title, body, link, key) / resolve(key) may
-    raise: on_error(event, exc) is called, the event keeps its previous state in `seen` and
-    is retried while it is still in the window; the other events go on.
-    """
-    seen = dict(seen or {})
-    for event in events or []:
+
+def host_events_desired(host_id, host_name, snapshot, min_severity):
+    """{key: (severity, title, body)} from a fresh snapshot, or None when the host's open
+    events are unknown (no snapshot, or a collector without `events_open`)."""
+    if not isinstance(snapshot, dict) or not isinstance(snapshot.get('events_open'), list):
+        return None
+    desired = {}
+    for event in snapshot['events_open']:
         if not isinstance(event, dict):
             continue
         kind = event.get('kind')
         severity = KIND_SEVERITY.get(kind)
-        event_id = _int(event.get('id'))
-        if severity is None or event_id is None:
+        if severity is None or not passes(severity, min_severity):
             continue
-        try:
-            _handle_one(host_id, host_name, event, kind, severity, str(event_id), seen,
-                        snapshot, min_severity, notify, resolve)
-        except Exception as exc:
-            if on_error is not None:
-                on_error(event, exc)
-    return prune_seen(seen, now, overlap)
-
-
-def _handle_one(host_id, host_name, event, kind, severity, sid, seen, snapshot, min_severity,
-                notify, resolve):
-    closed = event.get('state') == 'closed'
-    closed_ts = event.get('closed_ts') if closed else None
-    k = key(host_id, kind, scope_of(event))
-    if sid in seen:
-        if closed and seen[sid] is None:
-            if kind not in POINT_KINDS:
-                resolve(k)
-            seen[sid] = closed_ts
-        return
-    wanted = passes(severity, min_severity)
-    if wanted and kind in BUSY_KINDS:
-        port = _int(event.get('port')) if kind == 'frames_late' else None
-        wanted = players_on(snapshot, port)
-    if wanted:
+        if kind in BUSY_KINDS:
+            port = _int(event.get('port')) if kind == 'frames_late' else None
+            if not players_on(snapshot, port):
+                continue
         title, body = event_text(host_name, event)
-        if kind in POINT_KINDS:
-            resolve(k)      # the previous one greys out; this one is new and unread
-            notify(severity, title, body, link(host_id), k)
-        else:
-            notify(severity, title, body, link(host_id), k)
-            if closed:
-                resolve(k)
-    seen[sid] = closed_ts
+        desired[key(host_id, kind, scope_of(event))] = (severity, title, body)
+    counts = snapshot.get('events_24h')
+    ooms = _int(counts.get(OOM_KIND)) if isinstance(counts, dict) else None
+    if ooms and ooms > 0 and passes(OOM_SEVERITY, min_severity):
+        title, body = oom_text(host_name, ooms)
+        desired[key(host_id, OOM_KIND, 'host')] = (OOM_SEVERITY, title, body)
+    return desired
 
 
-def prune_seen(seen, now, overlap):
-    """Drop closed events that can no longer come back (closed before the next since);
-    keep open ones (their close is still to come) and at most SEEN_MAX ids."""
-    cutoff = (now - 2 * overlap) if isinstance(now, (int, float)) else None
-    kept = {sid: closed for sid, closed in seen.items()
-            if closed is None or cutoff is None
-            or not isinstance(closed, (int, float)) or closed > cutoff}
-    if len(kept) > SEEN_MAX:
-        newest = sorted(kept, key=int)[-SEEN_MAX:]
-        kept = {sid: kept[sid] for sid in newest}
-    return kept
+def down_update(host_id, host_name, state, data_age, down, wall_now, min_severity):
+    """(new `down` dict, desired item or None) for one host's stale / unreachable state.
 
-
-def handle_down(host_id, host_name, state, data_age, down, wall_now, min_severity, notify,
-                resolve):
-    """One host's stale / unreachable state -> the new `down` dict ({} when fine).
-
-    `down` = {'since': wall clock start, 'reason': state, 'notified': bool}. For a stale
-    collector the start is its newest data (now - data_age), so the 5 minutes count from
-    when it stopped, not from when qlsm noticed.
+    `down` = {'since': wall clock start of the outage}; {} when the host answers. For a
+    stale collector the start is its newest data (now - data_age), so the 5 minutes count
+    from when it stopped, not from when qlsm noticed.
     """
-    k = key(host_id, DOWN_KIND, 'host')
-    down = dict(down or {})
     if state not in ('unreachable', 'stale'):
-        if down.get('notified'):
-            resolve(k)
-        return {}
-    since = down.get('since')
+        return {}, None
+    since = (down or {}).get('since')
     if not isinstance(since, (int, float)):
         since = wall_now
     if state == 'stale' and isinstance(data_age, (int, float)):
         since = min(since, wall_now - data_age)
-    down.update(since=since, reason=state)
+    down = {'since': since}
     age = wall_now - since
-    if not down.get('notified') and age > DOWN_AFTER_SECONDS and passes('critical', min_severity):
-        minutes = int(age // 60)
-        if state == 'stale':
-            title = '%s: metrics stopped' % host_name
-            body = ('The host-metrics collector on this host has written no data for %d min. '
-                    'Check that the host-metrics service is running.' % minutes)
-        else:
-            title = '%s: unreachable' % host_name
-            body = ('QLSM has not reached this host over SSH for %d min. '
-                    'Check that the host is up.' % minutes)
-        notify('critical', title, body, link(host_id), k)
-        down['notified'] = True
-    return down
+    if age <= DOWN_AFTER_SECONDS or not passes('critical', min_severity):
+        return down, None
+    minutes = int(age // 60)
+    if state == 'stale':
+        title = '%s: metrics stopped' % host_name
+        body = ('The host-metrics collector on this host has written no data for %d min. '
+                'Check that the host-metrics service is running.' % minutes)
+    else:
+        title = '%s: unreachable' % host_name
+        body = ('QLSM has not reached this host over SSH for %d min. '
+                'Check that the host is up.' % minutes)
+    return down, ('critical', title, body)
+
+
+def reconcile(desired, active_hosts, unknown_hosts, open_keys, absent):
+    """Which open keys to resolve now, and the new absent counts.
+
+    desired: keys wanted this check; active_hosts: ids of enabled hosts checked this time;
+    unknown_hosts: of those, the ones whose event keys are unknown (only their down key is
+    judged); open_keys: keys of our open notifications (None when they cannot be read:
+    nothing is resolved); absent: {key: consecutive checks absent}.
+    """
+    if open_keys is None:
+        return [], dict(absent or {})
+    resolve, counts = [], {}
+    for k in sorted(open_keys):
+        host_id = host_of_key(k)
+        if host_id is None:
+            continue
+        if host_id not in active_hosts:
+            resolve.append(k)           # switched off, deleted, or notifications off
+            continue
+        if k in desired:
+            continue
+        if host_id in unknown_hosts and k != down_key(host_id):
+            if k in (absent or {}):
+                counts[k] = absent[k]
+            continue
+        count = (absent or {}).get(k, 0) + 1
+        if count >= ABSENT_CHECKS_TO_RESOLVE:
+            resolve.append(k)
+        counts[k] = count
+    return resolve, counts
