@@ -189,6 +189,57 @@ def read_configstring(index):
     return minqlx.get_configstring(index)
 
 
+_STATS_WEAPONS = ("g", "mg", "sg", "gl", "rl", "lg", "rg", "pg", "bfg", "ng", "pl", "cg", "hmg")
+_STATS_WEAPON_FIELDS = (
+    ("k", "weapon_kills"),
+    ("d", "weapon_deaths"),
+    ("s", "shots_fired"),
+    ("h", "shots_hit"),
+    ("dd", "weapon_damage_dealt"),
+    ("dt", "weapon_damage_taken"),
+    ("p", "weapon_pickups"),
+    ("t", "weapon_time"),
+)
+_STATS_PICKUP_FIELDS = (
+    ("mega", "mega_health_pickups"),
+    ("ra", "red_armor_pickups"),
+    ("ya", "yellow_armor_pickups"),
+    ("ga", "green_armor_pickups"),
+    ("health", "health_pickups"),
+    ("ammo", "ammo_pickups"),
+)
+
+
+def _stat_int(value):
+    return max(0, int(value))
+
+
+def player_stats(expanded):
+    """The end-of-game stats object for one player from the engine's PlayerExpandedStats.
+
+    Fields are read by name (never by index). Grapple and hands are dropped; a weapon with
+    all zeros is left out. None when the engine has no stats for the player.
+    """
+    if expanded is None:
+        return None
+    weapons = {}
+    for name in _STATS_WEAPONS:
+        row = {key: _stat_int(getattr(getattr(expanded, field), name)) for key, field in _STATS_WEAPON_FIELDS}
+        if any(row.values()):
+            weapons[name] = row
+    return {
+        "time_ms": _stat_int(expanded.play_time),
+        "dmg_dealt": _stat_int(expanded.damage_dealt),
+        "dmg_taken": _stat_int(expanded.damage_taken),
+        "kills": _stat_int(expanded.kills),
+        "deaths": _stat_int(expanded.deaths),
+        "suicides": _stat_int(expanded.suicides),
+        "max_streak": _stat_int(expanded.max_kill_streak),
+        "weapons": weapons,
+        "pickups": {key: _stat_int(getattr(expanded, field)) for key, field in _STATS_PICKUP_FIELDS},
+    }
+
+
 # chat_rcon consumes `!rcon` chat lines, which can carry passwords (`!rcon g_password X`);
 # they must not reach the hub's chat archive.
 _UNFORWARDED_CHAT_HEAD = "!rcon"
@@ -1832,7 +1883,7 @@ class stream_telemetry_unified(minqlx.Plugin):
             kills = int(getattr(stats, "kills", 0) or 0)
             deaths = int(getattr(stats, "deaths", 0) or 0)
         team = getattr(player, "team", None)
-        return {
+        row = {
             "steam_id64": steam,
             "nickname": self._display_name(player),
             "team": str(team) if team is not None else None,
@@ -1840,6 +1891,27 @@ class stream_telemetry_unified(minqlx.Plugin):
             "kills": kills,
             "deaths": deaths,
         }
+        if row["team"] != "spectator":
+            engine_stats = self._engine_stats(player)
+            if engine_stats:
+                row["stats"] = engine_stats
+        return row
+
+    def _warn_player_stats_read(self, exc):
+        # Once per load: a broken read repeats every game, one line says enough.
+        if getattr(self, "_player_stats_read_warned", False):
+            return
+        self._player_stats_read_warned = True
+        self.logger.warning("stream_telemetry_unified: reading player expanded_stats failed: %s", exc)
+
+    def _engine_stats(self, player):
+        # Game end runs once per game on the game thread: no per-frame cost. One player's
+        # failure leaves that player without stats; the event is still sent.
+        try:
+            return player_stats(player.expanded_stats)
+        except Exception as exc:
+            self._warn_player_stats_read(exc)
+            return None
 
     def _collect_player_summaries(self):
         rows = []
