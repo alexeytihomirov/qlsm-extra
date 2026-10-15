@@ -28,7 +28,7 @@ related: [qlsm-extra/docs/superpowers/specs/2026-10-15-addons-cleanup-design.md]
 - [ ] Часть 1: qlsm upstream PR `upstream-pr/addon-menu-status`
 - [ ] Часть 2: demo-stream 1.5.0 (одна панель, выключение, один раздел Settings)
 - [ ] Часть 3: telemetry-relay 1.5.0 (меню, галочка, выключение)
-- [ ] Прод: проверка server.cfg на старые cvar телеметрии до удаления fallback
+- [x] Прод: проверка server.cfg на старые cvar телеметрии до удаления fallback
 - [ ] Merge в main, push, деплой, проверка оператором
 
 ## Журнал
@@ -36,6 +36,7 @@ related: [qlsm-extra/docs/superpowers/specs/2026-10-15-addons-cleanup-design.md]
 - 2026-10-15 - created
 - 2026-10-15 - решения оператора: выключение стрима делаем; удалить chat_rcon_acl, match_restore_lab, qlx_devAuthOpen, debug/legacy telemetry; resync_hold оставить; host-metrics не трогать; per-host override telemetry оставить; telemetry во вкладке -> меню инстанса; статус в меню через upstream PR; file-forwarder - адрес и ключи VPS в настройках ("плагин может использоваться и другими")
 - 2026-10-15 - server_id: уже резервируется у stats-hub автоматически; убираем только поле из попапа. Порт и instance.id qlsm не годятся (не уникальны между хостами / установками)
+- 2026-10-15 - прод (qlsm-web-1, configs + presets): каждый server.cfg со старым cvar телеметрии задаёт и новый qlx_statsHubFeed* с тем же значением, fallback можно удалять без правки конфигов
 - 2026-10-15 - проверено: валидатор манифеста qlsm игнорирует незнакомые ключи у пункта меню, части 2-3 не ломают старый qlsm
 
 ## Результат
