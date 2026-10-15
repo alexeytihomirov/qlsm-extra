@@ -5052,6 +5052,12 @@ const hhmm = (ts) => {
   return `${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const P95_GLOSS = "p95 = the level it stays under 95 % of the time.";
+function bigCount(n) {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1).replace(/\.0$/, "")} million`;
+  if (n >= 1e4) return `${Math.round(n / 1e3)} thousand`;
+  return String(n);
+}
 function dataFinding(snapshot) {
   const age = snapshot == null ? void 0 : snapshot.data_age_s;
   if (!isNum(age)) {
@@ -5237,7 +5243,7 @@ function frameStats(snapshot, series) {
   }
   return { fromSeries, list: out };
 }
-function frameFindings({ snapshot, series, events, range }) {
+function frameFindings({ snapshot, series, events, settings, range }) {
   const { fromSeries, list } = frameStats(snapshot, series);
   const withFrames = list.filter((s) => s.frames > 0);
   if (!withFrames.length) {
@@ -5248,9 +5254,21 @@ function frameFindings({ snapshot, series, events, range }) {
   const openLate = new Set(
     (Array.isArray(events) ? events : []).filter((e) => (e == null ? void 0 : e.kind) === "frames_late" && e.state === "open" && Number.isInteger(e.port)).map((e) => e.port)
   );
+  const limitPct = setting(settings, "frames_late_pct", 1);
+  const gapMs = setting(settings, "frame_gap_ms", 100);
   const out = [];
   for (const s of withFrames) {
     if (s.late <= 0) continue;
+    const isOpen = openLate.has(s.port);
+    const latePct = s.late / s.frames * 100;
+    if (!isOpen && latePct <= limitPct && !(s.worst && s.worst.ms > gapMs)) {
+      out.push({
+        level: "info",
+        area: "frames",
+        text: `${plural(s.late, "late frame", "late frames")} out of ${bigCount(s.frames)} on :${s.port} in ${span}${note} - normal.`
+      });
+      continue;
+    }
     let text2 = `${plural(s.late, "late frame", "late frames")} on :${s.port}`;
     if (s.worst) {
       text2 += `, worst gap ${Math.round(s.worst.ms)} ms at ${hhmm(s.worst.ts)}`;
@@ -5259,7 +5277,7 @@ function frameFindings({ snapshot, series, events, range }) {
       text2 += ` in ${span}${note}`;
     }
     text2 += ". A late frame means players see a hitch.";
-    out.push({ level: openLate.has(s.port) ? "problem" : "warning", area: "frames", text: text2 });
+    out.push({ level: isOpen ? "problem" : "warning", area: "frames", text: text2 });
   }
   if (!out.length) {
     out.push({ level: "ok", area: "frames", text: `No late server frames in ${span}${note}.` });
@@ -5278,7 +5296,7 @@ function stealFindings({ snapshot, series, settings, range }) {
   }
   if (value === null && isNum(snapshot == null ? void 0 : snapshot.steal_p95)) {
     value = snapshot.steal_p95;
-    span = "the last 7 days (snapshot)";
+    span = "the last 7 days";
   }
   if (value === null) return [];
   const shown = value < 10 ? value.toFixed(1) : pct0$1(value);
@@ -5286,7 +5304,7 @@ function stealFindings({ snapshot, series, settings, range }) {
   return [{
     level,
     area: "steal",
-    text: `The provider took ${shown} % of CPU time (steal, p95 over ${span}); above ${pct0$1(tight)} % means a noisy neighbour.`
+    text: `The provider took ${shown} % of CPU time (steal), p95 over ${span}; above ${pct0$1(tight)} % means a noisy neighbour.`
   }];
 }
 function memoryFindings({ snapshot, events, settings }) {
@@ -5632,7 +5650,7 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       headerActions: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { onClick: load, disabled: loading }, loading ? "Loading..." : "Refresh"), /* @__PURE__ */ React.createElement(Button, { onClick: onClose, "aria-label": "Close" }, "Close")),
       footer: /* @__PURE__ */ React.createElement(Footer, { ctx, host, isOpen })
     },
-    /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-modal-body" }, /* @__PURE__ */ React.createElement("div", { className: "hm-controls" }, /* @__PURE__ */ React.createElement("div", { className: "hm-range", role: "group", "aria-label": "Time range" }, RANGES.map((r) => /* @__PURE__ */ React.createElement("button", { key: r, type: "button", "aria-pressed": r === range, onClick: () => setRange(r) }, r))), series ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, series.res === "raw" ? "10 s samples" : "1 minute averages") : null), hostRow ? /* @__PURE__ */ React.createElement("div", { className: "hm-overview" }, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Summary"), /* @__PURE__ */ React.createElement("ul", { className: "hm-summary" }, hostRow.state === "outdated" ? /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement(FindingLine, { finding: { level: "warning", area: "data", text: "The collector on this host is outdated: use Apply to host below." } })) : null, found.map((f, i) => /* @__PURE__ */ React.createElement("li", { key: `${f.area}-${i}` }, /* @__PURE__ */ React.createElement(FindingLine, { finding: f }))))), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Hardware"), hwRows.length ? /* @__PURE__ */ React.createElement("dl", { className: "hm-hw" }, hwRows.map(([k, v]) => /* @__PURE__ */ React.createElement(React.Fragment, { key: k }, /* @__PURE__ */ React.createElement("dt", null, k), /* @__PURE__ */ React.createElement("dd", null, v)))) : /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Not read yet: the collector reads it at start and every hour (collector 1.1 or later)."))) : null, error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, !series && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading...") : null, charts ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "CPU per core"), charts.cores.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, EMPTY_NO_DATA) : /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, charts.cores.map((c) => /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-modal-body" }, /* @__PURE__ */ React.createElement("div", { className: "hm-controls" }, /* @__PURE__ */ React.createElement("div", { className: "hm-range", role: "group", "aria-label": "Time range" }, RANGES.map((r) => /* @__PURE__ */ React.createElement("button", { key: r, type: "button", "aria-pressed": r === range, onClick: () => setRange(r) }, r))), series ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, series.res === "raw" ? "10 s samples" : "1 minute averages") : null), hostRow ? /* @__PURE__ */ React.createElement("div", { className: "hm-overview" }, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Summary"), /* @__PURE__ */ React.createElement("ul", { className: "hm-summary" }, hostRow.state === "outdated" ? /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement(FindingLine, { finding: { level: "warning", area: "data", text: "The collector on this host is outdated: use Apply to host below." } })) : null, found.map((f, i) => /* @__PURE__ */ React.createElement("li", { key: `${f.area}-${i}` }, /* @__PURE__ */ React.createElement(FindingLine, { finding: f })))), found.some((f) => /p95/.test(f.text)) ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, P95_GLOSS) : null), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Hardware"), hwRows.length ? /* @__PURE__ */ React.createElement("dl", { className: "hm-hw" }, hwRows.map(([k, v]) => /* @__PURE__ */ React.createElement(React.Fragment, { key: k }, /* @__PURE__ */ React.createElement("dt", null, k), /* @__PURE__ */ React.createElement("dd", null, v)))) : /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Not read yet: the collector reads it at start and every hour (collector 1.1 or later)."))) : null, error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, !series && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading...") : null, charts ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "CPU per core"), charts.cores.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, EMPTY_NO_DATA) : /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, charts.cores.map((c) => /* @__PURE__ */ React.createElement(
       ChartCard,
       {
         key: c.core,
@@ -5831,6 +5849,7 @@ function HostPanel({ ctx }) {
 export {
   Button as B,
   HostModal as H,
+  P95_GLOSS as P,
   React as R,
   hostHealth as a,
   fmtTime as b,

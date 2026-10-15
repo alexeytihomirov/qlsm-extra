@@ -1,4 +1,4 @@
-import { R as React, h as hostIdFromSearch, s as sortByHealth, f as findings, o as openEvents, a as hostHealth, B as Button, b as fmtTime, H as HostModal, c as healthCounts, d as hardwareLine, p as playersNow, e as eventsTotal, g as slotsText, r as refNote, i as corePeaks, l as lateFrames24h, j as fmtPct, k as diskUsedPct, m as fmtDuration, n as fmtBytes } from "./hm-shared.js";
+import { R as React, h as hostIdFromSearch, s as sortByHealth, f as findings, o as openEvents, a as hostHealth, B as Button, b as fmtTime, P as P95_GLOSS, H as HostModal, c as healthCounts, d as hardwareLine, p as playersNow, e as eventsTotal, g as slotsText, r as refNote, i as corePeaks, l as lateFrames24h, j as fmtPct, k as diskUsedPct, m as fmtDuration, n as fmtBytes } from "./hm-shared.js";
 const { useCallback, useEffect, useMemo, useRef, useState } = React;
 const STATUS_TONE = { problem: "critical", watch: "warning", nodata: "neutral", ok: "good" };
 const STATUS_ORDER = ["problem", "watch", "nodata", "ok"];
@@ -93,7 +93,7 @@ function HostCard({ row, health, onOpen }) {
       value: `${slotsText(row.verdict)}${refNote(row.verdict) ? " (fleet reference)" : ""}`,
       title: row.verdict.reason || void 0
     }
-  ) : null) : null, metrics && live ? /* @__PURE__ */ React.createElement("div", { className: "hm-hcard-metrics hm-muted" }, metrics) : null);
+  ) : null) : null, metrics && live ? /* @__PURE__ */ React.createElement("div", { className: "hm-hcard-metrics hm-muted", title: P95_GLOSS }, metrics) : null);
 }
 function Page({ ctx }) {
   var _a;
@@ -106,7 +106,14 @@ function Page({ ctx }) {
   const token = useRef(0);
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
-  const linked = useRef(typeof window !== "undefined" ? hostIdFromSearch((_a = window.location) == null ? void 0 : _a.search) : null);
+  const [, bumpUrl] = useState(0);
+  const linkedNow = hostIdFromSearch(typeof window !== "undefined" ? (_a = window.location) == null ? void 0 : _a.search : "");
+  const linkHandled = useRef(null);
+  useEffect(() => {
+    const onPop = () => bumpUrl((n) => n + 1);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const load = useCallback(async (refresh) => {
     const mine = ++token.current;
     setLoading(true);
@@ -117,13 +124,6 @@ function Page({ ctx }) {
       const list = (data == null ? void 0 : data.hosts) || [];
       setHosts(list);
       setLoadedAt(Date.now() / 1e3);
-      if (linked.current !== null) {
-        const want = linked.current;
-        linked.current = null;
-        const row = list.find((h) => h.id === want);
-        if (row) setOpen(row);
-        else setError(`Host ${want} from the link is not in the host list.`);
-      }
     } catch (e) {
       if (token.current === mine) setError(errorText(e, "Could not load the hosts."));
     } finally {
@@ -133,6 +133,29 @@ function Page({ ctx }) {
   useEffect(() => {
     load(false);
   }, [load]);
+  useEffect(() => {
+    if (linkedNow === null) {
+      linkHandled.current = null;
+      return;
+    }
+    if (!hosts || linkHandled.current === linkedNow) return;
+    linkHandled.current = linkedNow;
+    const row = hosts.find((h) => h.id === linkedNow);
+    if (row) setOpen(row);
+    else setError(`Host ${linkedNow} from the link is not in the host list.`);
+  }, [linkedNow, hosts]);
+  const closeOpen = useCallback(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("host")) {
+        url.searchParams.delete("host");
+        window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      }
+    } catch (e) {
+    }
+    linkHandled.current = null;
+    setOpen(null);
+  }, []);
   useEffect(() => {
     let alive = true;
     ctxRef.current.api("GET", "settings").then((d) => {
@@ -152,7 +175,7 @@ function Page({ ctx }) {
     }) : [];
     return { row, health: hostHealth(row, list) };
   })), [hosts, settings]);
-  return /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-page" }, /* @__PURE__ */ React.createElement("div", { className: "hm-toolbar" }, /* @__PURE__ */ React.createElement(Button, { onClick: () => load(true), disabled: loading }, loading ? "Loading..." : "Refresh"), /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : "", "One card per host, problems first. Details opens the charts and events of the host.")), error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, hosts === null && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading hosts (one SSH query per host)...") : null, hosts && hosts.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No hosts.") : null, hosts && hosts.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: loading ? "hm-dim" : void 0 }, /* @__PURE__ */ React.createElement(Summary, { entries, onOpen: setOpen, now: loadedAt }), /* @__PURE__ */ React.createElement("div", { className: "hm-board" }, entries.map(({ row, health }) => /* @__PURE__ */ React.createElement(HostCard, { key: row.id, row, health, onOpen: setOpen })))) : null, open ? /* @__PURE__ */ React.createElement(HostModal, { ctx, host: open, isOpen: true, onClose: () => setOpen(null) }) : null);
+  return /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-page" }, /* @__PURE__ */ React.createElement("div", { className: "hm-toolbar" }, /* @__PURE__ */ React.createElement(Button, { onClick: () => load(true), disabled: loading }, loading ? "Loading..." : "Refresh"), /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : "", "One card per host, problems first. Details opens the charts and events of the host. ", P95_GLOSS)), error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, hosts === null && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading hosts (one SSH query per host)...") : null, hosts && hosts.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No hosts.") : null, hosts && hosts.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: loading ? "hm-dim" : void 0 }, /* @__PURE__ */ React.createElement(Summary, { entries, onOpen: setOpen, now: loadedAt }), /* @__PURE__ */ React.createElement("div", { className: "hm-board" }, entries.map(({ row, health }) => /* @__PURE__ */ React.createElement(HostCard, { key: row.id, row, health, onOpen: setOpen })))) : null, open ? /* @__PURE__ */ React.createElement(HostModal, { ctx, host: open, isOpen: true, onClose: closeOpen }) : null);
 }
 export {
   Page as default

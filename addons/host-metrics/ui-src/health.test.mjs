@@ -155,7 +155,7 @@ test('hostHealth: verdict overloaded by busy events is a problem in plain words'
 });
 
 test('hostHealth: verdict overloaded by steal uses the steal finding, not a second line', () => {
-  const steal = { level: 'problem', area: 'steal', text: 'The provider took 18 % of CPU time (steal, p95 over the last 7 days (snapshot)); above 5 % means a noisy neighbour.' };
+  const steal = { level: 'problem', area: 'steal', text: 'The provider took 18 % of CPU time (steal), p95 over the last 7 days; above 5 % means a noisy neighbour.' };
   const h = hostHealth(row({
     verdict: { status: 'overloaded', slots: 1, reason: 'steal p95 18% > 15%', ref_load: 20, ref_source: 'host' },
   }), [steal]);

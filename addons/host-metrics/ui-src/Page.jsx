@@ -1,6 +1,6 @@
 import React, { Button } from './runtime';
 import { HostModal } from './HostPanel';
-import { findings } from './findings';
+import { findings, P95_GLOSS } from './findings';
 import {
   corePeaks, diskUsedPct, eventsTotal, healthCounts, hostHealth, hostIdFromSearch, lateFrames24h,
   openEvents, playersNow, refNote, sortByHealth,
@@ -171,7 +171,7 @@ function HostCard({ row, health, onOpen }) {
           ) : null}
         </div>
       ) : null}
-      {metrics && live ? <div className="hm-hcard-metrics hm-muted">{metrics}</div> : null}
+      {metrics && live ? <div className="hm-hcard-metrics hm-muted" title={P95_GLOSS}>{metrics}</div> : null}
     </article>
   );
 }
@@ -190,8 +190,16 @@ function Page({ ctx }) {
   const token = useRef(0);
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx; // core rebuilds ctx on every render
-  // ?host=<id> is honoured once, on the first host list
-  const linked = useRef(typeof window !== 'undefined' ? hostIdFromSearch(window.location?.search) : null);
+  // ?host=<id> (notification links): read on every render, because the bell navigates inside
+  // the app and keeps this page mounted; popstate (back/forward) forces a render too.
+  const [, bumpUrl] = useState(0);
+  const linkedNow = hostIdFromSearch(typeof window !== 'undefined' ? window.location?.search : '');
+  const linkHandled = useRef(null); // the id already opened (or reported) for the current link
+  useEffect(() => {
+    const onPop = () => bumpUrl((n) => n + 1);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   const load = useCallback(async (refresh) => {
     const mine = ++token.current;
@@ -203,13 +211,6 @@ function Page({ ctx }) {
       const list = data?.hosts || [];
       setHosts(list);
       setLoadedAt(Date.now() / 1000);
-      if (linked.current !== null) {
-        const want = linked.current;
-        linked.current = null;
-        const row = list.find((h) => h.id === want);
-        if (row) setOpen(row);
-        else setError(`Host ${want} from the link is not in the host list.`);
-      }
     } catch (e) {
       if (token.current === mine) setError(errorText(e, 'Could not load the hosts.'));
     } finally {
@@ -218,6 +219,29 @@ function Page({ ctx }) {
   }, []);
 
   useEffect(() => { load(false); }, [load]);
+
+  // open the host of the link once its list is there; a new id in the URL opens that host again
+  useEffect(() => {
+    if (linkedNow === null) { linkHandled.current = null; return; }
+    if (!hosts || linkHandled.current === linkedNow) return;
+    linkHandled.current = linkedNow;
+    const row = hosts.find((h) => h.id === linkedNow);
+    if (row) setOpen(row);
+    else setError(`Host ${linkedNow} from the link is not in the host list.`);
+  }, [linkedNow, hosts]);
+
+  // closing the dialog drops ?host= from the URL, otherwise the next render would reopen it
+  const closeOpen = useCallback(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('host')) {
+        url.searchParams.delete('host');
+        window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+      }
+    } catch (e) { /* no history API: the link stays, harmless */ }
+    linkHandled.current = null;
+    setOpen(null);
+  }, []);
 
   // Thresholds for the findings (defaults until they arrive, or when the call fails).
   useEffect(() => {
@@ -246,7 +270,7 @@ function Page({ ctx }) {
         </Button>
         <span className="hm-muted">
           {loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : ''}
-          One card per host, problems first. Details opens the charts and events of the host.
+          One card per host, problems first. Details opens the charts and events of the host. {P95_GLOSS}
         </span>
       </div>
       {error ? <div className="hm-error">{error}</div> : null}
@@ -263,7 +287,7 @@ function Page({ ctx }) {
         </div>
       ) : null}
       {open ? (
-        <HostModal ctx={ctx} host={open} isOpen onClose={() => setOpen(null)} />
+        <HostModal ctx={ctx} host={open} isOpen onClose={closeOpen} />
       ) : null}
     </div>
   );

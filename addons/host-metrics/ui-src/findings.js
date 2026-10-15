@@ -47,6 +47,16 @@ const hhmm = (ts) => {
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
+/** One-time explanation of "p95" for readers who are not ops; shown once per view. */
+export const P95_GLOSS = 'p95 = the level it stays under 95 % of the time.';
+
+/** 3400000 -> "3.4 million", 12500 -> "12 thousand", small numbers as they are. */
+function bigCount(n) {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1).replace(/\.0$/, '')} million`;
+  if (n >= 1e4) return `${Math.round(n / 1e3)} thousand`;
+  return String(n);
+}
+
 function dataFinding(snapshot) {
   const age = snapshot?.data_age_s;
   if (!isNum(age)) {
@@ -253,7 +263,7 @@ function frameStats(snapshot, series) {
   return { fromSeries, list: out };
 }
 
-function frameFindings({ snapshot, series, events, range }) {
+function frameFindings({ snapshot, series, events, settings, range }) {
   const { fromSeries, list } = frameStats(snapshot, series);
   const withFrames = list.filter((s) => s.frames > 0);
   if (!withFrames.length) {
@@ -266,9 +276,22 @@ function frameFindings({ snapshot, series, events, range }) {
       .filter((e) => e?.kind === 'frames_late' && e.state === 'open' && Number.isInteger(e.port))
       .map((e) => e.port),
   );
+  const limitPct = setting(settings, 'frames_late_pct', 1);
+  const gapMs = setting(settings, 'frame_gap_ms', 100);
   const out = [];
   for (const s of withFrames) {
     if (s.late <= 0) continue;
+    const isOpen = openLate.has(s.port);
+    const latePct = (s.late / s.frames) * 100;
+    if (!isOpen && latePct <= limitPct && !(s.worst && s.worst.ms > gapMs)) {
+      // a few hitches among millions of frames are normal: say so, do not flag the host
+      out.push({
+        level: 'info',
+        area: 'frames',
+        text: `${plural(s.late, 'late frame', 'late frames')} out of ${bigCount(s.frames)} on :${s.port} in ${span}${note} - normal.`,
+      });
+      continue;
+    }
     let text = `${plural(s.late, 'late frame', 'late frames')} on :${s.port}`;
     if (s.worst) {
       text += `, worst gap ${Math.round(s.worst.ms)} ms at ${hhmm(s.worst.ts)}`;
@@ -277,7 +300,7 @@ function frameFindings({ snapshot, series, events, range }) {
       text += ` in ${span}${note}`;
     }
     text += '. A late frame means players see a hitch.';
-    out.push({ level: openLate.has(s.port) ? 'problem' : 'warning', area: 'frames', text });
+    out.push({ level: isOpen ? 'problem' : 'warning', area: 'frames', text });
   }
   if (!out.length) {
     out.push({ level: 'ok', area: 'frames', text: `No late server frames in ${span}${note}.` });
@@ -297,7 +320,7 @@ function stealFindings({ snapshot, series, settings, range }) {
   }
   if (value === null && isNum(snapshot?.steal_p95)) {
     value = snapshot.steal_p95;
-    span = 'the last 7 days (snapshot)';
+    span = 'the last 7 days';
   }
   if (value === null) return [];
   const shown = value < 10 ? value.toFixed(1) : pct0(value);
@@ -305,7 +328,7 @@ function stealFindings({ snapshot, series, settings, range }) {
   return [{
     level,
     area: 'steal',
-    text: `The provider took ${shown} % of CPU time (steal, p95 over ${span}); above ${pct0(tight)} % means a noisy neighbour.`,
+    text: `The provider took ${shown} % of CPU time (steal), p95 over ${span}; above ${pct0(tight)} % means a noisy neighbour.`,
   }];
 }
 

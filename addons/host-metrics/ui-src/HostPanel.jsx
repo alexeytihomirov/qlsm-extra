@@ -1,7 +1,7 @@
 import React, { Button, ui } from './runtime';
 import { ChartCard, FindingLine } from './charts';
 import { chartLimits, findingFor, tickMsOf } from './chartinfo';
-import { findings } from './findings';
+import { findings, P95_GLOSS } from './findings';
 import {
   column, coreIds, coreRows, lastValue, mergeTimes, openEvents, pick, sortedPorts,
 } from './data';
@@ -424,6 +424,7 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
                   <li key={`${f.area}-${i}`}><FindingLine finding={f} /></li>
                 ))}
               </ul>
+              {found.some((f) => /p95/.test(f.text)) ? <div className="hm-muted">{P95_GLOSS}</div> : null}
             </section>
             <section>
               <div className="hm-section-title">Hardware</div>

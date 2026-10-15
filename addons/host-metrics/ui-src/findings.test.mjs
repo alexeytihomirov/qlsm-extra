@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { findings } from './findings.js';
+import { findings, P95_GLOSS } from './findings.js';
 
 const GB = 1073741824;
 const MB = 1048576;
@@ -184,9 +184,42 @@ test('frames: players clause is dropped when the row has none; open event escala
 });
 
 test('frames: snapshot only gives the 24 h count without gap details', () => {
-  const s = snap({ insts: [{ port: 27960, late_24h: 5, frames_24h: 1000 }] });
+  const s = snap({ insts: [{ port: 27960, late_24h: 50, frames_24h: 1000 }] }); // 5 %, above 1 %
   const out = by(findings({ snapshot: s }), 'frames');
-  assert.equal(out[0].text, '5 late frames on :27960 in the last 24 hours (24 h snapshot). A late frame means players see a hitch.');
+  assert.equal(out[0].level, 'warning');
+  assert.equal(out[0].text, '50 late frames on :27960 in the last 24 hours (24 h snapshot). A late frame means players see a hitch.');
+});
+
+test('frames: a few late frames among millions are an info line, not a warning', () => {
+  const s = snap({ insts: [{ port: 27960, late_24h: 3, frames_24h: 3_400_000 }] });
+  const out = by(findings({ snapshot: s }), 'frames');
+  assert.deepEqual(out, [{
+    level: 'info',
+    area: 'frames',
+    text: '3 late frames out of 3.4 million on :27960 in the last 24 hours (24 h snapshot) - normal.',
+  }]);
+});
+
+test('frames: the frames_late_pct setting moves the line; an open event or a big gap still warns', () => {
+  const s = snap({ insts: [{ port: 27960, late_24h: 20, frames_24h: 1000 }] }); // 2 %
+  assert.equal(by(findings({ snapshot: s }), 'frames')[0].level, 'warning');
+  assert.equal(by(findings({ snapshot: s, settings: { frames_late_pct: '5' } }), 'frames')[0].level, 'info');
+  const events = [{ kind: 'frames_late', port: 27960, state: 'open' }];
+  assert.equal(by(findings({ snapshot: s, events, settings: { frames_late_pct: '5' } }), 'frames')[0].level, 'problem');
+  const series = { cores: [], insts: { 27960: [{ ts: 1700000000, frames: 100000, late: 1, max_ms: 180 }] } };
+  const big = by(findings({ snapshot: snap(), series, range: '1h' }), 'frames')[0];
+  assert.equal(big.level, 'warning'); // 0.001 % but the worst gap is above frame_gap_ms (100)
+  const small = by(findings({ snapshot: snap(), series: { cores: [], insts: { 27960: [{ ts: 1, frames: 100000, late: 1, max_ms: 60 }] } }, range: '1h' }), 'frames')[0];
+  assert.equal(small.level, 'info');
+  assert.match(small.text, /^1 late frame out of 100 thousand on :27960 in the last hour - normal\.$/);
+  assert.equal(by(findings({ snapshot: snap(), series, settings: { frame_gap_ms: '200' }, range: '1h' }), 'frames')[0].level, 'info');
+});
+
+test('steal sentence has no nested parentheses; p95 gloss is exported', () => {
+  const t = by(findings({ snapshot: snap() }), 'steal')[0].text;
+  assert.doesNotMatch(t, /\([^)]*\(/);
+  assert.equal(t, 'The provider took 1.2 % of CPU time (steal), p95 over the last 7 days; above 5 % means a noisy neighbour.');
+  assert.match(P95_GLOSS, /95 %/);
 });
 
 test('frames: no instance or no frames is "no statistics", not "no late frames"', () => {
@@ -201,12 +234,12 @@ test('frames: no instance or no frames is "no statistics", not "no late frames"'
 test('steal: snapshot 7 d value, series value, levels', () => {
   const a = by(findings({ snapshot: snap({ steal_p95: 1.234 }) }), 'steal')[0];
   assert.equal(a.level, 'ok');
-  assert.equal(a.text, 'The provider took 1.2 % of CPU time (steal, p95 over the last 7 days (snapshot)); above 5 % means a noisy neighbour.');
+  assert.equal(a.text, 'The provider took 1.2 % of CPU time (steal), p95 over the last 7 days; above 5 % means a noisy neighbour.');
   assert.equal(by(findings({ snapshot: snap({ steal_p95: 7 }) }), 'steal')[0].level, 'warning');
   assert.equal(by(findings({ snapshot: snap({ steal_p95: 20 }) }), 'steal')[0].level, 'problem');
   const series = { cores: [{ ts: 1, core: -1, steal: 12 }, { ts: 2, core: -1, steal: 14 }], insts: {} };
   const s = by(findings({ snapshot: snap({ steal_p95: 1 }), series, range: '1h' }), 'steal')[0];
-  assert.match(s.text, /took 14 % of CPU time \(steal, p95 over the last hour\)/);
+  assert.match(s.text, /took 14 % of CPU time \(steal\), p95 over the last hour/);
   assert.equal(s.level, 'warning');
   const custom = by(findings({ snapshot: snap({ steal_p95: 7 }), settings: { steal_tight_pct: '8' } }), 'steal')[0];
   assert.equal(custom.level, 'ok');
