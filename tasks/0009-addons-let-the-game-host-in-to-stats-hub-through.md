@@ -35,6 +35,7 @@ Telemetry Relay и Demo Stream Tunnel при включении на хосте 
 - 2026-10-15 - ревью: allow перенесён после взятия host lock (отказ хаба освобождает lock), статус ходит с таймаутом 10 с; включение tunnel теперь требует и URL, и ingest token хаба
 - 2026-10-15 - `generate_manifest.py` пересобрал и `packages/qlmatch-packer.zip` без изменений кода (другие байты на Windows) - откачено, в коммите только demo-stream и telemetry-relay
 - 2026-10-15 - merged `feat/hub-firewall-access` -> `origin/main` (af04f52, ls-remote подтвердил). Хаб с API уже задеплоен (`ql-stats-hub-0014`). Ждём установки оператором
+- 2026-10-15 - оператор поставил 1.4.0: у Telemetry Relay нет бейджа. Причина: панель `host_relay` в манифесте никогда не объявляла `status` (эндпоинт `GET hosts/{host_id}/status` был и раньше, UI его не вызывал), не проверил это до релиза. Исправлено: `status` в манифесте + тест, версия 1.4.2 (1.4.1 параллельно выпустила другая сессия - предупреждение о двух инстансах с одним server id; перебазировано поверх, `origin/main` 1e70838)
 
 ## Результат
 
