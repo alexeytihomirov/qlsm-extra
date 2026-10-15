@@ -265,7 +265,7 @@ def main() -> int:
     addons = _addon_entries(data.get('addons') or [])
 
     out = {'plugins': plugins, 'addons': addons}
-    MANIFEST.write_text(json.dumps(out, indent=2) + '\n', encoding='utf-8')
+    MANIFEST.write_text(json.dumps(out, indent=2) + '\n', encoding='utf-8', newline='\n')
 
     for name in missing:
         print(f'WARNING: {name} is listed but missing on disk -- sha256 left as-is',
