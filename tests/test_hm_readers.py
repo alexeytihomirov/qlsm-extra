@@ -109,6 +109,36 @@ def test_read_instance_gone_returns_none(tmp_path):
     assert hm_readers.read_instance(str(tmp_path), 27961) is None
 
 
+def test_read_redis_db_from_the_unit_process_cmdline():
+    assert hm_readers.read_instance_pids(ROOT, 27960) == [4242]
+    assert hm_readers.read_cmdline_cvar(ROOT, 4242, "net_port") == "27960"
+    assert hm_readers.read_redis_db(ROOT, 27960) == 1
+
+
+def test_read_redis_db_skips_a_wrapper_without_the_cvar(tmp_path):
+    slice_dir = tmp_path / "sys/fs/cgroup/system.slice/system-qlds.slice/qlds@27962.service"
+    slice_dir.mkdir(parents=True)
+    (slice_dir / "cgroup.procs").write_text("10\n11\n12\n")
+    (tmp_path / "proc/10").mkdir(parents=True)
+    (tmp_path / "proc/10/cmdline").write_bytes(b"/bin/sh\0run.sh\0")
+    # pid 11 is gone (no /proc entry)
+    (tmp_path / "proc/12").mkdir(parents=True)
+    (tmp_path / "proc/12/cmdline").write_bytes(
+        b"qzeroded.x64\0+set\0qlx_redisDatabase\0003\0+set\0net_port\00027962\0")
+    assert hm_readers.read_redis_db(str(tmp_path), 27962) == 3
+
+
+def test_read_redis_db_none_when_unknown(tmp_path):
+    assert hm_readers.read_instance_pids(str(tmp_path), 27961) == []
+    assert hm_readers.read_redis_db(str(tmp_path), 27961) is None
+    slice_dir = tmp_path / "sys/fs/cgroup/system.slice/system-qlds.slice/qlds@27961.service"
+    slice_dir.mkdir(parents=True)
+    (slice_dir / "cgroup.procs").write_text("7\n")
+    (tmp_path / "proc/7").mkdir(parents=True)
+    (tmp_path / "proc/7/cmdline").write_bytes(b"qzeroded.x64\0+set\0qlx_redisDatabase\0")
+    assert hm_readers.read_redis_db(str(tmp_path), 27961) is None
+
+
 def test_parse_bulk():
     assert hm_readers.parse_bulk(b"$3\r\nabc\r\n") == b"abc"
     assert hm_readers.parse_bulk(b"$-1\r\n") is None
@@ -122,11 +152,13 @@ def test_parse_bulk_incomplete_raises():
 
 @pytest.mark.skipif(not hasattr(socket, "AF_UNIX"), reason="needs unix sockets")
 def test_redis_socket_get_against_fake_server():
-    store = {b"minqlx:server_status:27960": b'{"state": "in_progress"}'}
+    stores = {b"1": {b"minqlx:server_status:27960": b'{"state": "in_progress"}'},
+              b"2": {b"minqlx:server_status:27961": b'{"state": "warmup"}'}}
     seen = []
 
     class Handler(socketserver.StreamRequestHandler):
         def handle(self):
+            db = b"0"
             while True:
                 line = self.rfile.readline()
                 if not line:
@@ -138,9 +170,10 @@ def test_redis_socket_get_against_fake_server():
                     args.append(self.rfile.read(ln + 2)[:-2])
                 seen.append(args)
                 if args[0] == b"SELECT":
+                    db = args[1]
                     self.wfile.write(b"+OK\r\n")
                 elif args[0] == b"GET":
-                    v = store.get(args[1])
+                    v = stores.get(db, {}).get(args[1])
                     if v is None:
                         self.wfile.write(b"$-1\r\n")
                     else:
@@ -157,6 +190,13 @@ def test_redis_socket_get_against_fake_server():
         assert r.get("minqlx:server_status:27960") == b'{"state": "in_progress"}'
         assert r.get("minqlx:missing") is None
         assert seen[0] == [b"SELECT", b"1"]
+        # per-instance db: SELECT only when the db changes
+        n = len(seen)
+        assert r.get("minqlx:server_status:27961", db=2) == b'{"state": "warmup"}'
+        assert r.get("minqlx:server_status:27960", db=2) is None
+        assert seen[n:] == [[b"SELECT", b"2"], [b"GET", b"minqlx:server_status:27961"],
+                            [b"GET", b"minqlx:server_status:27960"]]
+        assert r.get("minqlx:server_status:27960", db=1) == b'{"state": "in_progress"}'
         r.close()
         # reconnects after the connection was dropped
         assert r.get("minqlx:server_status:27960") == b'{"state": "in_progress"}'

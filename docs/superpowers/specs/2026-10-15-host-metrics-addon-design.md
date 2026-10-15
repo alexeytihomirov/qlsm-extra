@@ -30,7 +30,7 @@ Checked live on 2026-10-15 over SSH, read-only:
 | `CPUAffinity` of the running instance | 0 | 0 |
 | steal in `/proc/stat` since boot | 0 | ~0.45 % |
 | `/proc/pressure/cpu` (PSI) | present | present |
-| Redis | local, unix socket `/var/run/redis/redis.sock`, minqlx uses db 1 | same |
+| Redis | local, unix socket `/var/run/redis/redis.sock`, one db per instance: qlsm starts each with `+set qlx_redisDatabase N` (`redis_db` or port - 27959); the collector reads N from the unit process cmdline, fallback config `redis_db` 1 | same |
 | serverchecker key | `minqlx:server_status:<port>`, JSON (`players`, `maxplayers`, `state`, `map`, `factory`, `updated`), TTL ~10 s | same |
 | python3 sqlite3 | 3.45.1 | not checked |
 | `ql-watchdog` | not installed | not installed |

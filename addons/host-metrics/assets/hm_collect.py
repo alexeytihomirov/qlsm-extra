@@ -34,15 +34,17 @@ def _rate(prev, cur, dt):
 class Collector:
     def __init__(self, config, root="/", redis=None, clock=time.time,
                  affinity=hm_readers.read_affinity, disk=None, store=True,
-                 mono=time.monotonic):
+                 mono=time.monotonic, redis_db_of=hm_readers.read_redis_db):
         self.config = config
         self.root = root
         self.clock = clock
         self.mono = mono   # deltas use this, never the wall clock (it can step)
         self.affinity = affinity
+        self.redis_db_of = redis_db_of
+        self.default_db = int(config.get("redis_db", 1))
         self.disk = disk or (lambda: hm_readers.read_disk("/"))
         if redis is None and config.get("redis_socket"):
-            redis = hm_readers.RedisSocket(config["redis_socket"], config.get("redis_db", 1))
+            redis = hm_readers.RedisSocket(config["redis_socket"], self.default_db)
         self.redis = redis
         self.conn = None
         self.tracker = None
@@ -59,6 +61,7 @@ class Collector:
         self._prev_inst = {}      # port -> (usage_usec, oom_kills)
         self._last_seq = {}       # port -> last frame_stats seq
         self._affinity = {}       # port -> (core, read at)
+        self._redis_db = {}       # port -> (qlx_redisDatabase, read at); resolved values only
         self._last_roll = int(self.clock()) // 60
 
     # ---- host ----
@@ -124,9 +127,9 @@ class Collector:
 
     # ---- instances ----
 
-    def _redis_json(self, key):
+    def _redis_json(self, key, db):
         """Parsed JSON, None when the key is missing or unparsable. Raises OSError."""
-        raw = self.redis.get(key)
+        raw = self.redis.get(key, db)
         if raw is None:
             return None
         try:
@@ -146,6 +149,26 @@ class Collector:
             core = None
         self._affinity[port] = (core, now)
         return core
+
+    def _db_of(self, port, now):
+        """The instance's own Redis db (qlsm gives each instance one), from its cmdline.
+
+        Refreshed with the affinity, once a minute. Unknown (process not up yet,
+        unreadable /proc) -> the config's redis_db for this tick, retried next tick.
+        """
+        cached = self._redis_db.get(port)
+        if cached and now - cached[1] < AFFINITY_REFRESH_S:
+            return cached[0]
+        try:
+            db = self.redis_db_of(self.root, port)
+        except Exception as e:  # noqa: BLE001 - best effort, falls back to the config
+            _log("redis db of %d failed: %s" % (port, e))
+            db = None
+        if db is None:
+            self._redis_db.pop(port, None)
+            return self.default_db
+        self._redis_db[port] = (db, now)
+        return db
 
     def _inst(self, port, now, dt, redis_ok):
         cg = hm_readers.read_instance(self.root, port)
@@ -169,13 +192,14 @@ class Collector:
         if not (redis_ok and self.redis is not None):
             return row
         try:
-            status = self._redis_json(STATUS_KEY % port)
+            db = self._db_of(port, now)
+            status = self._redis_json(STATUS_KEY % port, db)
             if status is not None:
                 players = status.get("players")
                 row["players"] = len(players) if isinstance(players, list) else None
                 row["state"] = status.get("state")
                 row["map"] = status.get("map")
-            fs = self._redis_json(FRAMES_KEY % port)
+            fs = self._redis_json(FRAMES_KEY % port, db)
             if fs is not None:
                 seq = fs.get("seq")
                 if seq != self._last_seq.get(port):
@@ -213,6 +237,7 @@ class Collector:
             self._prev_inst.pop(gone, None)
             self._last_seq.pop(gone, None)
             self._affinity.pop(gone, None)
+            self._redis_db.pop(gone, None)
 
         sample = {"ts": ts, "host": host, "cores": cores, "insts": insts,
                   "oom_delta": oom_delta}

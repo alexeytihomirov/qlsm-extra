@@ -188,6 +188,40 @@ def read_instance(root, port):
     return {"usage_usec": usage, "mem_bytes": mem, "oom_kills": oom}
 
 
+def read_instance_pids(root, port):
+    """Pids in the instance's unit cgroup (cgroup.procs), [] when it is gone."""
+    try:
+        text = _read(root, "%s/qlds@%d.service/cgroup.procs" % (CGROUP_QLDS, port))
+    except OSError:
+        return []
+    return [int(t) for t in text.split() if t.isdigit()]
+
+
+def read_cmdline_cvar(root, pid, name):
+    """Value after the token `name` in /proc/<pid>/cmdline (NUL-separated argv), else None."""
+    try:
+        with open(_path(root, "proc/%d/cmdline" % pid), "rb") as f:
+            argv = f.read().split(b"\0")
+    except OSError:
+        return None
+    key = name.encode()
+    for i, tok in enumerate(argv[:-1]):
+        if tok == key:
+            return argv[i + 1].decode("utf-8", errors="replace")
+    return None
+
+
+def read_redis_db(root, port):
+    """`qlx_redisDatabase` the instance was started with (qlsm passes `+set qlx_redisDatabase N`
+    on the command line, one DB per instance), None when no process of the unit carries it."""
+    for pid in read_instance_pids(root, port):
+        value = read_cmdline_cvar(root, pid, "qlx_redisDatabase")
+        value = (value or "").strip().strip('"')
+        if value.isdigit():
+            return int(value)
+    return None
+
+
 def read_affinity(port):
     """First CPU if the unit is pinned to exactly one, else None."""
     try:
@@ -239,7 +273,9 @@ def _encode(*args):
 
 
 class RedisSocket:
-    """Tiny Redis client over a unix socket: SELECT db, GET key."""
+    """Tiny Redis client over a unix socket: SELECT db, GET key.
+
+    `get(key, db)` re-selects only when the db differs from the connection's current one."""
 
     def __init__(self, path, db, timeout=1.0):
         self.path = path
@@ -247,6 +283,7 @@ class RedisSocket:
         self.timeout = timeout
         self._sock = None
         self._buf = b""
+        self._cur_db = None
 
     def close(self):
         if self._sock is not None:
@@ -256,6 +293,7 @@ class RedisSocket:
                 pass
         self._sock = None
         self._buf = b""
+        self._cur_db = None
 
     def _connect(self):
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -267,13 +305,15 @@ class RedisSocket:
             raise
         self._sock = s
         self._buf = b""
-        try:
-            line = self._send_line(_encode("SELECT", self.db))
-            if not line.startswith(b"+OK"):
-                raise OSError("redis SELECT failed: %r" % line)
-        except OSError:
-            self.close()
-            raise
+        self._cur_db = None
+
+    def _select(self, db):
+        if db == self._cur_db:
+            return
+        line = self._send_line(_encode("SELECT", db))
+        if not line.startswith(b"+OK"):
+            raise OSError("redis SELECT failed: %r" % line)
+        self._cur_db = db
 
     def _fill(self):
         chunk = self._sock.recv(65536)
@@ -291,9 +331,10 @@ class RedisSocket:
         self._sock.sendall(payload)
         return self._read_line()
 
-    def _get_once(self, key):
+    def _get_once(self, key, db):
         if self._sock is None:
             self._connect()
+        self._select(self.db if db is None else db)
         head = self._send_line(_encode("GET", key))
         if head.startswith(b"-"):
             raise OSError("redis error: %r" % head)
@@ -308,15 +349,16 @@ class RedisSocket:
         self._buf = self._buf[n + 2:]
         return val
 
-    def get(self, key):
-        """Value as bytes, None when the key is missing. Retries once on a
-        broken connection; raises OSError when Redis stays unreachable."""
+    def get(self, key, db=None):
+        """Value as bytes from `db` (default: the constructor's), None when the key is
+        missing. Retries once on a broken connection; raises OSError when Redis stays
+        unreachable."""
         try:
-            return self._get_once(key)
+            return self._get_once(key, db)
         except (OSError, ValueError):
             self.close()
         try:
-            return self._get_once(key)
+            return self._get_once(key, db)
         except (OSError, ValueError) as e:
             self.close()
             raise OSError(str(e))

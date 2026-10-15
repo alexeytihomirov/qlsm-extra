@@ -21,14 +21,17 @@ T0 = 1_700_000_000
 
 
 class FakeRedis:
+    """Keys per logical db; `data` is db 1 (port 27960 of the fixture runs on db 1)."""
+
     def __init__(self):
-        self.data = {}
+        self.dbs = {1: {}}
+        self.data = self.dbs[1]
         self.down = False
 
-    def get(self, key):
+    def get(self, key, db):
         if self.down:
             raise OSError("redis down")
-        v = self.data.get(key)
+        v = self.dbs.get(db, {}).get(key)
         return None if v is None else (v if isinstance(v, bytes) else json.dumps(v).encode())
 
 
@@ -78,6 +81,15 @@ class Env:
 
     def remove_instance(self, port):
         shutil.rmtree(self._inst_dir(port))
+
+    def set_redis_db(self, port, db, pid):
+        """The unit's process as qlsm starts it: `+set qlx_redisDatabase <db>` in its argv."""
+        (self._inst_dir(port) / "cgroup.procs").write_text("%d\n" % pid)
+        d = self.root / "proc" / str(pid)
+        d.mkdir(parents=True, exist_ok=True)
+        argv = ["qzeroded.x64", "+set", "net_port", str(port),
+                "+set", "qlx_redisDatabase", str(db)]
+        (d / "cmdline").write_bytes(b"\0".join(a.encode() for a in argv) + b"\0")
 
 
 @pytest.fixture
@@ -192,6 +204,45 @@ def test_frame_stats_only_when_seq_changes(env):
     env.redis.data[key]["seq"] = 2
     env.advance(10)
     assert _inst(col.tick())["frames"] == 500
+
+
+def test_two_instances_read_their_own_redis_db(env):
+    env._write_usage(27961, 5_000_000)
+    env.set_redis_db(27961, 2, 5151)
+    env.redis.dbs[1]["minqlx:server_status:27960"] = {
+        "players": [{"name": "a"}], "state": "warmup", "map": "campgrounds"}
+    env.redis.dbs[1]["minqlx:frame_stats:27960"] = {"seq": 1, "frames": 400, "late": 1}
+    env.redis.dbs[2] = {
+        "minqlx:server_status:27961": {"players": [{"name": "b"}, {"name": "c"}, {"name": "d"}],
+                                       "state": "in_progress", "map": "toxicity"},
+        "minqlx:frame_stats:27961": {"seq": 7, "frames": 500, "late": 9},
+        # a stale key of the other port in the wrong db must not be read
+        "minqlx:server_status:27960": {"players": [], "state": "x", "map": "wrong"},
+    }
+    s = env.collector().tick()
+    a, b = _inst(s, 27960), _inst(s, 27961)
+    assert (a["players"], a["map"], a["frames"], a["late"]) == (1, "campgrounds", 400, 1)
+    assert (b["players"], b["state"], b["map"], b["frames"], b["late"]) == (
+        3, "in_progress", "toxicity", 500, 9)
+
+
+def test_redis_db_falls_back_to_config_and_refreshes_with_affinity(env):
+    env._write_usage(27961, 5_000_000)  # no cgroup.procs: db unknown
+    env.redis.dbs[4] = {"minqlx:server_status:27961": {"players": [], "state": "warmup", "map": "a"}}
+    env.redis.dbs[5] = {"minqlx:server_status:27961": {"players": [], "state": "warmup", "map": "b"}}
+    col = hm_collect.Collector(
+        {"db_path": str(env.db), "thresholds": {}, "redis_db": 4}, root=str(env.root),
+        redis=env.redis, clock=env.clock, mono=env.mono, affinity=lambda port: 1,
+        disk=lambda: {"used": 10, "total": 100})
+    assert _inst(col.tick(), 27961)["map"] == "a"
+    env.set_redis_db(27961, 5, 5151)
+    env.advance(10)
+    assert _inst(col.tick(), 27961)["map"] == "b"  # a fallback is not cached
+    env.set_redis_db(27961, 4, 5151)
+    env.advance(10)
+    assert _inst(col.tick(), 27961)["map"] == "b"  # a resolved db is cached ...
+    env.advance(60)
+    assert _inst(col.tick(), 27961)["map"] == "a"  # ... until the minute refresh
 
 
 def test_instance_appears_and_disappears(env):

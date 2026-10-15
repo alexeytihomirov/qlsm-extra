@@ -10,7 +10,7 @@ ADDON_DIR = Path(__file__).resolve().parent
 
 DB_PATH = '/var/lib/host-metrics/metrics.db'
 REDIS_SOCKET = '/var/run/redis/redis.sock'
-REDIS_DB = 1
+REDIS_DB = 1  # fallback only: the collector reads each instance's db from its cmdline (qlx_redisDatabase)
 
 # key -> (default, minimum, maximum)
 THRESHOLD_FIELDS = {
