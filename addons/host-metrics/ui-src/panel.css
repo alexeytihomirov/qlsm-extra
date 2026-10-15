@@ -101,6 +101,10 @@
  * No data --text-muted.
  */
 .hm-page { padding: 4px 0; }
+.hm-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 8px; }
+.hm-title { display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--text-primary); }
+.hm-title h1 { margin: 0; font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; color: var(--text-primary); }
+.hm-title-icon { width: 22px; height: 22px; flex: none; }
 .hm-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
 .hm-host-link {
   background: none; border: 0; padding: 0; cursor: pointer; font-weight: 600;

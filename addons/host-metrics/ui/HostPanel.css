@@ -263,6 +263,37 @@
   padding: 4px 0;
 }
 
+.hm-header {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+  display: flex;
+}
+
+.hm-title {
+  min-width: 0;
+  color: var(--text-primary);
+  align-items: center;
+  gap: 10px;
+  display: flex;
+}
+
+.hm-title h1 {
+  color: var(--text-primary);
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.75rem;
+}
+
+.hm-title-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
 .hm-toolbar {
   flex-wrap: wrap;
   align-items: center;

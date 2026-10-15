@@ -264,10 +264,19 @@ function Page({ ctx }) {
 
   return (
     <div className="hm-root hm-page">
-      <div className="hm-toolbar">
+      <div className="hm-header">
+        <div className="hm-title">
+          <svg className="hm-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" />
+          </svg>
+          <h1>Host Metrics</h1>
+        </div>
         <Button onClick={() => load(true)} disabled={loading}>
           {loading ? 'Loading...' : 'Refresh'}
         </Button>
+      </div>
+      <div className="hm-toolbar">
         <span className="hm-muted">
           {loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : ''}
           One card per host, problems first. Details opens the charts and events of the host. {P95_GLOSS}

@@ -175,7 +175,21 @@ function Page({ ctx }) {
     }) : [];
     return { row, health: hostHealth(row, list) };
   })), [hosts, settings]);
-  return /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-page" }, /* @__PURE__ */ React.createElement("div", { className: "hm-toolbar" }, /* @__PURE__ */ React.createElement(Button, { onClick: () => load(true), disabled: loading }, loading ? "Loading..." : "Refresh"), /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : "", "One card per host, problems first. Details opens the charts and events of the host. ", P95_GLOSS)), error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, hosts === null && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading hosts (one SSH query per host)...") : null, hosts && hosts.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No hosts.") : null, hosts && hosts.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: loading ? "hm-dim" : void 0 }, /* @__PURE__ */ React.createElement(Summary, { entries, onOpen: setOpen, now: loadedAt }), /* @__PURE__ */ React.createElement("div", { className: "hm-board" }, entries.map(({ row, health }) => /* @__PURE__ */ React.createElement(HostCard, { key: row.id, row, health, onOpen: setOpen })))) : null, open ? /* @__PURE__ */ React.createElement(HostModal, { ctx, host: open, isOpen: true, onClose: closeOpen }) : null);
+  return /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-page" }, /* @__PURE__ */ React.createElement("div", { className: "hm-header" }, /* @__PURE__ */ React.createElement("div", { className: "hm-title" }, /* @__PURE__ */ React.createElement(
+    "svg",
+    {
+      className: "hm-title-icon",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      "aria-hidden": "true"
+    },
+    /* @__PURE__ */ React.createElement("path", { d: "m12 14 4-4" }),
+    /* @__PURE__ */ React.createElement("path", { d: "M3.34 19a10 10 0 1 1 17.32 0" })
+  ), /* @__PURE__ */ React.createElement("h1", null, "Host Metrics")), /* @__PURE__ */ React.createElement(Button, { onClick: () => load(true), disabled: loading }, loading ? "Loading..." : "Refresh")), /* @__PURE__ */ React.createElement("div", { className: "hm-toolbar" }, /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : "", "One card per host, problems first. Details opens the charts and events of the host. ", P95_GLOSS)), error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, hosts === null && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading hosts (one SSH query per host)...") : null, hosts && hosts.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No hosts.") : null, hosts && hosts.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: loading ? "hm-dim" : void 0 }, /* @__PURE__ */ React.createElement(Summary, { entries, onOpen: setOpen, now: loadedAt }), /* @__PURE__ */ React.createElement("div", { className: "hm-board" }, entries.map(({ row, health }) => /* @__PURE__ */ React.createElement(HostCard, { key: row.id, row, health, onOpen: setOpen })))) : null, open ? /* @__PURE__ */ React.createElement(HostModal, { ctx, host: open, isOpen: true, onClose: closeOpen }) : null);
 }
 export {
   Page as default
