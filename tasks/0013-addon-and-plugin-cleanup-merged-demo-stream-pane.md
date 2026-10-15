@@ -1,5 +1,5 @@
 ---
-id: qlsm-extra-0012
+id: qlsm-extra-0013
 title: Addon and plugin cleanup: merged demo-stream panel, telemetry menu, player-ranks defaults, file-forwarder VPS key setting, short descriptions
 status: in-progress
 created: 2026-10-15

@@ -1,6 +1,6 @@
 # Addon and plugin cleanup - design
 
-Date: 2026-10-15. Task: `qlsm-extra-0012`. Operator decisions taken in chat
+Date: 2026-10-15. Task: `qlsm-extra-0013`. Operator decisions taken in chat
 on 2026-10-15; this file records them.
 
 ## Goal
