@@ -121,10 +121,10 @@
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "bcef5ca59d822dccdea13d719760d8130fbbe452b15e6d1654306d2da8eae58f",
-      "version": "1.4.0",
+      "sha256": "c772c3a6255b40eedf84626c2bc149027291cd858df75bc673b8aa68dd0cddaf",
+      "version": "1.5.0",
       "label": "Live Demo Stream",
-      "description": "Lets a spectator watch a player's view live: points an instance's sv_demoStream cvars at the central demo-stream relay and registers the instance with ql-stats-hub. The relay is one address for the whole cluster, but each game host runs a stunnel client that carries the stream to stats-hub over TLS with the hub's certificate pinned. Set the relay address and the stats-hub in Settings, turn on the tunnel from each host's Demo Stream Tunnel menu entry, then enable each instance from its Live Demo Stream menu entry, which restarts it. The delay stats-hub puts on a streaming instance is set from its Demo Stream Delay menu entry, without a restart. Needs a game server build that supports the sv_demoStream cvars."
+      "description": "Lets a spectator watch a player's view live: points an instance's sv_demoStream cvars at the central demo-stream relay and registers the instance with ql-stats-hub. The relay is one address for the whole cluster, but each game host runs a stunnel client that carries the stream to stats-hub over TLS with the hub's certificate pinned. Set the relay and stats-hub in Settings -> Live Demo Stream, turn on each host's Demo Stream Tunnel, then switch each instance on (and set its delay) from its Live Demo Stream menu entry. Needs a game server build that supports the sv_demoStream cvars."
     },
     {
       "id": "file-forwarder",

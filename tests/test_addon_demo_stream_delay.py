@@ -4,7 +4,6 @@ ql-stats-hub's own API.
 Saving the delay is one HTTP call to the hub. It must never touch server.cfg,
 take the instance lock, change the instance status or queue a task.
 """
-import json
 import logging
 from unittest.mock import Mock, patch
 
@@ -13,7 +12,7 @@ import requests
 
 from ui import db
 from ui.models import AppSetting, Host, HostStatus, InstanceStatus, QLInstance
-from conftest import ADDONS_DIR, auth_headers, make_user
+from conftest import auth_headers, make_user
 
 URL = '/api/addons/demo-stream'
 HUB = 'https://stats.example'
@@ -354,7 +353,7 @@ def test_get_delay_does_not_follow_redirects(client, auth, streaming, status):
     assert get.call_args.kwargs['allow_redirects'] is False
     assert resp.status_code == 502
     assert 'redirected' in _message(resp)
-    assert 'Demo Stream Stats Hub' in _message(resp)
+    assert 'Settings -> Live Demo Stream' in _message(resp)
     assert badge.get_json()['data'] == {'ok': False, 'label': 'Stats-hub redirected the call'}
 
 
@@ -366,7 +365,7 @@ def test_put_delay_does_not_follow_redirects(client, auth, streaming, status):
     assert put.call_args.kwargs['allow_redirects'] is False
     assert resp.status_code == 502
     assert 'redirected' in _message(resp)
-    assert 'Demo Stream Stats Hub' in _message(resp)
+    assert 'Settings -> Live Demo Stream' in _message(resp)
 
 
 @pytest.mark.parametrize('sent, hub', [
@@ -437,24 +436,3 @@ def test_put_delay_non_object_body_is_400(client, auth, streaming, body):
     assert resp.status_code == 400
     assert _message(resp) == 'The request body must be a JSON object with delay_sec.'
     put.assert_not_called()
-
-
-# ---- manifest -------------------------------------------------------------
-
-def test_manifest_declares_the_delay_panel():
-    m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.4.0'
-    entry = next(e for e in m['ui']['instance_menu'] if e['id'] == 'demo-stream-delay')
-    assert entry['panel'] == 'instance_delay'
-    p = m['ui']['panels']['instance_delay']
-    assert p['kind'] == 'form'
-    assert (p['load'], p['submit']) == ('GET instances/{instance_id}/delay',
-                                        'PUT instances/{instance_id}/delay')
-    assert p['status'] == {'load': 'GET instances/{instance_id}/delay/status'}
-    assert [(f['key'], f['type']) for f in p['fields']] == [('delay_sec', 'string')]
-    text = p['description'] + ' ' + p['fields'][0]['description']
-    for needle in ('seconds', '0 to 300', 'blank', 'hub default', 'immediately',
-                   'without restarting', 'reconnected'):
-        assert needle in text, needle
-    # the existing stream panel keeps its own submit
-    assert m['ui']['panels']['instance_stream']['submit'] == 'POST instances/{instance_id}/enable'
