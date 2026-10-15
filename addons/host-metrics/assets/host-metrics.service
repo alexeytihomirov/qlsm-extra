@@ -1,0 +1,20 @@
+[Unit]
+Description=Host metrics collector (CPU, memory, disk, instances)
+After=network.target redis-server.service
+
+[Service]
+Type=simple
+User=ql
+Nice=19
+CPUWeight=1
+# systemd creates /var/lib/host-metrics owned by ql.
+StateDirectory=host-metrics
+StateDirectoryMode=0750
+ExecStart=/usr/bin/python3 /home/ql/host-metrics/hm_collect.py --config /etc/host-metrics/config.json
+# Restart=always with a 10 s delay stays below systemd's start limit, so a
+# collector that fails at start keeps retrying instead of being given up on.
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

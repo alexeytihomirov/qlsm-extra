@@ -1,0 +1,31 @@
+---
+# Read-only status of the host-metrics collector on a host. Prints exactly
+# three lines the backend parses (HM_VERSION=, HM_SERVICE=, HM_DB_BYTES=).
+
+- name: Host metrics status
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  tasks:
+    - name: Read the installed version
+      shell: cat /home/ql/host-metrics/VERSION 2>/dev/null || true
+      register: hm_version
+      changed_when: false
+
+    - name: Read the service state
+      shell: systemctl is-active host-metrics.service || true
+      register: hm_service
+      changed_when: false
+
+    - name: Read the database size
+      shell: stat -c %s /var/lib/host-metrics/metrics.db 2>/dev/null || true
+      register: hm_db_bytes
+      changed_when: false
+
+    - name: Report
+      debug:
+        msg:
+          - "HM_VERSION={{ hm_version.stdout | trim }}"
+          - "HM_SERVICE={{ hm_service.stdout | trim }}"
+          - "HM_DB_BYTES={{ hm_db_bytes.stdout | trim }}"

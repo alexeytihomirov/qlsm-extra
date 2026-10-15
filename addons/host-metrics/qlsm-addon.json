@@ -1,0 +1,62 @@
+{
+  "id": "host-metrics",
+  "version": "1.0.0",
+  "name": "Host Metrics",
+  "description": "Per-core CPU (including steal), memory, disk and per-instance CPU, memory, players and frame timing for every game host, kept for 30 days in a small SQLite file on the host by a low-priority collector service, with a capacity verdict (how many more instances the host takes). The collector is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry Host Metrics has the host switch, the status and Apply to host; the Host Metrics page lists every host.",
+  "scopes": ["global", "host"],
+  "ui_api": 3,
+
+  "settings": {
+    "global": [
+      { "key": "core_saturated_pct", "type": "string", "label": "Core saturated above (%)", "default": "95" },
+      { "key": "steal_event_pct", "type": "string", "label": "Steal event above (%)", "default": "10" },
+      { "key": "mem_low_pct", "type": "string", "label": "Memory low below (% available)", "default": "10" },
+      { "key": "disk_low_pct", "type": "string", "label": "Disk low above (% used)", "default": "90" },
+      { "key": "frames_late_pct", "type": "string", "label": "Late frames above (%)", "default": "1" },
+      { "key": "frame_gap_ms", "type": "string", "label": "Frame gap above (ms)", "default": "100" },
+      { "key": "event_window_s", "type": "string", "label": "Event window (seconds)", "default": "60" },
+      { "key": "verdict_target_pct", "type": "string", "label": "Verdict: target load per core (%)", "default": "70" },
+      { "key": "mem_reserve_pct", "type": "string", "label": "Verdict: memory reserve (% of total)", "default": "20" },
+      { "key": "steal_tight_pct", "type": "string", "label": "Verdict: steal, tight (%)", "default": "5" },
+      { "key": "steal_overload_pct", "type": "string", "label": "Verdict: steal, overloaded (%)", "default": "15" }
+    ],
+    "host": [
+      { "key": "enabled", "type": "bool", "label": "Collect metrics on this host", "default": true }
+    ]
+  },
+
+  "ui": {
+    "icon": "gauge",
+
+    "page": { "label": "Host Metrics", "icon": "gauge", "component": "Page.js" },
+    "host_menu": [
+      { "id": "host-metrics", "label": "Host Metrics", "icon": "gauge", "component": "HostPanel.js", "renders": "modal" }
+    ],
+    "settings_section": [
+      { "label": "Host Metrics", "icon": "gauge", "panel": "global_settings" }
+    ],
+
+    "panels": {
+      "global_settings": {
+        "kind": "form",
+        "description": "Event thresholds (pushed to the collector on a host with Apply to host or its next host setup; Update Plugins does not apply them) and the capacity verdict knobs (used by the QLSM backend only, they take effect at once). Whole numbers: percents 0-100, seconds and milliseconds 1-3600.",
+        "load": "GET settings",
+        "submit": "PUT settings",
+        "fields": [
+          { "key": "core_saturated_pct", "type": "string", "label": "Core saturated above (%)", "default": "95" },
+          { "key": "steal_event_pct", "type": "string", "label": "Steal event above (%)", "default": "10" },
+          { "key": "mem_low_pct", "type": "string", "label": "Memory low below (% available)", "default": "10" },
+          { "key": "disk_low_pct", "type": "string", "label": "Disk low above (% used)", "default": "90" },
+          { "key": "frames_late_pct", "type": "string", "label": "Late frames above (%)", "default": "1" },
+          { "key": "frame_gap_ms", "type": "string", "label": "Frame gap above (ms)", "default": "100" },
+          { "key": "event_window_s", "type": "string", "label": "Event window (seconds)", "default": "60",
+            "description": "A condition must hold this long before it becomes an event (disk, OOM and instance changes are reported at once)." },
+          { "key": "verdict_target_pct", "type": "string", "label": "Verdict: target load per core (%)", "default": "70" },
+          { "key": "mem_reserve_pct", "type": "string", "label": "Verdict: memory reserve (% of total)", "default": "20" },
+          { "key": "steal_tight_pct", "type": "string", "label": "Verdict: steal, tight (%)", "default": "5" },
+          { "key": "steal_overload_pct", "type": "string", "label": "Verdict: steal, overloaded (%)", "default": "15" }
+        ]
+      }
+    }
+  }
+}

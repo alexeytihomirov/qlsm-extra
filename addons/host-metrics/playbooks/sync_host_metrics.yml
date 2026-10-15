@@ -1,0 +1,103 @@
+---
+# Idempotent rollout of the host-metrics collector to a game host: the five
+# collector modules, VERSION, config.json and the systemd service. Extravars
+# come from backend.py: hm_enabled (bool), hm_version, hm_config_json (text).
+# Disabled: the service is stopped and disabled, the data in
+# /var/lib/host-metrics is kept.
+
+- name: Deploy the host-metrics collector
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  vars:
+    hm_dir: /home/ql/host-metrics
+    hm_data_dir: /var/lib/host-metrics
+    hm_conf_dir: /etc/host-metrics
+    hm_modules:
+      - hm_readers.py
+      - hm_store.py
+      - hm_events.py
+      - hm_collect.py
+      - hm_query.py
+
+  tasks:
+    - name: Create the code directory
+      file:
+        path: "{{ hm_dir }}"
+        state: directory
+        owner: ql
+        group: ql
+        mode: "0755"
+
+    - name: Create the data directory
+      file:
+        path: "{{ hm_data_dir }}"
+        state: directory
+        owner: ql
+        group: ql
+        mode: "0750"
+
+    - name: Create the config directory
+      file:
+        path: "{{ hm_conf_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install the collector modules
+      copy:
+        src: "{{ playbook_dir }}/../assets/{{ item }}"
+        dest: "{{ hm_dir }}/{{ item }}"
+        owner: ql
+        group: ql
+        mode: "0644"
+      loop: "{{ hm_modules }}"
+
+    - name: Write the VERSION file
+      copy:
+        content: "{{ hm_version }}\n"
+        dest: "{{ hm_dir }}/VERSION"
+        owner: ql
+        group: ql
+        mode: "0644"
+
+    - name: Write config.json
+      copy:
+        content: "{{ hm_config_json }}\n"
+        dest: "{{ hm_conf_dir }}/config.json"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install the systemd service
+      copy:
+        src: "{{ playbook_dir }}/../assets/host-metrics.service"
+        dest: /etc/systemd/system/host-metrics.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Smoke check, one dry-run tick as ql
+      command: sudo -u ql python3 /home/ql/host-metrics/hm_collect.py --config /etc/host-metrics/config.json --once --dry-run
+      changed_when: false
+      when: hm_enabled | bool
+
+    - name: Enable and (re)start the collector
+      systemd:
+        name: host-metrics.service
+        enabled: yes
+        state: restarted
+      when: hm_enabled | bool
+
+    - name: Stop and disable the collector (data is kept)
+      systemd:
+        name: host-metrics.service
+        enabled: no
+        state: stopped
+      when: not (hm_enabled | bool)
