@@ -94,8 +94,11 @@ def test_snapshot_input_block(db, capsys):
     assert s["steal_p95"] == 1.0
     # core 0: busy 20 - cpu_avg 10 = 10 normally, 60 - 50 = 10 in the busy hour; core 1: 5
     assert s["core_other_p95"] == {"0": 10.0, "1": 5.0}
+    # 27961 is running now (raw row 5 s ago) without minute history; 27999 stopped an hour ago
     assert s["insts"] == [{"port": PORT, "core": 0, "busy_p95": 50.0, "rss_max": 90 * MB,
-                           "late_24h": 0, "frames_24h": 60 * 1440}]
+                           "late_24h": 0, "frames_24h": 60 * 1440},
+                          {"port": 27961, "core": 1, "busy_p95": None, "rss_max": None,
+                           "late_24h": 0, "frames_24h": 0}]
     assert s["events_24h"] == {"frames_late": 2, "core_saturated": 2, "steal_high": 1}
     assert s["events_24h_busy"] == {"frames_late": 1, "core_saturated": 1}
 
@@ -118,12 +121,44 @@ def test_snapshot_late_and_frames_24h_sum_the_window_only(tmp_path, capsys):
         conn.executemany("INSERT INTO inst_min(ts,port,cpu_avg,cpu_max,mem_max,core,players_max,"
                          "busy_ticks,cpu_busy_avg,frames,late,max_ms,p99_max)"
                          " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+    hm_store.insert_tick(conn, NOW - 30, None, None,
+                         [{"port": PORT, "cpu": 1.0, "mem": 1, "core": 0},
+                          {"port": 27961, "cpu": 1.0, "mem": 1, "core": 1}])
     conn.close()
     _, s = _run(capsys, "--db", str(p), "--now", str(NOW), "snapshot")
     by_port = {i["port"]: i for i in s["insts"]}
     assert (by_port[PORT]["late_24h"], by_port[PORT]["frames_24h"]) == (10, 1200)
     assert (by_port[27961]["late_24h"], by_port[27961]["frames_24h"]) == (0, 600)
     assert s["core_p95_24h"] == {}
+
+
+def test_snapshot_only_ports_running_in_the_last_10_minutes(tmp_path, capsys):
+    p = tmp_path / "m.db"
+    conn = hm_store.open_db(p)
+    # both ports have a busy week behind them; 27961 was moved off this host 11 minutes ago
+    rows = [(NOW - 3600, port, 50.0, 60.0, 90 * MB, core, 4, 6, 50.0, 60, 0, 5.0, 3.0)
+            for port, core in ((PORT, 0), (27961, 1))]
+    with conn:
+        conn.executemany("INSERT INTO inst_min(ts,port,cpu_avg,cpu_max,mem_max,core,players_max,"
+                         "busy_ticks,cpu_busy_avg,frames,late,max_ms,p99_max)"
+                         " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+    hm_store.insert_tick(conn, NOW - 660, None, None, [{"port": 27961, "cpu": 1.0, "mem": 1, "core": 1}])
+    hm_store.insert_tick(conn, NOW - 590, None, None, [{"port": PORT, "cpu": 1.0, "mem": 1, "core": 0}])
+    conn.close()
+    _, s = _run(capsys, "--db", str(p), "--now", str(NOW), "snapshot")
+    assert [i["port"] for i in s["insts"]] == [PORT]
+    assert s["insts"][0]["busy_p95"] == 50.0  # the load reference still uses the 7-day minutes
+
+
+def test_snapshot_data_age(db, tmp_path, capsys):
+    _, s = _run(capsys, "--db", str(db), "--now", str(NOW), "snapshot")
+    assert s["data_age_s"] == 5
+    _, s = _run(capsys, "--db", str(db), "--now", str(NOW + 600), "snapshot")
+    assert s["data_age_s"] == 605
+    p = tmp_path / "e.db"
+    hm_store.open_db(p).close()
+    _, s = _run(capsys, "--db", str(p), "--now", str(NOW), "snapshot")
+    assert s["data_age_s"] is None
 
 
 def test_snapshot_last_rows(db, capsys):

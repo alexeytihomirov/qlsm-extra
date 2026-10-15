@@ -23,6 +23,7 @@ import hm_store  # noqa: E402
 
 DEFAULT_DB = "/var/lib/host-metrics/metrics.db"
 LOOKBACK_S = 7 * 86400
+CURRENT_S = 600  # an instance counts in the verdict only when it has a raw row this recent
 EVENTS_WINDOW_S = 86400
 BUSY_MIN_TICKS = 3
 BUSY_EVENT_KINDS = ("frames_late", "core_saturated")
@@ -106,21 +107,21 @@ def _frames_24h(conn, now):
 
 
 def _inst_block(conn, since, now):
-    ports = [r[0] for r in conn.execute(
-        "SELECT DISTINCT port FROM inst_min WHERE ts>=? ORDER BY port", (since,))]
+    """Instances running now (a raw row in the last CURRENT_S); their load references
+    (busy_p95, rss_max) still come from the 7-day minute rows."""
+    current = {port: core for port, core, _ts in conn.execute(
+        "SELECT port, core, MAX(ts) FROM inst_raw WHERE ts>=? GROUP BY port",
+        (now - CURRENT_S,))}
     out = []
     frames = _frames_24h(conn, now)
-    for port in ports:
+    for port in sorted(current):
         late_24h, frames_24h = frames.get(port, (0, 0))
         busy = [r[0] for r in conn.execute(
             "SELECT cpu_busy_avg FROM inst_min WHERE ts>=? AND port=? AND busy_ticks>=?"
             " AND cpu_busy_avg IS NOT NULL", (since, port, BUSY_MIN_TICKS))]
-        last = conn.execute(
-            "SELECT core FROM inst_min WHERE ts>=? AND port=? ORDER BY ts DESC LIMIT 1",
-            (since, port)).fetchone()
         rss = conn.execute("SELECT MAX(mem_max) FROM inst_min WHERE ts>=? AND port=?",
                            (since, port)).fetchone()[0]
-        out.append({"port": port, "core": last[0] if last else None,
+        out.append({"port": port, "core": current[port],
                     "busy_p95": _p95(busy), "rss_max": rss,
                     "late_24h": late_24h, "frames_24h": frames_24h})
     return out
@@ -146,6 +147,8 @@ def snapshot(conn, now):
     total, busy_counts = _events_24h(conn, now)
     return {
         "now": now,
+        # seconds since the collector's newest sample; the backend marks a host stale on it
+        "data_age_s": now - host["ts"] if host else None,
         "host": host,
         "cores_last": cores_last,
         "insts_last": insts_last,
