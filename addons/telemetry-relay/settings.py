@@ -34,6 +34,7 @@ from .stats_hub import (  # noqa: F401
     get_instance_server_id,
     get_stats_hub_ingest_token,
     get_stats_hub_url,
+    instance_ids_sharing_server_id,
     is_stats_hub_configured,
     is_stats_hub_configured_for_host,
     read_cvars_from_text,

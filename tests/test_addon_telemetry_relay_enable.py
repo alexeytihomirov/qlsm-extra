@@ -83,3 +83,61 @@ def test_enable_endpoint_passes_the_previous_status(app, client, monkeypatch):
     assert resp.status_code == 202
     assert calls[0][0] == (iid,) and calls[0][1]['previous_status'] == 'running'
     assert _status(app, iid) == InstanceStatus.CONFIGURING
+
+
+def test_sync_warns_when_another_instance_already_uses_the_server_id(app, tmp_path, monkeypatch):
+    """Two instances on one stats-hub id mix their matches under one server-<id>;
+    the config sync keeps working but tells the operator in the instance log."""
+    ops = importlib.import_module('qlsm_addon_telemetry_relay.instance_ops')
+    settings = importlib.import_module('qlsm_addon_telemetry_relay.settings')
+    pushes = []
+    monkeypatch.setattr(ops, 'push_relay_config_logic', lambda host_id: pushes.append(host_id))
+    monkeypatch.chdir(tmp_path)
+
+    with app.app_context():
+        host = Host(name='dup-host', ip_address='10.0.0.9', provider='vultr', status=HostStatus.ACTIVE)
+        db.session.add(host)
+        db.session.flush()
+        first = QLInstance(name='first', port=27960, hostname='a', host_id=host.id, status=InstanceStatus.RUNNING)
+        second = QLInstance(name='second', port=27961, hostname='b', host_id=host.id, status=InstanceStatus.RUNNING)
+        db.session.add_all([first, second])
+        db.session.commit()
+        settings.set_instance_server_id(first.id, 40)
+        db.session.commit()
+
+        cfg_dir = tmp_path / 'configs' / 'dup-host' / str(second.id)
+        cfg_dir.mkdir(parents=True)
+        (cfg_dir / 'server.cfg').write_text(
+            'set qlx_statsHubUnifiedEnabled "1"\nset qlx_statsHubServerId "40"\n')
+
+        ops.sync_instance_server_id_from_config(second)
+
+        db.session.refresh(second)
+        assert settings.get_instance_server_id(second.id) == 40
+        assert f'also used by instance(s) {first.id}' in second.logs
+        assert pushes == [host.id]
+        assert settings.instance_ids_sharing_server_id(40, exclude_instance_id=second.id) == [first.id]
+        assert settings.instance_ids_sharing_server_id(41) == []
+
+
+def test_sync_does_not_warn_for_a_unique_server_id(app, tmp_path, monkeypatch):
+    ops = importlib.import_module('qlsm_addon_telemetry_relay.instance_ops')
+    monkeypatch.setattr(ops, 'push_relay_config_logic', lambda host_id: None)
+    monkeypatch.chdir(tmp_path)
+
+    with app.app_context():
+        host = Host(name='uniq-host', ip_address='10.0.0.8', provider='vultr', status=HostStatus.ACTIVE)
+        db.session.add(host)
+        db.session.flush()
+        inst = QLInstance(name='only', port=27960, hostname='a', host_id=host.id, status=InstanceStatus.RUNNING)
+        db.session.add(inst)
+        db.session.commit()
+        cfg_dir = tmp_path / 'configs' / 'uniq-host' / str(inst.id)
+        cfg_dir.mkdir(parents=True)
+        (cfg_dir / 'server.cfg').write_text(
+            'set qlx_statsHubUnifiedEnabled "1"\nset qlx_statsHubServerId "55"\n')
+
+        ops.sync_instance_server_id_from_config(inst)
+
+        db.session.refresh(inst)
+        assert 'also used by' not in (inst.logs or '')

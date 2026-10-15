@@ -23,6 +23,7 @@ from ui.models import InstanceStatus, QLInstance
 from .relay_ops import push_relay_config_logic
 from .settings import (
     get_instance_server_id,
+    instance_ids_sharing_server_id,
     is_relay_enabled,
     is_stats_hub_configured_for_host,
     read_cvars_from_text,
@@ -81,6 +82,17 @@ def sync_instance_server_id_from_config(instance):
         return  # already in sync, don't push relay config for nothing
 
     set_instance_server_id(instance.id, effective_id)
+    sharing = instance_ids_sharing_server_id(effective_id, exclude_instance_id=instance.id)
+    if sharing:
+        # Not blocked: the operator may mean it. But two instances on one id
+        # post as one `server-<id>` match on the hub and their matches mix.
+        message = (
+            f"Warning: stats-hub server id {effective_id} is also used by instance(s) "
+            f"{', '.join(str(i) for i in sharing)}; their matches share one id on the hub. "
+            f"Give each instance its own qlx_statsHubServerId."
+        )
+        current_app.logger.warning(f"telemetry-relay: instance {instance.id}: {message}")
+        instance.logs = f"{message}\n{instance.logs or ''}"
     db.session.commit()
     push_relay_config_logic(instance.host_id)
 

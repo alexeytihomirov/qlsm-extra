@@ -122,6 +122,26 @@ def set_instance_server_id(instance_id, server_id):
          str(int(server_id)) if server_id else None)
 
 
+def instance_ids_sharing_server_id(server_id, exclude_instance_id=None):
+    """Ids of the other instances that route to the same stats-hub server id.
+
+    Two instances on one id post under one `server-<id>` match on the hub and
+    their matches mix. Reserving an id from the hub (`reserve_server_id`)
+    cannot collide; an id typed by hand or inherited from a preset can."""
+    if not server_id:
+        return []
+    rows = AppSetting.query.filter(AppSetting.key.like(f"{_SERVER_ID_PREFIX}%")).all()
+    ids = []
+    for row in rows:
+        suffix = row.key[len(_SERVER_ID_PREFIX):]
+        if (row.value or '').strip() != str(int(server_id)) or not suffix.isdigit():
+            continue
+        if exclude_instance_id is not None and int(suffix) == int(exclude_instance_id):
+            continue
+        ids.append(int(suffix))
+    return sorted(ids)
+
+
 def reserve_server_id(label, host_id):
     """Reserve a stats-hub server ID for this feature's target on this host."""
     url = f"{get_effective_stats_hub_url(host_id)}/api/admin/server-ids/reserve"
