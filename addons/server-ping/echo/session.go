@@ -10,6 +10,15 @@ import (
 // start a fresh session.
 var reuseBlock = 2 * time.Minute
 
+// closedCap bounds the table of closed ufrags; the oldest is forgotten
+// first. A session needs a slot, so far fewer close within reuseBlock.
+var closedCap = 4096
+
+type closedUfrag struct {
+	ufrag string
+	at    time.Time
+}
+
 // sessions is the limits table: at most maxTotal sessions, at most
 // maxPerIP from one source IP, one session per ICE ufrag.
 type sessions struct {
@@ -19,6 +28,8 @@ type sessions struct {
 	byUfrag  map[string]string // ufrag -> source ip
 	perIP    map[string]int
 	closed   map[string]time.Time // ufrag -> when it was removed
+	order    []closedUfrag        // ring, oldest at head, capacity closedCap
+	head     int
 }
 
 func newSessions(maxTotal, maxPerIP int) *sessions {
@@ -28,6 +39,7 @@ func newSessions(maxTotal, maxPerIP int) *sessions {
 		byUfrag:  map[string]string{},
 		perIP:    map[string]int{},
 		closed:   map[string]time.Time{},
+		order:    make([]closedUfrag, 0, closedCap),
 	}
 }
 
@@ -62,16 +74,34 @@ func (s *sessions) remove(ufrag string) {
 	if s.perIP[ip]--; s.perIP[ip] <= 0 {
 		delete(s.perIP, ip)
 	}
-	// The table of closed ufrags stays small: a session needs a slot, so
-	// at most a few hundred close within reuseBlock. Prune when it grows.
-	if len(s.closed) >= 256 {
-		for u, at := range s.closed {
-			if time.Since(at) >= reuseBlock {
-				delete(s.closed, u)
-			}
-		}
+	s.rememberClosed(ufrag, time.Now())
+}
+
+// rememberClosed records a closed ufrag in O(1): when the ring is full the
+// oldest entry is overwritten and dropped from the map (unless that ufrag
+// was recorded again later).
+func (s *sessions) rememberClosed(ufrag string, at time.Time) {
+	if cap(s.order) == 0 {
+		return
 	}
-	s.closed[ufrag] = time.Now()
+	e := closedUfrag{ufrag, at}
+	if len(s.order) < cap(s.order) {
+		s.order = append(s.order, e)
+	} else {
+		old := s.order[s.head]
+		if t, ok := s.closed[old.ufrag]; ok && t.Equal(old.at) {
+			delete(s.closed, old.ufrag)
+		}
+		s.order[s.head] = e
+		s.head = (s.head + 1) % len(s.order)
+	}
+	s.closed[ufrag] = at
+}
+
+func (s *sessions) closedLen() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.closed)
 }
 
 func (s *sessions) has(ufrag string) bool {

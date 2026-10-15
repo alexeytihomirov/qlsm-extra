@@ -9,6 +9,8 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"io"
+	"log"
 	"math/big"
 	"net"
 	"os"
@@ -317,5 +319,58 @@ func TestIdleSessionCloses(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 	if n := ts.srv.sessions.len(); n != 0 {
 		t.Fatalf("idle session still in the table (%d)", n)
+	}
+}
+
+func TestFlagDefaults(t *testing.T) {
+	o, err := parseFlags(nil, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if o.listen != ":28111" || o.cert != "/etc/ql-ping-echo/cert.pem" || o.maxTotal != 64 || o.maxPerIP != 2 || o.version {
+		t.Fatalf("defaults = %+v", o)
+	}
+}
+
+func TestPionLogsDiscarded(t *testing.T) {
+	// pion's ICE/DTLS/SCTP loggers may print remote addresses; under
+	// systemd stderr goes to journald on disk, so they are all discarded.
+	srv := newServer(nil, webrtc.Certificate{}, newSessions(64, 2))
+	if _, ok := srv.settingEngine("abcd").LoggerFactory.(discardLoggers); !ok {
+		t.Fatal("the session SettingEngine must use the discarding logger factory")
+	}
+	if _, ok := srv.muxParams().Logger.(discardLogger); !ok {
+		t.Fatal("the UDP mux must use the discarding logger")
+	}
+}
+
+func TestWaitExitsWhenSocketDies(t *testing.T) {
+	ts := startServer(t)
+	code := make(chan int, 1)
+	go func() { code <- wait(ts.srv, make(chan os.Signal), log.New(io.Discard, "", 0)) }()
+	_ = ts.srv.conn.Close()
+	select {
+	case c := <-code:
+		if c == 0 {
+			t.Fatal("a dead UDP socket must exit non-zero")
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("process keeps running with a dead UDP socket")
+	}
+}
+
+func TestWaitSignalExitsCleanly(t *testing.T) {
+	ts := startServer(t)
+	sig := make(chan os.Signal, 1)
+	code := make(chan int, 1)
+	go func() { code <- wait(ts.srv, sig, log.New(io.Discard, "", 0)) }()
+	sig <- os.Interrupt
+	select {
+	case c := <-code:
+		if c != 0 {
+			t.Fatalf("exit %d on a signal, want 0", c)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("no exit on a signal")
 	}
 }

@@ -82,3 +82,26 @@ func TestRateLimiter(t *testing.T) {
 		t.Fatal("only one slot freed after one second")
 	}
 }
+
+func TestSessionsClosedUfragCap(t *testing.T) {
+	old := closedCap
+	closedCap = 3
+	t.Cleanup(func() { closedCap = old })
+
+	s := newSessions(64, 64)
+	for _, u := range []string{"ufrag0", "ufrag1", "ufrag2", "ufrag3"} {
+		if !s.add(u, "203.0.113.1") {
+			t.Fatalf("add %s", u)
+		}
+		s.remove(u)
+	}
+	if n := s.closedLen(); n != 3 {
+		t.Fatalf("closed table holds %d, want the cap 3", n)
+	}
+	if !s.add("ufrag0", "203.0.113.1") {
+		t.Fatal("the oldest closed ufrag must have been evicted")
+	}
+	if s.add("ufrag3", "203.0.113.1") {
+		t.Fatal("a recently closed ufrag must still be refused")
+	}
+}

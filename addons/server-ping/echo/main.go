@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/pion/ice/v4"
+	"github.com/pion/logging"
 	"github.com/pion/stun/v4"
 	"github.com/pion/webrtc/v4"
 )
@@ -56,8 +57,49 @@ func newServer(conn net.PacketConn, cert webrtc.Certificate, st *sessions) *serv
 	return &server{conn: conn, cert: cert, sessions: st, logf: log.Printf}
 }
 
+// discardLoggers silences pion: its ICE/DTLS/SCTP warnings and errors can
+// carry remote addresses, and under systemd stderr goes to journald on disk.
+type discardLoggers struct{}
+
+func (discardLoggers) NewLogger(string) logging.LeveledLogger { return discardLogger{} }
+
+type discardLogger struct{}
+
+func (discardLogger) Trace(string)          {}
+func (discardLogger) Tracef(string, ...any) {}
+func (discardLogger) Debug(string)          {}
+func (discardLogger) Debugf(string, ...any) {}
+func (discardLogger) Info(string)           {}
+func (discardLogger) Infof(string, ...any)  {}
+func (discardLogger) Warn(string)           {}
+func (discardLogger) Warnf(string, ...any)  {}
+func (discardLogger) Error(string)          {}
+func (discardLogger) Errorf(string, ...any) {}
+
+func (s *server) muxParams() ice.UDPMuxParams {
+	return ice.UDPMuxParams{UDPConn: s.conn, OnUnhandledPacket: s.onUnhandled, Logger: discardLogger{}}
+}
+
 func (s *server) start() {
-	s.mux = ice.NewUDPMuxDefault(ice.UDPMuxParams{UDPConn: s.conn, OnUnhandledPacket: s.onUnhandled})
+	s.mux = ice.NewUDPMuxDefault(s.muxParams())
+}
+
+// done is closed when the mux has closed: after close(), or because reading
+// the UDP socket failed (the mux closes itself then). The mux exposes only
+// IsClosed, so it is polled.
+func (s *server) done() <-chan struct{} {
+	ch := make(chan struct{})
+	go func() {
+		t := time.NewTicker(500 * time.Millisecond)
+		defer t.Stop()
+		for range t.C {
+			if s.mux.IsClosed() {
+				close(ch)
+				return
+			}
+		}
+	}()
+	return ch
 }
 
 func (s *server) close() {
@@ -114,20 +156,20 @@ func (s *server) onUnhandled(data []byte, addr netip.AddrPort) {
 
 // serve creates the PeerConnection for one session. The session is removed
 // from the table when it closes: connection lost, idle or lifetime over.
-func (s *server) serve(local, remote string) error {
-	var se webrtc.SettingEngine
+func (s *server) settingEngine(local string) *webrtc.SettingEngine {
+	se := &webrtc.SettingEngine{LoggerFactory: discardLoggers{}}
 	se.SetLite(true)
 	se.SetICEUDPMux(s.mux)
 	se.SetICECredentials(local, local)
 	se.SetNetworkTypes([]webrtc.NetworkType{webrtc.NetworkTypeUDP4})
 	se.DisableCertificateFingerprintVerification(true)
-	if err := se.SetAnsweringDTLSRole(webrtc.DTLSRoleServer); err != nil {
-		s.sessions.remove(local)
-		return err
-	}
+	_ = se.SetAnsweringDTLSRole(webrtc.DTLSRoleServer) // fails only for roles other than client/server
 	se.SetIncludeLoopbackCandidate(s.includeLoopback)
+	return se
+}
 
-	api := webrtc.NewAPI(webrtc.WithSettingEngine(se))
+func (s *server) serve(local, remote string) error {
+	api := webrtc.NewAPI(webrtc.WithSettingEngine(*s.settingEngine(local)))
 	pc, err := api.NewPeerConnection(webrtc.Configuration{Certificates: []webrtc.Certificate{s.cert}})
 	if err != nil {
 		s.sessions.remove(local)
@@ -138,6 +180,7 @@ func (s *server) serve(local, remote string) error {
 	var (
 		once     sync.Once
 		mu       sync.Mutex
+		closed   bool
 		idleT    *time.Timer
 		lifeT    *time.Timer
 		closeAll func()
@@ -145,25 +188,36 @@ func (s *server) serve(local, remote string) error {
 	closeAll = func() {
 		once.Do(func() {
 			mu.Lock()
-			idleT.Stop()
-			lifeT.Stop()
+			closed = true
+			if idleT != nil {
+				idleT.Stop()
+				lifeT.Stop()
+			}
 			mu.Unlock()
 			_ = pc.Close()
 			s.active.Delete(local)
 			s.sessions.remove(local)
 		})
 	}
+	// touch never re-arms the idle timer of a closed session.
 	touch := func() {
 		mu.Lock()
-		idleT.Reset(idle)
+		if !closed {
+			idleT.Reset(idle)
+		}
 		mu.Unlock()
 	}
+	// Registered before the timers exist, so server.close() always sees it.
+	s.active.Store(local, closeAll)
 	mu.Lock()
+	if closed {
+		mu.Unlock()
+		return nil
+	}
 	// Until the channel opens the idle timer is the connect timeout.
 	idleT = time.AfterFunc(connectTimeout, func() { closeAll() })
 	lifeT = time.AfterFunc(sessionLifetime, func() { closeAll() })
 	mu.Unlock()
-	s.active.Store(local, closeAll)
 
 	fail := func(err error) error {
 		closeAll()
@@ -207,53 +261,80 @@ func (s *server) serve(local, remote string) error {
 	return nil
 }
 
-func run(args []string, stdout, stderr io.Writer) int {
+type options struct {
+	listen   string
+	cert     string
+	maxTotal int
+	maxPerIP int
+	version  bool
+}
+
+func parseFlags(args []string, stderr io.Writer) (options, error) {
+	var o options
 	fs := flag.NewFlagSet("ql-ping-echo", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	listen := fs.String("listen", ":28111", "UDP listen address (IPv4)")
-	certPath := fs.String("cert", "/etc/ql-ping-echo/cert.pem", "PEM with EC PRIVATE KEY and CERTIFICATE (created by the server-ping addon, never by this service)")
-	maxTotal := fs.Int("max", 64, "max concurrent sessions")
-	maxPerIP := fs.Int("per-ip", 2, "max concurrent sessions per source IP")
-	showVersion := fs.Bool("version", false, "print the version and exit")
-	if err := fs.Parse(args); err != nil {
+	fs.StringVar(&o.listen, "listen", ":28111", "UDP listen address (IPv4)")
+	fs.StringVar(&o.cert, "cert", "/etc/ql-ping-echo/cert.pem", "PEM with EC PRIVATE KEY and CERTIFICATE (created by the server-ping addon, never by this service)")
+	fs.IntVar(&o.maxTotal, "max", 64, "max concurrent sessions")
+	fs.IntVar(&o.maxPerIP, "per-ip", 2, "max concurrent sessions per source IP")
+	fs.BoolVar(&o.version, "version", false, "print the version and exit")
+	err := fs.Parse(args)
+	return o, err
+}
+
+// wait blocks until a signal (exit 0) or until the UDP socket died (exit 1,
+// so systemd restarts the service).
+func wait(srv *server, sig <-chan os.Signal, logger *log.Logger) int {
+	select {
+	case <-sig:
+		srv.close()
+		return 0
+	case <-srv.done():
+		srv.close()
+		logger.Printf("UDP socket closed, exiting")
+		return 1
+	}
+}
+
+func run(args []string, stdout, stderr io.Writer) int {
+	o, err := parseFlags(args, stderr)
+	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
 		}
 		return 2
 	}
-	if *showVersion {
+	if o.version {
 		fmt.Fprintf(stdout, "ql-ping-echo %s\n", version)
 		return 0
 	}
 	logger := log.New(stderr, "", 0) // journald adds the timestamps
 
-	cert, err := loadCertificate(*certPath)
+	cert, err := loadCertificate(o.cert)
 	if err != nil {
-		logger.Printf("certificate %s: %v", *certPath, err)
+		logger.Printf("certificate %s: %v", o.cert, err)
 		return 1
 	}
 	fp, err := sha256Fingerprint(cert)
 	if err != nil {
-		logger.Printf("certificate %s: %v", *certPath, err)
+		logger.Printf("certificate %s: %v", o.cert, err)
 		return 1
 	}
 	fmt.Fprintf(stdout, "fingerprint sha-256 %s\n", fp)
 
-	conn, err := net.ListenPacket("udp4", *listen)
+	conn, err := net.ListenPacket("udp4", o.listen)
 	if err != nil {
 		logger.Printf("listen: %v", err)
 		return 1
 	}
-	srv := newServer(conn, cert, newSessions(*maxTotal, *maxPerIP))
+	srv := newServer(conn, cert, newSessions(o.maxTotal, o.maxPerIP))
 	srv.logf = logger.Printf
 	srv.start()
 	logger.Printf("ql-ping-echo %s listening on %s", version, conn.LocalAddr())
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-	<-sig
-	srv.close()
-	return 0
+	return wait(srv, sig, logger)
 }
 
 func main() {
