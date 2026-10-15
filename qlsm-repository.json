@@ -151,7 +151,7 @@
     {
       "id": "host-metrics",
       "zip": "packages/host-metrics.zip",
-      "sha256": "e77f0d9b38f18bcd242542b7177ed47f886d536bd875deab072ffa7ecb6b1f1e",
+      "sha256": "d7c199a0c7197f5a17d958db6e5ddc0d29827c0a830b28896a4f438e754c2d81",
       "version": "1.1.2",
       "label": "Host Metrics",
       "description": "CPU, memory, disk and per-instance load of every game host, with a capacity verdict."

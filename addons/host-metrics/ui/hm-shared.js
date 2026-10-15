@@ -5590,21 +5590,23 @@ function HostModal({ ctx, host, isOpen, onClose }) {
   const attemptAt = useRef(null);
   const snapshotAt = useRef(null);
   const snapshotInFlight = useRef(false);
+  const snapshotToken = useRef(0);
   const hostIdRef = useRef(host == null ? void 0 : host.id);
   hostIdRef.current = host == null ? void 0 : host.id;
   const loadSnapshot = useCallback(async (background = false) => {
     if (!(host == null ? void 0 : host.id) || snapshotInFlight.current) return;
+    const mine = ++snapshotToken.current;
     snapshotInFlight.current = true;
     snapshotAt.current = Date.now();
     try {
       const d = await ctxRef.current.api("GET", "hosts");
-      if (hostIdRef.current !== host.id) return;
+      if (snapshotToken.current !== mine || hostIdRef.current !== host.id) return;
       const r = ((d == null ? void 0 : d.hosts) || []).find((h) => h.id === host.id);
       if (r) setHostRow({ snapshot: r.snapshot, verdict: r.verdict || null, state: r.state });
       else if (!background) setHostRow(null);
     } catch (e) {
     } finally {
-      snapshotInFlight.current = false;
+      if (snapshotToken.current === mine) snapshotInFlight.current = false;
     }
   }, [host == null ? void 0 : host.id]);
   useEffect(() => {
@@ -5620,13 +5622,18 @@ function HostModal({ ctx, host, isOpen, onClose }) {
     };
   }, [isOpen]);
   useEffect(() => {
+    snapshotToken.current += 1;
+    snapshotInFlight.current = false;
+    snapshotAt.current = null;
+  }, [host == null ? void 0 : host.id]);
+  useEffect(() => {
     if (!isOpen || !(host == null ? void 0 : host.id)) return void 0;
     if (host.snapshot !== void 0) {
       setHostRow({ snapshot: host.snapshot, verdict: host.verdict || null, state: host.state });
+      if (snapshotAt.current === null) snapshotAt.current = Date.now();
       return void 0;
     }
     setHostRow(null);
-    snapshotInFlight.current = false;
     loadSnapshot();
     return void 0;
   }, [isOpen, host == null ? void 0 : host.id, host == null ? void 0 : host.snapshot, host == null ? void 0 : host.verdict, host == null ? void 0 : host.state, loadSnapshot]);
@@ -5692,7 +5699,7 @@ function HostModal({ ctx, host, isOpen, onClose }) {
         lastAttemptAt: attemptAt.current,
         intervalMs: refreshIntervalMs(range)
       })) load(true);
-      if ((host == null ? void 0 : host.snapshot) === void 0 && shouldRefresh({
+      if (shouldRefresh({
         ...state,
         inFlight: snapshotInFlight.current,
         lastAttemptAt: snapshotAt.current,
@@ -5705,11 +5712,12 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, [isOpen, autoRefresh, range, host == null ? void 0 : host.snapshot, load, loadSnapshot]);
+  }, [isOpen, autoRefresh, range, load, loadSnapshot]);
   useEffect(() => {
     setSeries(null);
     setEvents([]);
     setError(null);
+    setRefreshFailed(false);
   }, [host == null ? void 0 : host.id]);
   const charts = useMemo(() => series ? buildCharts(series, series.res) : null, [series]);
   const now = (series == null ? void 0 : series.now) || Math.floor(Date.now() / 1e3);

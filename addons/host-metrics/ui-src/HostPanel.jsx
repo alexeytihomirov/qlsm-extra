@@ -283,22 +283,24 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
   const attemptAt = useRef(null);
   const snapshotAt = useRef(null);
   const snapshotInFlight = useRef(false);
+  const snapshotToken = useRef(0);
   const hostIdRef = useRef(host?.id);
   hostIdRef.current = host?.id;
 
   // The host list (30 s cached by the backend) carries the snapshot and verdict for the findings.
   const loadSnapshot = useCallback(async (background = false) => {
     if (!host?.id || snapshotInFlight.current) return;
+    const mine = ++snapshotToken.current;
     snapshotInFlight.current = true;
     snapshotAt.current = Date.now();
     try {
       const d = await ctxRef.current.api('GET', 'hosts');
-      if (hostIdRef.current !== host.id) return;
+      if (snapshotToken.current !== mine || hostIdRef.current !== host.id) return;
       const r = (d?.hosts || []).find((h) => h.id === host.id);
       if (r) setHostRow({ snapshot: r.snapshot, verdict: r.verdict || null, state: r.state });
       else if (!background) setHostRow(null);
     } catch (e) { /* keep the last row */ } finally {
-      snapshotInFlight.current = false;
+      if (snapshotToken.current === mine) snapshotInFlight.current = false; // only the current request clears it
     }
   }, [host?.id]);
 
@@ -314,14 +316,22 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
 
   // Snapshot and verdict for the finding above each chart: the page passes its host row;
   // from the host menu the (30 s cached) host list is read.
+  // Another host: forget the previous host's snapshot request (its answer is ignored by the token).
+  useEffect(() => {
+    snapshotToken.current += 1;
+    snapshotInFlight.current = false;
+    snapshotAt.current = null;
+  }, [host?.id]);
+
   useEffect(() => {
     if (!isOpen || !host?.id) return undefined;
     if (host.snapshot !== undefined) {
+      // seeded from the page; the 1 s tick keeps it fresh (at most once a minute) like the menu path
       setHostRow({ snapshot: host.snapshot, verdict: host.verdict || null, state: host.state });
+      if (snapshotAt.current === null) snapshotAt.current = Date.now();
       return undefined;
     }
     setHostRow(null);
-    snapshotInFlight.current = false; // a request of the previous host is ignored by hostIdRef
     loadSnapshot();
     return undefined;
   }, [isOpen, host?.id, host?.snapshot, host?.verdict, host?.state, loadSnapshot]);
@@ -387,7 +397,7 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
       if (shouldRefresh({
         ...state, inFlight: inFlight.current, lastAttemptAt: attemptAt.current, intervalMs: refreshIntervalMs(range),
       })) load(true);
-      if (host?.snapshot === undefined && shouldRefresh({
+      if (shouldRefresh({
         ...state, inFlight: snapshotInFlight.current, lastAttemptAt: snapshotAt.current, intervalMs: SNAPSHOT_INTERVAL_MS,
       })) loadSnapshot(true);
     };
@@ -397,13 +407,14 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
       clearInterval(timer);
       document.removeEventListener('visibilitychange', tick);
     };
-  }, [isOpen, autoRefresh, range, host?.snapshot, load, loadSnapshot]);
+  }, [isOpen, autoRefresh, range, load, loadSnapshot]);
 
   // Another host: drop the previous host's picture instead of dimming it.
   useEffect(() => {
     setSeries(null);
     setEvents([]);
     setError(null);
+    setRefreshFailed(false);
   }, [host?.id]);
 
   const charts = useMemo(() => (series ? buildCharts(series, series.res) : null), [series]);
