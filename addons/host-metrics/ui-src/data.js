@@ -133,3 +133,16 @@ export function lateFrames24h(snapshot) {
   if (frames <= 0) return null;
   return { late, frames, pct: (late / frames) * 100 };
 }
+
+/** Stale host (collector stopped writing): `{ ageS, text }`, null for a host that is not stale. */
+export function staleInfo(host) {
+  if (host?.state !== 'stale') return null;
+  const age = host?.snapshot?.data_age_s;
+  const ageS = isNum(age) ? age : null;
+  return { ageS, text: host?.verdict?.reason || 'collector data is old' };
+}
+
+/** "fleet reference" when the slot count uses the fleet median load, else null. */
+export function refNote(verdict) {
+  return verdict?.ref_source === 'fleet' ? 'fleet reference' : null;
+}

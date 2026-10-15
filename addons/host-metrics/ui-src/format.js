@@ -47,6 +47,7 @@ const STATES = {
   outdated: 'Outdated collector',
   unreachable: 'Unreachable',
   no_data: 'No data yet',
+  stale: 'Stale',
 };
 
 /** Label for a host row whose collector is not answering normally; null when it is. */

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   pick, mergeTimes, column, sortedPorts, coreIds, stackColumns, lastValue,
-  eventsTotal, playersNow, diskUsedPct, corePeaks, lateFrames24h,
+  eventsTotal, playersNow, diskUsedPct, corePeaks, lateFrames24h, staleInfo, refNote,
 } from './data.js';
 
 test('pick takes the first finite key', () => {
@@ -63,4 +63,22 @@ test('lateFrames24h: sums instances, percent of frames, null without frames', ()
   assert.equal(lateFrames24h({ insts: [{ late_24h: 0, frames_24h: 0 }] }), null);
   assert.equal(lateFrames24h({ insts: [{ port: 1 }] }), null);
   assert.equal(lateFrames24h({}), null);
+});
+
+test('staleInfo: only for the stale state, text from the verdict reason', () => {
+  const host = {
+    state: 'stale',
+    snapshot: { data_age_s: 185 },
+    verdict: { status: 'unknown', slots: null, reason: 'collector data is 3 min old' },
+  };
+  assert.deepEqual(staleInfo(host), { ageS: 185, text: 'collector data is 3 min old' });
+  assert.deepEqual(staleInfo({ state: 'stale', snapshot: {} }), { ageS: null, text: 'collector data is old' });
+  assert.equal(staleInfo({ state: 'ok', snapshot: { data_age_s: 5 } }), null);
+  assert.equal(staleInfo(null), null);
+});
+
+test('refNote: fleet reference only when the verdict borrowed the fleet median', () => {
+  assert.equal(refNote({ ref_source: 'fleet', slots: 3 }), 'fleet reference');
+  assert.equal(refNote({ ref_source: 'host', slots: 3 }), null);
+  assert.equal(refNote(null), null);
 });

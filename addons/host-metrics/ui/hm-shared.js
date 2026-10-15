@@ -4299,7 +4299,8 @@ const STATES = {
   not_installed: "Not installed",
   outdated: "Outdated collector",
   unreachable: "Unreachable",
-  no_data: "No data yet"
+  no_data: "No data yet",
+  stale: "Stale"
 };
 function stateLabel(state) {
   return STATES[state] || null;
@@ -4409,6 +4410,16 @@ function lateFrames24h(snapshot) {
   }
   if (frames <= 0) return null;
   return { late, frames, pct: late / frames * 100 };
+}
+function staleInfo(host) {
+  var _a, _b;
+  if ((host == null ? void 0 : host.state) !== "stale") return null;
+  const age = (_a = host == null ? void 0 : host.snapshot) == null ? void 0 : _a.data_age_s;
+  const ageS = isNum(age) ? age : null;
+  return { ageS, text: ((_b = host == null ? void 0 : host.verdict) == null ? void 0 : _b.reason) || "collector data is old" };
+}
+function refNote(verdict) {
+  return (verdict == null ? void 0 : verdict.ref_source) === "fleet" ? "fleet reference" : null;
 }
 const { useEffect: useEffect$1, useRef: useRef$1, useState: useState$1, useMemo: useMemo$1 } = React;
 const SYNC_KEY = "hm-time";
@@ -4959,14 +4970,16 @@ export {
   React as R,
   fmtPct as a,
   stateLabel as b,
-  statusLabel as c,
+  staleInfo as c,
   diskUsedPct as d,
   eventsTotal as e,
   fmtTime as f,
-  corePeaks as g,
-  fmtBytes as h,
-  HostPanel as i,
+  statusLabel as g,
+  corePeaks as h,
+  fmtBytes as i,
+  HostPanel as j,
   lateFrames24h as l,
   playersNow as p,
+  refNote as r,
   slotsText as s
 };

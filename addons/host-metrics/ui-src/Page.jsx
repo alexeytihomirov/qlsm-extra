@@ -1,7 +1,7 @@
 import React from './runtime';
 import { HostModal } from './HostPanel';
 import {
-  corePeaks, diskUsedPct, eventsTotal, lateFrames24h, playersNow,
+  corePeaks, diskUsedPct, eventsTotal, lateFrames24h, playersNow, refNote, staleInfo,
 } from './data';
 import {
   fmtBytes, fmtPct, fmtTime, slotsText, stateLabel, statusLabel,
@@ -49,6 +49,17 @@ function StatusCell({ host }) {
       <>
         <Badge text={problem || host.state} tone={tone} />
         {host.error ? <div className="hm-reason">{host.error}</div> : null}
+      </>
+    );
+  }
+  const stale = staleInfo(host);
+  if (stale) {
+    return (
+      <>
+        <span title="The collector stopped writing: the numbers below are its last data.">
+          <Badge text="Stale" tone="warning" />
+        </span>
+        <div className="hm-reason">{stale.text}</div>
       </>
     );
   }
@@ -108,7 +119,14 @@ function HostRow({ host, onOpen }) {
     <tr>
       <td><button type="button" className="hm-host-link" onClick={() => onOpen(host)}>{host.name}</button></td>
       <td><StatusCell host={host} /></td>
-      <td className="hm-num">{host.verdict ? slotsText(host.verdict) : '-'}</td>
+      <td className="hm-num">
+        {host.verdict ? slotsText(host.verdict) : '-'}
+        {refNote(host.verdict) ? (
+          <div className="hm-reason" title="No data under load on this host: the slot count uses the fleet median load.">
+            {refNote(host.verdict)}
+          </div>
+        ) : null}
+      </td>
       <td>{s ? <CoresCell snapshot={s} /> : dash}</td>
       <td className="hm-num">{s ? fmtPct(s.steal_p95) : dash}</td>
       <td className="hm-num">{s ? memText(s) : dash}</td>
