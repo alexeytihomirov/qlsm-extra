@@ -121,8 +121,8 @@
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "d13e8a98fdbfe36bb31361d304983707aaf38265176bec486a5c0a861e3b7086",
-      "version": "1.5.0",
+      "sha256": "ddf0b399b403310f91a30db12129539a0d97fdc58618cdcbc7c067ce8d6546aa",
+      "version": "1.5.1",
       "label": "Live Demo Stream",
       "description": "Streams players' views live from an instance to ql-stats-hub through a central relay, over a TLS tunnel on each host. Needs the relay set in Settings, the host's Demo Stream Tunnel on and a game server with the sv_demoStream cvars; each instance has a Live Demo Stream switch."
     },
@@ -177,8 +177,8 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "a39b02916cf72a402183f3c6915550e0650fa57543efe9ddf49b673ea4060af8",
-      "version": "1.5.0",
+      "sha256": "b1ecc5ccb4bd79ff9a8225ba44fb0440e08424bef05f4f9dd9fa06ea4697d90e",
+      "version": "1.5.1",
       "label": "Telemetry Relay",
       "description": "Sends live telemetry (positions, item pickups, match events) from game instances to ql-stats-hub through a relay on each host. Needs the stats-hub URL and token in Settings, the host's Telemetry Relay on and the stream_telemetry_unified plugin; each instance has a Telemetry switch."
     }

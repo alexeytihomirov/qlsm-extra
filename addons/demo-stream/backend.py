@@ -362,6 +362,10 @@ def get_instance_stream_status(instance_id):
         return jsonify({"data": {'ok': False, 'label': 'Not streaming'}})
     if not get_instance_demo_stream_token(instance.id):
         return jsonify({"data": {'ok': False, 'label': 'Enabled, no route registered yet'}})
+    ids = _server_id_drift(instance)
+    if ids:
+        return jsonify({"data": {'ok': False, 'label': (
+            f'Streaming on server ID {ids[0]}, telemetry uses {ids[1]}; save to repair')}})
     state = _hub_delay_state(instance)
     label = 'Streaming'
     if state:
@@ -422,16 +426,34 @@ def _queue_instance_task(instance, task_key, what, **task_kwargs):
     return jsonify({"message": f'Demo-stream {what} queued for "{instance.name}".'}), 202
 
 
+def _server_id_drift(instance):
+    """(stream's server_id, telemetry's) when the stream runs under another
+    server_id than telemetry uses on the same stats-hub, else None. The hub
+    ties a stream to its telemetry by server_id; the enable picks
+    telemetry's, so running it again repairs this."""
+    from .instance_ops import telemetry_server_id_on_same_hub
+    from .settings import get_instance_server_id
+
+    own = get_instance_server_id(instance.id)
+    telemetry = telemetry_server_id_on_same_hub(instance.id, instance.host_id)
+    if own is not None and telemetry is not None and own != telemetry:
+        return own, telemetry
+    return None
+
+
 def _wiring_drift(instance):
     """Why a streaming instance needs the enable run again, or None when its
-    stored token and server.cfg agree with what the enable writes. Local
-    reads only: the stored token and server.cfg, no hub call."""
+    stored token, server_id and server.cfg agree with what the enable writes.
+    Local reads only: the stored settings and server.cfg, no hub call."""
     from .settings import (
         get_host_tunnel_port, get_instance_demo_stream_token, read_cvars_from_text,
     )
 
     if not get_instance_demo_stream_token(instance.id):
         return 'no stored stream token'
+    ids = _server_id_drift(instance)
+    if ids:
+        return f"stream server_id {ids[0]} differs from telemetry's {ids[1]}"
     config_path = f"configs/{instance.host.name}/{instance.id}/server.cfg"
     try:
         with open(config_path, 'r', encoding='utf-8') as f:

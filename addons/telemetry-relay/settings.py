@@ -89,3 +89,13 @@ def is_demo_stream_tunnel_enabled(host_id):
     demo-stream's key, read here so turning the relay off does not take the
     host out of stats-hub's firewall while the tunnel still needs it."""
     return _get(f'{_DEMO_STREAM_TUNNEL_PREFIX}{host_id}') == '1'
+
+
+_DEMO_STREAM_ENABLED_PREFIX = 'demo_stream_enabled:'
+
+
+def is_instance_demo_stream_enabled(instance_id):
+    """Whether the demo-stream addon streams this instance. Read-only:
+    demo-stream's key, read so a new telemetry server ID can say the stream
+    still has to follow it."""
+    return _get(f'{_DEMO_STREAM_ENABLED_PREFIX}{instance_id}') == '1'

@@ -1,6 +1,6 @@
 {
   "id": "demo-stream",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "name": "Live Demo Stream",
   "description": "Streams players' views live from an instance to ql-stats-hub through a central relay, over a TLS tunnel on each host. Needs the relay set in Settings, the host's Demo Stream Tunnel on and a game server with the sv_demoStream cvars; each instance has a Live Demo Stream switch.",
   "scopes": ["global", "host", "instance"],

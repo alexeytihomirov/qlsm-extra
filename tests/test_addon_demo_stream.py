@@ -545,7 +545,7 @@ def test_status_reports_tunnel_off(app, client, auth, instance_id):
 def test_manifest_declares_host_tunnel_panel():
     import json
     m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.5.0'
+    assert m['version'] == '1.5.1'
     assert m['ui_api'] == 1
     assert m['ui']['host_menu'][0]['panel'] == 'host_tunnel'
     p = m['ui']['panels']['host_tunnel']

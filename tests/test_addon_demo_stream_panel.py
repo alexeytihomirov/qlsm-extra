@@ -483,7 +483,7 @@ def test_settings_need_a_login(client):
 
 def test_manifest_one_instance_entry_with_status():
     m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.5.0'
+    assert m['version'] == '1.5.1'
     ui = m['ui']
     (entry,) = ui['instance_menu']
     assert entry['id'] == 'demo-stream' and entry['label'] == 'Live Demo Stream'
@@ -512,3 +512,74 @@ def test_manifest_one_instance_entry_with_status():
     routes = json.dumps(ui['panels'])
     for old in ('/delay', '/enable', '"GET relay"', '"GET stats-hub"'):
         assert old not in routes, old
+
+
+# ---- stream server ID drifted from telemetry's (1.5.1) ----------------------
+
+TELEMETRY_ID = 1
+
+
+def _telemetry_id(app, instance_id, server_id=TELEMETRY_ID, hub=HUB):
+    """Telemetry's own keys, as telemetry-relay writes them."""
+    from ui.models import AppSetting
+    with app.app_context():
+        db.session.add(AppSetting(key=f'stats_hub_reserved_server_id:{instance_id}',
+                                  value=str(server_id)))
+        db.session.add(AppSetting(key=f'stats_hub_server_id:{instance_id}', value=str(server_id)))
+        db.session.add(AppSetting(key='stats_hub_url', value=hub))
+        db.session.commit()
+
+
+def test_status_shows_a_stream_id_that_drifted_from_telemetry(app, client, auth, streaming):
+    _telemetry_id(app, streaming)
+    with patch(GET) as get:
+        resp = client.get(f'{URL}/instances/{streaming}/status', headers=auth)
+    assert resp.get_json()['data'] == {
+        'ok': False,
+        'label': f'Streaming on server ID {SERVER_ID}, telemetry uses {TELEMETRY_ID}; save to repair'}
+    get.assert_not_called()
+
+
+def test_status_ignores_telemetry_on_another_hub(client, app, auth, streaming):
+    _telemetry_id(app, streaming, hub='https://other.example')
+    with patch(GET, return_value=_hub()):
+        resp = client.get(f'{URL}/instances/{streaming}/status', headers=auth)
+    assert resp.get_json()['data']['ok'] is True
+
+
+def test_put_save_repairs_a_stream_id_that_drifted_from_telemetry(app, client, auth, streaming,
+                                                                    queued):
+    _telemetry_id(app, streaming)
+    with patch(GET) as get, patch(PUT) as put:
+        resp = client.put(f'{URL}/instances/{streaming}',
+                          json={'enabled': True, 'delay_sec': '5'}, headers=auth)
+    assert resp.status_code == 202, resp.get_json()
+    (task, args, kwargs), = queued
+    assert task is _tasks()['enable_instance_demo_stream']
+    assert args == (streaming,) and kwargs['delay_sec'] == 5.0
+    get.assert_not_called()
+    put.assert_not_called()
+
+
+def test_enable_adopts_telemetrys_server_id(app, streaming, monkeypatch):
+    ops = importlib.import_module('qlsm_addon_demo_stream.instance_ops')
+    _telemetry_id(app, streaming)
+    routes = []
+    monkeypatch.setattr(ops, '_register_route',
+                        lambda host_id, server_id, name, token: routes.append((server_id, token)))
+    monkeypatch.setattr(ops, 'reserve_server_id', Mock(side_effect=AssertionError('reserved')))
+    import ui.tasks
+    monkeypatch.setattr(ui.tasks, 'enqueue_task', lambda *a, **k: Mock(id='job-1'))
+    with app.app_context():
+        ok, message = ops.enable_instance_demo_stream_logic(streaming)
+        from qlsm_addon_demo_stream.settings import get_instance_server_id
+        assert ok, message
+        assert get_instance_server_id(streaming) == TELEMETRY_ID
+    assert routes == [(TELEMETRY_ID, 'stream-token')]
+    assert f'server_id={TELEMETRY_ID}' in message
+
+
+def test_upsert_leaves_one_line_per_cvar():
+    from qlsm_addon_demo_stream.stats_hub import upsert_cvars_in_text
+    text = 'set sv_demoStream "0"\nset a "1"\nset sv_demoStream 0\n'
+    assert upsert_cvars_in_text(text, {'sv_demoStream': '1'}) == 'set a "1"\nset sv_demoStream "1"\n'

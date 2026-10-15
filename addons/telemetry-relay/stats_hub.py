@@ -192,24 +192,36 @@ def reserve_server_id(label, host_id):
 
 # ---- server.cfg cvar helpers -------------------------------------------
 
+_CVAR_LINE = re.compile(r'^(\s*seta?\s+)([A-Za-z0-9_]+)(\s+)(?:"[^"]*"|[^\s"]+)(\s*)$')
+
+
 def upsert_cvars_in_text(text, cvars):
     """Replace/append `set <cvar> "value"` lines in raw server.cfg text.
 
     Only touches the given cvar names - every other line (including cvars
-    the operator set by hand through the Plugins tab) is left alone.
+    the operator set by hand through the Plugins tab) is left alone. A cvar
+    set more than once (`set` or `seta`, quoted or not) ends up as exactly
+    one line, where its last occurrence was: the engine applies the last
+    one, so rewriting only the first would leave a later stale line in
+    force.
     """
     lines = text.splitlines()
-    remaining = dict(cvars)
+    last = {}
+    for index, line in enumerate(lines):
+        m = _CVAR_LINE.match(line)
+        if m and m.group(2) in cvars:
+            last[m.group(2)] = index
     out = []
-    for line in lines:
-        m = re.match(r'^(\s*set\s+)([A-Za-z0-9_]+)(\s+)"(.*)"(\s*)$', line)
-        if m and m.group(2) in remaining:
-            value = remaining.pop(m.group(2))
-            out.append(f'{m.group(1)}{m.group(2)}{m.group(3)}"{value}"{m.group(5)}')
-        else:
-            out.append(line)
-    for cvar, value in remaining.items():
-        out.append(f'set {cvar} "{value}"')
+    for index, line in enumerate(lines):
+        m = _CVAR_LINE.match(line)
+        if m and m.group(2) in cvars:
+            if last[m.group(2)] == index:
+                out.append(f'{m.group(1)}{m.group(2)}{m.group(3)}"{cvars[m.group(2)]}"{m.group(4)}')
+            continue
+        out.append(line)
+    for cvar, value in cvars.items():
+        if cvar not in last:
+            out.append(f'set {cvar} "{value}"')
     return '\n'.join(out) + '\n'
 
 

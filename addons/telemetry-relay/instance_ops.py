@@ -27,6 +27,7 @@ from .settings import (
     get_instance_server_id,
     get_reserved_server_id,
     instance_ids_sharing_server_id,
+    is_instance_demo_stream_enabled,
     is_relay_enabled,
     is_stats_hub_configured_for_host,
     read_cvars_from_text,
@@ -130,8 +131,10 @@ def _finish(instance, ok, message, previous_status=None):
     return ok, message
 
 
-def enable_instance_telemetry_logic(instance_id, previous_status=None):
-    """Returns (ok: bool, message: str)."""
+def enable_instance_telemetry_logic(instance_id, previous_status=None, new_server_id=False):
+    """Returns (ok: bool, message: str). `new_server_id` reserves a fresh
+    server_id from stats-hub instead of reusing the stored one (two servers
+    sharing one); the old one is simply abandoned."""
     instance = db.session.get(QLInstance, instance_id)
     if not instance:
         return False, "Instance or associated host not found."
@@ -144,7 +147,8 @@ def enable_instance_telemetry_logic(instance_id, previous_status=None):
     if not is_relay_enabled(host_id):
         return _finish(instance, False, "Enable the telemetry relay for this host first.", previous_status)
 
-    server_id = get_instance_server_id(instance.id) or get_reserved_server_id(instance.id)
+    old_server_id = get_instance_server_id(instance.id) or get_reserved_server_id(instance.id)
+    server_id = None if new_server_id else old_server_id
     if server_id is None:
         try:
             server_id = reserve_server_id(instance.name, host_id)
@@ -193,9 +197,15 @@ def enable_instance_telemetry_logic(instance_id, previous_status=None):
             previous_status,
         )
 
+    note = ''
+    if new_server_id:
+        note = f" New server ID reserved (was {old_server_id})." if old_server_id else ''
+        if is_instance_demo_stream_enabled(instance.id):
+            note += (" The Live Demo Stream keeps its previous server ID until its panel "
+                     "is saved once (one more restart).")
     return _finish(
         instance, True,
-        f"Telemetry enabled, server_id={server_id}. Applying config and restarting (job {job.id}).",
+        f"Telemetry enabled, server_id={server_id}.{note} Applying config and restarting (job {job.id}).",
     )
 
 

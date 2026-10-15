@@ -179,6 +179,15 @@ Switching off now works (`qlx_statsHubUnifiedEnabled 0`, applied with a
 restart). After upgrading, use the menu entry instead of the tab; instances
 already sending keep their server ID.
 
+**telemetry-relay 1.5.1:** the Telemetry entry has a **Reserve a new server
+ID** switch for two servers that share one: saving with it on (and Send
+telemetry on) reserves a fresh ID from stats-hub and restarts once. Setting a
+cvar in `server.cfg` now leaves exactly one line for it, removing duplicates.
+
+**demo-stream 1.5.1:** when the stream runs under another server ID than the
+instance's telemetry, the Live Demo Stream status says so and a save moves the
+stream to telemetry's ID (one restart).
+
 **player-ranks 0.4.0:** the installation-wide "on by default" switches for
 qlstats and Slipgate are gone; each instance picks its sources on its own
 Ranks tab, and a new instance starts with every source off. On the first load

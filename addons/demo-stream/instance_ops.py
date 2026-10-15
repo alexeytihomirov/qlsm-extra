@@ -93,17 +93,26 @@ def _finish(instance, ok, message, previous_status=None):
     return ok, message
 
 
+def telemetry_server_id_on_same_hub(instance_id, host_id):
+    """Telemetry's server_id for this instance when telemetry uses the same
+    stats-hub as this addon, else None: an id is only meaningful on the hub
+    that issued it."""
+    telemetry_id = get_telemetry_server_id(instance_id)
+    telemetry_url = get_telemetry_stats_hub_url(host_id)
+    own_url = (get_effective_stats_hub_url(host_id) or '').rstrip('/')
+    if telemetry_id is not None and telemetry_url and telemetry_url == own_url:
+        return telemetry_id
+    return None
+
+
 def _resolve_server_id(instance, host_id):
     """Telemetry's server_id when it has one (one identity per instance across
     both features, only when both addons use the same stats-hub), else this addon's own, else a fresh reservation.
 
     A new reservation is stored only under this addon's own key: telemetry's
     keys are telemetry's to write. Raises what reserve_server_id raises."""
-    telemetry_id = get_telemetry_server_id(instance.id)
-    telemetry_url = get_telemetry_stats_hub_url(host_id)
-    own_url = (get_effective_stats_hub_url(host_id) or '').rstrip('/')
-    # An id is only meaningful on the hub that issued it.
-    if telemetry_id is not None and telemetry_url and telemetry_url == own_url:
+    telemetry_id = telemetry_server_id_on_same_hub(instance.id, host_id)
+    if telemetry_id is not None:
         if get_instance_server_id(instance.id) != telemetry_id:
             set_instance_server_id(instance.id, telemetry_id)
             db.session.commit()

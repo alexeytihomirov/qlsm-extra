@@ -107,7 +107,7 @@ def test_get_instance_enabled_from_cfg(app, client, auth):
     for iid, expected in ((on, True), (off, False), (missing, False)):
         resp = client.get(f'{URL}/instances/{iid}', headers=auth)
         assert resp.status_code == 200
-        assert resp.get_json()['data'] == {'enabled': expected}
+        assert resp.get_json()['data'] == {'enabled': expected, 'new_server_id': False}
 
 
 # ---- PUT ------------------------------------------------------------------
@@ -264,7 +264,7 @@ def test_status_labels(app, client, auth, cfg, stored, relay, ok, label):
 
 def test_manifest_telemetry_in_instance_menu():
     m = json.loads((ADDONS_DIR / 'telemetry-relay' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.5.0'
+    assert m['version'] == '1.5.1'
     ui = m['ui']
     assert 'instance_tabs' not in ui
     (entry,) = ui['instance_menu']
@@ -274,8 +274,9 @@ def test_manifest_telemetry_in_instance_menu():
     assert (panel['load'], panel['submit']) == ('GET instances/{instance_id}',
                                                 'PUT instances/{instance_id}')
     assert [(f['key'], f['type'], f['label']) for f in panel['fields']] == [
-        ('enabled', 'bool', 'Send telemetry')]
-    assert 'server_id' not in json.dumps(panel)
+        ('enabled', 'bool', 'Send telemetry'),
+        ('new_server_id', 'bool', 'Reserve a new server ID')]
+    assert panel['fields'][1]['default'] is False
 
     (host_entry,) = ui['host_menu']
     assert host_entry['status'] == 'GET hosts/{host_id}/status'
@@ -352,3 +353,145 @@ def test_status_enabled_without_server_id(app, client, auth):
     iid = _make_instance(app, ON_CFG, server_id=None)
     resp = client.get(f'{URL}/instances/{iid}/status', headers=auth)
     assert resp.get_json()['data'] == {'ok': False, 'label': 'On, no server ID yet; save to repair'}
+
+
+# ---- new server ID (1.5.1) ------------------------------------------------
+
+@pytest.mark.parametrize('cfg', [ON_CFG, OFF_CFG])
+def test_put_new_server_id_queues_enable_with_the_flag(app, client, auth, queued, cfg):
+    iid = _make_instance(app, cfg, server_id=12)
+    resp = client.put(f'{URL}/instances/{iid}', json={'enabled': True, 'new_server_id': True},
+                      headers=auth)
+    assert resp.status_code == 202, resp.get_json()
+    assert _task_names(queued) == ['enable_instance_telemetry_task']
+    assert queued[0][1] == (iid,) and queued[0][2]['new_server_id'] is True
+    assert resp.get_json()['data'] == {'enabled': True, 'new_server_id': False}
+
+
+def test_put_plain_enable_does_not_ask_for_a_new_id(app, client, auth, queued):
+    iid = _make_instance(app, OFF_CFG, server_id=12)
+    resp = client.put(f'{URL}/instances/{iid}', json={'enabled': True, 'new_server_id': False},
+                      headers=auth)
+    assert resp.status_code == 202
+    assert queued[0][2].get('new_server_id', False) is False
+
+
+@pytest.mark.parametrize('cfg', [ON_CFG, OFF_CFG])
+def test_put_new_server_id_while_switching_off_409(app, client, auth, queued, cfg):
+    iid = _make_instance(app, cfg, server_id=12)
+    resp = client.put(f'{URL}/instances/{iid}', json={'enabled': False, 'new_server_id': True},
+                      headers=auth)
+    assert resp.status_code == 409
+    assert 'Switch telemetry on' in resp.get_json()['error']['message']
+    assert queued == []
+
+
+def test_put_new_server_id_must_be_bool(app, client, auth, queued):
+    iid = _make_instance(app, ON_CFG, server_id=12)
+    resp = client.put(f'{URL}/instances/{iid}', json={'enabled': True, 'new_server_id': 'yes'},
+                      headers=auth)
+    assert resp.status_code == 400
+    assert queued == []
+
+
+def test_put_new_server_id_while_busy_409(app, client, auth, queued):
+    iid = _make_instance(app, ON_CFG, server_id=12, status=InstanceStatus.RESTARTING)
+    resp = client.put(f'{URL}/instances/{iid}', json={'enabled': True, 'new_server_id': True},
+                      headers=auth)
+    assert resp.status_code == 409
+    assert queued == []
+
+
+def test_new_server_id_is_never_stored(app, client, auth, queued):
+    from ui.models import AppSetting
+    iid = _make_instance(app, ON_CFG, server_id=12)
+    with app.app_context():
+        before = {r.key: r.value for r in AppSetting.query.all()}
+    client.put(f'{URL}/instances/{iid}', json={'enabled': True, 'new_server_id': True}, headers=auth)
+    with app.app_context():
+        after = {r.key: r.value for r in AppSetting.query.all()}
+    assert after == before
+    assert client.get(f'{URL}/instances/{iid}', headers=auth).get_json()['data'] == {
+        'enabled': True, 'new_server_id': False}
+
+
+DUP_CFG = ('set sv_hostname "duel"\nset qlx_statsHubUnifiedEnabled "1"\n'
+           'set qlx_statsHubServerId "12"\nset sv_demoStream "1"\nset qlx_statsHubServerId "12"\n')
+
+
+def test_enable_with_new_server_id_reserves_a_fresh_one(app, queued, monkeypatch):
+    ops = _ops()
+    monkeypatch.setattr(ops, 'push_relay_config_logic', lambda host_id: True)
+    reserve = Mock(return_value=44)
+    monkeypatch.setattr(ops, 'reserve_server_id', reserve)
+    iid = _make_instance(app, DUP_CFG, server_id=12, status=InstanceStatus.CONFIGURING)
+    with app.app_context():
+        ok, message = ops.enable_instance_telemetry_logic(
+            iid, previous_status='running', new_server_id=True)
+        assert ok, message
+        s = _settings()
+        assert s.get_instance_server_id(iid) == 44
+        assert s.get_reserved_server_id(iid) == 44
+    reserve.assert_called_once()
+    assert 'server_id=44' in message and '12' in message
+    text = _cfg_text(app, iid)
+    assert text.count('qlx_statsHubServerId') == 1
+    assert 'set qlx_statsHubServerId "44"' in text
+    assert [kw.get('restart') for _, _, kw in queued] == [True]
+
+
+def test_enable_with_new_server_id_while_off_reserves_a_fresh_one(app, queued, monkeypatch):
+    ops = _ops()
+    monkeypatch.setattr(ops, 'push_relay_config_logic', lambda host_id: True)
+    reserve = Mock(return_value=45)
+    monkeypatch.setattr(ops, 'reserve_server_id', reserve)
+    iid = _make_instance(app, OFF_CFG, server_id=12, status=InstanceStatus.CONFIGURING)
+    with app.app_context():
+        assert ops.disable_instance_telemetry_logic(iid)[0]
+        ok, message = ops.enable_instance_telemetry_logic(iid, new_server_id=True)
+        assert ok, message
+        assert _settings().get_instance_server_id(iid) == 45
+        assert _settings().get_reserved_server_id(iid) == 45
+    reserve.assert_called_once()
+    assert 'set qlx_statsHubServerId "45"' in _cfg_text(app, iid)
+
+
+def test_new_server_id_message_mentions_the_demo_stream(app, queued, monkeypatch):
+    from ui.models import AppSetting
+    ops = _ops()
+    monkeypatch.setattr(ops, 'push_relay_config_logic', lambda host_id: True)
+    monkeypatch.setattr(ops, 'reserve_server_id', Mock(return_value=46))
+    iid = _make_instance(app, ON_CFG, server_id=12, status=InstanceStatus.CONFIGURING)
+    with app.app_context():
+        db.session.add(AppSetting(key=f'demo_stream_enabled:{iid}', value='1'))
+        db.session.commit()
+        ok, message = ops.enable_instance_telemetry_logic(iid, new_server_id=True)
+    assert ok and 'Live Demo Stream' in message
+
+
+def test_new_server_id_reserve_failure_keeps_the_old_id(app, queued, monkeypatch):
+    import requests
+    ops = _ops()
+    monkeypatch.setattr(ops, 'push_relay_config_logic', lambda host_id: True)
+    monkeypatch.setattr(ops, 'reserve_server_id', Mock(side_effect=requests.ConnectionError('down')))
+    iid = _make_instance(app, ON_CFG, server_id=12, status=InstanceStatus.CONFIGURING)
+    with app.app_context():
+        ok, message = ops.enable_instance_telemetry_logic(iid, previous_status='running',
+                                                          new_server_id=True)
+        assert ok is False and 'Could not reserve' in message
+        assert _settings().get_instance_server_id(iid) == 12
+    assert queued == []
+
+
+# ---- server.cfg upsert ----------------------------------------------------
+
+def test_upsert_leaves_one_line_per_cvar():
+    s = _settings()
+    text = ('set a "1"\nset qlx_statsHubServerId "1"\nset b "2"\n'
+            'set qlx_statsHubServerId "1"\nseta qlx_statsHubUnifiedEnabled 0\n')
+    out = s.upsert_cvars_in_text(text, {'qlx_statsHubServerId': '9',
+                                        'qlx_statsHubUnifiedEnabled': '1', 'new': 'x'})
+    assert out == ('set a "1"\nset b "2"\nset qlx_statsHubServerId "9"\n'
+                   'seta qlx_statsHubUnifiedEnabled "1"\nset new "x"\n')
+    assert s.upsert_cvars_in_text('set qlx_statsHubServerId "1"\n', {'qlx_statsHubServerId': '1'}) \
+        == 'set qlx_statsHubServerId "1"\n'

@@ -247,13 +247,19 @@ def _cfg_enabled(instance):
     return read_instance_telemetry_cvars(instance).get('qlx_statsHubUnifiedEnabled') == '1'
 
 
+# A form-only switch: saving with it on reserves a fresh server ID. It is
+# never stored and always reads back as off, so the next save does not
+# reserve again (same pattern as file-forwarder's rescan_keys).
+NEW_SERVER_ID_KEY = 'new_server_id'
+
+
 @bp.route('/instances/<int:instance_id>', methods=['GET'], endpoint='get_instance_telemetry')
 @jwt_required()
 def get_instance_telemetry(instance_id):
     instance, error = _instance_or_error(instance_id)
     if error:
         return error
-    return jsonify({"data": {"enabled": _cfg_enabled(instance)}})
+    return jsonify({"data": {"enabled": _cfg_enabled(instance), NEW_SERVER_ID_KEY: False}})
 
 
 @bp.route('/instances/<int:instance_id>/status', methods=['GET'], endpoint='get_instance_telemetry_status')
@@ -298,9 +304,9 @@ def _enable_blocked(instance):
     return None
 
 
-def _queue_instance_task(instance, task_key, what):
+def _queue_instance_task(instance, task_key, what, data=None, **task_kwargs):
     """Busy check, instance lock, CONFIGURING, enqueue: shared by enable and
-    disable. Returns the response."""
+    disable. Returns the response, carrying `data` when given."""
     from ui.database import update_instance
     from ui.models import InstanceStatus
     from ui.task_lock import acquire_lock, release_lock
@@ -321,7 +327,7 @@ def _queue_instance_task(instance, task_key, what):
         previous_status = instance.status.value
         update_instance(instance.id, status=InstanceStatus.CONFIGURING)
         enqueue_task(TASKS[task_key], instance.id,
-                     previous_status=previous_status,
+                     previous_status=previous_status, **task_kwargs,
                      lock_token=lock_token, on_failure=instance_job_failure_handler)
     except Exception as e:
         release_lock('instance', instance.id, lock_token)
@@ -329,7 +335,10 @@ def _queue_instance_task(instance, task_key, what):
                                  exc_info=True)
         return jsonify({"error": {"message": f"Failed to queue telemetry {what}."}}), 500
 
-    return jsonify({"message": f'Telemetry {what} queued for "{instance.name}".'}), 202
+    body = {"message": f'Telemetry {what} queued for "{instance.name}".'}
+    if data is not None:
+        body["data"] = data
+    return jsonify(body), 202
 
 
 def _wiring_drift(instance):
@@ -354,7 +363,9 @@ def _wiring_drift(instance):
 def update_instance_telemetry(instance_id):
     """The Telemetry panel's save: off -> on queues the enable, on -> off the
     disable. Saving an enabled instance whose wiring drifted queues the
-    enable again, so a plain save repairs it (one restart)."""
+    enable again, so a plain save repairs it (one restart). `new_server_id`
+    with the switch on queues the enable with a freshly reserved server ID,
+    whether telemetry was on or off."""
     instance, error = _instance_or_error(instance_id)
     if error:
         return error
@@ -362,8 +373,20 @@ def update_instance_telemetry(instance_id):
     body = request.get_json(silent=True)
     if not isinstance(body, dict) or not isinstance(body.get('enabled'), bool):
         return jsonify({"error": {"message": "enabled must be true or false."}}), 400
+    new_server_id = body.get(NEW_SERVER_ID_KEY, False)
+    if not isinstance(new_server_id, bool):
+        return jsonify({"error": {"message": f"{NEW_SERVER_ID_KEY} must be true or false."}}), 400
     wanted = body['enabled']
     enabled = _cfg_enabled(instance)
+
+    if new_server_id:
+        if not wanted:
+            return jsonify({"error": {
+                "message": "Switch telemetry on to get a new server ID."
+            }}), 409
+        return _enable_blocked(instance) or _queue_instance_task(
+            instance, 'enable_instance_telemetry', 'enable with a new server ID',
+            data={"enabled": True, NEW_SERVER_ID_KEY: False}, new_server_id=True)
 
     if wanted and not enabled:
         return _enable_blocked(instance) or _queue_instance_task(
@@ -438,11 +461,13 @@ def register(ctx):
         return configure_host_telemetry_relay_logic(host_id, enabled)
 
     @ctx.task(timeout=300, lock_scope='instance')
-    def enable_instance_telemetry_task(instance_id, previous_status=None):
-        """Reserve a stats-hub server_id and wire the instance's cvars."""
+    def enable_instance_telemetry_task(instance_id, previous_status=None, new_server_id=False):
+        """Reserve a stats-hub server_id (a fresh one with `new_server_id`)
+        and wire the instance's cvars."""
         from .instance_ops import enable_instance_telemetry_logic
 
-        return enable_instance_telemetry_logic(instance_id, previous_status=previous_status)
+        return enable_instance_telemetry_logic(instance_id, previous_status=previous_status,
+                                               new_server_id=new_server_id)
 
     @ctx.task(timeout=300, lock_scope='instance')
     def disable_instance_telemetry_task(instance_id, previous_status=None):
