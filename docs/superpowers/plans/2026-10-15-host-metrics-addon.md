@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.10+ stdlib on hosts (`sqlite3`, `socket`), Flask blueprint + paramiko in the addon, Ansible playbooks, React (core's, via `window.__qlsm`) + Vite + Tailwind 4 + uPlot in the UI, pytest.
 
-**Spec:** `qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md`. Task: `qlsm-extra-0009`.
+**Spec:** `qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md`. Task: `qlsm-extra-0011`.
 
 ## Global Constraints
 

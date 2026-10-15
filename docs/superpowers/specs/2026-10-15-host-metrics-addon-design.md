@@ -1,6 +1,6 @@
 # Host metrics addon: resource dashboard and capacity verdict per game host - design
 
-Date: 2026-10-15. Task: `qlsm-extra-0009`. Related: `root-0020` (six donated VPS to place instances on).
+Date: 2026-10-15. Task: `qlsm-extra-0011`. Related: `root-0020` (six donated VPS to place instances on).
 
 ## Goal
 

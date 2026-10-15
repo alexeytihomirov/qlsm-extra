@@ -1,5 +1,5 @@
 ---
-id: qlsm-extra-0009
+id: qlsm-extra-0011
 title: host-metrics addon: per-host and per-instance resource dashboard with capacity verdict
 status: in-progress
 created: 2026-10-15
