@@ -65,17 +65,47 @@ test('hostHealth: no data under load (verdict unknown) is No data', () => {
   assert.match(h.reason, /No data under load yet/);
 });
 
-test('hostHealth: stale data is Watch, since the last sample, with the data finding as reason', () => {
-  const text = 'Collector data is 6m old - the collector or the host is down.';
+test('hostHealth: stale data under 5 min is Watch, since the last sample, with the data finding as reason', () => {
+  const text = 'Collector data is 3m old - the collector or the host is down.';
   const h = hostHealth(row({
     state: 'stale',
-    snapshot: { now: NOW, data_age_s: 360, events_open: [{ id: 1, ts: NOW - 9999, kind: 'disk_low', severity: 'crit', state: 'open', message: 'old' }] },
-    verdict: { status: 'unknown', slots: null, reason: 'collector data is 6 min old' },
+    snapshot: { now: NOW, data_age_s: 200, events_open: [{ id: 1, ts: NOW - 9999, kind: 'disk_low', severity: 'crit', state: 'open', message: 'old' }] },
+    verdict: { status: 'unknown', slots: null, reason: 'collector data is 3 min old' },
   }), [{ level: 'problem', area: 'data', text }]);
   assert.equal(h.status, 'watch');
   assert.equal(h.reason, text);
   // the open events of a stale host describe the past: not reported
-  assert.deepEqual(h.items, [{ level: 'watch', what: text, since: NOW - 360 }]);
+  assert.deepEqual(h.items, [{ level: 'watch', what: text, since: NOW - 200 }]);
+});
+
+test('hostHealth: stale up to 5 minutes is Watch, older is a Problem in the open problems', () => {
+  const stale = (age) => row({
+    state: 'stale',
+    snapshot: { now: NOW, data_age_s: age, events_open: [] },
+    verdict: { status: 'unknown', slots: null, reason: 'collector data is old' },
+  });
+  const w = hostHealth(stale(200), [{ level: 'problem', area: 'data', text: 'Collector data is 3m old - the collector or the host is down.' }]);
+  assert.equal(w.status, 'watch');
+  assert.deepEqual(w.items.map((i) => i.level), ['watch']);
+  const p = hostHealth(stale(400), [{ level: 'problem', area: 'data', text: 'Collector data is 6m old - the collector or the host is down.' }]);
+  assert.equal(p.status, 'problem');
+  assert.equal(p.reason, 'Collector data is 6 min old - the collector or the host is down.');
+  assert.deepEqual(p.items, [{ level: 'problem', what: p.reason, since: NOW - 400 }]);
+  // without data_age_s the age is unknown: Watch
+  assert.equal(hostHealth(row({ state: 'stale', snapshot: { now: NOW } }), []).status, 'watch');
+});
+
+test('hostHealth: an open frames_late (warn event) is a Problem, listed once with its start time', () => {
+  const h = hostHealth(row({
+    snapshot: {
+      now: NOW,
+      data_age_s: 5,
+      events_24h: { frames_late: 1 },
+      events_open: [{ id: 5, ts: NOW - 120, kind: 'frames_late', scope: 'instance', port: 27960, severity: 'warn', state: 'open', message: 'port 27960: 4% late' }],
+    },
+  }), [ROOM_OK, { level: 'problem', area: 'frames', text: '12 late frames on :27960 in the last 24 hours (24 h snapshot). A late frame means players see a hitch.' }]);
+  assert.equal(h.status, 'problem');
+  assert.deepEqual(h.items, [{ level: 'problem', what: 'Late frames: port 27960: 4% late', since: NOW - 120 }]);
 });
 
 test('hostHealth: an open critical event is a problem with its start time', () => {

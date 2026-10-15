@@ -4487,6 +4487,7 @@ const KIND_AREA = {
 };
 const HEALTH_LABEL = { problem: "Problem", watch: "Watch", nodata: "No data", ok: "OK" };
 const HEALTH_RANK = { problem: 0, watch: 1, nodata: 2, ok: 3 };
+const STALE_PROBLEM_S = 300;
 function openEvents(snapshot) {
   const list = snapshot == null ? void 0 : snapshot.events_open;
   if (!Array.isArray(list)) return null;
@@ -4527,32 +4528,44 @@ function hostHealth(row, list) {
     return health("nodata", "The collector has not written any data yet.", []);
   }
   if (state === "stale") {
+    const age = snapshot.data_age_s;
+    const since = isNum$2(snapshot.now) && isNum$2(age) ? snapshot.now - age : null;
+    if (isNum$2(age) && age > STALE_PROBLEM_S) {
+      const what2 = `Collector data is ${Math.floor(age / 60)} min old - the collector or the host is down.`;
+      return health("problem", what2, [{ level: "problem", what: what2, since }]);
+    }
     const data = found.find((f) => (f == null ? void 0 : f.area) === "data");
     const what = (data == null ? void 0 : data.text) || "Collector data is old - the collector or the host is down.";
-    const since = isNum$2(snapshot.now) && isNum$2(snapshot.data_age_s) ? snapshot.now - snapshot.data_age_s : null;
     return health("watch", what, [{ level: "watch", what, since }]);
   }
-  const problems = [];
-  const watch = [];
-  const covered = /* @__PURE__ */ new Set();
+  const evItems = [];
   for (const e of openEvents(snapshot) || []) {
     if (QUIET_KINDS.has(e.kind)) continue;
-    const item = {
+    evItems.push({
+      area: KIND_AREA[e.kind] || null,
       level: e.severity === "crit" ? "problem" : "watch",
       what: `${kindLabel(e.kind)}${e.message ? `: ${e.message}` : ""}`,
       since: e.ts
-    };
-    (item.level === "problem" ? problems : watch).push(item);
-    if (KIND_AREA[e.kind]) covered.add(KIND_AREA[e.kind]);
+    });
   }
+  const findingItems = [];
+  for (const f of found) {
+    if (!f || f.level !== "problem" && f.level !== "warning") continue;
+    const level = f.level === "problem" ? "problem" : "watch";
+    const same = evItems.filter((i) => i.area && i.area === f.area);
+    if (same.length) {
+      if (level === "problem") for (const i of same) i.level = "problem";
+      continue;
+    }
+    findingItems.push({ level, what: f.text, since: null });
+  }
+  const problems = [];
+  const watch = [];
+  for (const { area, ...item } of evItems) (item.level === "problem" ? problems : watch).push(item);
   const verdict = row.verdict;
   const overload = (verdict == null ? void 0 : verdict.status) === "overloaded" ? overloadText(verdict) : null;
   if (overload) problems.push({ level: "problem", what: overload, since: null });
-  for (const f of found) {
-    if (!f || covered.has(f.area)) continue;
-    if (f.level === "problem") problems.push({ level: "problem", what: f.text, since: null });
-    else if (f.level === "warning") watch.push({ level: "watch", what: f.text, since: null });
-  }
+  for (const item of findingItems) (item.level === "problem" ? problems : watch).push(item);
   if ((verdict == null ? void 0 : verdict.status) === "overloaded" && !problems.length) {
     problems.push({ level: "problem", what: `Overloaded: ${verdict.reason}.`, since: null });
   }

@@ -160,6 +160,8 @@ const KIND_AREA = {
 };
 const HEALTH_LABEL = { problem: 'Problem', watch: 'Watch', nodata: 'No data', ok: 'OK' };
 const HEALTH_RANK = { problem: 0, watch: 1, nodata: 2, ok: 3 };
+/** Stale data older than this is a Problem (B6 notifies it as critical after 5 min). */
+const STALE_PROBLEM_S = 300;
 
 /** Open events of a snapshot, oldest first; null for an older collector without the field. */
 export function openEvents(snapshot) {
@@ -197,8 +199,9 @@ function health(status, reason, items) {
 
 /**
  * Board status of one `GET hosts` row with its `findings(...)` list:
- *   problem - unreachable / no sudo, verdict overloaded, an open critical event, a problem finding;
- *   watch   - stale data, verdict tight, an open warning event, a warning finding (noisy
+ *   problem - unreachable / no sudo, stale over 5 min, verdict overloaded, an open critical event,
+ *             a problem finding (also when it matches an open warn event, e.g. frames_late);
+ *   watch   - stale data (up to 5 min; older is a problem), verdict tight, an open warning event, a warning finding (noisy
  *             neighbour, CPU above the planning limit, ...), warnings in the last 24 h, an
  *             outdated collector;
  *   nodata  - not installed, no data yet, no data under load (verdict unknown);
@@ -224,34 +227,50 @@ export function hostHealth(row, list) {
     return health('nodata', 'The collector has not written any data yet.', []);
   }
   if (state === 'stale') {
-    // its open events and findings describe the past: only the staleness is reported
+    // its open events and findings describe the past: only the staleness is reported.
+    // Ruling R5: Watch up to STALE_PROBLEM_S, Problem after (the critical notification of B6).
+    const age = snapshot.data_age_s;
+    const since = isNum(snapshot.now) && isNum(age) ? snapshot.now - age : null;
+    if (isNum(age) && age > STALE_PROBLEM_S) {
+      const what = `Collector data is ${Math.floor(age / 60)} min old - the collector or the host is down.`;
+      return health('problem', what, [{ level: 'problem', what, since }]);
+    }
     const data = found.find((f) => f?.area === 'data');
     const what = data?.text || 'Collector data is old - the collector or the host is down.';
-    const since = isNum(snapshot.now) && isNum(snapshot.data_age_s) ? snapshot.now - snapshot.data_age_s : null;
     return health('watch', what, [{ level: 'watch', what, since }]);
   }
 
-  const problems = [];
-  const watch = [];
-  const covered = new Set();
+  // Open events first (they carry "since"). A finding of the same area says the same thing:
+  // its text is dropped, but its level still counts (a warn event + a problem finding is a
+  // problem; ruling R5: an open frames_late is a problem).
+  const evItems = [];
   for (const e of openEvents(snapshot) || []) {
     if (QUIET_KINDS.has(e.kind)) continue;
-    const item = {
+    evItems.push({
+      area: KIND_AREA[e.kind] || null,
       level: e.severity === 'crit' ? 'problem' : 'watch',
       what: `${kindLabel(e.kind)}${e.message ? `: ${e.message}` : ''}`,
       since: e.ts,
-    };
-    (item.level === 'problem' ? problems : watch).push(item);
-    if (KIND_AREA[e.kind]) covered.add(KIND_AREA[e.kind]);
+    });
   }
+  const findingItems = [];
+  for (const f of found) {
+    if (!f || (f.level !== 'problem' && f.level !== 'warning')) continue;
+    const level = f.level === 'problem' ? 'problem' : 'watch';
+    const same = evItems.filter((i) => i.area && i.area === f.area);
+    if (same.length) {
+      if (level === 'problem') for (const i of same) i.level = 'problem';
+      continue;
+    }
+    findingItems.push({ level, what: f.text, since: null });
+  }
+  const problems = [];
+  const watch = [];
+  for (const { area, ...item } of evItems) (item.level === 'problem' ? problems : watch).push(item);
   const verdict = row.verdict;
   const overload = verdict?.status === 'overloaded' ? overloadText(verdict) : null;
   if (overload) problems.push({ level: 'problem', what: overload, since: null });
-  for (const f of found) {
-    if (!f || covered.has(f.area)) continue;
-    if (f.level === 'problem') problems.push({ level: 'problem', what: f.text, since: null });
-    else if (f.level === 'warning') watch.push({ level: 'watch', what: f.text, since: null });
-  }
+  for (const item of findingItems) (item.level === 'problem' ? problems : watch).push(item);
   // a verdict the findings did not explain still counts, in its own words
   if (verdict?.status === 'overloaded' && !problems.length) {
     problems.push({ level: 'problem', what: `Overloaded: ${verdict.reason}.`, since: null });
