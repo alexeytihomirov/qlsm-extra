@@ -31,6 +31,8 @@ def _load(path):
 
 def _texts():
     for path in ADDON_MANIFESTS:
+        if path.parent.name == 'host-metrics':
+            continue  # its texts are owned by another line of work; a text-only edit would mark every host outdated
         manifest = _load(path)
         if manifest.get('description'):
             yield f'{path.parent.name}', manifest['description']

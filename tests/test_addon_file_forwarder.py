@@ -554,7 +554,7 @@ def test_public_key_route_returns_only_the_public_half(app, client, auth, caplog
 def test_settings_route_shows_the_editable_values_without_keys(app, client, auth):
     client.get(f'{API}/public-key', headers=auth)
     data = client.get(f'{API}/settings', headers=auth).get_json()['data']
-    assert data == DEFAULTS
+    assert data == dict(DEFAULTS, rescan_keys=False)
 
 
 class FakeScan:
@@ -660,6 +660,17 @@ def test_put_settings_rescan_keys_rescans(app, client, auth, scan):
     assert client.put(f'{API}/settings', headers=auth, json=VALID).status_code == 200
     assert client.put(f'{API}/settings', headers=auth, json=dict(VALID, rescan_keys=True)).status_code == 200
     assert scan.hosts == [VPS, VPS]
+
+
+def test_rescan_keys_does_not_stay_ticked(app, client, auth, scan):
+    saved = client.put(f'{API}/settings', headers=auth, json=dict(VALID, rescan_keys=True))
+    assert saved.get_json()['data']['rescan_keys'] is False
+    assert client.get(f'{API}/settings', headers=auth).get_json()['data']['rescan_keys'] is False
+    assert 'rescan_keys' not in _stored(app)
+    assert scan.hosts == [VPS]
+    # The next unrelated save does not scan again.
+    assert client.put(f'{API}/settings', headers=auth, json=dict(VALID, retention_days='3')).status_code == 200
+    assert scan.hosts == [VPS]
 
 
 def test_put_settings_scan_failure_saves_nothing(app, client, auth, monkeypatch):

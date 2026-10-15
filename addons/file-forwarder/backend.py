@@ -203,14 +203,19 @@ def _editable(values):
     return {key: str(values.get(key, config_render.DEFAULTS[key])) for key in config_render.EDITABLE_KEYS}
 
 
-# A form-only switch: saving with it on scans the VPS host keys again.
+# A form-only switch: saving with it on scans the VPS host keys again. It is
+# never stored and always reads back as off, so the next save does not rescan.
 RESCAN_KEY = 'rescan_keys'
+
+
+def _form_values(values):
+    return dict(_editable(values), **{RESCAN_KEY: False})
 
 
 @bp.route('/settings', methods=['GET'], endpoint='get_settings')
 @jwt_required()
 def get_settings():
-    return jsonify({'data': _editable(CTX.settings.get('global', 0))})
+    return jsonify({'data': _form_values(CTX.settings.get('global', 0))})
 
 
 @bp.route('/settings/status', methods=['GET'], endpoint='settings_status')
@@ -274,7 +279,7 @@ def put_settings():
     if config_render.KNOWN_HOSTS_SETTING in stored:
         message = (f'Saved. Host keys of {checked["vps_host"]} pinned: {", ".join(prints)}. '
                    'Compare them once with the VPS provider console, then use Apply to host.')
-    return jsonify({'data': dict(_editable(values), fingerprints=prints), 'message': message})
+    return jsonify({'data': dict(_form_values(values), fingerprints=prints), 'message': message})
 
 
 @bp.route('/hosts/<int:host_id>', methods=['GET'], endpoint='get_host_switch')
