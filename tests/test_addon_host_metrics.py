@@ -480,3 +480,41 @@ def test_remote_command_is_quoted_and_checks_the_script():
 @pytest.mark.parametrize('path', ['hosts', 'hosts/1/series?range=1h', 'hosts/1/events?range=1h'])
 def test_read_routes_need_login(client, path):
     assert client.get(f'{API}/{path}').status_code == 401
+
+
+def _break_connection_for(monkeypatch, bad_name):
+    ssh = _backend().hm_ssh
+    real = ssh.connection
+
+    def connection(host):
+        if host.name == bad_name:
+            raise ValueError('self host has no management address')
+        return real(host)
+    monkeypatch.setattr(ssh, 'connection', connection)
+
+
+def test_a_host_whose_connection_cannot_be_built_is_unreachable(app, client, auth, monkeypatch):
+    _host(app, 'h-a')
+    _host(app, 'h-bad')
+    _host(app, 'h-c')
+    _break_connection_for(monkeypatch, 'h-bad')
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', _fake_exec({
+        'h-a': (0, _snapshot(), ''), 'h-c': (127, None, '')}))
+    response = client.get(f'{API}/hosts?refresh=1', headers=auth)
+    assert response.status_code == 200, response.get_json()
+    rows = {h['name']: h for h in response.get_json()['data']['hosts']}
+    assert {n: r['state'] for n, r in rows.items()} == {
+        'h-a': 'ok', 'h-bad': 'unreachable', 'h-c': 'not_installed'}
+    assert rows['h-bad']['error'] and 'management address' not in rows['h-bad']['error']
+    assert rows['h-a']['error'] is None
+
+
+def test_series_of_a_host_whose_connection_cannot_be_built_is_502(app, client, auth, monkeypatch):
+    host_id = _host(app, 'h-bad')
+    _break_connection_for(monkeypatch, 'h-bad')
+    fake = _fake_exec({})
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', fake)
+    for path in ('series?range=1h', 'events?range=1h'):
+        response = client.get(f'{API}/hosts/{host_id}/{path}', headers=auth)
+        assert response.status_code == 502 and response.get_json()['error']['message']
+    assert fake.calls == []

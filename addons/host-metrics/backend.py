@@ -21,6 +21,7 @@ import re
 import statistics
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required
@@ -278,6 +279,8 @@ def classify(rc, parsed, stderr, expected_version):
 
 def _fetch_snapshot(conn, expected_version):
     """Runs in a worker thread: plain data only, no app context, no database."""
+    if getattr(conn, 'error', None):
+        return {'state': 'unreachable', 'version': None, 'snapshot': None, 'error': conn.error}
     try:
         rc, parsed, stderr = hm_ssh.exec_json(conn, ['snapshot'], timeout=QUERY_TIMEOUT_SECONDS)
     except Exception:
@@ -296,13 +299,26 @@ def _fleet_busy_median(rows):
     return statistics.median(values) if values else None
 
 
+CONNECTION_ERROR = 'The SSH target of this host could not be resolved.'
+
+
+def _safe_connection(host):
+    """A connection, or a placeholder carrying `error` when the target cannot be built
+    (one misconfigured host must not fail the whole list)."""
+    try:
+        return hm_ssh.connection(host)
+    except Exception as e:
+        CTX.logger.warning('host-metrics: no ssh connection for host %s: %s', host.name, e)
+        return SimpleNamespace(id=host.id, name=host.name, error=CONNECTION_ERROR)
+
+
 def build_hosts(connections, values, expected_version):
     if connections:
         with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
             fetched = list(pool.map(lambda c: _fetch_snapshot(c, expected_version), connections))
     else:
         fetched = []
-    rows = [dict(f, id=c.id, name=c.name) for c, f in zip(connections, fetched)]
+    rows = [dict({'error': None}, **f, id=c.id, name=c.name) for c, f in zip(connections, fetched)]
     median = _fleet_busy_median(rows)
     try:
         knobs = hm_settings.verdict_settings(values)
@@ -316,7 +332,7 @@ def build_hosts(connections, values, expected_version):
             except Exception:
                 # an older collector may lack fields the verdict needs
                 CTX.logger.warning('host-metrics: no verdict for host %s', row['name'], exc_info=True)
-    return [{k: row[k] for k in ('id', 'name', 'state', 'version', 'snapshot', 'verdict')}
+    return [{k: row[k] for k in ('id', 'name', 'state', 'version', 'snapshot', 'verdict', 'error')}
             for row in rows]
 
 
@@ -331,7 +347,7 @@ def list_hosts():
     from ui.models import Host
 
     # Rows become plain data here, in the request thread.
-    connections = [hm_ssh.connection(h) for h in Host.query.order_by(Host.id).all()]
+    connections = [_safe_connection(h) for h in Host.query.order_by(Host.id).all()]
     hosts = build_hosts(connections, CTX.settings.get('global', 0), CTX.manifest.get('version') or '')
     _cache_set(HOSTS_CACHE_KEY, hosts, HOSTS_CACHE_TTL)
     return jsonify({'data': {'hosts': hosts}})
@@ -341,9 +357,11 @@ def _passthrough(host_id, argv):
     host = _get_host(host_id)
     if not host:
         return _error('Host not found.', 404)
+    conn = _safe_connection(host)
+    if getattr(conn, 'error', None):
+        return _error(conn.error, 502)
     try:
-        rc, parsed, stderr = hm_ssh.exec_json(hm_ssh.connection(host), argv,
-                                              timeout=QUERY_TIMEOUT_SECONDS)
+        rc, parsed, stderr = hm_ssh.exec_json(conn, argv, timeout=QUERY_TIMEOUT_SECONDS)
     except Exception as e:
         CTX.logger.warning('host-metrics: query to host %s failed: %s', host.name, e)
         return _error('The host did not answer.', 502)
