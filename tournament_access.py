@@ -67,7 +67,6 @@ class tournament_access(minqlx.Plugin):
         self.set_cvar_once("qlx_tournamentAccessEnabled", "0")
         self.set_cvar_once("qlx_tournamentId", "0")
         self.set_cvar_once("qlx_tournamentAccessBypassPerm", "3")
-        self.set_cvar_once("qlx_devAuthOpen", "0")
 
         self.add_hook("player_loaded", self.handle_player_loaded, priority=minqlx.Priority.HIGH)
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt, priority=minqlx.Priority.HIGH)
@@ -86,14 +85,6 @@ class tournament_access(minqlx.Plugin):
         if self.get_cvar("qlx_tournamentAccessEnabled", bool) is False:
             return False
         return self._tournament_id() > 0
-
-    def _dev_auth_open(self):
-        raw = self.get_cvar("qlx_devAuthOpen")
-        if raw is None:
-            return False
-        if isinstance(raw, bool):
-            return raw
-        return str(raw).strip().lower() not in ("0", "false", "")
 
     def _access_key(self):
         return ACCESS_KEY.format(tournament_id=self._tournament_id())
@@ -237,8 +228,6 @@ class tournament_access(minqlx.Plugin):
         self._refresh_access()
 
     def handle_player_loaded(self, player):
-        if self._dev_auth_open():
-            return
         if self._is_bot(player) or self._bypass(player):
             return
 
@@ -258,8 +247,6 @@ class tournament_access(minqlx.Plugin):
             self._force_spec(player, "specbot" if specbot else "")
 
     def handle_team_switch_attempt(self, player, old_team, new_team, target=None):
-        if self._dev_auth_open():
-            return
         if self._is_bot(player) or self._bypass(player):
             return
 

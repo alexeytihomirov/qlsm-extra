@@ -40,3 +40,8 @@ def test_decide_loaded(role, active, specbot, lobby, expected):
 ])
 def test_decide_team_switch(role, active, specbot, lobby, team, expected):
     assert ta.decide_team_switch(role, active, specbot, lobby, team) == expected
+
+
+def test_plugin_does_not_read_the_dev_auth_open_cvar():
+    source = (Path(__file__).resolve().parent.parent / "tournament_access.py").read_text(encoding="utf-8")
+    assert "qlx_devAuthOpen" not in source

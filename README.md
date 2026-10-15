@@ -61,11 +61,9 @@ python check_manifest_hashes.py
 |------|-----------------|
 | `tournament_access.py` | Yes |
 | `chat_rcon.py` | Yes |
-| `chat_rcon_acl.py` | No - a copy of chat_rcon's permission rules for the tests; not needed on a server |
 | `lobby.py` | Yes |
 | `referee_call.py` | Yes - `!call` for players; the call travels as chat through `stream_telemetry_unified` (Session Events on) |
 | `match_restore_util.py` | No - helper for `match_restore.py`, downloaded with it |
-| `match_restore_lab.py` | Optional add-on to `match_restore.py` |
 | `match_restore.py` + `restore/` | Yes - downloads as one entry |
 | `qlmatch_packer.py` | Yes - launches the `qlmatch-packer` addon's `pack.mjs` when the engine finishes a match's demos; **required** for automatic `.qlmatch` (without it only raw `.dm_91` remain). Downloads with its helper `qlmatch_packer_cmd.py` (not a plugin) |
 | `demo_stream_resync_hold.py` | Yes - after the engine forces a full snapshot for a live-streamed player (relay reconnect, lost blocks, keyframe), keeps forcing one per server frame until the client acknowledges it (at most `qlx_demoStreamResyncHoldMaxFrames`, default 8; at most `qlx_demoStreamResyncHoldPerFrame` holds at once, default 2). **Off by default** (`qlx_demoStreamResyncHold 0`): measured on a duel server only, not yet on a populated server or in team modes; set it to 1 to enable. With `sv_demoStreamKeyframeSec 0` there are no keyframe holds, but a relay reconnect and lost blocks are still repaired, the first player after a reconnect included. `qlx !resynchold` prints the counters, `qlx !resynchold log` the last holds. Needs the fork's live demo stream |

@@ -3,9 +3,9 @@ import pytest
 from _minqlx_stub import import_plugin
 
 
-@pytest.fixture(params=["chat_rcon_acl", "chat_rcon"])
-def acl(request):
-    return import_plugin(request.param)
+@pytest.fixture
+def acl():
+    return import_plugin("chat_rcon")
 
 
 DENIED = ("multi", "denied: one command per line", "")
@@ -37,7 +37,7 @@ def test_disabled_wins_over_the_separator_check(acl):
     assert acl.evaluate_acl(enabled=False, perm_level=5, cmd_line="pause; quit") == ("disabled", "chat-rcon disabled", "")
 
 
-def test_both_copies_fold_case_and_show_the_same_usage(acl):
+def test_fold_case_and_show_usage(acl):
     assert acl.parse_csv("Pause,MAP", ()) == {"pause", "map"}
     assert acl.normalize_command_line("/MAP Bloodrun") == ("MAP Bloodrun", "map", "bloodrun")
     assert acl.evaluate_acl(enabled=True, perm_level=5, cmd_line="") == ("usage", "usage: !rcon <command> [args...]", "")

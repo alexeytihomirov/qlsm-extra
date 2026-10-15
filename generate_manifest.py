@@ -37,11 +37,9 @@ PACKAGES_DIR = ROOT / 'packages'
 DEFAULT_PLUGINS = [
     'tournament_access.py',
     'chat_rcon.py',
-    'chat_rcon_acl.py',
     'lobby.py',
     'match_restore.py',
     'match_restore_util.py',
-    'match_restore_lab.py',
     'stream_telemetry_unified.py',
     'telemetry_unified_sched.py',
     'stats_hub_pause.py',

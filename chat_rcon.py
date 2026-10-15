@@ -3,8 +3,7 @@
 See docs/superpowers/specs/2026-08-05-chat-rcon-design.md
 
 ACL helpers are inlined (not a sibling import): minqlx loads plugins as
-package submodules and flat imports of chat_rcon_acl fail at runtime.
-Unit tests still cover the same logic via chat_rcon_acl.py.
+package submodules and flat sibling imports fail at runtime.
 """
 
 import minqlxtended as minqlx

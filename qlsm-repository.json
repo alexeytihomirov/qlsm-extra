@@ -5,21 +5,14 @@
       "runtime": "minqlxtended",
       "label": "Tournament Access",
       "description": "Closes a tournament server to everyone not on the tournament roster. The tournament hub writes the roster (players and casters) into the server's Redis; when the hub marks it enforced, players not on it are kicked as they load, casters are kept in spectator, and on a lobby server everyone stays in spectator. The server owner and players at the bypass permission level are never checked. A stream spectator account (name starting with StreamSpec, or the qlx_specbot_name_prefix cvar) must be on the roster or have the bypass level like anyone else; on the roster it is kept in spectator.",
-      "sha256": "74b8bd7d8032e9de42566def4b792f805334afbf57be6faf6ed495a9f5af4844"
+      "sha256": "42ef9d322a9c6446b0a40f6f7cc64726db7ad0b4fddb07770a03aa4689375b90"
     },
     {
       "filename": "chat_rcon.py",
       "runtime": "minqlxtended",
       "label": "Chat RCON",
       "description": "Lets referees and admins run server console commands from chat with !rcon <command>. Referees (permission level Referee Permission Level and up) may run only the Referee-Allowed Commands; admins (Admin Permission Level and up) may run anything except the Admin-Denied Commands. Takes over the stock !rcon while enabled, and every use is written to the server log.",
-      "sha256": "a01adbc752724128ef9e26ca1c3591e0a2b14319fc814926adeae1d8b137ef08"
-    },
-    {
-      "filename": "chat_rcon_acl.py",
-      "runtime": "minqlxtended",
-      "label": "\u26a0\ufe0f chat_rcon test copy - not a plugin, do not enable",
-      "description": "A copy of chat_rcon's permission rules that this repository's tests import. chat_rcon.py has the same rules built in and does not need this file on a server.",
-      "sha256": "fd016c20fa696d40900a8ed4b6480d9904fe0ea9b0efac4c50c92d893d739614"
+      "sha256": "4446cf079ba63d9541d0864b79a8403e56cb400d777e5f9cc5d48917d8821268"
     },
     {
       "filename": "lobby.py",
@@ -43,7 +36,7 @@
         "restore/items.py": "74c275f04c61641200dc853f3b27cfb0cb27d2122e3dfc92f43e87c406fd677d",
         "restore/qlmatch.py": "8e721f8c82df00d787aa2ad91864c39092ab78240a1944e7efbab8c990049f8e"
       },
-      "sha256": "64a7690673183a770b2da4963dd98ab155e8f590b9f9e12ded0adce58b38ad13"
+      "sha256": "ac4fe31139980648cbb9da3846192327cde688a74499e0729290ec7a91be506c"
     },
     {
       "filename": "match_restore_util.py",
@@ -51,13 +44,6 @@
       "label": "\u26a0\ufe0f match_restore helper - do not enable",
       "description": "Helper module for match_restore.py, downloaded with it. It is not a plugin: do not add it to qlx_plugins.",
       "sha256": "c9c4c700db91f20e8932a0205b9b58da4a13dafc1a24afd4d2431d477fbd0f6b"
-    },
-    {
-      "filename": "match_restore_lab.py",
-      "runtime": "minqlxtended",
-      "label": "Match Restore Lab",
-      "description": "Extra test and debug commands for match_restore: item respawn timers, item entity tools, setting the match clock by hand and restoring a single player. Not needed for a real restore. Needs match_restore enabled.",
-      "sha256": "40ee37de047dee5617ba9e68856adecdb5553369a3c372cfe647345c41d8b384"
     },
     {
       "filename": "stream_telemetry_unified.py",
@@ -68,7 +54,7 @@
         "telemetry_unified_sched.py",
         "stats_hub_pause.py"
       ],
-      "sha256": "52b94cfe5220f7f824eebce47fdadc3ab11c7b6036eb38205219f7478b82f1fe"
+      "sha256": "64cf1e75a3225014c3cca12b69aa9708ffd5a4e557a9dd1a63683a0f4e284ed6"
     },
     {
       "filename": "telemetry_unified_sched.py",

@@ -40,8 +40,8 @@
 #
 # CVARs — reused as-is from the three plugins (same names/semantics/defaults, see their
 # header comments for the full list): qlx_statsHubInterval, qlx_statsHubIdleInterval,
-# qlx_statsHubAccuracyInterval, qlx_statsHubMatchId, qlx_statsHubServerId,
-# qlx_statsHubTournamentId, qlx_pickupTelemetryDebug. The three per-feed switches are
+# qlx_statsHubAccuracyInterval, qlx_statsHubServerId,
+# qlx_statsHubTournamentId. The three per-feed switches are
 # this plugin's own namespace now: qlx_statsHubFeedPositions (positions/accuracy),
 # qlx_statsHubFeedItems (item pickup/drop), qlx_statsHubFeedSession
 # (session/chat/vote/pause) — see the rename note above for the legacy-name
@@ -421,14 +421,12 @@ class stream_telemetry_unified(minqlx.Plugin):
         self.set_cvar_once("qlx_statsHubUnifiedEnabled", "0")
         self.set_cvar_once("qlx_streamTelemetryEnabled", "0")
         self.set_cvar_once("qlx_pickupTelemetryEnabled", "0")
-        self.set_cvar_once("qlx_pickupTelemetryDebug", "0")
         self.set_cvar_once("qlx_sessionEventsEnabled", "0")
         self.set_cvar_once("qlx_statsHubUrl", self._LOCAL_RELAY_URL)
         self.set_cvar_once("qlx_statsHubToken", "")
         self.set_cvar_once("qlx_statsHubInterval", "0.1")
         self.set_cvar_once("qlx_statsHubIdleInterval", "1.0")
         self.set_cvar_once("qlx_statsHubAccuracyInterval", "2")
-        self.set_cvar_once("qlx_statsHubMatchId", "")
         self.set_cvar_once("qlx_statsHubServerId", "0")
         self.set_cvar_once("qlx_statsHubTournamentId", "0")
 
@@ -556,9 +554,6 @@ class stream_telemetry_unified(minqlx.Plugin):
         return tid if tid > 0 else None
 
     def _match_id(self):
-        fixed = (self.get_cvar("qlx_statsHubMatchId") or "").strip()
-        if fixed:
-            return fixed
         server_id = self._server_id()
         if server_id is not None:
             return "server-{}".format(server_id)
@@ -1527,20 +1522,6 @@ class stream_telemetry_unified(minqlx.Plugin):
         if not steam:
             return minqlx.Return.NONE
         act = str(action or "pickup").strip().lower()
-        if self.get_cvar("qlx_pickupTelemetryDebug", bool):
-            self.logger.info(
-                "stream_telemetry_unified: %s entity_id=%s item=%s gi_type=%s gi_tag=%s "
-                "gi_quantity=%s pos=(%.1f,%.1f,%.1f)",
-                act,
-                int(item_entity_id),
-                str(classname or ""),
-                int(gi_type or 0),
-                int(gi_tag or 0),
-                int(gi_quantity or 0),
-                float(x),
-                float(y),
-                float(z),
-            )
         if len(self._items_queue) >= self._ITEMS_MAX_QUEUE:
             # Rate-limited (P2-2): a stuck relay drops one event per pickup, which
             # at MG/SG pickup rates during a chaotic warmup can be dozens/sec —
