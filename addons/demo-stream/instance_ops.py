@@ -98,8 +98,7 @@ def _resolve_server_id(instance, host_id):
     both features, only when both addons use the same stats-hub), else this addon's own, else a fresh reservation.
 
     A new reservation is stored only under this addon's own key: telemetry's
-    key is cleared by its config_applied hook when telemetry is not configured,
-    so a write there would be lost. Raises what reserve_server_id raises."""
+    keys are telemetry's to write. Raises what reserve_server_id raises."""
     telemetry_id = get_telemetry_server_id(instance.id)
     telemetry_url = get_telemetry_stats_hub_url(host_id)
     own_url = (get_effective_stats_hub_url(host_id) or '').rstrip('/')

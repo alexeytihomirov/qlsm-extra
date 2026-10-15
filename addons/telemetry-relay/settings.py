@@ -24,6 +24,7 @@ from ui.models import AppSetting
 from .stats_hub import (  # noqa: F401
     HubAccessError,
     allow_host,
+    backfill_reserved_server_ids,
     firewall_label,
     host_access_status,
     release_host,

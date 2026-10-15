@@ -400,6 +400,29 @@ TASKS = {}
 def register(ctx):
     ctx.blueprint(bp)
 
+    def backfill_at_startup(state):
+        # Instances enabled before 1.5.0 have only the routed server ID key;
+        # copy it to the reserved key so a disable keeps it. The database may
+        # not be ready yet (first boot, tests): then set_instance_server_id
+        # copies it when the routed key is cleared.
+        from ui import db
+        from ui.models import AppSetting
+
+        from .settings import backfill_reserved_server_ids
+
+        try:
+            with state.app.app_context():
+                if not db.inspect(db.engine).has_table(AppSetting.__tablename__):
+                    return
+                if backfill_reserved_server_ids():
+                    db.session.commit()
+        except Exception:
+            state.app.logger.warning('telemetry-relay: reserved server ID backfill skipped', exc_info=True)
+            with state.app.app_context():
+                db.session.rollback()
+
+    bp.record_once(backfill_at_startup)
+
     @ctx.task(timeout=120, lock_scope='host')
     def configure_host_relay(host_id, enabled):
         """Install or remove the relay sidecar on a host.

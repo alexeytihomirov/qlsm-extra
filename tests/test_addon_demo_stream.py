@@ -83,7 +83,15 @@ def test_telemetry_server_id_reads_telemetry_key(app, instance_id):
         db.session.add(row)
         db.session.commit()
         assert get_telemetry_server_id(instance_id) == 42
+        # telemetry's reserved ID (kept while telemetry is off) wins
+        reserved = AppSetting(key=f'stats_hub_reserved_server_id:{instance_id}', value='43')
+        db.session.add(reserved)
+        db.session.commit()
+        assert get_telemetry_server_id(instance_id) == 43
         db.session.delete(row)
+        db.session.commit()
+        assert get_telemetry_server_id(instance_id) == 43
+        db.session.delete(reserved)
         db.session.commit()
         assert get_telemetry_server_id(instance_id) is None
 

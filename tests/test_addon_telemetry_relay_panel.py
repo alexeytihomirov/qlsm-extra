@@ -281,3 +281,74 @@ def test_manifest_telemetry_in_instance_menu():
     assert host_entry['status'] == 'GET hosts/{host_id}/status'
     host_keys = [f['key'] for f in ui['panels'][host_entry['panel']]['fields']]
     assert host_keys == ['enabled', 'url_override', 'ingest_token_override']
+
+
+# ---- instances enabled before 1.5.0 (routed key only) ---------------------
+
+def _legacy_instance(app, cfg_text, server_id=12):
+    """Only the pre-1.5.0 routed row `stats_hub_server_id:<id>`, no reserved key."""
+    from ui.models import AppSetting
+    iid = _make_instance(app, cfg_text)
+    with app.app_context():
+        db.session.add(AppSetting(key=f'stats_hub_server_id:{iid}', value=str(server_id)))
+        db.session.commit()
+        assert AppSetting.query.get(f'stats_hub_reserved_server_id:{iid}') is None
+    return iid
+
+
+def test_legacy_id_survives_disable_then_enable(app, queued, monkeypatch):
+    ops = _ops()
+    monkeypatch.setattr(ops, 'push_relay_config_logic', lambda host_id: True)
+    reserve = Mock(side_effect=AssertionError('reserved again'))
+    monkeypatch.setattr(ops, 'reserve_server_id', reserve)
+    iid = _legacy_instance(app, ON_CFG)
+    with app.app_context():
+        assert ops.disable_instance_telemetry_logic(iid)[0]
+        assert _settings().get_instance_server_id(iid) is None
+        ok, message = ops.enable_instance_telemetry_logic(iid)
+        assert ok, message
+        assert _settings().get_instance_server_id(iid) == 12
+    reserve.assert_not_called()
+    assert 'set qlx_statsHubServerId "12"' in _cfg_text(app, iid)
+
+
+def test_legacy_id_survives_hand_disable(app, queued, monkeypatch):
+    """Switched off in the Plugins tab: the config_applied sync clears the
+    routed key; the ID moves to the reserved key and the enable reuses it."""
+    from ui.models import AppSetting
+    ops = _ops()
+    monkeypatch.setattr(ops, 'push_relay_config_logic', lambda host_id: True)
+    reserve = Mock(side_effect=AssertionError('reserved again'))
+    monkeypatch.setattr(ops, 'reserve_server_id', reserve)
+    iid = _legacy_instance(app, OFF_CFG)
+    with app.app_context():
+        ops.sync_instance_server_id_from_config(db.session.get(QLInstance, iid))
+        assert _settings().get_instance_server_id(iid) is None
+        assert AppSetting.query.get(f'stats_hub_reserved_server_id:{iid}').value == '12'
+        ok, message = ops.enable_instance_telemetry_logic(iid)
+        assert ok, message
+        assert _settings().get_instance_server_id(iid) == 12
+    reserve.assert_not_called()
+
+
+def test_backfill_copies_routed_ids_once(app):
+    from ui.models import AppSetting
+    legacy = _legacy_instance(app, ON_CFG, server_id=21)
+    current = _make_instance(app, ON_CFG, server_id=22)
+    with app.app_context():
+        s = _settings()
+        s.set_reserved_server_id(current, 30)   # already recorded: left alone
+        db.session.add(AppSetting(key='stats_hub_server_id:junk', value='5'))
+        db.session.commit()
+        assert s.backfill_reserved_server_ids() == 1
+        db.session.commit()
+        assert AppSetting.query.get(f'stats_hub_reserved_server_id:{legacy}').value == '21'
+        assert s.get_reserved_server_id(current) == 30
+        assert AppSetting.query.get('stats_hub_reserved_server_id:junk') is None
+        assert s.backfill_reserved_server_ids() == 0
+
+
+def test_status_enabled_without_server_id(app, client, auth):
+    iid = _make_instance(app, ON_CFG, server_id=None)
+    resp = client.get(f'{URL}/instances/{iid}/status', headers=auth)
+    assert resp.get_json()['data'] == {'ok': False, 'label': 'On, no server ID yet; save to repair'}
