@@ -8,6 +8,7 @@ state (the enabled flag stored here, the delay as the hub reports it).
 import importlib
 import itertools
 import json
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -71,9 +72,25 @@ def _configure(app, instance_id, enabled):
     return instance_id
 
 
+WIRED = ('set sv_hostname "duel"\nset sv_demoStream "1"\nset sv_demoStreamHost "127.0.0.1"\n'
+         'set sv_demoStreamPort "27999"\nset sv_demoStreamToken "stream-token"\n')
+
+
+def _cfg(app, instance_id):
+    with app.app_context():
+        instance = db.session.get(QLInstance, instance_id)
+        return Path('configs') / instance.host.name / str(instance_id) / 'server.cfg'
+
+
 @pytest.fixture
-def streaming(app):
-    return _configure(app, _make_instance(app), enabled=True)
+def streaming(app, tmp_path, monkeypatch):
+    """Streaming with server.cfg wired the way the enable writes it."""
+    monkeypatch.chdir(tmp_path)
+    iid = _configure(app, _make_instance(app), enabled=True)
+    cfg = _cfg(app, iid)
+    cfg.parent.mkdir(parents=True)
+    cfg.write_text(WIRED, encoding='utf-8')
+    return iid
 
 
 @pytest.fixture
@@ -242,7 +259,7 @@ def test_disable_logic_writes_sv_demoStream_0_and_restarts(app, streaming, monke
         instance.status = InstanceStatus.CONFIGURING
         db.session.commit()
         cfg = tmp_path / 'configs' / instance.host.name / str(streaming) / 'server.cfg'
-    cfg.parent.mkdir(parents=True)
+    cfg.parent.mkdir(parents=True, exist_ok=True)
     cfg.write_text('set sv_hostname "duel"\nset sv_demoStream "1"\n'
                    'set sv_demoStreamHost "127.0.0.1"\nset sv_demoStreamToken "stream-token"\n',
                    encoding='utf-8')
@@ -279,6 +296,87 @@ def test_put_no_change_200(request, client, auth, queued, state, body, hub):
     assert _message(resp) == 'No changes.'
     put.assert_not_called()
     assert queued == []
+
+
+@pytest.mark.parametrize('drift', [
+    'no token', 'port', 'host', 'sv_demoStream 0', 'no server.cfg',
+])
+def test_put_save_repairs_drifted_wiring(app, client, auth, streaming, queued, drift):
+    cfg = _cfg(app, streaming)
+    if drift == 'no token':
+        with app.app_context():
+            from qlsm_addon_demo_stream.settings import set_instance_demo_stream_token
+            set_instance_demo_stream_token(streaming, None)
+            db.session.commit()
+    elif drift == 'port':
+        cfg.write_text(WIRED.replace('"27999"', '"28001"'), encoding='utf-8')
+    elif drift == 'host':
+        cfg.write_text(WIRED.replace('"127.0.0.1"', '"10.0.0.5"'), encoding='utf-8')
+    elif drift == 'sv_demoStream 0':
+        cfg.write_text(WIRED.replace('sv_demoStream "1"', 'sv_demoStream "0"'), encoding='utf-8')
+    else:
+        cfg.unlink()
+    with patch(GET) as get, patch(PUT) as put:
+        resp = client.put(f'{URL}/instances/{streaming}',
+                          json={'enabled': True, 'delay_sec': ''}, headers=auth)
+    assert resp.status_code == 202, resp.get_json()
+    (task, args, kwargs), = queued
+    assert task is _tasks()['enable_instance_demo_stream']
+    assert args == (streaming,) and kwargs['delay_sec'] is None
+    get.assert_not_called()
+    put.assert_not_called()
+
+
+def test_put_repair_follows_the_host_tunnel_port(app, client, auth, streaming, queued):
+    with app.app_context():
+        from qlsm_addon_demo_stream.settings import set_host_tunnel_port
+        set_host_tunnel_port(db.session.get(QLInstance, streaming).host_id, '28001')
+        db.session.commit()
+    resp = client.put(f'{URL}/instances/{streaming}',
+                      json={'enabled': True, 'delay_sec': '5'}, headers=auth)
+    assert resp.status_code == 202
+    assert queued[0][0] is _tasks()['enable_instance_demo_stream']
+    assert queued[0][2]['delay_sec'] == 5.0
+
+
+def test_put_save_repairs_a_route_the_hub_lost(client, auth, streaming, queued):
+    lost = Mock(status_code=404, json=Mock(return_value={'detail': 'unknown server_id'}))
+    with patch(GET, return_value=lost) as get, patch(PUT) as put:
+        resp = client.put(f'{URL}/instances/{streaming}',
+                          json={'enabled': True, 'delay_sec': ''}, headers=auth)
+    assert resp.status_code == 202, resp.get_json()
+    assert queued[0][0] is _tasks()['enable_instance_demo_stream']
+    assert get.call_count == 1
+    put.assert_not_called()
+
+
+def test_put_consistent_streaming_instance_queues_nothing(client, auth, streaming, queued):
+    with patch(GET, return_value=_hub(delay=12.5, override=True)), patch(PUT) as put:
+        resp = client.put(f'{URL}/instances/{streaming}',
+                          json={'enabled': True, 'delay_sec': '12.5'}, headers=auth)
+    assert resp.status_code == 200 and _message(resp) == 'No changes.'
+    assert queued == []
+    put.assert_not_called()
+
+
+def test_put_delay_within_tolerance_is_no_change(client, auth, streaming, queued):
+    with patch(GET, return_value=_hub(delay=5.0000001, override=True)), patch(PUT) as put:
+        resp = client.put(f'{URL}/instances/{streaming}',
+                          json={'enabled': True, 'delay_sec': '5'}, headers=auth)
+    assert resp.status_code == 200 and _message(resp) == 'No changes.'
+    put.assert_not_called()
+
+
+@pytest.mark.parametrize('bad', ['true', 1, 0, None, 'yes', [True]])
+def test_put_enabled_must_be_a_bool(client, auth, streaming, queued, bad):
+    with patch(GET) as get, patch(PUT) as put:
+        resp = client.put(f'{URL}/instances/{streaming}',
+                          json={'enabled': bad, 'delay_sec': ''}, headers=auth)
+    assert resp.status_code == 400
+    assert _message(resp) == 'enabled must be true or false.'
+    assert queued == []
+    get.assert_not_called()
+    put.assert_not_called()
 
 
 def test_put_delay_while_off_409(client, auth, off, queued):

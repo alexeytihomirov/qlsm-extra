@@ -302,6 +302,23 @@ def _hub_delay_state(instance):
         return None
 
 
+def _hub_delay_state_or_lost_route(instance):
+    """(state, None) like _hub_delay_state, or (None, reason) when the hub
+    says it has no route for this instance's server_id: the enable has to
+    run again to register it. Same single hub call."""
+    from .stats_hub import HubDelayError, get_server_delay
+
+    server_id, _ = _delay_target(instance)
+    if server_id is None:
+        return None, None
+    try:
+        return get_server_delay(instance.host_id, server_id), None
+    except HubDelayError as exc:
+        if exc.label == 'No route on stats-hub':
+            return None, 'stats-hub has no route for its server_id'
+        return None, None
+
+
 def _delay_field(state):
     """The panel's delay_sec: the override, blank on the hub default."""
     return _seconds(state['delay_sec']) if state and state['override'] else ''
@@ -405,13 +422,42 @@ def _queue_instance_task(instance, task_key, what, **task_kwargs):
     return jsonify({"message": f'Demo-stream {what} queued for "{instance.name}".'}), 202
 
 
+def _wiring_drift(instance):
+    """Why a streaming instance needs the enable run again, or None when its
+    stored token and server.cfg agree with what the enable writes. Local
+    reads only: the stored token and server.cfg, no hub call."""
+    from .settings import (
+        get_host_tunnel_port, get_instance_demo_stream_token, read_cvars_from_text,
+    )
+
+    if not get_instance_demo_stream_token(instance.id):
+        return 'no stored stream token'
+    config_path = f"configs/{instance.host.name}/{instance.id}/server.cfg"
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+    except FileNotFoundError:
+        text = ''
+    cvars = read_cvars_from_text(
+        text, ('sv_demoStream', 'sv_demoStreamHost', 'sv_demoStreamPort'))
+    if cvars.get('sv_demoStream') != '1':
+        return 'sv_demoStream is not 1 in server.cfg'
+    if cvars.get('sv_demoStreamHost') != '127.0.0.1':
+        return 'sv_demoStreamHost is not 127.0.0.1 in server.cfg'
+    if cvars.get('sv_demoStreamPort') != get_host_tunnel_port(instance.host_id):
+        return "sv_demoStreamPort does not match the host tunnel's port"
+    return None
+
+
 @bp.route('/instances/<int:instance_id>', methods=['PUT'], endpoint='update_instance_stream')
 @jwt_required()
 def update_instance_stream(instance_id):
     """The Live Demo Stream panel's save. The form sends both fields every
     time; what happens depends on what changed against the current state:
     off -> on queues the enable (which sets the delay last), on -> off queues
-    the disable, a delay change while streaming is one hub call."""
+    the disable, a delay change while streaming is one hub call. Saving a
+    streaming instance whose wiring drifted (no token, server.cfg not what
+    the enable writes) queues the enable again: a plain save repairs it."""
     from .settings import is_instance_demo_stream_enabled
 
     instance, error = _instance_or_error(instance_id)
@@ -428,8 +474,11 @@ def update_instance_stream(instance_id):
     except (ValueError, OverflowError):
         return jsonify({"error": {"message": DELAY_VALUE_MESSAGE}}), 400
 
+    if 'enabled' in body and not isinstance(body['enabled'], bool):
+        return jsonify({"error": {"message": "enabled must be true or false."}}), 400
+
     enabled = is_instance_demo_stream_enabled(instance.id)
-    wanted = bool(body.get('enabled', enabled))
+    wanted = body.get('enabled', enabled)
 
     if not enabled and wanted:
         blocked = _enable_blocked(instance)
@@ -444,12 +493,29 @@ def update_instance_stream(instance_id):
             return jsonify({"error": {"message": NOT_STREAMING_MESSAGE}}), 409
         return jsonify({"message": "No changes."})
 
-    # Streaming and staying on: compare with what the hub reports, the way
-    # the GET showed it. Blank with nothing to compare with is no change.
-    state = _hub_delay_state(instance)
+    # Streaming and staying on. Drifted wiring first (local state, then the
+    # hub saying it has no route): the enable re-registers the route,
+    # rewrites the cvars and restarts once, and takes the delay along as on
+    # off -> on (setting an unchanged delay again is harmless).
+    drift = _wiring_drift(instance)
+    state = None
+    if not drift:
+        state, drift = _hub_delay_state_or_lost_route(instance)
+    if drift:
+        current_app.logger.info(
+            f'Addon demo-stream: re-enabling instance {instance.id} on save: {drift}')
+        blocked = _enable_blocked(instance)
+        if blocked:
+            return blocked
+        return _queue_instance_task(instance, 'enable_instance_demo_stream', 'enable',
+                                    delay_sec=delay)
+
+    # Then the delay, compared with what the hub reports, the way the GET
+    # showed it. Blank with nothing to compare with is no change.
     if delay is None and (state is None or not state['override']):
         return jsonify({"message": "No changes."})
-    if delay is not None and state is not None and _delay_field(state) == _seconds(delay):
+    if delay is not None and state is not None and state['override'] \
+            and abs(state['delay_sec'] - delay) <= DELAY_MATCH_TOLERANCE_SEC:
         return jsonify({"message": "No changes."})
     return _set_delay(instance, delay)
 
@@ -501,10 +567,9 @@ def _delay_target(instance):
 
 
 def _seconds(value):
-    """A float as the operator types it. repr round-trips, so loading a value
-    and saving it untouched writes the same value back."""
-    text = repr(float(value))
-    return text[:-2] if text.endswith('.0') else text
+    from .stats_hub import format_seconds
+
+    return format_seconds(value)
 
 
 def _delay_data(state):

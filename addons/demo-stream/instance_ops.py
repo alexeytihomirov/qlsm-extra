@@ -52,7 +52,7 @@ from .settings import (
     set_instance_server_id,
     upsert_cvars_in_text,
 )
-from .stats_hub import HubDelayError, set_server_delay
+from .stats_hub import HubDelayError, format_seconds, set_server_delay
 
 _ROUTES_TIMEOUT_SEC = 10
 
@@ -118,12 +118,6 @@ def _resolve_server_id(instance, host_id):
     return server_id
 
 
-def _seconds(value):
-    """Same rendering as backend._seconds: 5.0 -> '5', 12.5 -> '12.5'."""
-    text = repr(float(value))
-    return text[:-2] if text.endswith('.0') else text
-
-
 def _write_cvars(instance, cvars):
     config_path = f"configs/{instance.host.name}/{instance.id}/server.cfg"
     try:
@@ -161,7 +155,7 @@ def _set_delay_after_enable(instance, host_id, server_id, delay_sec):
         current_app.logger.error(
             f"Demo-stream enabled for instance {instance.id} but its delay was not set: {exc}")
         return f" The stream delay was not set: {exc}"
-    return f" Stream delay set to {_seconds(state['delay_sec'])} s."
+    return f" Stream delay set to {format_seconds(state['delay_sec'])} s."
 
 
 def enable_instance_demo_stream_logic(instance_id, previous_status=None, delay_sec=None):

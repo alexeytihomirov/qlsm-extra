@@ -139,6 +139,14 @@ DELAY_MIN_SEC = 0
 DELAY_MAX_SEC = 300
 
 
+def format_seconds(value):
+    """A float as the operator types it: 5.0 -> '5', 12.5 -> '12.5'. repr
+    round-trips, so loading a value and saving it untouched writes the same
+    value back."""
+    text = repr(float(value))
+    return text[:-2] if text.endswith('.0') else text
+
+
 class HubDelayError(Exception):
     """The hub did not answer a delay call with a usable 200. `status` is
     what this addon's own endpoint should answer with, `label` the short form
@@ -194,17 +202,16 @@ def _server_delay_call(send, host_id, server_id, **kwargs):
             "STATS_HUB_INGEST_TOKEN, not STATS_HUB_API_TOKEN.", 502, 'Ingest token rejected')
     if resp.status_code == 404 and detail == 'unknown server_id':
         raise HubDelayError(
-            f"stats-hub has no demo-stream route for server_id {server_id}. Switch the "
-            "instance's Live Demo Stream off and on again to register it (that restarts "
-            "the instance).",
+            f"stats-hub has no demo-stream route for server_id {server_id}. Save the "
+            "instance's Live Demo Stream panel again to register it (that restarts the "
+            "instance).",
             409, 'No route on stats-hub')
     if resp.status_code in (404, 405):
         raise HubDelayError(
             f"stats-hub answered HTTP {resp.status_code} for this server's delay. Either "
             "this stats-hub is older than the per-server delay API and needs an update, or "
-            f"it has no demo-stream route for server_id {server_id} (switch the "
-            "instance's Live Demo Stream off and on again to register it, which restarts "
-            "the instance).",
+            f"it has no demo-stream route for server_id {server_id} (save the instance's "
+            "Live Demo Stream panel again to register it, which restarts the instance).",
             502, 'Stats-hub has no delay API or no route')
     if resp.status_code in (400, 422):
         raise HubDelayError(

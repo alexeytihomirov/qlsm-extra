@@ -22,7 +22,7 @@
     "panels": {
       "host_tunnel": {
         "kind": "form",
-        "description": "Installs stunnel on this host and pins the stats-hub TLS certificate, so instances stream to 127.0.0.1 and the tunnel carries it to the relay over TLS. Changing the port re-runs the setup; switch each instance's Live Demo Stream off and on again afterwards so its server.cfg picks up the new port. After the hub's certificate changes, save this panel again with Enabled to re-pin it. Saving with Enabled first asks stats-hub to let this host's IP through its firewall; turning the tunnel off takes the host out again unless the Telemetry Relay is still on. The status shows the hub firewall and whether the hub has a demo-stream link from this host.",
+        "description": "Installs stunnel on this host and pins the stats-hub TLS certificate, so instances stream to 127.0.0.1 and the tunnel carries it to the relay over TLS. Changing the port re-runs the setup; save each instance's Live Demo Stream panel again afterwards so its server.cfg picks up the new port. After the hub's certificate changes, save this panel again with Enabled to re-pin it. Saving with Enabled first asks stats-hub to let this host's IP through its firewall; turning the tunnel off takes the host out again unless the Telemetry Relay is still on. The status shows the hub firewall and whether the hub has a demo-stream link from this host.",
         "load": "GET hosts/{host_id}",
         "submit": "PUT hosts/{host_id}",
         "status": { "load": "GET hosts/{host_id}/status" },
