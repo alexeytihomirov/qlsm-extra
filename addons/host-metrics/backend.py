@@ -18,12 +18,16 @@ Every route needs a logged-in qlsm user (@jwt_required).
 """
 import json
 import re
+import statistics
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import jwt_required
 
 from . import settings as hm_settings
+from . import ssh as hm_ssh
+from . import verdict as hm_verdict
 
 bp = Blueprint('host_metrics_addon', __name__)
 
@@ -223,6 +227,161 @@ def apply_host_route(host_id):
     if error:
         return error
     return _queued(f'Apply queued for {host.name}.')
+
+
+# ---- read routes (hm_query.py over SSH) -----------------------------------------
+
+HOSTS_CACHE_KEY = 'addon:host-metrics:hosts'
+HOSTS_CACHE_TTL = 30
+FETCH_WORKERS = 8
+QUERY_TIMEOUT_SECONDS = 5.0
+RANGES = ('1h', '6h', '24h', '7d', '30d')
+
+
+def _redis():
+    return current_app.extensions.get('redis')
+
+
+def _cache_get(key):
+    client = _redis()
+    if client is None:
+        return None
+    try:
+        raw = client.get(key)
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None
+
+
+def _cache_set(key, payload, ttl):
+    client = _redis()
+    if client is None:
+        return
+    try:
+        client.setex(key, ttl, json.dumps(payload))
+    except Exception:
+        pass
+
+
+def classify(rc, parsed, stderr, expected_version):
+    """(state, version, snapshot) of one host's `snapshot` answer."""
+    if rc == hm_ssh.MISSING_RC or 'No such file' in (stderr or ''):
+        return 'not_installed', None, None
+    version = parsed.get('version') if parsed else None
+    if rc == 3:
+        return 'no_data', version, None
+    if rc != 0 or parsed is None or parsed.get('error'):
+        return 'unreachable', version, None
+    state = 'ok' if version == expected_version else 'outdated'
+    return state, version, parsed
+
+
+def _fetch_snapshot(conn, expected_version):
+    """Runs in a worker thread: plain data only, no app context, no database."""
+    try:
+        rc, parsed, stderr = hm_ssh.exec_json(conn, ['snapshot'], timeout=QUERY_TIMEOUT_SECONDS)
+    except Exception:
+        return {'state': 'unreachable', 'version': None, 'snapshot': None}
+    state, version, snapshot = classify(rc, parsed, stderr, expected_version)
+    return {'state': state, 'version': version, 'snapshot': snapshot}
+
+
+def _fleet_busy_median(rows):
+    values = []
+    for row in rows:
+        for inst in ((row['snapshot'] or {}).get('insts') or []):
+            value = inst.get('busy_p95') if isinstance(inst, dict) else None
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                values.append(float(value))
+    return statistics.median(values) if values else None
+
+
+def build_hosts(connections, values, expected_version):
+    if connections:
+        with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
+            fetched = list(pool.map(lambda c: _fetch_snapshot(c, expected_version), connections))
+    else:
+        fetched = []
+    rows = [dict(f, id=c.id, name=c.name) for c, f in zip(connections, fetched)]
+    median = _fleet_busy_median(rows)
+    try:
+        knobs = hm_settings.verdict_settings(values)
+    except ValueError:
+        knobs = hm_settings.verdict_settings({})
+    for row in rows:
+        row['verdict'] = None
+        if row['snapshot'] is not None:
+            try:
+                row['verdict'] = hm_verdict.verdict(row['snapshot'], knobs, median)
+            except Exception:
+                # an older collector may lack fields the verdict needs
+                CTX.logger.warning('host-metrics: no verdict for host %s', row['name'], exc_info=True)
+    return [{k: row[k] for k in ('id', 'name', 'state', 'version', 'snapshot', 'verdict')}
+            for row in rows]
+
+
+@bp.route('/hosts', methods=['GET'], endpoint='list_hosts')
+@jwt_required()
+def list_hosts():
+    refresh = request.args.get('refresh') == '1'
+    if not refresh:
+        cached = _cache_get(HOSTS_CACHE_KEY)
+        if cached is not None:
+            return jsonify({'data': {'hosts': cached}})
+    from ui.models import Host
+
+    # Rows become plain data here, in the request thread.
+    connections = [hm_ssh.connection(h) for h in Host.query.order_by(Host.id).all()]
+    hosts = build_hosts(connections, CTX.settings.get('global', 0), CTX.manifest.get('version') or '')
+    _cache_set(HOSTS_CACHE_KEY, hosts, HOSTS_CACHE_TTL)
+    return jsonify({'data': {'hosts': hosts}})
+
+
+def _passthrough(host_id, argv):
+    host = _get_host(host_id)
+    if not host:
+        return _error('Host not found.', 404)
+    try:
+        rc, parsed, stderr = hm_ssh.exec_json(hm_ssh.connection(host), argv,
+                                              timeout=QUERY_TIMEOUT_SECONDS)
+    except Exception as e:
+        CTX.logger.warning('host-metrics: query to host %s failed: %s', host.name, e)
+        return _error('The host did not answer.', 502)
+    if rc == hm_ssh.MISSING_RC or 'No such file' in (stderr or ''):
+        return _error('Host metrics are not installed on this host.', 409)
+    if rc not in (0, 3) or parsed is None:
+        CTX.logger.warning('host-metrics: host %s query rc %s: %s', host.name, rc, stderr)
+        return _error('The host returned no usable answer.', 502)
+    return jsonify({'data': parsed})
+
+
+def _range_arg():
+    value = request.args.get('range', '')
+    return value if value in RANGES else None
+
+
+@bp.route('/hosts/<int:host_id>/series', methods=['GET'], endpoint='host_series')
+@jwt_required()
+def host_series(host_id):
+    range_ = _range_arg()
+    if range_ is None:
+        return _error('range must be one of: %s.' % ', '.join(RANGES), 400)
+    argv = ['series', '--range', range_]
+    port = request.args.get('port')
+    if port is not None:
+        if not (port.isascii() and port.isdigit() and 1 <= int(port) <= 65535):
+            return _error('port must be a number from 1 to 65535.', 400)
+        argv += ['--port', str(int(port))]
+    return _passthrough(host_id, argv)
+
+
+@bp.route('/hosts/<int:host_id>/events', methods=['GET'], endpoint='host_events')
+@jwt_required()
+def host_events(host_id):
+    range_ = _range_arg()
+    if range_ is None:
+        return _error('range must be one of: %s.' % ', '.join(RANGES), 400)
+    return _passthrough(host_id, ['events', '--range', range_])
 
 
 def register(ctx):

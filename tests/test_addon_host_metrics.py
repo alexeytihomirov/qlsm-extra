@@ -332,3 +332,151 @@ def test_a_failed_enqueue_releases_the_lock(app, client, auth, monkeypatch):
 def test_apply_on_an_unknown_host_is_404(client, auth, queue):
     assert client.post(f'{API}/hosts/9999/apply', headers=auth).status_code == 404
     assert queue == []
+
+
+# ---- read routes over ssh ---------------------------------------------------------
+
+def _snapshot(version='1.0.0', busy=30.0):
+    return {'version': version, 'now': 1, 'cores': 2, 'mem_total': 8 * 2**30,
+            'mem_avail_now': 6 * 2**30, 'steal_p95': 0.0, 'core_other_p95': {},
+            'insts': [{'port': 27960, 'core': 0, 'busy_p95': busy, 'rss_max': 2**30}],
+            'events_24h': {}, 'events_24h_busy': {}}
+
+
+class FakeRedis:
+    def __init__(self):
+        self.store = {}
+
+    def get(self, key):
+        return self.store.get(key)
+
+    def setex(self, key, ttl, value):
+        self.store[key] = value
+
+
+def _fake_exec(per_host):
+    calls = []
+
+    def exec_json(conn, argv, timeout=5.0):
+        calls.append((conn.name, list(argv)))
+        answer = per_host[conn.name]
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+    exec_json.calls = calls
+    return exec_json
+
+
+def test_hosts_lists_unreachable_and_not_installed_hosts(app, client, auth, monkeypatch):
+    _host(app, 'h-ok')
+    _host(app, 'h-missing')
+    _host(app, 'h-down')
+    fake = _fake_exec({
+        'h-ok': (0, _snapshot(), ''),
+        'h-missing': (127, None, ''),
+        'h-down': TimeoutError('timed out'),
+    })
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', fake)
+    response = client.get(f'{API}/hosts?refresh=1', headers=auth)
+    assert response.status_code == 200, response.get_json()
+    rows = {h['name']: h for h in response.get_json()['data']['hosts']}
+    assert {n: r['state'] for n, r in rows.items()} == {
+        'h-ok': 'ok', 'h-missing': 'not_installed', 'h-down': 'unreachable'}
+    assert rows['h-ok']['verdict']['status'] in ('ok', 'tight', 'overloaded', 'unknown')
+    assert rows['h-missing']['snapshot'] is None and rows['h-missing']['verdict'] is None
+
+
+def test_hosts_marks_an_older_collector_outdated_but_keeps_data(app, client, auth, monkeypatch):
+    _host(app, 'h-old')
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json',
+                        _fake_exec({'h-old': (0, _snapshot(version='0.9.0'), '')}))
+    row = client.get(f'{API}/hosts?refresh=1', headers=auth).get_json()['data']['hosts'][0]
+    assert row['state'] == 'outdated' and row['version'] == '0.9.0' and row['snapshot']
+
+
+def test_hosts_rc3_is_no_data_and_missing_file_stderr_is_not_installed(app, client, auth, monkeypatch):
+    _host(app, 'h-empty')
+    _host(app, 'h-nofile')
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', _fake_exec({
+        'h-empty': (3, {'version': '1.0.0', 'error': 'no_data'}, ''),
+        'h-nofile': (2, None, 'python3: can not open file: No such file or directory'),
+    }))
+    rows = {h['name']: h for h in client.get(f'{API}/hosts?refresh=1', headers=auth)
+            .get_json()['data']['hosts']}
+    assert rows['h-empty']['state'] == 'no_data' and rows['h-empty']['version'] == '1.0.0'
+    assert rows['h-nofile']['state'] == 'not_installed'
+
+
+def test_fleet_median_reaches_a_host_without_busy_samples(app, client, auth, monkeypatch):
+    _host(app, 'h-a')
+    _host(app, 'h-b')
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', _fake_exec({
+        'h-a': (0, _snapshot(busy=40.0), ''), 'h-b': (0, _snapshot(busy=None), '')}))
+    rows = {h['name']: h for h in client.get(f'{API}/hosts?refresh=1', headers=auth)
+            .get_json()['data']['hosts']}
+    assert rows['h-b']['verdict']['ref_source'] == 'fleet'
+    assert rows['h-b']['verdict']['ref_load'] == 40.0
+
+
+def test_hosts_uses_cache_within_ttl(app, client, auth, monkeypatch):
+    _host(app, 'h-ok')
+    app.extensions['redis'] = FakeRedis()
+    fake = _fake_exec({'h-ok': (0, _snapshot(), '')})
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', fake)
+    try:
+        first = client.get(f'{API}/hosts', headers=auth).get_json()
+        assert len(fake.calls) == 1
+        second = client.get(f'{API}/hosts', headers=auth).get_json()
+        assert len(fake.calls) == 1 and second == first
+        client.get(f'{API}/hosts?refresh=1', headers=auth)
+        assert len(fake.calls) == 2
+    finally:
+        app.extensions.pop('redis', None)
+
+
+def test_series_rejects_bad_range_and_port(app, client, auth, monkeypatch):
+    host_id = _host(app)
+    fake = _fake_exec({'game-1': (0, {'version': '1.0.0'}, '')})
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', fake)
+    for query in ('range=2h', 'range=24h&port=abc', 'range=24h&port=0', 'range=24h&port=1;ls', ''):
+        response = client.get(f'{API}/hosts/{host_id}/series?{query}', headers=auth)
+        assert response.status_code == 400, query
+    assert client.get(f'{API}/hosts/{host_id}/events?range=bogus', headers=auth).status_code == 400
+    assert fake.calls == []
+
+
+def test_series_argv_is_fixed(app, client, auth, monkeypatch):
+    host_id = _host(app)
+    fake = _fake_exec({'game-1': (0, {'version': '1.0.0', 'x': 1}, '')})
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', fake)
+    response = client.get(f'{API}/hosts/{host_id}/series?range=24h&port=27960', headers=auth)
+    assert response.status_code == 200
+    assert response.get_json()['data'] == {'version': '1.0.0', 'x': 1}
+    assert fake.calls == [('game-1', ['series', '--range', '24h', '--port', '27960'])]
+    client.get(f'{API}/hosts/{host_id}/events?range=7d', headers=auth)
+    assert fake.calls[-1] == ('game-1', ['events', '--range', '7d'])
+
+
+def test_series_of_unreachable_or_uninstalled_host(app, client, auth, monkeypatch):
+    host_id = _host(app)
+
+    def down(conn, argv, timeout=5.0):
+        raise TimeoutError('t')
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', down)
+    assert client.get(f'{API}/hosts/{host_id}/series?range=1h', headers=auth).status_code == 502
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', lambda c, a, timeout=5.0: (127, None, ''))
+    assert client.get(f'{API}/hosts/{host_id}/series?range=1h', headers=auth).status_code == 409
+    assert client.get(f'{API}/hosts/9999/series?range=1h', headers=auth).status_code == 404
+
+
+def test_remote_command_is_quoted_and_checks_the_script():
+    ssh = _backend().hm_ssh
+    command = ssh.remote_command(['series', '--range', '24h', '--port', '27960'])
+    assert command == ('test -f /home/ql/host-metrics/hm_query.py || exit 127; '
+                       'python3 /home/ql/host-metrics/hm_query.py series --range 24h --port 27960')
+    assert "'a b; ls'" in ssh.remote_command(['a b; ls'])
+
+
+@pytest.mark.parametrize('path', ['hosts', 'hosts/1/series?range=1h', 'hosts/1/events?range=1h'])
+def test_read_routes_need_login(client, path):
+    assert client.get(f'{API}/{path}').status_code == 401
