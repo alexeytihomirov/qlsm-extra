@@ -68,8 +68,9 @@ def open_ssh(conn):
 
 def remote_command(argv):
     """The one command line that is ever sent. argv is built by the backend from
-    allow-listed values; shlex still quotes every word."""
-    return ('test -f %s || exit %d; python3 %s %s'
+    allow-listed values; shlex still quotes every word. nice 19: the query must not
+    compete with QLDS for CPU on the game host."""
+    return ('test -f %s || exit %d; nice -n 19 python3 %s %s'
             % (QUERY_SCRIPT, MISSING_RC, QUERY_SCRIPT, shlex.join(argv)))
 
 

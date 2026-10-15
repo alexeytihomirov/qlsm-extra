@@ -473,8 +473,59 @@ def test_remote_command_is_quoted_and_checks_the_script():
     ssh = _backend().hm_ssh
     command = ssh.remote_command(['series', '--range', '24h', '--port', '27960'])
     assert command == ('test -f /home/ql/host-metrics/hm_query.py || exit 127; '
-                       'python3 /home/ql/host-metrics/hm_query.py series --range 24h --port 27960')
+                       'nice -n 19 python3 /home/ql/host-metrics/hm_query.py '
+                       'series --range 24h --port 27960')
     assert "'a b; ls'" in ssh.remote_command(['a b; ls'])
+
+
+def test_series_and_events_get_a_longer_timeout_than_the_snapshot(app, client, auth, monkeypatch):
+    host_id = _host(app, 'h-t')
+    seen = []
+
+    def exec_json(conn, argv, timeout=5.0):
+        seen.append((argv[0], timeout))
+        return 0, (_snapshot() if argv[0] == 'snapshot' else {'version': '1.0.0'}), ''
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', exec_json)
+    client.get(f'{API}/hosts?refresh=1', headers=auth)
+    client.get(f'{API}/hosts/{host_id}/series?range=30d', headers=auth)
+    client.get(f'{API}/hosts/{host_id}/events?range=30d', headers=auth)
+    assert seen == [('snapshot', 5.0), ('series', 20.0), ('events', 20.0)]
+
+
+def _aged_snapshot(age, with_field=True):
+    snap = dict(_snapshot(), now=10_000, host={'ts': 10_000 - age, 'mem_total': 1})
+    if with_field:
+        snap['data_age_s'] = age
+    return snap
+
+
+def test_old_collector_data_is_stale_without_slots(app, client, auth, monkeypatch):
+    _host(app, 'h-fresh')
+    _host(app, 'h-stale')
+    _host(app, 'h-stale-old-query')
+    monkeypatch.setattr(_backend().hm_ssh, 'exec_json', _fake_exec({
+        'h-fresh': (0, _aged_snapshot(120), ''),
+        'h-stale': (0, _aged_snapshot(185), ''),
+        # an older hm_query without data_age_s: the age comes from now - host.ts
+        'h-stale-old-query': (0, _aged_snapshot(3600, with_field=False), ''),
+    }))
+    rows = {h['name']: h for h in client.get(f'{API}/hosts?refresh=1', headers=auth)
+            .get_json()['data']['hosts']}
+    assert rows['h-fresh']['state'] == 'ok' and rows['h-fresh']['verdict']['slots'] is not None
+    stale = rows['h-stale']
+    assert stale['state'] == 'stale' and stale['snapshot']['host']['ts'] == 10_000 - 185
+    assert stale['verdict']['status'] == 'unknown' and stale['verdict']['slots'] is None
+    assert stale['verdict']['reason'] == 'collector data is 3 min old'
+    old = rows['h-stale-old-query']
+    assert old['state'] == 'stale' and old['verdict']['reason'] == 'collector data is 60 min old'
+
+
+def test_classify_stale_only_after_120_s(app):
+    classify = _backend().classify
+    assert classify(0, _aged_snapshot(120), '', '1.0.0')[0] == 'ok'
+    assert classify(0, _aged_snapshot(121), '', '1.0.0')[0] == 'stale'
+    assert classify(0, _aged_snapshot(121), '', '2.0.0')[0] == 'stale'
+    assert classify(0, dict(_snapshot(), host=None), '', '1.0.0')[0] == 'ok'
 
 
 @pytest.mark.parametrize('path', ['hosts', 'hosts/1/series?range=1h', 'hosts/1/events?range=1h'])

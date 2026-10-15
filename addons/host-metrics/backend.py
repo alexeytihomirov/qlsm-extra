@@ -235,7 +235,9 @@ def apply_host_route(host_id):
 HOSTS_CACHE_KEY = 'addon:host-metrics:hosts'
 HOSTS_CACHE_TTL = 30
 FETCH_WORKERS = 8
-QUERY_TIMEOUT_SECONDS = 5.0
+QUERY_TIMEOUT_SECONDS = 5.0     # snapshot, all hosts in parallel for the list
+SERIES_TIMEOUT_SECONDS = 20.0   # series / events of one host (30 days of minutes)
+STALE_AFTER_SECONDS = 120       # collector ticks every 10 s
 RANGES = ('1h', '6h', '24h', '7d', '30d')
 
 
@@ -264,8 +266,26 @@ def _cache_set(key, payload, ttl):
         pass
 
 
+def _is_num(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def data_age(snapshot):
+    """Seconds since the collector's newest sample: `data_age_s`, or now - host.ts from an
+    older hm_query; None when the snapshot has no host row."""
+    age = snapshot.get('data_age_s')
+    if _is_num(age):
+        return age
+    host = snapshot.get('host')
+    now = snapshot.get('now')
+    if isinstance(host, dict) and _is_num(host.get('ts')) and _is_num(now):
+        return now - host['ts']
+    return None
+
+
 def classify(rc, parsed, stderr, expected_version):
-    """(state, version, snapshot) of one host's `snapshot` answer."""
+    """(state, version, snapshot) of one host's `snapshot` answer. `stale`: the collector
+    stopped writing (its last data is kept and shown, but gets no slot count)."""
     if rc == hm_ssh.MISSING_RC or 'No such file' in (stderr or ''):
         return 'not_installed', None, None
     version = parsed.get('version') if parsed else None
@@ -273,8 +293,18 @@ def classify(rc, parsed, stderr, expected_version):
         return 'no_data', version, None
     if rc != 0 or parsed is None or parsed.get('error'):
         return 'unreachable', version, None
+    age = data_age(parsed)
+    if age is not None and age > STALE_AFTER_SECONDS:
+        return 'stale', version, parsed
     state = 'ok' if version == expected_version else 'outdated'
     return state, version, parsed
+
+
+def stale_verdict(snapshot):
+    age = data_age(snapshot) or 0
+    return {'status': 'unknown', 'slots': None,
+            'reason': 'collector data is %d min old' % (age // 60),
+            'ref_load': None, 'ref_source': None}
 
 
 def _fetch_snapshot(conn, expected_version):
@@ -326,7 +356,9 @@ def build_hosts(connections, values, expected_version):
         knobs = hm_settings.verdict_settings({})
     for row in rows:
         row['verdict'] = None
-        if row['snapshot'] is not None:
+        if row['state'] == 'stale':
+            row['verdict'] = stale_verdict(row['snapshot'])
+        elif row['snapshot'] is not None:
             try:
                 row['verdict'] = hm_verdict.verdict(row['snapshot'], knobs, median)
             except Exception:
@@ -361,7 +393,7 @@ def _passthrough(host_id, argv):
     if getattr(conn, 'error', None):
         return _error(conn.error, 502)
     try:
-        rc, parsed, stderr = hm_ssh.exec_json(conn, argv, timeout=QUERY_TIMEOUT_SECONDS)
+        rc, parsed, stderr = hm_ssh.exec_json(conn, argv, timeout=SERIES_TIMEOUT_SECONDS)
     except Exception as e:
         CTX.logger.warning('host-metrics: query to host %s failed: %s', host.name, e)
         return _error('The host did not answer.', 502)
