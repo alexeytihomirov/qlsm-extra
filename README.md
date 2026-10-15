@@ -132,6 +132,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen |
 | `file-forwarder` | Ships demo files (.qlmatch packs, replay sidecars, raw demos) from game hosts to the VPS over SFTP, keeps a delivery ledger, cleans up delivered raw demos, and offers manual sync from the host menu |
 | `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enable, enter repository + commit, then **Re-run Host Setup**. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
+| `host-metrics` | Per-host and per-instance resource metrics: a low-priority collector on every game host keeps 30 days of CPU (incl. steal), memory, disk, players and frame timing in SQLite; the Host Metrics page is a health board (status, findings in plain English, hardware, charts) with a capacity verdict per host. Collector changes reach a host with **Apply to host** |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
 
 qlsm's image ships **no** addon — install every one of these from this
@@ -150,6 +151,26 @@ without restarting the instance or changing its `server.cfg`; viewers already
 watching are reconnected when the delay goes down. Needs a stats-hub that has
 the per-server delay API (`/api/demo-stream/servers/<id>/delay`); with an older
 hub the panel says so and nothing else changes.
+
+**host-metrics 1.1.0:** the Host Metrics page becomes a health board (one card
+per host with a status, open problems and plain-English findings), the host
+dialog shows hardware (CPU model, memory, disk, provider) and charts with their
+limits marked, all in the QLSM light and dark theme. On a QLSM core with
+notifications (`poller.tick`, `ctx.notify`) and `page.nav` it also:
+
+- puts host problems under the navbar bell: late frames or a saturated core
+  while players are on, high steal, low memory (warning); an OOM kill, a full
+  disk, a host unreachable or a collector silent for more than 5 minutes
+  (critical). One notification per problem, resolved when it ends; checked
+  once a minute; a QLSM restart does not replay old events. Switch and minimum
+  severity: Settings -> Addons -> Host Metrics (`notify_enabled`,
+  `notify_min_severity`);
+- adds a **Hosts health** entry to the navbar.
+
+On an older core the addon loads and works as before, without the bell
+notifications and without the navbar entry (the page stays at
+`/addons/host-metrics`). Hosts need **Apply to host** after the update (the
+collector gains hardware info and `events --since`).
 
 ### player-ranks
 
