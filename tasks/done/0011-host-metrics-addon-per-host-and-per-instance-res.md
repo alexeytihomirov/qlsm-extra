@@ -1,10 +1,10 @@
 ---
 id: qlsm-extra-0011
 title: host-metrics addon: per-host and per-instance resource dashboard with capacity verdict
-status: done-unverified
+status: done
 created: 2026-10-15
 updated: 2026-10-15
-verified:
+verified: 2026-10-15
 depends_on: []
 related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-v1-1-design.md, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-addon-design.md, qlsm-extra/docs/superpowers/plans/2026-10-15-host-metrics-addon.md]
 ---
@@ -57,6 +57,7 @@ related: [root-0020, qlsm-extra/docs/superpowers/specs/2026-10-15-host-metrics-v
 - 2026-10-15 - отзыв оператора на UI -> спека 1.1: docs/superpowers/specs/2026-10-15-host-metrics-v1-1-design.md (тема, доска здоровья, выводы текстом, железо, понятные графики; колокольчик и пункт навбара через PR в qlsm)
 - 2026-10-15 - 1.1 по отзыву оператора: ядро qlsm (PR #251, +7 коммитов: poller.tick, уведомления и колокольчик, пункт навбара, навбар-страница владеет шапкой) задеплоено через qlsm-ci (пайплайны 19 и 20, миграция 20261015120000, бэкап БД /app/data/qlds_ui.pre-notifications-20261015.db); аддон 1.1.1 (тема, доска здоровья, выводы текстом, железо, пороги на графиках, уведомления, диск через maj:min) на 7 хостах
 - 2026-10-15 - SwedenVultr (id 2) удалён из qlsm кем-то другим во время работы; коллектор host-metrics остался на 70.34.223.51
+- 2026-10-15 - оператор проверил UI: ок; SwedenVultr удалён оператором вместе с сервисом
 
 ## Результат
 
