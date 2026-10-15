@@ -183,7 +183,7 @@
     {
       "id": "server-ping",
       "zip": "packages/server-ping.zip",
-      "sha256": "0d188fc42bac7c31674ebba78f7dd5021f3542aa1f4e83401ef6f55742232919",
+      "sha256": "e255eb72faeea516c0b10321ea68deebcfa40f8727b6ecc0a4306cda87058a1c",
       "version": "1.0.0",
       "label": "Server Ping",
       "description": "Browser ping to game hosts: deploys ql-ping-echo (a low-priority WebRTC UDP echo, one shared DTLS certificate) to each enabled host and opens its UDP port in its own firewall chain QLPING-INPUT."

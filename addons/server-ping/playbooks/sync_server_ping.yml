@@ -3,10 +3,11 @@
 # script, the port file, VERSION, the shared DTLS certificate and the systemd
 # service. Extravars come from backend.py: sp_enabled (bool), sp_port (digits),
 # sp_cert_file (a PEM file on the qlsm side, '' when disabled), sp_version.
-# Enabled: the firewall chain QLPING-INPUT is ensured, the service restarted and
-# checked to stay up for 15 s (rescue stops it). Disabled: the service is
-# stopped and disabled, the QLPING-INPUT hook and chain and the certificate are
-# removed. QLSM-INPUT is never touched.
+# Enabled: everything is installed, the firewall chain QLPING-INPUT ensured,
+# the service restarted and checked to stay up for 15 s (rescue stops it).
+# Disabled: nothing is installed; a service that exists is stopped and
+# disabled, the QLPING-INPUT hook and chain removed (when the script is on the
+# host) and the certificate deleted. QLSM-INPUT is never touched.
 
 - name: Deploy ql-ping-echo
   hosts: all
@@ -18,84 +19,80 @@
     sp_conf_dir: /etc/ql-ping-echo
 
   tasks:
-    - name: Create the ql-ping group
-      group:
-        name: ql-ping
-        system: yes
-
-    - name: Create the ql-ping system user
-      user:
-        name: ql-ping
-        group: ql-ping
-        system: yes
-        shell: /usr/sbin/nologin
-        create_home: no
-
-    - name: Create the program directory
-      file:
-        path: "{{ sp_dir }}"
-        state: directory
-        owner: root
-        group: root
-        mode: "0755"
-
-    - name: Create the config directory
-      file:
-        path: "{{ sp_conf_dir }}"
-        state: directory
-        owner: root
-        group: ql-ping
-        mode: "0750"
-
-    # The binary is committed with mode 0644 and the addon zip carries 0644 for
-    # every file: the mode here is what makes it executable.
-    - name: Install the ql-ping-echo binary
-      copy:
-        src: "{{ playbook_dir }}/../assets/ql-ping-echo"
-        dest: "{{ sp_dir }}/ql-ping-echo"
-        owner: root
-        group: root
-        mode: "0755"
-
-    - name: Install the firewall script
-      copy:
-        src: "{{ playbook_dir }}/../assets/ql-ping-firewall"
-        dest: "{{ sp_dir }}/ql-ping-firewall"
-        owner: root
-        group: root
-        mode: "0755"
-
-    - name: Install the systemd service
-      copy:
-        src: "{{ playbook_dir }}/../assets/ql-ping-echo.service"
-        dest: /etc/systemd/system/ql-ping-echo.service
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Write the port file
-      copy:
-        content: "{{ sp_port }}\n"
-        dest: "{{ sp_conf_dir }}/port"
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Write the VERSION file
-      copy:
-        content: "{{ sp_version }}\n"
-        dest: "{{ sp_dir }}/VERSION"
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Reload systemd
-      systemd:
-        daemon_reload: yes
-
-    - name: Install the certificate, open the port, start and check the service
+    - name: Install ql-ping-echo
       when: sp_enabled | bool
       block:
+        - name: Create the ql-ping group
+          group:
+            name: ql-ping
+            system: yes
+
+        - name: Create the ql-ping system user
+          user:
+            name: ql-ping
+            group: ql-ping
+            system: yes
+            shell: /usr/sbin/nologin
+            create_home: no
+
+        - name: Create the program directory
+          file:
+            path: "{{ sp_dir }}"
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Create the config directory
+          file:
+            path: "{{ sp_conf_dir }}"
+            state: directory
+            owner: root
+            group: ql-ping
+            mode: "0750"
+
+        # The binary is committed with mode 0644 and the addon zip carries 0644
+        # for every file: the mode here is what makes it executable.
+        - name: Install the ql-ping-echo binary
+          copy:
+            src: "{{ playbook_dir }}/../assets/ql-ping-echo"
+            dest: "{{ sp_dir }}/ql-ping-echo"
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Install the firewall script
+          copy:
+            src: "{{ playbook_dir }}/../assets/ql-ping-firewall"
+            dest: "{{ sp_dir }}/ql-ping-firewall"
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Install the systemd service
+          copy:
+            src: "{{ playbook_dir }}/../assets/ql-ping-echo.service"
+            dest: /etc/systemd/system/ql-ping-echo.service
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Write the port file
+          copy:
+            content: "{{ sp_port }}\n"
+            dest: "{{ sp_conf_dir }}/port"
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Write the VERSION file
+          copy:
+            content: "{{ sp_version }}\n"
+            dest: "{{ sp_dir }}/VERSION"
+            owner: root
+            group: root
+            mode: "0644"
+
         - name: Install the DTLS key and certificate
           copy:
             src: "{{ sp_cert_file }}"
@@ -105,6 +102,13 @@
             mode: "0600"
           no_log: true
 
+        - name: Reload systemd
+          systemd:
+            daemon_reload: yes
+
+    - name: Open the port, start and check the service
+      when: sp_enabled | bool
+      block:
         - name: Ensure the QLPING-INPUT chain and its INPUT hook
           command: "{{ sp_dir }}/ql-ping-firewall apply"
           changed_when: false
@@ -161,15 +165,23 @@
     - name: Stop ql-ping-echo, close its port, remove the key
       when: not (sp_enabled | bool)
       block:
+        # The unit may not exist on a host that never had the service.
         - name: Stop and disable ql-ping-echo
           systemd:
             name: ql-ping-echo.service
             enabled: no
             state: stopped
+          failed_when: false
+
+        - name: Look for the firewall script
+          stat:
+            path: "{{ sp_dir }}/ql-ping-firewall"
+          register: sp_firewall_script
 
         - name: Remove the QLPING-INPUT hook and chain
           command: "{{ sp_dir }}/ql-ping-firewall remove"
           changed_when: false
+          when: sp_firewall_script.stat.exists
 
         - name: Remove the DTLS key and certificate
           file:

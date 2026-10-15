@@ -49,6 +49,7 @@ _SERVICE_RE = re.compile(r'^[a-z-]{1,24}$')
 _FINGERPRINT_RE = re.compile(r'([0-9A-F]{2}(?::[0-9A-F]{2}){31})')
 
 NO_CERT = 'Generate the DTLS certificate first (Server Ping page).'
+ADDON_OFF = 'The Server Ping addon is switched off globally (Settings -> Addons); nothing is applied.'
 
 
 def _error(message, status):
@@ -127,6 +128,9 @@ def apply_host(host_id):
     host = _get_host(host_id)
     if not host:
         return {'success': False, 'message': 'Host not found.'}
+    if not CTX.settings.is_enabled('global', 0):
+        CTX.logger.warning('server-ping: not applied to host %s: %s', host.name, ADDON_OFF)
+        return {'success': False, 'message': ADDON_OFF}
     try:
         variables, pem = deploy_variables(host_id)
     except ValueError as e:
@@ -298,6 +302,12 @@ def apply_host_route(host_id):
     host = _get_host(host_id)
     if not host:
         return _error('Host not found.', 404)
+    if not CTX.settings.is_enabled('global', 0):
+        return _error(ADDON_OFF, 409)
+    try:
+        sp_settings.validate_port(_global().get('port'))
+    except ValueError as e:
+        return _error(str(e), 400)
     try:
         deploy_variables(host_id)
     except ValueError as e:

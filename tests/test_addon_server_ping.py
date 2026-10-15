@@ -246,10 +246,25 @@ def test_apply_of_a_switched_off_host_removes_without_the_cert(app, monkeypatch)
 def test_a_failed_playbook_is_reported(app, client, auth, monkeypatch):
     _with_cert(app, client, auth)
     host_id = _host(app)
-    monkeypatch.setattr(_ctx(app), 'run_playbook', FakePlaybook(success=False, stderr='boom'))
+    _enable(app, host_id)
+    fake = FakePlaybook(success=False, stderr='boom')
+    monkeypatch.setattr(_ctx(app), 'run_playbook', fake)
     with app.app_context():
         result = _backend().apply_host(host_id)
-    assert result['success'] is False
+    assert result['success'] is False and len(fake.calls) == 1
+
+
+def test_apply_task_is_a_no_op_while_the_addon_is_off(app, client, auth, monkeypatch):
+    _with_cert(app, client, auth)
+    for host_enabled in (True, False):
+        host_id = _host(app, name=f'game-{host_enabled}')
+        _enable(app, host_id, host_enabled=host_enabled, global_enabled=False)
+        fake = FakePlaybook()
+        monkeypatch.setattr(_ctx(app), 'run_playbook', fake)
+        with app.app_context():
+            result = _backend().apply_host(host_id)
+        assert result['success'] is False and 'switched off globally' in result['message']
+        assert fake.calls == []
 
 
 # ---- routes: hosts, apply queue, status ------------------------------------------
@@ -280,6 +295,7 @@ def test_hosts_list_and_switch(app, client, auth):
 def test_apply_enqueues_the_apply_task(app, client, auth, queue):
     _with_cert(app, client, auth)
     host_id = _host(app)
+    _enable(app, host_id)
     response = client.post(f'{API}/hosts/{host_id}/apply', headers=auth)
     assert response.status_code == 202, response.get_json()
     assert len(queue) == 1
@@ -289,10 +305,34 @@ def test_apply_enqueues_the_apply_task(app, client, auth, queue):
 
 def test_apply_of_an_enabled_host_needs_a_cert(app, client, auth, queue):
     host_id = _host(app)
+    _enable(app, host_id)
     response = client.post(f'{API}/hosts/{host_id}/apply', headers=auth)
     assert response.status_code == 409
+    assert 'certificate' in response.get_json()['error']['message']
     assert queue == []
     assert client.post(f'{API}/hosts/9999/apply', headers=auth).status_code == 404
+
+
+def test_apply_route_refuses_while_the_addon_is_off(app, client, auth, queue):
+    _with_cert(app, client, auth)
+    host_id = _host(app)
+    _enable(app, host_id, global_enabled=False)
+    response = client.post(f'{API}/hosts/{host_id}/apply', headers=auth)
+    assert response.status_code == 409
+    assert 'switched off globally' in response.get_json()['error']['message']
+    assert queue == []
+
+
+def test_apply_route_with_an_invalid_stored_port_is_400(app, client, auth, queue):
+    _with_cert(app, client, auth)
+    host_id = _host(app)
+    _enable(app, host_id)
+    with app.app_context():
+        _ctx(app).settings.set('global', 0, {'port': 'soon'})
+    response = client.post(f'{API}/hosts/{host_id}/apply', headers=auth)
+    assert response.status_code == 400
+    assert 'port' in response.get_json()['error']['message']
+    assert queue == []
 
 
 def test_a_busy_host_gets_409(app, client, auth, monkeypatch):
@@ -300,7 +340,10 @@ def test_a_busy_host_gets_409(app, client, auth, monkeypatch):
     _with_cert(app, client, auth)
     monkeypatch.setattr(ui.task_lock, 'acquire_lock', lambda *a, **k: False)
     host_id = _host(app)
-    assert client.post(f'{API}/hosts/{host_id}/apply', headers=auth).status_code == 409
+    _enable(app, host_id)
+    response = client.post(f'{API}/hosts/{host_id}/apply', headers=auth)
+    assert response.status_code == 409
+    assert 'already running' in response.get_json()['error']['message']
 
 
 FP = ':'.join(['AB'] * 32)
@@ -362,12 +405,63 @@ def test_service_unit_has_the_agreed_shape():
     assert '/etc/ql-ping-echo/cert.pem' in unit and '/etc/ql-ping-echo/port' in unit
 
 
+ENABLED = 'sp_enabled | bool'
+DISABLED = 'not (sp_enabled | bool)'
+
+
+def _sync_play():
+    yaml = pytest.importorskip('yaml')
+    text = (ADDON_DIR / 'playbooks' / 'sync_server_ping.yml').read_text(encoding='utf-8')
+    return yaml.safe_load(text)[0]['tasks']
+
+
+def _leaves(task):
+    """Every non-block task inside `task` (block + rescue), flattened."""
+    if 'block' not in task:
+        return [task]
+    out = []
+    for sub in task['block'] + task.get('rescue', []):
+        out.extend(_leaves(sub))
+    return out
+
+
 @pytest.mark.standalone
-def test_playbooks_install_the_binary_executable():
-    sync = (ADDON_DIR / 'playbooks' / 'sync_server_ping.yml').read_text(encoding='utf-8')
-    assert 'ql-ping-echo' in sync and 'mode: "0755"' in sync
-    assert 'QLPING-INPUT' in sync or 'ql-ping-firewall remove' in sync
-    assert 'NRestarts' in sync and 'rescue:' in sync
+def test_sync_playbook_installs_only_when_enabled():
+    tasks = _sync_play()
+    # Nothing runs outside a block gated on sp_enabled: a disabled host gets no install.
+    assert all('block' in t and t.get('when') in (ENABLED, DISABLED) for t in tasks), \
+        [t.get('name') for t in tasks]
+    enabled = [leaf for t in tasks if t['when'] == ENABLED for leaf in _leaves(t)]
+    binary = [t for t in enabled if t.get('copy', {}).get('dest', '').endswith('/ql-ping-echo')]
+    assert len(binary) == 1 and binary[0]['copy']['mode'] == '0755'
+    for module in ('user', 'group'):
+        assert any(module in t for t in enabled), module
+    assert any(t.get('copy', {}).get('dest') == '/etc/systemd/system/ql-ping-echo.service'
+               for t in enabled)
+    started = [t for t in tasks if t['when'] == ENABLED and 'rescue' in t]
+    assert len(started) == 1
+    assert any('NRestarts' in str(t.get('command', '')) for t in started[0]['block'])
+    assert any('pause' in t for t in started[0]['block'])
+
+
+@pytest.mark.standalone
+def test_sync_playbook_disabled_path_only_removes():
+    tasks = _sync_play()
+    disabled = [t for t in tasks if t['when'] == DISABLED]
+    assert len(disabled) == 1
+    steps = disabled[0]['block']
+    assert not any(m in t for t in steps for m in ('copy', 'user', 'group'))
+    stop = [t for t in steps if 'systemd' in t]
+    assert len(stop) == 1
+    assert stop[0]['systemd']['state'] == 'stopped' and stop[0]['systemd']['enabled'] is False
+    assert stop[0]['failed_when'] is False
+    stat = [t for t in steps if 'stat' in t]
+    assert len(stat) == 1 and stat[0]['stat']['path'].endswith('/ql-ping-firewall')
+    remove = [t for t in steps if str(t.get('command', '')).endswith('ql-ping-firewall remove')]
+    assert len(remove) == 1
+    assert remove[0]['when'] == f"{stat[0]['register']}.stat.exists"
+    assert any(t.get('file', {}).get('path', '').endswith('/cert.pem')
+               and t['file']['state'] == 'absent' for t in steps)
     assert (ADDON_DIR / 'playbooks' / 'status_server_ping.yml').is_file()
 
 
@@ -385,7 +479,12 @@ case "$op" in
   -F) [ -e "$file" ] || exit 1; : > "$file" ;;
   -C) [ -e "$file" ] || exit 1; grep -Fxq -- "${args[*]:2}" "$file" ;;
   -A) [ -e "$file" ] || exit 1; echo "${args[*]:2}" >> "$file" ;;
-  -I) [ -e "$file" ] || exit 1; { echo "${args[*]:3}"; cat "$file"; } > "$file.new"; mv "$file.new" "$file" ;;
+  -I) [ -e "$file" ] || exit 1
+      if [[ "${args[2]}" =~ ^[0-9]+$ ]]; then pos="${args[2]}"; rule="${args[*]:3}"
+      else pos=1; rule="${args[*]:2}"; fi
+      awk -v p="$pos" -v r="$rule" 'NR == p { print r; done = 1 } { print } END { if (!done) print r }' \
+        "$file" > "$file.new"
+      mv "$file.new" "$file" ;;
   -D) [ -e "$file" ] || exit 1
       rule="${args[*]:2}"
       grep -Fxq -- "$rule" "$file" || exit 1
@@ -407,13 +506,19 @@ def _bash():
     return found
 
 
+INPUT_SEED = ['-i lo -j ACCEPT', '-m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT',
+              '-j QLSM-INPUT']
+
+
 def _firewall(tmp_path, *args, port='28111'):
     bin_dir = tmp_path / 'bin'
     state = tmp_path / 'state'
     if not bin_dir.exists():
         bin_dir.mkdir()
         state.mkdir()
-        (state / 'chain.INPUT').write_text('', encoding='utf-8')
+        # INPUT already holds rules (as on a real host): the hook must go in front.
+        (state / 'chain.INPUT').write_text('\n'.join(INPUT_SEED) + '\n', encoding='utf-8',
+                                           newline='\n')
         fake = bin_dir / 'iptables'
         fake.write_text(FAKE_IPTABLES, encoding='utf-8', newline='\n')
         fake.chmod(0o755)
@@ -437,7 +542,7 @@ def test_firewall_script_is_idempotent(tmp_path):
     for _ in range(2):
         result, state = _firewall(tmp_path)
         assert result.returncode == 0, result.stderr
-    assert _chain(state, 'INPUT') == ['-j QLPING-INPUT']
+    assert _chain(state, 'INPUT') == ['-j QLPING-INPUT'] + INPUT_SEED
     assert _chain(state, 'QLPING-INPUT') == ['-p udp --dport 28111 -j ACCEPT']
     log = (state / 'log').read_text(encoding='utf-8').splitlines()
     assert sum(1 for line in log if '-I INPUT' in line) == 1
@@ -446,12 +551,12 @@ def test_firewall_script_is_idempotent(tmp_path):
     # A port change replaces the rule, the hook stays single.
     result, state = _firewall(tmp_path, port='28200')
     assert result.returncode == 0, result.stderr
-    assert _chain(state, 'INPUT') == ['-j QLPING-INPUT']
+    assert _chain(state, 'INPUT') == ['-j QLPING-INPUT'] + INPUT_SEED
     assert _chain(state, 'QLPING-INPUT') == ['-p udp --dport 28200 -j ACCEPT']
 
     result, state = _firewall(tmp_path, 'remove')
     assert result.returncode == 0, result.stderr
-    assert _chain(state, 'INPUT') == []
+    assert _chain(state, 'INPUT') == INPUT_SEED
     assert _chain(state, 'QLPING-INPUT') is None
     result, state = _firewall(tmp_path, 'remove')
     assert result.returncode == 0, result.stderr
