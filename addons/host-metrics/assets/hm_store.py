@@ -251,6 +251,14 @@ def events(conn, since):
     return _rows(conn, "SELECT * FROM events WHERE ts>=? ORDER BY ts DESC, id DESC", (since,))
 
 
+def events_changed_since(conn, ts):
+    """Events opened or closed after ts (ts > since or closed_ts > since), oldest change first."""
+    return _rows(
+        conn,
+        "SELECT * FROM events WHERE ts>? OR closed_ts>?"
+        " ORDER BY MAX(ts, COALESCE(closed_ts, 0)), id", (ts, ts))
+
+
 def set_hardware(conn, ts, hw):
     """Replace the single hardware row."""
     with conn:

@@ -4,6 +4,7 @@
     hm_query.py [--db PATH] snapshot
     hm_query.py [--db PATH] series --range R [--port N]
     hm_query.py [--db PATH] events --range R
+    hm_query.py [--db PATH] events --since TS
 
 Exit 0 on success, 2 on bad arguments (argparse), 3 when there is no usable DB
 (`{"version": ..., "error": "no_data"}`). Stdlib only. The DB is opened read-only
@@ -175,8 +176,19 @@ def _parser():
     s.add_argument("--range", required=True, choices=list(hm_store.RANGES))
     s.add_argument("--port", type=int, default=None)
     e = sub.add_parser("events")
-    e.add_argument("--range", required=True, choices=list(hm_store.RANGES))
+    e.add_argument("--range", choices=list(hm_store.RANGES))
+    e.add_argument("--since", type=_since)
     return p
+
+
+def _since(text):
+    try:
+        val = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError("not an integer: %r" % (text,))
+    if val < 0:
+        raise argparse.ArgumentTypeError("must be >= 0: %r" % (text,))
+    return val
 
 
 def _out(obj):
@@ -184,7 +196,10 @@ def _out(obj):
 
 
 def main(argv=None):
-    args = _parser().parse_args(argv)
+    parser = _parser()
+    args = parser.parse_args(argv)
+    if args.cmd == "events" and (args.range is None) == (args.since is None):
+        parser.error("events needs exactly one of --range and --since")
     version = _version()
     now = args.now if args.now is not None else int(time.time())
     if not Path(args.db).is_file():
@@ -199,6 +214,9 @@ def main(argv=None):
                 body = hm_store.series(conn, now, args.range, port=args.port)
                 body["range"] = args.range
                 body["now"] = now
+            elif args.since is not None:
+                body = {"now": now, "since": args.since,
+                        "events": hm_store.events_changed_since(conn, args.since)}
             else:
                 body = {"range": args.range, "now": now,
                         "events": hm_store.events(conn, now - hm_store.RANGES[args.range])}
