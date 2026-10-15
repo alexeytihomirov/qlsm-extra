@@ -22,21 +22,27 @@ MIN_AGE_MIN = 2
 DELIVERED_GRACE_HOURS = 24
 MAX_RAW_REMOTE_MB = 5000
 RCLONE = 'rclone'
-KNOWN_HOSTS_FILE = os.path.join(ADDON_DIR, 'assets', 'known_hosts_vps')
 MANIFEST_FILE = os.path.join(ADDON_DIR, 'qlsm-addon.json')
 
 # Rows are separated by ";" or a newline: qlsm's declarative form renders a
 # string setting as a one-line <input>, which drops newlines.
 DEFAULT_PATTERNS = '*.qlmatch qlmatch keep; *.replay.json.gz qlmatch keep; *.dm_91 raw expire'
 
+# No default VPS address: each install types its own once, and saving it
+# scans and pins that host's SSH keys (`vps_known_hosts`, see hostkeys.py).
 DEFAULTS = {
-    'vps_host': '70.34.223.191',
+    'vps_host': '',
     'retention_days': '14',
     'max_raw_mb_per_run': '2048',
     'interval_minutes': '10',
     'patterns': DEFAULT_PATTERNS,
 }
 EDITABLE_KEYS = tuple(DEFAULTS)
+KNOWN_HOSTS_SETTING = 'vps_known_hosts'
+
+NOT_CONFIGURED = ('The VPS address or its host keys are not set: enter the address in '
+                  'Settings -> Addons -> File Forwarder and save, so its host keys are scanned. '
+                  'Apply to host refuses until then.')
 
 # key -> (label, min, max)
 _INT_FIELDS = {
@@ -141,9 +147,30 @@ def render_conf(settings):
     return '\n'.join(lines) + '\n'
 
 
-def _read_text(path):
-    with open(path, 'r', encoding='utf-8') as f:
-        return f.read().replace('\r\n', '\n')
+def known_hosts(settings):
+    """The pinned known_hosts text for the configured address, or ValueError(NOT_CONFIGURED).
+
+    Every key line must be for the current `vps_host`: keys scanned for an
+    earlier address never reach a host.
+    """
+    host = settings.get('vps_host')
+    host = host.strip() if isinstance(host, str) else ''
+    text = settings.get(KNOWN_HOSTS_SETTING)
+    text = text if isinstance(text, str) else ''
+    lines = [line.strip() for line in text.splitlines()
+             if line.strip() and not line.lstrip().startswith('#')]
+    if not host or not lines or any(host not in line.split()[0].split(',') for line in lines):
+        raise ValueError(NOT_CONFIGURED)
+    return '\n'.join(lines) + '\n'
+
+
+def vps_ready(settings):
+    """An address is set and its host keys are pinned."""
+    try:
+        known_hosts(settings)
+    except ValueError:
+        return False
+    return True
 
 
 def addon_version():
@@ -162,15 +189,13 @@ def playbook_vars(settings):
     private = (settings.get('sftp_private_key') or '').strip()
     if not private:
         raise ValueError('the SFTP key has not been generated yet')
+    pinned = known_hosts(settings)
     values = validate_settings(settings)
-    known_hosts = _read_text(KNOWN_HOSTS_FILE)
-    if not known_hosts.endswith('\n'):
-        known_hosts += '\n'
     return {
         'ff_conf_text': render_conf(settings),
         # OpenSSH refuses a private key file without its final newline.
         'ff_private_key': private + '\n',
-        'ff_known_hosts': known_hosts,
+        'ff_known_hosts': pinned,
         'ff_version': addon_version(),
         'ff_interval_minutes': values['interval_minutes'],
         'ff_vps_host': values['vps_host'],

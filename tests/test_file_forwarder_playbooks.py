@@ -137,7 +137,9 @@ def test_ff_private_key_never_referenced_by_playbooks():
 
 def test_every_extravar_is_provided_by_the_backend():
     config_render = _config_render()
-    provided = set(config_render.playbook_vars({'sftp_private_key': 'x'}))
+    provided = set(config_render.playbook_vars({
+        'sftp_private_key': 'x', 'vps_host': 'vps.example.org',
+        'vps_known_hosts': 'vps.example.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL4aIb56D/YdmM5b3fAmOwwLcxxQj8RGyvz4kITSjJc0'}))
     provided.discard('ff_private_key')  # backend turns it into a file path
     backend = (ADDON / 'backend.py').read_text(encoding='utf-8')
     for extra, assignment in (('ff_private_key_file', "variables['ff_private_key_file'] ="),

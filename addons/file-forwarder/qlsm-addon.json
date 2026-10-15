@@ -1,6 +1,6 @@
 {
   "id": "file-forwarder",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "name": "File Forwarder",
   "description": "Ships demo files (.qlmatch packs, .replay.json.gz sidecars, raw .dm_91) from every game host to the site VPS over SFTP with rclone, every few minutes, and removes raw demos from the host after the retention period, only when the delivery is recorded and at least a day old. One SFTP key belongs to the whole QLSM install: add its public half (Settings -> Addons -> File Forwarder) to the VPS once. The forwarder is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry File Forwarder has the host switch, the status and the buttons Apply to host, Sync now and Sync now and delete delivered.",
   "scopes": ["global", "host"],
@@ -8,13 +8,14 @@
 
   "settings": {
     "global": [
-      { "key": "vps_host", "type": "string", "label": "VPS address", "default": "70.34.223.191" },
+      { "key": "vps_host", "type": "string", "label": "VPS address" },
       { "key": "retention_days", "type": "string", "label": "Raw demo retention on the host (days)", "default": "14" },
       { "key": "max_raw_mb_per_run", "type": "string", "label": "Raw upload limit per run (MB)", "default": "2048" },
       { "key": "interval_minutes", "type": "string", "label": "Run every (minutes)", "default": "10" },
       { "key": "patterns", "type": "string", "label": "Patterns", "default": "*.qlmatch qlmatch keep; *.replay.json.gz qlmatch keep; *.dm_91 raw expire" },
       { "key": "sftp_private_key", "type": "secret", "label": "internal: install SFTP private key (generated, never shown)" },
-      { "key": "sftp_public_key", "type": "string", "label": "internal: install SFTP public key (generated)" }
+      { "key": "sftp_public_key", "type": "string", "label": "internal: install SFTP public key (generated)" },
+      { "key": "vps_known_hosts", "type": "string", "label": "internal: pinned VPS host keys" }
     ],
     "host": [
       { "key": "enabled", "type": "bool", "label": "Forward this host's demos", "default": true }
@@ -38,9 +39,12 @@
         "description": "Where and how every host forwards its demos. Changes reach a host with Apply to host (host menu, File Forwarder) or its next host setup; Update Plugins does not apply them. Patterns: rows of 'glob remote_dir keep|expire' separated by ';'. A remote_dir uses only A-Za-z0-9_.- ; 'expire' rows are deleted from the host after the retention, once their delivery is recorded and at least 24 hours old.",
         "load": "GET settings",
         "submit": "PUT settings",
+        "status": { "load": "GET settings/status" },
         "fields": [
-          { "key": "vps_host", "type": "string", "label": "VPS address", "default": "70.34.223.191",
-            "description": "SFTP target. Its host keys are pinned in the addon: another address also needs an addon release with its keys." },
+          { "key": "vps_host", "type": "string", "label": "VPS address",
+            "description": "SFTP target, a host name or IPv4 address. Saving a new address reads its SSH host keys from QLSM and pins them; compare the fingerprints shown in the status line once with the VPS provider console. Apply to host refuses until this is done." },
+          { "key": "rescan_keys", "type": "bool", "label": "Re-scan host keys", "default": false,
+            "description": "Read the VPS host keys again on this save, e.g. after the VPS was reinstalled. Then use Apply to host on every host." },
           { "key": "retention_days", "type": "string", "label": "Raw demo retention on the host (days)", "default": "14" },
           { "key": "max_raw_mb_per_run", "type": "string", "label": "Raw upload limit per run (MB)", "default": "2048",
             "description": "Raw demos are sent newest first; the rest waits for the next run." },

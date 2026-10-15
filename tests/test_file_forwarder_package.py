@@ -15,7 +15,7 @@ REPO_JSON = ROOT / 'qlsm-repository.json'
 PRIVATE_KEY_BLOCK = re.compile(r'-----BEGIN [A-Z ]*PRIVATE KEY-----\s*[A-Za-z0-9+/=\r\n]{20,}')
 EXPECTED = [
     'qlsm-addon.json', 'backend.py', 'config_render.py', 'keypair.py',
-    'assets/forwarder.sh', 'assets/known_hosts_vps',
+    'hostkeys.py', 'assets/forwarder.sh',
     'assets/file-forwarder.service', 'assets/file-forwarder.timer',
     'playbooks/run_forwarder.yml', 'playbooks/status_file_forwarder.yml',
     'playbooks/sync_file_forwarder.yml',
@@ -37,6 +37,7 @@ def test_zip_contents():
     names = _names()
     for want in EXPECTED:
         assert want in names, want
+    assert 'assets/known_hosts_vps' not in names
     assert not [n for n in names if '__pycache__' in n]
 
 
