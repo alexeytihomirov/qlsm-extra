@@ -32,7 +32,8 @@ def _load(path):
 def _texts():
     for path in ADDON_MANIFESTS:
         manifest = _load(path)
-        yield f'{path.parent.name}', manifest['description']
+        if manifest.get('description'):
+            yield f'{path.parent.name}', manifest['description']
         for name, panel in (manifest.get('ui', {}).get('panels') or {}).items():
             if panel.get('description'):
                 yield f'{path.parent.name} panel {name}', panel['description']
