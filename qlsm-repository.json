@@ -129,7 +129,7 @@
     {
       "id": "file-forwarder",
       "zip": "packages/file-forwarder.zip",
-      "sha256": "45ee651a2a8449a99cb89e9fe8534853400094edd0f74b36697f263c7dcc0537",
+      "sha256": "002c28684556f9200669a6df1bb28f02db26c3b5ce088b4d8b0b8ef7bac1d06a",
       "version": "1.2.0",
       "label": "File Forwarder",
       "description": "Ships demo files (.qlmatch packs, .replay.json.gz sidecars, raw .dm_91) from every game host to the site VPS over SFTP with rclone, every few minutes, and removes raw demos from the host after the retention period, only when the delivery is recorded and at least a day old. One SFTP key belongs to the whole QLSM install: add its public half (Settings -> Addons -> File Forwarder) to the VPS once. The forwarder is installed on every host at host setup; use Apply to host after an addon update or a settings change. The host menu entry File Forwarder has the host switch, the status and the buttons Apply to host, Sync now and Sync now and delete delivered."

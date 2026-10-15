@@ -40,7 +40,10 @@ DEFAULTS = {
 EDITABLE_KEYS = tuple(DEFAULTS)
 KNOWN_HOSTS_SETTING = 'vps_known_hosts'
 
-NOT_CONFIGURED = ('The VPS address or its host keys are not set: enter the address in '
+# The rest of a pinned known_hosts line after the host name.
+_KEY_LINE_TAIL = r' (ssh-ed25519|ecdsa-sha2-nistp(256|384|521)|ssh-rsa) [A-Za-z0-9+/]+={0,2}'
+
+NOT_CONFIGURED = ('The VPS address or its host keys are not set (or not valid): enter the address in '
                   'Settings -> Addons -> File Forwarder and save, so its host keys are scanned. '
                   'Apply to host refuses until then.')
 
@@ -112,7 +115,9 @@ def _vps_host(settings):
     host = settings.get('vps_host', DEFAULTS['vps_host'])
     if not isinstance(host, str) or not _HOST_RE.match(host.strip()):
         raise ValueError('vps_host must be a host name or an IPv4 address')
-    return host.strip()
+    # Lowercase: ssh-keyscan prints the host lowercased, and known_hosts()
+    # matches the stored lines against this exact name.
+    return host.strip().lower()
 
 
 def validate_settings(settings):
@@ -150,16 +155,21 @@ def render_conf(settings):
 def known_hosts(settings):
     """The pinned known_hosts text for the configured address, or ValueError(NOT_CONFIGURED).
 
-    Every key line must be for the current `vps_host`: keys scanned for an
-    earlier address never reach a host.
+    Every line must be exactly `<vps_host> <key type> <base64>`: keys scanned
+    for an earlier address never reach a host, and nothing else does either.
+    Core's generic state route can write `vps_known_hosts` directly, and the
+    text becomes an Ansible extravar (`copy: content:`), so a `{{ ... }}` in
+    it would be templated there.
     """
     host = settings.get('vps_host')
-    host = host.strip() if isinstance(host, str) else ''
+    host = host.strip().lower() if isinstance(host, str) else ''
     text = settings.get(KNOWN_HOSTS_SETTING)
     text = text if isinstance(text, str) else ''
-    lines = [line.strip() for line in text.splitlines()
-             if line.strip() and not line.lstrip().startswith('#')]
-    if not host or not lines or any(host not in line.split()[0].split(',') for line in lines):
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not host or not _HOST_RE.match(host) or not lines:
+        raise ValueError(NOT_CONFIGURED)
+    line_re = re.compile(re.escape(host) + _KEY_LINE_TAIL)
+    if not all(line_re.fullmatch(line) for line in lines):
         raise ValueError(NOT_CONFIGURED)
     return '\n'.join(lines) + '\n'
 

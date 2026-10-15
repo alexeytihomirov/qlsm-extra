@@ -47,14 +47,6 @@ def known_hosts_lines(text):
     return ''.join(line + '\n' for line in lines)
 
 
-def hosts_of(text):
-    """Every host name the key lines are for."""
-    names = set()
-    for host, _kind, _blob in _key_lines(text):
-        names.update(host.split(','))
-    return names
-
-
 def scan(host, timeout=10):
     """known_hosts lines of `host`, or HostKeyScanError."""
     if not host or host.startswith('-'):

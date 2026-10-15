@@ -192,6 +192,29 @@ def test_playbook_vars_without_the_address_or_its_keys_is_an_error(render, setti
 
 
 @pytest.mark.standalone
+@pytest.mark.parametrize('stored', [
+    # Core's generic state route can write the setting directly; it ends up an Ansible extravar.
+    ED25519_LINE + '\n' + VPS + ' ssh-ed25519 {{ lookup("pipe", "id") }}',
+    ED25519_LINE + ' extra-field',
+    f'{VPS},* ' + ED25519_LINE.split(' ', 1)[1],
+    '# comment\n' + ED25519_LINE,
+    ED25519_LINE.replace('ssh-ed25519', 'ssh-dss'),
+    ED25519_LINE.replace(VPS, 'vpsXexample.org'),
+])
+def test_playbook_vars_refuse_a_malformed_stored_key_line(render, stored):
+    with pytest.raises(ValueError):
+        render.known_hosts(dict(VALID, vps_known_hosts=stored))
+    with pytest.raises(ValueError):
+        render.playbook_vars(dict(VALID, sftp_private_key=FAKE_PRIVATE, vps_known_hosts=stored))
+
+
+@pytest.mark.standalone
+def test_vps_host_is_lowercased(render):
+    assert render.validate_settings(dict(VALID, vps_host='VPS.Example.ORG'))['vps_host'] == VPS
+    assert render.known_hosts(dict(VALID, vps_host='VPS.Example.ORG', vps_known_hosts=KNOWN_HOSTS)) == KNOWN_HOSTS
+
+
+@pytest.mark.standalone
 def test_no_ip_in_addon():
     for path in ADDON_DIR.rglob('*'):
         if path.is_file() and '__pycache__' not in path.parts:
@@ -592,7 +615,8 @@ def test_put_settings_new_address_scans_and_stores_keys(app, client, auth, scan)
     response = client.put(f'{API}/settings', headers=auth, json=dict(VALID, rescan_keys=False))
     assert response.status_code == 200, response.get_json()
     body = response.get_json()
-    assert body['data']['fingerprints'] == [ED25519_FP, body['data']['fingerprints'][1]]
+    prints = body['data']['fingerprints']
+    assert len(prints) == 2 and prints[0] == ED25519_FP and prints[1].startswith('ECDSA SHA256:')
     assert 'vps_known_hosts' not in body['data']
     assert ED25519_FP in body['message']
     assert scan.hosts == [VPS]
@@ -620,6 +644,18 @@ def test_put_settings_new_address_rescans(app, client, auth, scan):
     assert _stored(app)['vps_known_hosts'].startswith('10.0.0.9 ssh-ed25519 ')
 
 
+def test_put_settings_rescans_over_tampered_keys(app, client, auth, scan):
+    host_id = _host(app)
+    _enable(app, host_id)
+    _configure(app, VPS, ED25519_LINE + ' {{ 7*7 }}')
+    response = client.post(f'{API}/hosts/{host_id}/apply', headers=auth)
+    assert response.status_code == 409  # refused: not valid known_hosts lines
+    assert 'Settings -> ' in response.get_json()['error']['message']
+    assert client.put(f'{API}/settings', headers=auth, json=VALID).status_code == 200
+    assert scan.hosts == [VPS]
+    assert _stored(app)['vps_known_hosts'] == KNOWN_HOSTS.strip()
+
+
 def test_put_settings_rescan_keys_rescans(app, client, auth, scan):
     assert client.put(f'{API}/settings', headers=auth, json=VALID).status_code == 200
     assert client.put(f'{API}/settings', headers=auth, json=dict(VALID, rescan_keys=True)).status_code == 200
@@ -643,7 +679,19 @@ def test_settings_status_reports_the_pinned_keys(app, client, auth, scan):
     client.put(f'{API}/settings', headers=auth, json=VALID)
     data = client.get(f'{API}/settings/status', headers=auth).get_json()['data']
     assert data['ok'] is True
-    assert data['label'].startswith(f'Host keys pinned: {ED25519_FP}, ECDSA SHA256:')
+    assert data['label'].startswith('Host keys pinned (compare once with the VPS provider console): '
+                                    f'{ED25519_FP}, ECDSA SHA256:')
+
+
+def test_a_mixed_case_address_is_stored_lowercased_and_pinned(app, client, auth, scan):
+    response = client.put(f'{API}/settings', headers=auth, json=dict(VALID, vps_host='VPS.Example.ORG'))
+    assert response.status_code == 200, response.get_json()
+    assert scan.hosts == [VPS]
+    assert _stored(app)['vps_host'] == VPS
+    assert client.get(f'{API}/settings/status', headers=auth).get_json()['data']['ok'] is True
+    # Saving the same address again, in any case, does not re-scan.
+    client.put(f'{API}/settings', headers=auth, json=dict(VALID, vps_host='Vps.Example.Org'))
+    assert scan.hosts == [VPS]
 
 
 def test_host_switch_round_trips(app, client, auth):

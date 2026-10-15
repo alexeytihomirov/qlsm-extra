@@ -220,7 +220,8 @@ def settings_status():
     if not config_render.vps_ready(values):
         return jsonify({'data': {'ok': False, 'label': 'VPS address or host keys not set'}})
     prints = hostkeys.fingerprints(values.get(config_render.KNOWN_HOSTS_SETTING))
-    return jsonify({'data': {'ok': True, 'label': f'Host keys pinned: {", ".join(prints)}'}})
+    label = f'Host keys pinned (compare once with the VPS provider console): {", ".join(prints)}'
+    return jsonify({'data': {'ok': True, 'label': label}})
 
 
 @bp.route('/settings', methods=['PUT'], endpoint='put_settings')
