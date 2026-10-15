@@ -272,6 +272,26 @@ def test_snapshot_hardware_none_before_first_read(db, capsys):
     assert code == 0 and s["hardware"] is None
 
 
+def test_snapshot_events_open_oldest_first_whatever_their_age(tmp_path, capsys):
+    p, a, b = _events_db(tmp_path)
+    conn = hm_store.open_db(p)
+    old = hm_store.insert_event(conn, NOW - 3 * 86400, "disk_low", "host", None, "crit", "d")
+    conn.close()
+    code, s = _run(capsys, "--db", str(p), "--now", str(NOW), "snapshot")
+    assert code == 0
+    # a is closed; an event opened 3 days ago and still open is reported (no 24 h window)
+    assert [e["id"] for e in s["events_open"]] == [old, b]
+    assert s["events_open"][0]["severity"] == "crit" and s["events_open"][0]["ts"] == NOW - 3 * 86400
+    assert all(e["state"] == "open" for e in s["events_open"])
+
+
+def test_empty_store_snapshot_has_no_open_events(tmp_path, capsys):
+    p = tmp_path / "m.db"
+    hm_store.open_db(p).close()
+    _, s = _run(capsys, "--db", str(p), "--now", str(NOW), "snapshot")
+    assert s["events_open"] == []
+
+
 def _events_db(tmp_path):
     p = tmp_path / "e.db"
     conn = hm_store.open_db(p)

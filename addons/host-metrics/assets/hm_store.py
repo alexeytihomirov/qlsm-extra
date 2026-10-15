@@ -251,6 +251,11 @@ def events(conn, since):
     return _rows(conn, "SELECT * FROM events WHERE ts>=? ORDER BY ts DESC, id DESC", (since,))
 
 
+def events_open(conn):
+    """Events still open, oldest first (whatever their age: the snapshot's 'since when')."""
+    return _rows(conn, "SELECT * FROM events WHERE state='open' ORDER BY ts, id", ())
+
+
 def events_changed_since(conn, ts):
     """Events opened or closed after ts (ts > since or closed_ts > since), oldest change first."""
     return _rows(

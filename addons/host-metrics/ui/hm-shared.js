@@ -2247,11 +2247,11 @@ function uPlot(opts, data, then) {
         indic.style.background = markers.fill(self, i);
       }
     }
-    let text = placeDiv(LEGEND_LABEL, label);
-    text.textContent = s.label;
+    let text2 = placeDiv(LEGEND_LABEL, label);
+    text2.textContent = s.label;
     if (i > 0) {
       if (!markers.show)
-        text.style.color = s.width > 0 ? markers.stroke(self, i) : markers.fill(self, i);
+        text2.style.color = s.width > 0 ? markers.stroke(self, i) : markers.fill(self, i);
       onMouse("click", label, (e) => {
         if (cursor._lock)
           return;
@@ -3217,15 +3217,15 @@ function uPlot(opts, data, then) {
           val = "" + val;
           let _parts = val.indexOf("\n") == -1 ? [val] : val.split(/\n/gm);
           for (let j = 0; j < _parts.length; j++) {
-            let text = _parts[j];
+            let text2 = _parts[j];
             if (angle) {
               ctx.save();
               ctx.translate(x, y + j * lineHeight);
               ctx.rotate(angle);
-              ctx.fillText(text, 0, 0);
+              ctx.fillText(text2, 0, 0);
               ctx.restore();
             } else
-              ctx.fillText(text, x, y + j * lineHeight);
+              ctx.fillText(text2, x, y + j * lineHeight);
           }
         }
       }
@@ -4286,30 +4286,10 @@ function fmtBytes(b) {
   if (unit === 0) return `${Math.round(value)} B`;
   return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${UNITS[unit]}`;
 }
-const STATUS = {
-  ok: { text: "OK", tone: "good" },
-  tight: { text: "Tight", tone: "warning" },
-  overloaded: { text: "Overloaded", tone: "critical" },
-  unknown: { text: "No data under load", tone: "neutral" }
-};
-function statusLabel(status) {
-  return { ...STATUS[status] || STATUS.unknown };
-}
 function slotsText(verdict) {
   const slots = verdict == null ? void 0 : verdict.slots;
   if (!isNum$3(slots)) return "-";
   return slots > 0 ? `room for ${slots} more` : "no room";
-}
-const STATES = {
-  not_installed: "Not installed",
-  outdated: "Outdated collector",
-  unreachable: "Unreachable",
-  no_sudo: "No sudo",
-  no_data: "No data yet",
-  stale: "Stale"
-};
-function stateLabel(state) {
-  return STATES[state] || null;
 }
 function fmtDuration(seconds) {
   if (!isNum$3(seconds)) return "-";
@@ -4328,6 +4308,82 @@ function fmtTime(ts, seconds = false) {
   const d = new Date(ts * 1e3);
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}${seconds ? `:${p(d.getSeconds())}` : ""}`;
+}
+const KIND_LABELS = {
+  core_saturated: "Core saturated",
+  steal_high: "Steal high",
+  mem_low: "Memory low",
+  disk_low: "Disk low",
+  frames_late: "Late frames",
+  oom_kill: "OOM kill",
+  instance_new: "Instance appeared",
+  instance_gone: "Instance gone"
+};
+function kindLabel(kind) {
+  return KIND_LABELS[kind] || String(kind);
+}
+const text = (v) => typeof v === "string" && v.trim() ? v.trim().replace(/\s+/g, " ") : null;
+function cpuCount(hw) {
+  if (!isNum$3(hw.vcpus)) return null;
+  return hw.hypervisor === false ? `${hw.vcpus} CPU threads` : `${hw.vcpus} vCPU`;
+}
+function diskText(hw) {
+  if (!isNum$3(hw.disk_total)) return null;
+  let kind = "disk";
+  if (hw.disk_rotational === true) kind = "HDD";
+  else if (hw.disk_rotational === false) kind = "SSD";
+  return `${fmtBytes(hw.disk_total)} ${kind}`;
+}
+function productOf(hw) {
+  const product = text(hw.product_name);
+  if (!product || product === text(hw.provider) || product === text(hw.sys_vendor)) return null;
+  return product;
+}
+function hardwareLine(hw) {
+  if (!hw || typeof hw !== "object") return null;
+  const provider = text(hw.provider);
+  const product = productOf(hw);
+  const parts = [
+    text(hw.cpu_model),
+    cpuCount(hw),
+    isNum$3(hw.mem_total) ? `${fmtBytes(hw.mem_total)} RAM` : null,
+    diskText(hw),
+    provider ? `${provider}${product ? ` (${product})` : ""}` : null
+  ].filter(Boolean);
+  return parts.length ? parts.join(", ") : null;
+}
+function hardwareDetails(hw) {
+  if (!hw || typeof hw !== "object") return [];
+  const out = [];
+  const add = (label, value) => {
+    if (value) out.push([label, value]);
+  };
+  add("CPU", text(hw.cpu_model));
+  let cores = cpuCount(hw);
+  if (cores) {
+    const topo = [];
+    if (isNum$3(hw.threads_per_core)) topo.push(`${hw.threads_per_core} ${hw.threads_per_core === 1 ? "thread" : "threads"} per core`);
+    if (isNum$3(hw.sockets)) topo.push(`${hw.sockets} ${hw.sockets === 1 ? "socket" : "sockets"}`);
+    if (topo.length) cores += ` (${topo.join(", ")})`;
+  }
+  const clock = [cores, isNum$3(hw.mhz) ? `${Math.round(hw.mhz)} MHz` : null, text(hw.cache) ? `cache ${text(hw.cache)}` : null].filter(Boolean);
+  add("Cores", clock.length ? clock.join(", ") : null);
+  const mem = [];
+  if (isNum$3(hw.mem_total)) mem.push(`${fmtBytes(hw.mem_total)} RAM`);
+  if (isNum$3(hw.swap_total)) mem.push(hw.swap_total > 0 ? `${fmtBytes(hw.swap_total)} swap` : "no swap");
+  add("Memory", mem.length ? mem.join(", ") : null);
+  add("Disk", diskText(hw));
+  let virt = null;
+  if (hw.hypervisor === true) virt = "virtual machine";
+  else if (hw.hypervisor === false) virt = "no hypervisor detected";
+  const provider = text(hw.provider);
+  const extras = [productOf(hw), virt].filter(Boolean);
+  if (provider) add("Provider", `${provider}${extras.length ? ` (${extras.join(", ")})` : ""}`);
+  else if (virt) add("Provider", virt.charAt(0).toUpperCase() + virt.slice(1));
+  const sys = [text(hw.os), text(hw.kernel) ? `kernel ${text(hw.kernel)}` : null].filter(Boolean);
+  add("System", sys.length ? sys.join(", ") : null);
+  add("Booted", isNum$3(hw.boot_time) ? fmtTime(hw.boot_time) : null);
+  return out;
 }
 const isNum$2 = (v) => typeof v === "number" && Number.isFinite(v);
 function pick(row, ...keys) {
@@ -4417,15 +4473,123 @@ function lateFrames24h(snapshot) {
   if (frames <= 0) return null;
   return { late, frames, pct: late / frames * 100 };
 }
-function staleInfo(host) {
-  var _a, _b;
-  if ((host == null ? void 0 : host.state) !== "stale") return null;
-  const age = (_a = host == null ? void 0 : host.snapshot) == null ? void 0 : _a.data_age_s;
-  const ageS = isNum$2(age) ? age : null;
-  return { ageS, text: ((_b = host == null ? void 0 : host.verdict) == null ? void 0 : _b.reason) || "collector data is old" };
-}
 function refNote(verdict) {
   return (verdict == null ? void 0 : verdict.ref_source) === "fleet" ? "fleet reference" : null;
+}
+const QUIET_KINDS = /* @__PURE__ */ new Set(["instance_new", "instance_gone"]);
+const KIND_AREA = {
+  core_saturated: "cpu",
+  steal_high: "steal",
+  mem_low: "memory",
+  oom_kill: "memory",
+  disk_low: "disk",
+  frames_late: "frames"
+};
+const HEALTH_LABEL = { problem: "Problem", watch: "Watch", nodata: "No data", ok: "OK" };
+const HEALTH_RANK = { problem: 0, watch: 1, nodata: 2, ok: 3 };
+function openEvents(snapshot) {
+  const list = snapshot == null ? void 0 : snapshot.events_open;
+  if (!Array.isArray(list)) return null;
+  return list.filter((e) => e && e.state === "open" && isNum$2(e.ts)).sort((a, b) => a.ts - b.ts || (a.id || 0) - (b.id || 0));
+}
+const plural$1 = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+function overloadText(verdict) {
+  const reason = String((verdict == null ? void 0 : verdict.reason) || "");
+  let m = /^frames_late (\d+) with players/.exec(reason);
+  if (m) return `${plural$1(Number(m[1]), "late-frame event", "late-frame events")} with players in the last 24 hours.`;
+  m = /^core_saturated (\d+) with players/.exec(reason);
+  if (m) return `${plural$1(Number(m[1]), "core saturation event", "core saturation events")} with players in the last 24 hours.`;
+  return null;
+}
+function recentEventsText(snapshot) {
+  const map = (snapshot == null ? void 0 : snapshot.events_24h) || {};
+  const kinds = Object.keys(map).filter((k) => !QUIET_KINDS.has(k) && isNum$2(map[k]) && map[k] > 0).sort();
+  if (!kinds.length) return null;
+  const n = kinds.reduce((a, k) => a + map[k], 0);
+  return `${plural$1(n, "event", "events")} in the last 24 hours (${kinds.map((k) => `${kindLabel(k)} ${map[k]}`).join(", ")}).`;
+}
+function health(status, reason, items) {
+  return { status, label: HEALTH_LABEL[status], reason, items };
+}
+function hostHealth(row, list) {
+  var _a;
+  const found = Array.isArray(list) ? list : [];
+  const state = row == null ? void 0 : row.state;
+  const snapshot = row == null ? void 0 : row.snapshot;
+  if (state === "unreachable" || state === "no_sudo") {
+    const what = (row == null ? void 0 : row.error) || (state === "no_sudo" ? "The SSH user has no passwordless sudo." : "The host did not answer the SSH query.");
+    return health("problem", what, [{ level: "problem", what, since: null }]);
+  }
+  if (state === "not_installed") {
+    return health("nodata", "Host metrics are not installed on this host: use Apply to host.", []);
+  }
+  if (!row || state === "no_data" || !snapshot || typeof snapshot !== "object") {
+    return health("nodata", "The collector has not written any data yet.", []);
+  }
+  if (state === "stale") {
+    const data = found.find((f) => (f == null ? void 0 : f.area) === "data");
+    const what = (data == null ? void 0 : data.text) || "Collector data is old - the collector or the host is down.";
+    const since = isNum$2(snapshot.now) && isNum$2(snapshot.data_age_s) ? snapshot.now - snapshot.data_age_s : null;
+    return health("watch", what, [{ level: "watch", what, since }]);
+  }
+  const problems = [];
+  const watch = [];
+  const covered = /* @__PURE__ */ new Set();
+  for (const e of openEvents(snapshot) || []) {
+    if (QUIET_KINDS.has(e.kind)) continue;
+    const item = {
+      level: e.severity === "crit" ? "problem" : "watch",
+      what: `${kindLabel(e.kind)}${e.message ? `: ${e.message}` : ""}`,
+      since: e.ts
+    };
+    (item.level === "problem" ? problems : watch).push(item);
+    if (KIND_AREA[e.kind]) covered.add(KIND_AREA[e.kind]);
+  }
+  const verdict = row.verdict;
+  const overload = (verdict == null ? void 0 : verdict.status) === "overloaded" ? overloadText(verdict) : null;
+  if (overload) problems.push({ level: "problem", what: overload, since: null });
+  for (const f of found) {
+    if (!f || covered.has(f.area)) continue;
+    if (f.level === "problem") problems.push({ level: "problem", what: f.text, since: null });
+    else if (f.level === "warning") watch.push({ level: "watch", what: f.text, since: null });
+  }
+  if ((verdict == null ? void 0 : verdict.status) === "overloaded" && !problems.length) {
+    problems.push({ level: "problem", what: `Overloaded: ${verdict.reason}.`, since: null });
+  }
+  if ((verdict == null ? void 0 : verdict.status) === "tight" && !problems.length && !watch.length) {
+    watch.push({ level: "watch", what: `Capacity is tight: ${verdict.reason}.`, since: null });
+  }
+  if (state === "outdated") {
+    watch.push({ level: "watch", what: `Collector ${row.version || "version unknown"} is outdated: use Apply to host.`, since: null });
+  }
+  const recent = recentEventsText(snapshot);
+  if (recent && !problems.length && !watch.length) watch.push({ level: "watch", what: recent, since: null });
+  const items = [...problems, ...watch];
+  if (problems.length) return health("problem", problems[0].what, items);
+  if (watch.length) return health("watch", watch[0].what, items);
+  if (!verdict || verdict.status === "unknown") {
+    return health("nodata", "No data under load yet: no match has been played on this host, so its capacity is unknown.", []);
+  }
+  const room = found.find((f) => (f == null ? void 0 : f.area) === "room");
+  return health("ok", (room == null ? void 0 : room.text) || ((_a = found[0]) == null ? void 0 : _a.text) || "All checks passed.", []);
+}
+function sortByHealth(entries) {
+  return [...entries || []].sort((a, b) => {
+    var _a, _b, _c, _d;
+    return (HEALTH_RANK[(_a = a.health) == null ? void 0 : _a.status] ?? 9) - (HEALTH_RANK[(_b = b.health) == null ? void 0 : _b.status] ?? 9) || String(((_c = a.row) == null ? void 0 : _c.name) || "").localeCompare(String(((_d = b.row) == null ? void 0 : _d.name) || ""), void 0, { sensitivity: "base" });
+  });
+}
+function healthCounts(healths) {
+  const out = { problem: 0, watch: 0, nodata: 0, ok: 0 };
+  for (const h of healths || []) if (h && h.status in out) out[h.status] += 1;
+  return out;
+}
+function hostIdFromSearch(search) {
+  if (typeof search !== "string" || !search) return null;
+  const raw = new URLSearchParams(search).get("host");
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  const id = Number(raw);
+  return id > 0 ? id : null;
 }
 const isNum$1 = (v) => typeof v === "number" && Number.isFinite(v);
 const DEFAULT_TICK_MS = 25;
@@ -5074,15 +5238,15 @@ function frameFindings({ snapshot, series, events, range }) {
   const out = [];
   for (const s of withFrames) {
     if (s.late <= 0) continue;
-    let text = `${plural(s.late, "late frame", "late frames")} on :${s.port}`;
+    let text2 = `${plural(s.late, "late frame", "late frames")} on :${s.port}`;
     if (s.worst) {
-      text += `, worst gap ${Math.round(s.worst.ms)} ms at ${hhmm(s.worst.ts)}`;
-      if (s.worst.players !== null) text += ` (players: ${s.worst.players})`;
+      text2 += `, worst gap ${Math.round(s.worst.ms)} ms at ${hhmm(s.worst.ts)}`;
+      if (s.worst.players !== null) text2 += ` (players: ${s.worst.players})`;
     } else {
-      text += ` in ${span}${note}`;
+      text2 += ` in ${span}${note}`;
     }
-    text += ". A late frame means players see a hitch.";
-    out.push({ level: openLate.has(s.port) ? "problem" : "warning", area: "frames", text });
+    text2 += ". A late frame means players see a hitch.";
+    out.push({ level: openLate.has(s.port) ? "problem" : "warning", area: "frames", text: text2 });
   }
   if (!out.length) {
     out.push({ level: "ok", area: "frames", text: `No late server frames in ${span}${note}.` });
@@ -5119,20 +5283,20 @@ function memoryFindings({ snapshot, events, settings }) {
   const reserve = setting(settings, "mem_reserve_pct", 20);
   const rss = ((snapshot == null ? void 0 : snapshot.insts) || []).map((i) => i == null ? void 0 : i.rss_max).filter((v) => isNum(v) && v > 0);
   const lowOpen = (Array.isArray(events) ? events : []).some((e) => (e == null ? void 0 : e.kind) === "mem_low" && e.state === "open");
-  let text = `RAM: ${gb1(avail)} GB free of ${gb1(total)} GB`;
+  let text2 = `RAM: ${gb1(avail)} GB free of ${gb1(total)} GB`;
   let level = "ok";
   const spare = avail - reserve / 100 * total;
   if (spare < 0) {
     level = "warning";
-    text += `, below the ${pct0$1(reserve)} % reserve.`;
+    text2 += `, below the ${pct0$1(reserve)} % reserve.`;
   } else if (rss.length) {
     const n = Math.floor(spare / Math.max(...rss));
-    text += `, enough for about ${n} more ${n === 1 ? "instance" : "instances"}.`;
+    text2 += `, enough for about ${n} more ${n === 1 ? "instance" : "instances"}.`;
   } else {
-    text += ".";
+    text2 += ".";
   }
   if (lowOpen) level = "problem";
-  return [{ level, area: "memory", text }];
+  return [{ level, area: "memory", text: text2 }];
 }
 function diskFindings({ snapshot, events, settings }) {
   const pct = diskUsedPct(snapshot == null ? void 0 : snapshot.host);
@@ -5167,16 +5331,6 @@ const { useCallback, useEffect, useMemo, useRef, useState } = React;
 const RANGES = ["1h", "6h", "24h", "7d", "30d"];
 const RANGE_SECONDS = { "1h": 3600, "6h": 21600, "24h": 86400, "7d": 604800, "30d": 2592e3 };
 const MAX_EVENT_ROWS = 100;
-const KIND_LABELS = {
-  core_saturated: "Core saturated",
-  steal_high: "Steal high",
-  mem_low: "Memory low",
-  disk_low: "Disk low",
-  frames_late: "Late frames",
-  oom_kill: "OOM kill",
-  instance_new: "Instance appeared",
-  instance_gone: "Instance gone"
-};
 const pct0 = (v) => `${Math.round(v)}%`;
 const int = (v) => String(Math.round(v));
 const ms = (v) => `${v < 10 ? v.toFixed(1) : Math.round(v)} ms`;
@@ -5218,7 +5372,7 @@ function scopeText(ev) {
 function EventsTable({ events, dim }) {
   if (!events.length) return /* @__PURE__ */ React.createElement("div", { className: `hm-muted${dim ? " hm-dim" : ""}` }, "No events in this range.");
   const shown = events.slice(0, MAX_EVENT_ROWS);
-  return /* @__PURE__ */ React.createElement("div", { className: dim ? "hm-dim" : void 0 }, /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "hm-events" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Time"), /* @__PURE__ */ React.createElement("th", null, "Severity"), /* @__PURE__ */ React.createElement("th", null, "Event"), /* @__PURE__ */ React.createElement("th", null, "Scope"), /* @__PURE__ */ React.createElement("th", null, "Duration"), /* @__PURE__ */ React.createElement("th", null, "Detail"))), /* @__PURE__ */ React.createElement("tbody", null, shown.map((ev) => /* @__PURE__ */ React.createElement("tr", { key: ev.id }, /* @__PURE__ */ React.createElement("td", { className: "hm-num", style: { whiteSpace: "nowrap" } }, fmtTime(ev.ts, true)), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement("span", { className: `hm-sev ${SEVERITY_TONE[ev.severity] || "hm-tone-neutral"}` }, /* @__PURE__ */ React.createElement(SeverityIcon, { severity: ev.severity }), SEVERITY_TEXT[ev.severity] || ev.severity)), /* @__PURE__ */ React.createElement("td", null, KIND_LABELS[ev.kind] || ev.kind), /* @__PURE__ */ React.createElement("td", null, scopeText(ev)), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, ev.state === "open" ? "ongoing" : fmtDuration((ev.closed_ts || ev.ts) - ev.ts)), /* @__PURE__ */ React.createElement("td", { className: "hm-ink-2" }, ev.message)))))), events.length > shown.length ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted", style: { marginTop: 4 } }, "Showing the newest ", shown.length, " of ", events.length, ".") : null);
+  return /* @__PURE__ */ React.createElement("div", { className: dim ? "hm-dim" : void 0 }, /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "hm-events" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Time"), /* @__PURE__ */ React.createElement("th", null, "Severity"), /* @__PURE__ */ React.createElement("th", null, "Event"), /* @__PURE__ */ React.createElement("th", null, "Scope"), /* @__PURE__ */ React.createElement("th", null, "Duration"), /* @__PURE__ */ React.createElement("th", null, "Detail"))), /* @__PURE__ */ React.createElement("tbody", null, shown.map((ev) => /* @__PURE__ */ React.createElement("tr", { key: ev.id }, /* @__PURE__ */ React.createElement("td", { className: "hm-num", style: { whiteSpace: "nowrap" } }, fmtTime(ev.ts, true)), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement("span", { className: `hm-sev ${SEVERITY_TONE[ev.severity] || "hm-tone-neutral"}` }, /* @__PURE__ */ React.createElement(SeverityIcon, { severity: ev.severity }), SEVERITY_TEXT[ev.severity] || ev.severity)), /* @__PURE__ */ React.createElement("td", null, kindLabel(ev.kind)), /* @__PURE__ */ React.createElement("td", null, scopeText(ev)), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, ev.state === "open" ? "ongoing" : fmtDuration((ev.closed_ts || ev.ts) - ev.ts)), /* @__PURE__ */ React.createElement("td", { className: "hm-ink-2" }, ev.message)))))), events.length > shown.length ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted", style: { marginTop: 4 } }, "Showing the newest ", shown.length, " of ", events.length, ".") : null);
 }
 function buildCharts(series, res) {
   const raw = res === "raw";
@@ -5347,6 +5501,7 @@ function Footer({ ctx, host, isOpen }) {
   ), "Collect metrics on this host"), /* @__PURE__ */ React.createElement("span", { className: "hm-footer-spacer" }), note ? /* @__PURE__ */ React.createElement("span", { className: "hm-note" }, note) : null, /* @__PURE__ */ React.createElement(Button, { variant: "primary", onClick: apply, disabled: applyBusy }, "Apply to host"));
 }
 function HostModal({ ctx, host, isOpen, onClose }) {
+  var _a;
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
   const [range, setRange] = useState("24h");
@@ -5373,7 +5528,7 @@ function HostModal({ ctx, host, isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen || !(host == null ? void 0 : host.id)) return void 0;
     if (host.snapshot !== void 0) {
-      setHostRow({ snapshot: host.snapshot, verdict: host.verdict || null });
+      setHostRow({ snapshot: host.snapshot, verdict: host.verdict || null, state: host.state });
       return void 0;
     }
     let alive = true;
@@ -5381,13 +5536,13 @@ function HostModal({ ctx, host, isOpen, onClose }) {
     ctxRef.current.api("GET", "hosts").then((d) => {
       if (!alive) return;
       const r = ((d == null ? void 0 : d.hosts) || []).find((h) => h.id === host.id);
-      setHostRow(r ? { snapshot: r.snapshot, verdict: r.verdict || null } : null);
+      setHostRow(r ? { snapshot: r.snapshot, verdict: r.verdict || null, state: r.state } : null);
     }).catch(() => {
     });
     return () => {
       alive = false;
     };
-  }, [isOpen, host == null ? void 0 : host.id, host == null ? void 0 : host.snapshot, host == null ? void 0 : host.verdict]);
+  }, [isOpen, host == null ? void 0 : host.id, host == null ? void 0 : host.snapshot, host == null ? void 0 : host.verdict, host == null ? void 0 : host.state]);
   const load = useCallback(async () => {
     if (!(host == null ? void 0 : host.id)) return;
     const mine = ++token.current;
@@ -5428,14 +5583,21 @@ function HostModal({ ctx, host, isOpen, onClose }) {
     () => chartLimits(settings, tickMsOf(series, hostRow == null ? void 0 : hostRow.snapshot)),
     [settings, series, hostRow]
   );
-  const found = useMemo(() => hostRow && series ? findings({
+  const allEvents = useMemo(() => {
+    const seen = new Set(events.map((e) => e.id));
+    return [...events, ...(openEvents(hostRow == null ? void 0 : hostRow.snapshot) || []).filter((e) => !seen.has(e.id))];
+  }, [events, hostRow]);
+  const found = useMemo(() => hostRow ? findings({
     snapshot: hostRow.snapshot,
-    series,
-    events,
+    series: series || void 0,
+    events: allEvents,
     settings,
-    range: series.range || range,
+    range: (series == null ? void 0 : series.range) || range,
     verdict: hostRow.verdict
-  }) : [], [hostRow, series, events, settings, range]);
+  }) : [], [hostRow, series, allEvents, settings, range]);
+  const hardware = (_a = hostRow == null ? void 0 : hostRow.snapshot) == null ? void 0 : _a.hardware;
+  const hwLine = hardwareLine(hardware);
+  const hwRows = hardwareDetails(hardware);
   const lateMs = `${Math.round(limits.lateMs * 10) / 10} ms`;
   const tickMs = `${Math.round(limits.tickMs * 10) / 10} ms`;
   const [planPct, satPct] = limits.cpu.map((t) => `${t.value} %`);
@@ -5446,11 +5608,18 @@ function HostModal({ ctx, host, isOpen, onClose }) {
       onClose,
       size: "2xl",
       height: "85vh",
-      title: /* @__PURE__ */ React.createElement(React.Fragment, null, "Host Metrics", /* @__PURE__ */ React.createElement("span", { className: "mt-0.5 block font-mono text-xs font-normal normal-case tracking-normal text-theme-secondary" }, host == null ? void 0 : host.name, fetchedAt ? ` | loaded ${fmtTime(fetchedAt / 1e3, true)}` : "")),
+      title: /* @__PURE__ */ React.createElement(React.Fragment, null, "Host Metrics", /* @__PURE__ */ React.createElement("span", { className: "mt-0.5 block font-mono text-xs font-normal normal-case tracking-normal text-theme-secondary" }, host == null ? void 0 : host.name, fetchedAt ? ` | loaded ${fmtTime(fetchedAt / 1e3, true)}` : ""), hwLine ? /* @__PURE__ */ React.createElement(
+        "span",
+        {
+          className: "block text-xs font-normal normal-case tracking-normal text-theme-secondary",
+          title: hwRows.map(([k, v]) => `${k}: ${v}`).join(" | ")
+        },
+        hwLine
+      ) : null),
       headerActions: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { onClick: load, disabled: loading }, loading ? "Loading..." : "Refresh"), /* @__PURE__ */ React.createElement(Button, { onClick: onClose, "aria-label": "Close" }, "Close")),
       footer: /* @__PURE__ */ React.createElement(Footer, { ctx, host, isOpen })
     },
-    /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-modal-body" }, /* @__PURE__ */ React.createElement("div", { className: "hm-controls" }, /* @__PURE__ */ React.createElement("div", { className: "hm-range", role: "group", "aria-label": "Time range" }, RANGES.map((r) => /* @__PURE__ */ React.createElement("button", { key: r, type: "button", "aria-pressed": r === range, onClick: () => setRange(r) }, r))), series ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, series.res === "raw" ? "10 s samples" : "1 minute averages") : null), error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, !series && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading...") : null, charts ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "CPU per core"), charts.cores.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, EMPTY_NO_DATA) : /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, charts.cores.map((c) => /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-modal-body" }, /* @__PURE__ */ React.createElement("div", { className: "hm-controls" }, /* @__PURE__ */ React.createElement("div", { className: "hm-range", role: "group", "aria-label": "Time range" }, RANGES.map((r) => /* @__PURE__ */ React.createElement("button", { key: r, type: "button", "aria-pressed": r === range, onClick: () => setRange(r) }, r))), series ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, series.res === "raw" ? "10 s samples" : "1 minute averages") : null), hostRow ? /* @__PURE__ */ React.createElement("div", { className: "hm-overview" }, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Summary"), /* @__PURE__ */ React.createElement("ul", { className: "hm-summary" }, hostRow.state === "outdated" ? /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement(FindingLine, { finding: { level: "warning", area: "data", text: "The collector on this host is outdated: use Apply to host below." } })) : null, found.map((f, i) => /* @__PURE__ */ React.createElement("li", { key: `${f.area}-${i}` }, /* @__PURE__ */ React.createElement(FindingLine, { finding: f }))))), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Hardware"), hwRows.length ? /* @__PURE__ */ React.createElement("dl", { className: "hm-hw" }, hwRows.map(([k, v]) => /* @__PURE__ */ React.createElement(React.Fragment, { key: k }, /* @__PURE__ */ React.createElement("dt", null, k), /* @__PURE__ */ React.createElement("dd", null, v)))) : /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Not read yet: the collector reads it at start and every hour (collector 1.1 or later)."))) : null, error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, !series && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading...") : null, charts ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "CPU per core"), charts.cores.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, EMPTY_NO_DATA) : /* @__PURE__ */ React.createElement("div", { className: "hm-grid-2" }, charts.cores.map((c) => /* @__PURE__ */ React.createElement(
       ChartCard,
       {
         key: c.core,
@@ -5650,18 +5819,23 @@ export {
   Button as B,
   HostModal as H,
   React as R,
-  fmtPct as a,
-  stateLabel as b,
-  staleInfo as c,
-  diskUsedPct as d,
+  hostHealth as a,
+  fmtTime as b,
+  healthCounts as c,
+  hardwareLine as d,
   eventsTotal as e,
-  fmtTime as f,
-  statusLabel as g,
-  corePeaks as h,
-  fmtBytes as i,
-  HostPanel as j,
+  findings as f,
+  slotsText as g,
+  hostIdFromSearch as h,
+  corePeaks as i,
+  fmtPct as j,
+  diskUsedPct as k,
   lateFrames24h as l,
+  fmtDuration as m,
+  fmtBytes as n,
+  openEvents as o,
   playersNow as p,
+  HostPanel as q,
   refNote as r,
-  slotsText as s
+  sortByHealth as s
 };

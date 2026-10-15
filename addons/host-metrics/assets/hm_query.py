@@ -162,6 +162,7 @@ def snapshot(conn, now):
         "insts": _inst_block(conn, since, now),
         "events_24h": total,
         "events_24h_busy": busy_counts,
+        "events_open": hm_store.events_open(conn),
         "hardware": hm_store.get_hardware(conn),
     }
 

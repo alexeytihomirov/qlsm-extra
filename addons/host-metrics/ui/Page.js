@@ -1,5 +1,14 @@
-import { R as React, B as Button, f as fmtTime, H as HostModal, p as playersNow, e as eventsTotal, s as slotsText, r as refNote, a as fmtPct, d as diskUsedPct, b as stateLabel, c as staleInfo, g as statusLabel, h as corePeaks, i as fmtBytes, l as lateFrames24h } from "./hm-shared.js";
-const { useCallback, useEffect, useRef, useState } = React;
+import { R as React, h as hostIdFromSearch, s as sortByHealth, f as findings, o as openEvents, a as hostHealth, B as Button, b as fmtTime, H as HostModal, c as healthCounts, d as hardwareLine, p as playersNow, e as eventsTotal, g as slotsText, r as refNote, i as corePeaks, l as lateFrames24h, j as fmtPct, k as diskUsedPct, m as fmtDuration, n as fmtBytes } from "./hm-shared.js";
+const { useCallback, useEffect, useMemo, useRef, useState } = React;
+const STATUS_TONE = { problem: "critical", watch: "warning", nodata: "neutral", ok: "good" };
+const STATUS_ORDER = ["problem", "watch", "nodata", "ok"];
+const STATUS_LABEL = { problem: "Problem", watch: "Watch", nodata: "No data", ok: "OK" };
+const STATUS_HINT = {
+  problem: "Overloaded, an open critical event, or the host does not answer.",
+  watch: "Tight capacity, noisy neighbour, stale data, or warnings in the last 24 hours.",
+  nodata: "Not installed, or no data under load yet.",
+  ok: "Room for more and nothing to look at."
+};
 function errorText(e, fallback) {
   var _a, _b, _c;
   return ((_c = (_b = (_a = e == null ? void 0 : e.response) == null ? void 0 : _a.data) == null ? void 0 : _b.error) == null ? void 0 : _c.message) || (e == null ? void 0 : e.message) || fallback;
@@ -15,7 +24,7 @@ function ToneIcon({ tone }) {
     "aria-hidden": true
   };
   if (tone === "good") {
-    return /* @__PURE__ */ React.createElement("svg", { ...props, style: { color: "var(--hm-good)" } }, /* @__PURE__ */ React.createElement("circle", { cx: "8", cy: "8", r: "6.5" }), /* @__PURE__ */ React.createElement("path", { d: "M5 8.2l2.2 2.2L11 6" }));
+    return /* @__PURE__ */ React.createElement("svg", { ...props }, /* @__PURE__ */ React.createElement("circle", { cx: "8", cy: "8", r: "6.5" }), /* @__PURE__ */ React.createElement("path", { d: "M5 8.2l2.2 2.2L11 6" }));
   }
   if (tone === "warning") {
     return /* @__PURE__ */ React.createElement("svg", { ...props }, /* @__PURE__ */ React.createElement("path", { d: "M8 2l6.5 11.5h-13z" }), /* @__PURE__ */ React.createElement("path", { d: "M8 6.5v3M8 11.6v.1" }));
@@ -25,51 +34,71 @@ function ToneIcon({ tone }) {
   }
   return /* @__PURE__ */ React.createElement("svg", { ...props }, /* @__PURE__ */ React.createElement("circle", { cx: "8", cy: "8", r: "6.5" }), /* @__PURE__ */ React.createElement("path", { d: "M5 8h6" }));
 }
-function Badge({ text, tone }) {
-  return /* @__PURE__ */ React.createElement("span", { className: `hm-badge hm-tone-${tone}` }, /* @__PURE__ */ React.createElement(ToneIcon, { tone }), text);
+function StatusBadge({ health }) {
+  const tone = STATUS_TONE[health.status] || "neutral";
+  return /* @__PURE__ */ React.createElement("span", { className: `hm-badge hm-tone-${tone}`, title: STATUS_HINT[health.status] }, /* @__PURE__ */ React.createElement(ToneIcon, { tone }), health.label);
 }
-function StatusCell({ host }) {
-  var _a, _b;
-  const problem = stateLabel(host.state);
-  if (host.state !== "ok" && !host.snapshot) {
-    const tone = host.state === "unreachable" || host.state === "no_sudo" ? "critical" : "neutral";
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Badge, { text: problem || host.state, tone }), host.error ? /* @__PURE__ */ React.createElement("div", { className: "hm-reason" }, host.error) : null);
+function sinceText(since, now) {
+  if (!Number.isFinite(since)) return "";
+  const ago = Number.isFinite(now) ? ` (${fmtDuration(now - since)} ago)` : "";
+  return `since ${fmtTime(since)}${ago}`;
+}
+function Summary({ entries, onOpen, now }) {
+  const counts = healthCounts(entries.map((e) => e.health));
+  const problems = [];
+  for (const e of entries) {
+    for (const item of e.health.items) {
+      if (item.level === "problem") problems.push({ row: e.row, item });
+    }
   }
-  const stale = staleInfo(host);
-  if (stale) {
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { title: "The collector stopped writing: the numbers below are its last data." }, /* @__PURE__ */ React.createElement(Badge, { text: "Stale", tone: "warning" })), /* @__PURE__ */ React.createElement("div", { className: "hm-reason" }, stale.text));
-  }
-  const label = statusLabel((_a = host.verdict) == null ? void 0 : _a.status);
-  const reason = (_b = host.verdict) == null ? void 0 : _b.reason;
-  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { title: reason || void 0 }, /* @__PURE__ */ React.createElement(Badge, { text: label.text, tone: label.tone })), reason ? /* @__PURE__ */ React.createElement("div", { className: "hm-reason" }, reason) : null, problem ? /* @__PURE__ */ React.createElement("div", { className: "hm-reason" }, problem, host.version ? ` (${host.version})` : "", ": use Apply to host.") : null);
-}
-function CoresCell({ snapshot }) {
-  const peaks = corePeaks(snapshot);
-  if (!peaks) return /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "-");
-  const detail = peaks.cores.map((c) => `${c.core}: ${fmtPct(c.p95)}`).join("  ");
-  return /* @__PURE__ */ React.createElement("div", { title: `p95 of per-minute busy %, last 24 h, per core: ${detail}` }, /* @__PURE__ */ React.createElement("span", { className: peaks.peak >= 95 ? "hm-core-hot" : void 0 }, fmtPct(peaks.peak)), peaks.cores.length > 1 ? /* @__PURE__ */ React.createElement("div", { className: "hm-reason hm-num" }, detail) : null);
-}
-function LateCell({ snapshot }) {
-  const r = lateFrames24h(snapshot);
-  if (!r) return /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "-");
-  return /* @__PURE__ */ React.createElement("span", { title: `${r.late} late of ${r.frames} frames, last 24 h` }, r.late, " ", /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "(", fmtPct(r.pct), ")"));
+  return /* @__PURE__ */ React.createElement("div", { className: "hm-board-summary" }, /* @__PURE__ */ React.createElement("div", { className: "hm-tiles" }, STATUS_ORDER.map((s) => /* @__PURE__ */ React.createElement("div", { key: s, className: `hm-tile hm-health-${s}`, title: STATUS_HINT[s] }, /* @__PURE__ */ React.createElement("span", { className: "hm-tile-value hm-num" }, counts[s]), /* @__PURE__ */ React.createElement(StatusBadge, { health: { status: s, label: STATUS_LABEL[s] } })))), /* @__PURE__ */ React.createElement("div", { className: "hm-problems" }, /* @__PURE__ */ React.createElement("div", { className: "hm-section-title" }, "Open problems"), problems.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No open problems.") : /* @__PURE__ */ React.createElement("ul", null, problems.map(({ row, item }, i) => {
+    var _a;
+    return /* @__PURE__ */ React.createElement("li", { key: `${row.id}-${i}` }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "hm-host-link", onClick: () => onOpen(row) }, row.name), /* @__PURE__ */ React.createElement("span", { className: "hm-problem-what" }, item.what), item.since !== null ? /* @__PURE__ */ React.createElement("span", { className: "hm-muted hm-num" }, sinceText(item.since, ((_a = row.snapshot) == null ? void 0 : _a.now) ?? now)) : null);
+  }))));
 }
 function memText(snapshot) {
   const avail = snapshot == null ? void 0 : snapshot.mem_avail_now;
   const total = snapshot == null ? void 0 : snapshot.mem_total;
-  if (avail === null || avail === void 0) return "-";
-  return total ? `${fmtBytes(avail)} of ${fmtBytes(total)}` : fmtBytes(avail);
+  if (avail === null || avail === void 0) return null;
+  return total ? `${fmtBytes(avail)} free of ${fmtBytes(total)}` : `${fmtBytes(avail)} free`;
 }
-function HostRow({ host, onOpen }) {
-  const s = host.snapshot;
+function metricsText(s) {
+  if (!s) return null;
+  const peaks = corePeaks(s);
+  const late = lateFrames24h(s);
+  const parts = [
+    peaks ? `busiest core p95 ${fmtPct(peaks.peak)} (24 h)` : null,
+    Number.isFinite(s.steal_p95) ? `steal p95 ${fmtPct(s.steal_p95)} (7 d)` : null,
+    memText(s) ? `RAM ${memText(s)}` : null,
+    diskUsedPct(s.host) !== null ? `disk ${fmtPct(diskUsedPct(s.host))} used` : null,
+    late ? `${late.late} late frames (24 h)` : null
+  ].filter(Boolean);
+  return parts.length ? parts.join(" | ") : null;
+}
+function Fact({ label, value, title }) {
+  return /* @__PURE__ */ React.createElement("span", { className: "hm-fact", title }, /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, label), " ", /* @__PURE__ */ React.createElement("span", { className: "hm-num" }, value));
+}
+function HostCard({ row, health, onOpen }) {
+  const s = row.snapshot;
+  const hw = hardwareLine(s == null ? void 0 : s.hardware);
   const instances = s ? (s.insts_last || []).length : null;
   const players = s ? playersNow(s) : null;
-  const events = s ? eventsTotal(s) : null;
-  const dash = /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, "-");
-  return /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement("button", { type: "button", className: "hm-host-link", onClick: () => onOpen(host) }, host.name)), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement(StatusCell, { host })), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, host.verdict ? slotsText(host.verdict) : "-", refNote(host.verdict) ? /* @__PURE__ */ React.createElement("div", { className: "hm-reason", title: "No data under load on this host: the slot count uses the fleet median load." }, refNote(host.verdict)) : null), /* @__PURE__ */ React.createElement("td", null, s ? /* @__PURE__ */ React.createElement(CoresCell, { snapshot: s }) : dash), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, s ? fmtPct(s.steal_p95) : dash), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, s ? memText(s) : dash), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, s ? fmtPct(diskUsedPct(s.host)) : dash), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, instances === null ? dash : instances), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, players === null ? dash : players), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, s ? /* @__PURE__ */ React.createElement(LateCell, { snapshot: s }) : dash), /* @__PURE__ */ React.createElement("td", { className: "hm-num" }, events === null ? dash : events));
+  const open = s ? openEvents(s) : null;
+  const metrics = metricsText(s);
+  const live = row.state !== "stale";
+  return /* @__PURE__ */ React.createElement("article", { className: `hm-hcard hm-health-${health.status}` }, /* @__PURE__ */ React.createElement("div", { className: "hm-hcard-head" }, /* @__PURE__ */ React.createElement(StatusBadge, { health }), /* @__PURE__ */ React.createElement("span", { className: "hm-hcard-name" }, row.name), /* @__PURE__ */ React.createElement("span", { className: "hm-footer-spacer" }), /* @__PURE__ */ React.createElement(Button, { onClick: () => onOpen(row) }, "Details")), /* @__PURE__ */ React.createElement("div", { className: "hm-hcard-reason" }, health.reason), s ? /* @__PURE__ */ React.createElement("div", { className: `hm-hcard-hw${hw ? "" : " hm-muted"}`, title: "CPU, cores, RAM, root disk, provider (read by the collector every hour)" }, hw || "Hardware not read yet (collector before 1.1, or its first read is pending).") : null, s && live ? /* @__PURE__ */ React.createElement("div", { className: "hm-facts" }, /* @__PURE__ */ React.createElement(Fact, { label: "Instances", value: instances }), /* @__PURE__ */ React.createElement(Fact, { label: "Players now", value: players === null ? "-" : players }), open ? /* @__PURE__ */ React.createElement(Fact, { label: "Open events", value: open.filter((e) => e.kind !== "instance_new" && e.kind !== "instance_gone").length }) : /* @__PURE__ */ React.createElement(Fact, { label: "Events 24 h", value: eventsTotal(s), title: "This collector does not report open events yet." }), row.verdict && Number.isFinite(row.verdict.slots) ? /* @__PURE__ */ React.createElement(
+    Fact,
+    {
+      label: "Capacity",
+      value: `${slotsText(row.verdict)}${refNote(row.verdict) ? " (fleet reference)" : ""}`,
+      title: row.verdict.reason || void 0
+    }
+  ) : null) : null, metrics && live ? /* @__PURE__ */ React.createElement("div", { className: "hm-hcard-metrics hm-muted" }, metrics) : null);
 }
 function Page({ ctx }) {
+  var _a;
   const [hosts, setHosts] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [loadedAt, setLoadedAt] = useState(null);
@@ -77,6 +106,7 @@ function Page({ ctx }) {
   const token = useRef(0);
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
+  const linked = useRef(typeof window !== "undefined" ? hostIdFromSearch((_a = window.location) == null ? void 0 : _a.search) : null);
   const load = useCallback(async (refresh) => {
     const mine = ++token.current;
     setLoading(true);
@@ -84,8 +114,16 @@ function Page({ ctx }) {
     try {
       const data = await ctxRef.current.api("GET", "hosts", refresh ? { params: { refresh: 1 } } : void 0);
       if (token.current !== mine) return;
-      setHosts((data == null ? void 0 : data.hosts) || []);
+      const list = (data == null ? void 0 : data.hosts) || [];
+      setHosts(list);
       setLoadedAt(Date.now() / 1e3);
+      if (linked.current !== null) {
+        const want = linked.current;
+        linked.current = null;
+        const row = list.find((h) => h.id === want);
+        if (row) setOpen(row);
+        else setError(`Host ${want} from the link is not in the host list.`);
+      }
     } catch (e) {
       if (token.current === mine) setError(errorText(e, "Could not load the hosts."));
     } finally {
@@ -95,7 +133,26 @@ function Page({ ctx }) {
   useEffect(() => {
     load(false);
   }, [load]);
-  return /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-page" }, /* @__PURE__ */ React.createElement("div", { className: "hm-toolbar" }, /* @__PURE__ */ React.createElement(Button, { onClick: () => load(true), disabled: loading }, loading ? "Loading..." : "Refresh"), /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : "", "Core p95 is the busiest core's p95 of per-minute busy over 24 h (hover for every core); steal is the 7-day p95.")), error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, hosts === null && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading hosts (one SSH query per host)...") : null, hosts && hosts.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No hosts.") : null, hosts && hosts.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: `hm-table-wrap${loading ? " hm-dim" : ""}` }, /* @__PURE__ */ React.createElement("table", { className: "hm-table" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "Host"), /* @__PURE__ */ React.createElement("th", null, "Status"), /* @__PURE__ */ React.createElement("th", null, "Capacity"), /* @__PURE__ */ React.createElement("th", null, "Core p95 24 h"), /* @__PURE__ */ React.createElement("th", null, "Steal p95"), /* @__PURE__ */ React.createElement("th", null, "RAM available"), /* @__PURE__ */ React.createElement("th", null, "Disk used"), /* @__PURE__ */ React.createElement("th", null, "Instances"), /* @__PURE__ */ React.createElement("th", null, "Players now"), /* @__PURE__ */ React.createElement("th", null, "Late frames 24 h"), /* @__PURE__ */ React.createElement("th", null, "Events 24 h"))), /* @__PURE__ */ React.createElement("tbody", null, hosts.map((h) => /* @__PURE__ */ React.createElement(HostRow, { key: h.id, host: h, onOpen: setOpen }))))) : null, open ? /* @__PURE__ */ React.createElement(HostModal, { ctx, host: open, isOpen: true, onClose: () => setOpen(null) }) : null);
+  useEffect(() => {
+    let alive = true;
+    ctxRef.current.api("GET", "settings").then((d) => {
+      if (alive) setSettings(d || null);
+    }).catch(() => {
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const entries = useMemo(() => sortByHealth((hosts || []).map((row) => {
+    const list = row.snapshot ? findings({
+      snapshot: row.snapshot,
+      events: openEvents(row.snapshot) || void 0,
+      settings,
+      verdict: row.verdict || null
+    }) : [];
+    return { row, health: hostHealth(row, list) };
+  })), [hosts, settings]);
+  return /* @__PURE__ */ React.createElement("div", { className: "hm-root hm-page" }, /* @__PURE__ */ React.createElement("div", { className: "hm-toolbar" }, /* @__PURE__ */ React.createElement(Button, { onClick: () => load(true), disabled: loading }, loading ? "Loading..." : "Refresh"), /* @__PURE__ */ React.createElement("span", { className: "hm-muted" }, loadedAt ? `Updated ${fmtTime(loadedAt, true)}. ` : "", "One card per host, problems first. Details opens the charts and events of the host.")), error ? /* @__PURE__ */ React.createElement("div", { className: "hm-error" }, error) : null, hosts === null && loading ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "Loading hosts (one SSH query per host)...") : null, hosts && hosts.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "hm-muted" }, "No hosts.") : null, hosts && hosts.length > 0 ? /* @__PURE__ */ React.createElement("div", { className: loading ? "hm-dim" : void 0 }, /* @__PURE__ */ React.createElement(Summary, { entries, onOpen: setOpen, now: loadedAt }), /* @__PURE__ */ React.createElement("div", { className: "hm-board" }, entries.map(({ row, health }) => /* @__PURE__ */ React.createElement(HostCard, { key: row.id, row, health, onOpen: setOpen })))) : null, open ? /* @__PURE__ */ React.createElement(HostModal, { ctx, host: open, isOpen: true, onClose: () => setOpen(null) }) : null);
 }
 export {
   Page as default

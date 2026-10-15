@@ -1,11 +1,13 @@
 import React, { Button, ui } from './runtime';
-import { ChartCard } from './charts';
+import { ChartCard, FindingLine } from './charts';
 import { chartLimits, findingFor, tickMsOf } from './chartinfo';
 import { findings } from './findings';
 import {
-  column, coreIds, coreRows, lastValue, mergeTimes, pick, sortedPorts,
+  column, coreIds, coreRows, lastValue, mergeTimes, openEvents, pick, sortedPorts,
 } from './data';
-import { fmtBytes, fmtDuration, fmtPct, fmtTime } from './format';
+import {
+  fmtBytes, fmtDuration, fmtPct, fmtTime, hardwareDetails, hardwareLine, kindLabel,
+} from './format';
 import './panel.css';
 
 const { Modal } = ui;
@@ -14,17 +16,6 @@ const { useCallback, useEffect, useMemo, useRef, useState } = React;
 const RANGES = ['1h', '6h', '24h', '7d', '30d'];
 const RANGE_SECONDS = { '1h': 3600, '6h': 21600, '24h': 86400, '7d': 604800, '30d': 2592000 };
 const MAX_EVENT_ROWS = 100;
-
-const KIND_LABELS = {
-  core_saturated: 'Core saturated',
-  steal_high: 'Steal high',
-  mem_low: 'Memory low',
-  disk_low: 'Disk low',
-  frames_late: 'Late frames',
-  oom_kill: 'OOM kill',
-  instance_new: 'Instance appeared',
-  instance_gone: 'Instance gone',
-};
 
 const pct0 = (v) => `${Math.round(v)}%`;
 const int = (v) => String(Math.round(v));
@@ -89,7 +80,7 @@ function EventsTable({ events, dim }) {
                     {SEVERITY_TEXT[ev.severity] || ev.severity}
                   </span>
                 </td>
-                <td>{KIND_LABELS[ev.kind] || ev.kind}</td>
+                <td>{kindLabel(ev.kind)}</td>
                 <td>{scopeText(ev)}</td>
                 <td className="hm-num">
                   {ev.state === 'open' ? 'ongoing' : fmtDuration((ev.closed_ts || ev.ts) - ev.ts)}
@@ -289,7 +280,7 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen || !host?.id) return undefined;
     if (host.snapshot !== undefined) {
-      setHostRow({ snapshot: host.snapshot, verdict: host.verdict || null });
+      setHostRow({ snapshot: host.snapshot, verdict: host.verdict || null, state: host.state });
       return undefined;
     }
     let alive = true;
@@ -298,11 +289,11 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
       .then((d) => {
         if (!alive) return;
         const r = (d?.hosts || []).find((h) => h.id === host.id);
-        setHostRow(r ? { snapshot: r.snapshot, verdict: r.verdict || null } : null);
+        setHostRow(r ? { snapshot: r.snapshot, verdict: r.verdict || null, state: r.state } : null);
       })
       .catch(() => {});
     return () => { alive = false; };
-  }, [isOpen, host?.id, host?.snapshot, host?.verdict]);
+  }, [isOpen, host?.id, host?.snapshot, host?.verdict, host?.state]);
 
   const load = useCallback(async () => {
     if (!host?.id) return;
@@ -350,14 +341,24 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
     () => chartLimits(settings, tickMsOf(series, hostRow?.snapshot)),
     [settings, series, hostRow],
   );
-  const found = useMemo(() => (hostRow && series ? findings({
+  // The range's events plus the events still open (an event opened before the range began is
+  // not in the range answer, yet it is the current state).
+  const allEvents = useMemo(() => {
+    const seen = new Set(events.map((e) => e.id));
+    return [...events, ...(openEvents(hostRow?.snapshot) || []).filter((e) => !seen.has(e.id))];
+  }, [events, hostRow]);
+  // Without the series yet, findings() speaks from the snapshot (24 h / 7 d numbers).
+  const found = useMemo(() => (hostRow ? findings({
     snapshot: hostRow.snapshot,
-    series,
-    events,
+    series: series || undefined,
+    events: allEvents,
     settings,
-    range: series.range || range,
+    range: series?.range || range,
     verdict: hostRow.verdict,
-  }) : []), [hostRow, series, events, settings, range]);
+  }) : []), [hostRow, series, allEvents, settings, range]);
+  const hardware = hostRow?.snapshot?.hardware;
+  const hwLine = hardwareLine(hardware);
+  const hwRows = hardwareDetails(hardware);
   const lateMs = `${Math.round(limits.lateMs * 10) / 10} ms`;
   const tickMs = `${Math.round(limits.tickMs * 10) / 10} ms`;
   const [planPct, satPct] = limits.cpu.map((t) => `${t.value} %`);
@@ -375,6 +376,14 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
             {host?.name}
             {fetchedAt ? ` | loaded ${fmtTime(fetchedAt / 1000, true)}` : ''}
           </span>
+          {hwLine ? (
+            <span
+              className="block text-xs font-normal normal-case tracking-normal text-theme-secondary"
+              title={hwRows.map(([k, v]) => `${k}: ${v}`).join(' | ')}
+            >
+              {hwLine}
+            </span>
+          ) : null}
         </>
       )}
       headerActions={(
@@ -400,6 +409,36 @@ export function HostModal({ ctx, host, isOpen, onClose }) {
             </span>
           ) : null}
         </div>
+
+        {hostRow ? (
+          <div className="hm-overview">
+            <section>
+              <div className="hm-section-title">Summary</div>
+              <ul className="hm-summary">
+                {hostRow.state === 'outdated' ? (
+                  <li>
+                    <FindingLine finding={{ level: 'warning', area: 'data', text: 'The collector on this host is outdated: use Apply to host below.' }} />
+                  </li>
+                ) : null}
+                {found.map((f, i) => (
+                  <li key={`${f.area}-${i}`}><FindingLine finding={f} /></li>
+                ))}
+              </ul>
+            </section>
+            <section>
+              <div className="hm-section-title">Hardware</div>
+              {hwRows.length ? (
+                <dl className="hm-hw">
+                  {hwRows.map(([k, v]) => (
+                    <React.Fragment key={k}><dt>{k}</dt><dd>{v}</dd></React.Fragment>
+                  ))}
+                </dl>
+              ) : (
+                <div className="hm-muted">Not read yet: the collector reads it at start and every hour (collector 1.1 or later).</div>
+              )}
+            </section>
+          </div>
+        ) : null}
 
         {error ? <div className="hm-error">{error}</div> : null}
         {!series && loading ? <div className="hm-muted">Loading...</div> : null}
