@@ -163,3 +163,19 @@ def test_events_open_close_newest_first(conn):
     assert ev[1]["state"] == "closed" and ev[1]["closed_ts"] == 150
     assert ev[0]["state"] == "open" and ev[0]["port"] == 27960
     assert [e["id"] for e in hm_store.events(conn, 150)] == [b]
+
+
+def test_downsample_keeps_spikes_and_sums_counts(conn):
+    n = 1200
+    with conn:
+        conn.executemany(
+            "INSERT INTO inst_raw(ts, port, max_ms, p99_ms, players, frames, late)"
+            " VALUES (?,?,?,?,?,?,?)",
+            [(T0 + 10 * i, 27960, 900.0 if i == 7 else 5.0, 50.0 if i == 7 else 3.0,
+              4 if i == 7 else 1, 10, 1) for i in range(n)])
+    rows = hm_store.series(conn, T0 + 10 * n, "6h", max_points=600)["insts"][27960]
+    assert len(rows) == 600
+    assert max(r["max_ms"] for r in rows) == 900.0
+    assert max(r["p99_ms"] for r in rows) == 50.0
+    assert sum(r["late"] for r in rows) == n
+    assert sum(r["frames"] for r in rows) == 10 * n

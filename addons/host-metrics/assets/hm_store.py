@@ -150,13 +150,19 @@ def _rows(conn, sql, args):
     return [dict(zip(names, r)) for r in cur.fetchall()]
 
 
+MAX_COLS = {"max_ms", "p99_ms", "p99_max", "players_max"}
+SUM_COLS = {"frames", "late", "busy_ticks"}
+
+
 def _combine(name, vals):
     vals = [v for v in vals if v is not None]
     if not vals:
         return None
     if not all(isinstance(v, (int, float)) for v in vals):
         return vals[-1]
-    if name.endswith("_max"):
+    if name in SUM_COLS:
+        return sum(vals)
+    if name in MAX_COLS or name.endswith("_max"):
         return max(vals)
     if name.endswith("_min"):
         return min(vals)
