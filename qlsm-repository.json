@@ -129,7 +129,7 @@
     {
       "id": "file-forwarder",
       "zip": "packages/file-forwarder.zip",
-      "sha256": "3547eb92e70fdee27f90a8e8ab1bf6b8eab2c775682ad6dd593101625325c79c",
+      "sha256": "0547b201f629284fa481e4a596ccd580aa9614f0abe4a34a723967f7ab01de7e",
       "version": "1.2.0",
       "label": "File Forwarder",
       "description": "Ships demo files from every game host to the site VPS over SFTP every few minutes and deletes delivered raw demos from the host after the retention period. Needs the VPS address saved in Settings (its host keys are scanned then) and the install's SFTP public key added to the VPS once."
@@ -145,7 +145,7 @@
     {
       "id": "player-ranks",
       "zip": "packages/player-ranks.zip",
-      "sha256": "1929bfe53b564119345cbf9718afd5e8b7a2de9a4b509359f7fe9fd1e32f900e",
+      "sha256": "10b5eac255576a3566e923000ca581a8eb3bd9c4cec5e8550900b7f4dbade900",
       "version": "0.4.0",
       "label": "Player Ranks",
       "description": "Shows each connected player's rating from qlstats, Slipgate and x76 in one Rank column in Live Status, with the sources chosen per instance on its Ranks tab. Needs QLSM with ui_api 4 or newer; qlstats and Slipgate are set up once in Settings, x76 per instance."

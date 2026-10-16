@@ -30,6 +30,12 @@ python generate_manifest.py
 
 and commit the updated `qlsm-repository.json` + `packages/*.zip`.
 
+The zips are reproducible: entries are sorted, carry a fixed date, mode and
+host OS, and text files (no NUL byte) are packed with LF line endings
+whatever the checkout has (`core.autocrlf`, a file type `.gitattributes` does
+not list). So a rebuild changes only the packages whose files changed, on
+Windows and Linux alike.
+
 ### Manifest hash guard (pre-commit)
 
 If you change a packaged file and forget to re-run `generate_manifest.py`,

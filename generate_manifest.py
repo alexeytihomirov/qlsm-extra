@@ -200,7 +200,15 @@ def _zip_addon(addon_dir: Path, zip_path: Path) -> None:
             info.create_system = 3  # pin the host OS field so Windows and Linux rebuilds give the same bytes
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
-            zf.writestr(info, path.read_bytes())
+            zf.writestr(info, _packed_bytes(path))
+
+
+def _packed_bytes(path: Path) -> bytes:
+    """A file's bytes as packed: text (no NUL byte) with CRLF turned into LF,
+    so the archive does not depend on the checkout's core.autocrlf or on a file
+    type .gitattributes does not list; binaries (an ELF, an image) as they are."""
+    data = path.read_bytes()
+    return data if b'\0' in data else data.replace(b'\r\n', b'\n')
 
 
 def _addon_entries(existing: list) -> list:

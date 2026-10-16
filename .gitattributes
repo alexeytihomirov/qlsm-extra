@@ -15,6 +15,9 @@
 *.txt text eol=lf
 *.service text eol=lf
 *.timer text eol=lf
+*.go text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
 
 # Addon packages are archives: never touch their bytes, the repository index
 # carries a sha256 of exactly what is committed here.
