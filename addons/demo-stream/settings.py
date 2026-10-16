@@ -109,6 +109,40 @@ def is_relay_configured():
     return bool(get_relay_host() and get_relay_port())
 
 
+# Per-host relay override: a host whose path to the global relay is cut (NN:
+# TLS on non-standard ports out of RU is dropped after a few KB) points its
+# stunnel at another address that forwards to the hub, e.g. a TCP relay on
+# 443 elsewhere. Both or neither are set; blank means the global relay.
+_HOST_RELAY_HOST_PREFIX = 'demo_stream_host_relay_host:'
+_HOST_RELAY_PORT_PREFIX = 'demo_stream_host_relay_port:'
+
+
+def get_host_relay_override(host_id):
+    """(host, port) of this host's own relay, or (None, None)."""
+    host = _get(f'{_HOST_RELAY_HOST_PREFIX}{host_id}')
+    port = _get(f'{_HOST_RELAY_PORT_PREFIX}{host_id}')
+    return (host, port) if host and port else (None, None)
+
+
+def set_host_relay_override(host_id, host, port):
+    """Stores both, or clears both when either is blank. Does not commit."""
+    host = (host or '').strip()
+    port = (port or '').strip()
+    if not host or not port:
+        host = port = ''
+    _set(f'{_HOST_RELAY_HOST_PREFIX}{host_id}', host)
+    _set(f'{_HOST_RELAY_PORT_PREFIX}{host_id}', port)
+
+
+def get_effective_relay(host_id):
+    """(host, port) this host's tunnel connects to: its override, else the
+    global relay; (None, None) when neither is set."""
+    host, port = get_host_relay_override(host_id)
+    if host:
+        return host, port
+    return (get_relay_host(), get_relay_port()) if is_relay_configured() else (None, None)
+
+
 def is_instance_demo_stream_enabled(instance_id):
     return _get(f'{_ENABLED_PREFIX}{instance_id}') == '1'
 

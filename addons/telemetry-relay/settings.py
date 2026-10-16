@@ -79,6 +79,24 @@ def is_relay_enabled(host_id):
     return _get(f'{_RELAY_ENABLED_PREFIX}{host_id}') == '1'
 
 
+# Where this host's sidecar sends its POSTs instead of the stats-hub URL: a
+# relay for a host whose own path to the hub is cut (NN: HTTP on non-standard
+# ports out of RU is dropped after a few KB). Only the sidecar's routes use
+# it; qlsm's own calls to stats-hub (server ID, firewall) keep the stats-hub
+# URL, which the relay would not let through.
+_FORWARD_URL_PREFIX = 'telemetry_relay_host_forward_url:'
+
+
+def get_host_forward_url(host_id):
+    """This host's forward base URL, or None to send to the stats-hub URL."""
+    return _get(f'{_FORWARD_URL_PREFIX}{host_id}')
+
+
+def set_host_forward_url(host_id, value):
+    """Does not commit."""
+    _set(f'{_FORWARD_URL_PREFIX}{host_id}', (value or '').strip().rstrip('/'))
+
+
 def set_relay_enabled(host_id, enabled):
     _set(f'{_RELAY_ENABLED_PREFIX}{host_id}', '1' if enabled else '')
 

@@ -1,6 +1,6 @@
 {
   "id": "demo-stream",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "name": "Live Demo Stream",
   "description": "Streams players' views live from an instance to ql-stats-hub through a central relay, over a TLS tunnel on each host. Needs the relay set in Settings, the host's Demo Stream Tunnel on and a game server with the sv_demoStream cvars; each instance has a Live Demo Stream switch.",
   "scopes": ["global", "host", "instance"],
@@ -28,7 +28,9 @@
         "status": { "load": "GET hosts/{host_id}/status" },
         "fields": [
           { "key": "enabled", "type": "bool", "label": "Enabled", "default": false, "description": "Installs and starts the tunnel on this host." },
-          { "key": "local_port", "type": "string", "label": "Local port", "placeholder": "27999", "description": "Port the tunnel listens on at 127.0.0.1. Leave blank for 27999. After a change, save each instance's Live Demo Stream again so its server.cfg picks up the new port." }
+          { "key": "local_port", "type": "string", "label": "Local port", "placeholder": "27999", "description": "Port the tunnel listens on at 127.0.0.1. Leave blank for 27999. After a change, save each instance's Live Demo Stream again so its server.cfg picks up the new port." },
+          { "key": "relay_host", "type": "string", "label": "Relay host for this host", "placeholder": "relay in Settings", "description": "Where this host's tunnel connects instead of the relay in Settings, for a host that cannot reach it directly (e.g. a TCP relay on port 443 that forwards to stats-hub). Leave both relay fields blank to use Settings. stats-hub then sees the relay's address, so that address must be allowed in its firewall." },
+          { "key": "relay_port", "type": "string", "label": "Relay port for this host", "placeholder": "relay in Settings", "description": "Port of the relay above, e.g. 443." }
         ]
       },
 

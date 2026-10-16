@@ -168,15 +168,38 @@ def _host_or_404(host_id):
 @bp.route('/hosts/<int:host_id>', methods=['GET'], endpoint='get_host_tunnel')
 @jwt_required()
 def get_host_tunnel(host_id):
-    from .settings import get_host_tunnel_port, is_host_tunnel_enabled
+    from .settings import get_host_relay_override, get_host_tunnel_port, is_host_tunnel_enabled
 
     _, error = _host_or_404(host_id)
     if error:
         return error
+    relay_host, relay_port = get_host_relay_override(host_id)
     return jsonify({"data": {
         'enabled': is_host_tunnel_enabled(host_id),
         'local_port': get_host_tunnel_port(host_id),
+        'relay_host': relay_host or '',
+        'relay_port': relay_port or '',
     }})
+
+
+_RELAY_HOST_CHARS = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-:[]')
+
+
+def _host_relay_error(host, port):
+    """The per-host relay override check: both blank, or a host name / IP and
+    a port number. The values go into stunnel.conf, so nothing else passes."""
+    if not isinstance(host, str) or not isinstance(port, str):
+        return "relay_host and relay_port must be strings."
+    host, port = host.strip(), port.strip()
+    if not host and not port:
+        return None
+    if not host or not port:
+        return "Set both relay host and relay port, or leave both blank for the relay in Settings."
+    if len(host) > 253 or not set(host) <= _RELAY_HOST_CHARS:
+        return "relay_host must be a host name or an IP address."
+    if not (port.isascii() and port.isdigit() and 1 <= int(port) <= 65535):
+        return "relay_port must be a port number (1-65535)."
+    return None
 
 
 @bp.route('/hosts/<int:host_id>/status', methods=['GET'], endpoint='get_host_tunnel_status')
@@ -184,7 +207,7 @@ def get_host_tunnel(host_id):
 def get_host_tunnel_status(host_id):
     """Whether stats-hub lets this host in and has a demo-stream link from it,
     shaped for the tunnel panel's status badge. One call to stats-hub."""
-    from .settings import HubAccessError, firewall_label, host_access_status
+    from .settings import HubAccessError, firewall_label, get_host_relay_override, host_access_status
 
     host, error = _host_or_404(host_id)
     if error:
@@ -194,6 +217,14 @@ def get_host_tunnel_status(host_id):
     except HubAccessError as exc:
         return jsonify({"data": {'ok': False, 'label': exc.label}})
     firewall = firewall_label(state)
+    relay_host, relay_port = get_host_relay_override(host_id)
+    if relay_host:
+        # stats-hub sees the link from the relay's address, not this host's, so
+        # it cannot be counted here.
+        return jsonify({"data": {
+            'ok': firewall == 'Firewall ok',
+            'label': f"{firewall}; demo stream through relay {relay_host}:{relay_port}",
+        }})
     connected = (state.get('demo_stream_links') or 0) > 0
     return jsonify({"data": {
         'ok': firewall == 'Firewall ok' and connected,
@@ -214,8 +245,8 @@ def update_host_tunnel(host_id):
     from ui.task_logic.job_failure_handlers import host_job_failure_handler
     from ui.tasks import enqueue_task
     from .settings import (
-        DEFAULT_TUNNEL_PORT, HubAccessError, allow_host, is_host_tunnel_enabled,
-        is_relay_configured, set_host_tunnel_port,
+        DEFAULT_TUNNEL_PORT, HubAccessError, allow_host, get_effective_relay,
+        is_host_tunnel_enabled, set_host_relay_override, set_host_tunnel_port,
     )
     from .tunnel_ops import TunnelCertError, fetch_hub_tls_cert
 
@@ -233,6 +264,17 @@ def update_host_tunnel(host_id):
 
     port = port.strip() or DEFAULT_TUNNEL_PORT
     wanted = bool(data.get('enabled', False))
+    # A client that does not send the relay fields keeps the stored override.
+    if 'relay_host' in data or 'relay_port' in data:
+        relay_host = data.get('relay_host', '')
+        relay_port = data.get('relay_port', '')
+        relay_error = _host_relay_error(relay_host, relay_port)
+        if relay_error:
+            return jsonify({"error": {"message": relay_error}}), 400
+        # Stored before the job is queued, so the playbook renders the value
+        # just typed (the tunnel's own port is stored only once it succeeds).
+        set_host_relay_override(host_id, relay_host, relay_port)
+        db.session.commit()
 
     if not wanted and not is_host_tunnel_enabled(host_id):
         # Nothing is installed, so there is nothing to wait for: just remember
@@ -244,7 +286,7 @@ def update_host_tunnel(host_id):
 
     cert_pem = ''
     if wanted:
-        if not is_relay_configured():
+        if get_effective_relay(host_id)[0] is None:
             return jsonify({"error": {
                 "message": "Set the demo-stream relay host and port in Settings first."
             }}), 409
@@ -770,9 +812,10 @@ def register(ctx):
     @ctx.on('host.delete')
     def forget_host(host_id):
         """Drop the host's tunnel AppSetting keys."""
-        from .settings import set_host_tunnel_enabled, set_host_tunnel_port
+        from .settings import set_host_relay_override, set_host_tunnel_enabled, set_host_tunnel_port
         set_host_tunnel_enabled(host_id, False)
         set_host_tunnel_port(host_id, '')
+        set_host_relay_override(host_id, '', '')
 
     @ctx.on('instance.delete')
     def forget_instance(instance_id):

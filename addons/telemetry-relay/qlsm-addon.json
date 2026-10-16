@@ -1,6 +1,6 @@
 {
   "id": "telemetry-relay",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "name": "Telemetry Relay",
   "description": "Sends live telemetry (positions, item pickups, match events) from game instances to ql-stats-hub through a relay on each host. Needs the stats-hub URL and token in Settings, the host's Telemetry Relay on and the stream_telemetry_unified plugin; each instance has a Telemetry switch.",
   "scopes": ["global", "host", "instance"],
@@ -41,7 +41,8 @@
         "fields": [
           { "key": "enabled", "type": "bool", "label": "Enabled", "default": false, "description": "Deploys and starts the relay sidecar on this host." },
           { "key": "url_override", "type": "string", "label": "Stats-hub URL override", "placeholder": "https://stats.example", "description": "Leave blank to use the cluster-wide default." },
-          { "key": "ingest_token_override", "type": "secret", "label": "Ingest token override", "description": "Leave blank to use the cluster-wide default." }
+          { "key": "ingest_token_override", "type": "secret", "label": "Ingest token override", "description": "Leave blank to use the cluster-wide default." },
+          { "key": "forward_url", "type": "string", "label": "Forward through", "placeholder": "stats-hub URL", "description": "Only for a host that cannot reach stats-hub directly: the sidecar sends its POSTs to this address (http://host:port, a relay that forwards to stats-hub) instead. qlsm itself still talks to the stats-hub URL. stats-hub then sees the relay's address, so that address must be allowed in its firewall. Leave blank to send straight to stats-hub." }
         ]
       },
 

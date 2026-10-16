@@ -21,6 +21,7 @@ AddonState while the shared relay logic kept reading AppSetting, giving a
 production credential two sources of truth that silently disagree. One store,
 one reader, for as long as both code paths exist.
 """
+import re
 import time
 import uuid
 from datetime import timedelta
@@ -45,7 +46,8 @@ def _host_or_404(host_id):
 def get_host_relay(host_id):
     """Everything the host panel's form needs, in one round trip."""
     from .settings import (
-        get_host_stats_hub_ingest_token, get_host_stats_hub_url, is_relay_enabled,
+        get_host_forward_url, get_host_stats_hub_ingest_token, get_host_stats_hub_url,
+        is_relay_enabled,
     )
 
     _, error = _host_or_404(host_id)
@@ -56,7 +58,22 @@ def get_host_relay(host_id):
         'enabled': is_relay_enabled(host_id),
         'url_override': get_host_stats_hub_url(host_id) or '',
         'ingest_token_override': get_host_stats_hub_ingest_token(host_id) or '',
+        'forward_url': get_host_forward_url(host_id) or '',
     }})
+
+
+_FORWARD_URL_RE = re.compile(r'^https?://[A-Za-z0-9.\-]+(:\d{1,5})?/?$')
+
+
+def _forward_url_error(value):
+    """Blank, or http(s)://host[:port] with nothing after it: the sidecar adds
+    /api/ingest/... itself."""
+    if not isinstance(value, str):
+        return "forward_url must be a string."
+    value = value.strip()
+    if value and not _FORWARD_URL_RE.match(value):
+        return "forward_url must look like http://host:port (no path), or be blank."
+    return None
 
 
 @bp.route('/hosts/<int:host_id>/status', methods=['GET'], endpoint='get_host_relay_status')
@@ -85,6 +102,11 @@ def get_host_relay_status(host_id):
     else:
         label = status.get('error') or 'Unreachable'
     label = f'{label}; {_access_line(host)}'
+    from .settings import get_host_forward_url
+    forward = get_host_forward_url(host_id)
+    if forward:
+        # stats-hub sees the POSTs from the relay's address, not this host's.
+        label = f'{label}; sends through {forward}'
 
     return jsonify({"data": {
         'ok': bool(status.get('enabled') and status.get('reachable')),
@@ -138,7 +160,8 @@ def update_host_relay(host_id):
     from ui.task_logic.job_failure_handlers import host_job_failure_handler
     from ui.tasks import enqueue_task
     from .settings import (
-        is_relay_enabled, set_host_stats_hub_ingest_token, set_host_stats_hub_url,
+        is_relay_enabled, set_host_forward_url, set_host_stats_hub_ingest_token,
+        set_host_stats_hub_url,
     )
 
     host, error = _host_or_404(host_id)
@@ -150,10 +173,18 @@ def update_host_relay(host_id):
     token = data.get('ingest_token_override', '')
     if not isinstance(url, str) or not isinstance(token, str):
         return jsonify({"error": {"message": "url_override and ingest_token_override must be strings."}}), 400
+    # A client that does not send forward_url keeps the stored one.
+    has_forward = 'forward_url' in data
+    if has_forward:
+        forward_error = _forward_url_error(data['forward_url'])
+        if forward_error:
+            return jsonify({"error": {"message": forward_error}}), 400
     wanted = bool(data.get('enabled', False))
 
     set_host_stats_hub_url(host_id, url)
     set_host_stats_hub_ingest_token(host_id, token)
+    if has_forward:
+        set_host_forward_url(host_id, data['forward_url'])
     db.session.commit()
 
     if wanted == is_relay_enabled(host_id):
@@ -521,9 +552,11 @@ def register(ctx):
         would clean up.
         """
         from .settings import (
-            set_host_stats_hub_ingest_token, set_host_stats_hub_url, set_relay_enabled,
+            set_host_forward_url, set_host_stats_hub_ingest_token, set_host_stats_hub_url,
+            set_relay_enabled,
         )
         set_relay_enabled(host_id, False)
+        set_host_forward_url(host_id, '')
         set_host_stats_hub_url(host_id, '')
         set_host_stats_hub_ingest_token(host_id, '')
 

@@ -189,6 +189,29 @@ afterwards (another new ID is refused for 10 minutes). Setting a cvar in
 instance's telemetry, the Live Demo Stream status says so and a save moves the
 stream to telemetry's ID (one restart).
 
+**demo-stream 1.6.0:** the host's **Demo Stream Tunnel** entry has **Relay
+host for this host** and **Relay port for this host**: where that host's
+stunnel connects instead of the relay in Settings (both or neither; blank uses
+Settings). For a host that cannot reach the hub's TLS port directly, e.g. one
+whose provider path cuts TLS on non-standard ports: point it at a plain TCP
+relay on port 443 elsewhere that forwards to the hub's ingest port. The TLS
+and the pinned hub certificate go through the relay untouched; stats-hub sees
+the relay's address, so that address must be in the hub firewall, and the
+entry's status then says "demo stream through relay <host:port>" instead of
+counting links. Saving re-renders the host's `stunnel.conf`. Nothing to do
+after upgrading: hosts without the fields keep the relay in Settings.
+
+**telemetry-relay 1.6.0:** the host's **Telemetry Relay** entry has **Forward
+through** (`http://host:port`, no path): the sidecar on that host sends its
+POSTs there instead of the stats-hub URL, for a host whose own HTTP path to
+the hub is cut (a plain TCP relay on port 80 that forwards to the hub's 8090).
+qlsm's own calls to stats-hub (server IDs, firewall) keep the stats-hub URL.
+stats-hub sees the relay's address, so it must be in the hub firewall, and the
+"telemetry N s ago" in the entry's status refers to this host's own address
+(it reads "no telemetry seen" while everything goes through the relay); the
+status adds "sends through <url>". Blank sends straight to stats-hub as
+before.
+
 **player-ranks 0.4.0:** the installation-wide "on by default" switches for
 qlstats and Slipgate are gone; each instance picks its sources on its own
 Ranks tab, and a new instance starts with every source off. On the first load

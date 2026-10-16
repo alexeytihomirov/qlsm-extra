@@ -24,6 +24,7 @@ PLAYBOOK = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 from .settings import (
     get_effective_stats_hub_ingest_token,
     get_effective_stats_hub_url,
+    get_host_forward_url,
     get_instance_server_id,
     HubAccessError,
     is_demo_stream_tunnel_enabled,
@@ -48,10 +49,12 @@ def build_relay_routes_for_host(host_id):
     """{"<server_id>": {"telemetry": "<stats-hub>/api/ingest/telemetry", "server_name": ...,
     "server_address": "<host ip>:<game port>"}}
     for every instance on this host that already has a reserved server_id,
-    targeting this host's effective (override or global) stats-hub URL."""
+    targeting this host's effective (override or global) stats-hub URL, or
+    the host's forward URL when it has one (a relay in front of the hub)."""
     stats_hub_url = get_effective_stats_hub_url(host_id)
     if not stats_hub_url:
         return {}
+    target = get_host_forward_url(host_id) or stats_hub_url
     routes = {}
     host = db.session.get(Host, host_id)
     host_ip = (host.ip_address or '').strip() if host else ''
@@ -60,7 +63,7 @@ def build_relay_routes_for_host(host_id):
         if not server_id:
             continue
         routes[str(server_id)] = {
-            'telemetry': f'{stats_hub_url}/api/ingest/telemetry',
+            'telemetry': f'{target}/api/ingest/telemetry',
             'server_name': instance.name,
             # Where players connect; stats-hub hands it to its consumers (a "connect" link).
             'server_address': f'{host_ip}:{instance.port}' if host_ip else '',

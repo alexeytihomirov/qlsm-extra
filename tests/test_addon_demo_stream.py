@@ -111,14 +111,14 @@ def _resp(status=200, text=''):
     return Mock(status_code=status, text=text)
 
 
-def test_extravars_carry_the_five_spec_keys(app):
+def test_extravars_carry_the_five_spec_keys(app, host_id):
     with app.app_context():
         from qlsm_addon_demo_stream.settings import set_relay_host, set_relay_port
         from qlsm_addon_demo_stream.tunnel_ops import build_tunnel_extravars
         set_relay_host('70.34.223.191')
         set_relay_port('27999')
         db.session.commit()
-        assert build_tunnel_extravars(True, '27999', PEM) == {
+        assert build_tunnel_extravars(True, '27999', PEM, host_id) == {
             'demo_stream_tunnel_enabled': True,
             'demo_stream_tunnel_port': '27999',
             'demo_stream_relay_host': '70.34.223.191',
@@ -127,10 +127,30 @@ def test_extravars_carry_the_five_spec_keys(app):
         }
 
 
-def test_extravars_drop_cert_when_disabling(app):
+def test_extravars_drop_cert_when_disabling(app, host_id):
     with app.app_context():
         from qlsm_addon_demo_stream.tunnel_ops import build_tunnel_extravars
-        assert build_tunnel_extravars(False, '27999', PEM)['demo_stream_hub_cert_pem'] == ''
+        assert build_tunnel_extravars(False, '27999', PEM, host_id)['demo_stream_hub_cert_pem'] == ''
+
+
+def test_extravars_take_the_host_relay_override(app, host_id):
+    with app.app_context():
+        from qlsm_addon_demo_stream.settings import (
+            set_host_relay_override, set_relay_host, set_relay_port)
+        from qlsm_addon_demo_stream.tunnel_ops import build_tunnel_extravars
+        set_relay_host('70.34.223.191')
+        set_relay_port('27999')
+        set_host_relay_override(host_id, ' 91.99.3.72 ', '443')
+        db.session.commit()
+        extravars = build_tunnel_extravars(True, '27999', PEM, host_id)
+        assert (extravars['demo_stream_relay_host'], extravars['demo_stream_relay_port']) == ('91.99.3.72', '443')
+        assert AppSetting.query.get(f'demo_stream_host_relay_host:{host_id}').value == '91.99.3.72'
+        # one of the two blank clears both: back to the relay in Settings
+        set_host_relay_override(host_id, '91.99.3.72', '')
+        db.session.commit()
+        extravars = build_tunnel_extravars(True, '27999', PEM, host_id)
+        assert (extravars['demo_stream_relay_host'], extravars['demo_stream_relay_port']) == ('70.34.223.191', '27999')
+        assert AppSetting.query.get(f'demo_stream_host_relay_host:{host_id}') is None
 
 
 def test_fetch_cert_404_says_hub_has_no_tls(app, host_id):
@@ -294,7 +314,8 @@ def _set_relay_and_hub():
 def test_get_host_tunnel_defaults(client, auth, host_id):
     resp = client.get(f'{URL}/hosts/{host_id}', headers=auth)
     assert resp.status_code == 200
-    assert resp.get_json()['data'] == {'enabled': False, 'local_port': '27999'}
+    assert resp.get_json()['data'] == {'enabled': False, 'local_port': '27999',
+                                       'relay_host': '', 'relay_port': ''}
 
 
 def test_get_host_tunnel_unknown_host_404(client, auth):
@@ -322,6 +343,65 @@ def test_put_enable_without_relay_is_409(client, auth, host_id):
                       headers=auth)
     assert resp.status_code == 409
     assert 'relay host and port' in resp.get_json()['error']['message']
+
+
+def test_put_stores_the_host_relay_and_get_returns_it(app, client, auth, host_id):
+    resp = client.put(f'{URL}/hosts/{host_id}', headers=auth,
+                      json={'enabled': False, 'local_port': '', 'relay_host': '91.99.3.72', 'relay_port': '443'})
+    assert resp.status_code == 200
+    data = client.get(f'{URL}/hosts/{host_id}', headers=auth).get_json()['data']
+    assert (data['relay_host'], data['relay_port']) == ('91.99.3.72', '443')
+    # a client that sends no relay fields keeps them
+    client.put(f'{URL}/hosts/{host_id}', json={'enabled': False, 'local_port': ''}, headers=auth)
+    data = client.get(f'{URL}/hosts/{host_id}', headers=auth).get_json()['data']
+    assert data['relay_host'] == '91.99.3.72'
+    client.put(f'{URL}/hosts/{host_id}', headers=auth,
+               json={'enabled': False, 'local_port': '', 'relay_host': '', 'relay_port': ''})
+    data = client.get(f'{URL}/hosts/{host_id}', headers=auth).get_json()['data']
+    assert (data['relay_host'], data['relay_port']) == ('', '')
+
+
+@pytest.mark.parametrize('relay_host,relay_port', [
+    ('91.99.3.72', ''), ('', '443'), ('91.99.3.72', '0'), ('91.99.3.72', '70000'),
+    ('91.99.3.72', 'abc'), ('a b', '443'), ('x\nconnect = evil:1', '443'), (443, '443'),
+])
+def test_put_rejects_a_bad_host_relay(app, client, auth, host_id, relay_host, relay_port):
+    resp = client.put(f'{URL}/hosts/{host_id}', headers=auth,
+                      json={'enabled': False, 'local_port': '', 'relay_host': relay_host, 'relay_port': relay_port})
+    assert resp.status_code == 400
+    with app.app_context():
+        from qlsm_addon_demo_stream.settings import get_host_relay_override
+        assert get_host_relay_override(host_id) == (None, None)
+
+
+def test_put_enable_with_only_a_host_relay_is_allowed(app, client, auth, host_id):
+    """No relay in Settings, but this host has its own: the tunnel can be enabled."""
+    with app.app_context():
+        _set_hub()
+        from qlsm_addon_demo_stream.settings import set_stats_hub_ingest_token
+        set_stats_hub_ingest_token('tok')
+        db.session.commit()
+    with patch('qlsm_addon_demo_stream.tunnel_ops.fetch_hub_tls_cert', return_value=PEM), \
+            patch('ui.task_lock.acquire_lock', return_value=True), \
+            patch('ui.tasks.enqueue_task') as enqueue:
+        resp = client.put(f'{URL}/hosts/{host_id}', headers=auth,
+                          json={'enabled': True, 'local_port': '', 'relay_host': '91.99.3.72', 'relay_port': '443'})
+    assert resp.status_code == 202
+    enqueue.assert_called_once()
+
+
+def test_host_status_with_a_relay_says_so(app, client, auth, host_id):
+    with app.app_context():
+        _set_relay_and_hub()
+        from qlsm_addon_demo_stream.settings import set_host_relay_override
+        set_host_relay_override(host_id, '91.99.3.72', '443')
+        db.session.commit()
+    answer = Mock(status_code=200)
+    answer.json.return_value = {'ip': '10.0.0.1', 'listed': True, 'ports': {'8090': 'ok', '27999': 'ok'},
+                                'public': {}, 'demo_stream_links': 0}
+    with patch('requests.get', return_value=answer):
+        data = client.get(f'{URL}/hosts/{host_id}/status', headers=auth).get_json()['data']
+    assert data == {'ok': True, 'label': 'Firewall ok; demo stream through relay 91.99.3.72:443'}
 
 
 def test_put_enable_when_hub_has_no_tls_is_409_and_queues_nothing(app, client, auth, host_id):
@@ -429,8 +509,13 @@ def test_host_delete_forgets_tunnel_keys(app, host_id):
         set_host_tunnel_enabled(host_id, True)
         set_host_tunnel_port(host_id, '28000')
         db.session.commit()
+        from qlsm_addon_demo_stream.settings import set_host_relay_override
+        set_host_relay_override(host_id, '91.99.3.72', '443')
+        db.session.commit()
         dispatch('host.delete', host_id, host_id)
         db.session.commit()
+        assert AppSetting.query.get(f'demo_stream_host_relay_host:{host_id}') is None
+        assert AppSetting.query.get(f'demo_stream_host_relay_port:{host_id}') is None
         assert AppSetting.query.get(f'demo_stream_tunnel_enabled:{host_id}') is None
         assert AppSetting.query.get(f'demo_stream_tunnel_port:{host_id}') is None
 
@@ -545,12 +630,12 @@ def test_status_reports_tunnel_off(app, client, auth, instance_id):
 def test_manifest_declares_host_tunnel_panel():
     import json
     m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.5.1'
+    assert m['version'] == '1.6.0'
     assert m['ui_api'] == 1
     assert m['ui']['host_menu'][0]['panel'] == 'host_tunnel'
     p = m['ui']['panels']['host_tunnel']
     assert (p['load'], p['submit']) == ('GET hosts/{host_id}', 'PUT hosts/{host_id}')
-    assert [f['key'] for f in p['fields']] == ['enabled', 'local_port']
+    assert [f['key'] for f in p['fields']] == ['enabled', 'local_port', 'relay_host', 'relay_port']
     assert next(f for f in p['fields'] if f['key'] == 'local_port')['placeholder'] == '27999'
     relay_port = next(f for f in m['ui']['panels']['settings']['fields'] if f['key'] == 'relay_port')
     assert relay_port['placeholder'] == '27999'

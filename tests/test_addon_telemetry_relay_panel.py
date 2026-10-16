@@ -264,7 +264,7 @@ def test_status_labels(app, client, auth, cfg, stored, relay, ok, label):
 
 def test_manifest_telemetry_in_instance_menu():
     m = json.loads((ADDONS_DIR / 'telemetry-relay' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.5.1'
+    assert m['version'] == '1.6.0'
     ui = m['ui']
     assert 'instance_tabs' not in ui
     (entry,) = ui['instance_menu']
@@ -281,7 +281,7 @@ def test_manifest_telemetry_in_instance_menu():
     (host_entry,) = ui['host_menu']
     assert host_entry['status'] == 'GET hosts/{host_id}/status'
     host_keys = [f['key'] for f in ui['panels'][host_entry['panel']]['fields']]
-    assert host_keys == ['enabled', 'url_override', 'ingest_token_override']
+    assert host_keys == ['enabled', 'url_override', 'ingest_token_override', 'forward_url']
 
 
 # ---- instances enabled before 1.5.0 (routed key only) ---------------------

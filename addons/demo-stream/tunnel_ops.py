@@ -21,9 +21,8 @@ PLAYBOOK = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 from .settings import (
     HubAccessError,
+    get_effective_relay,
     get_effective_stats_hub_url,
-    get_relay_host,
-    get_relay_port,
     is_stats_hub_configured_for_host,
     is_telemetry_relay_enabled,
     release_host,
@@ -63,12 +62,15 @@ def fetch_hub_tls_cert(host_id):
     return pem
 
 
-def build_tunnel_extravars(enabled, port, cert_pem):
+def build_tunnel_extravars(enabled, port, cert_pem, host_id):
+    """The playbook's variables; the relay is the host's own override when it
+    has one, else the global relay."""
+    relay_host, relay_port = get_effective_relay(host_id)
     return {
         'demo_stream_tunnel_enabled': bool(enabled),
         'demo_stream_tunnel_port': port,
-        'demo_stream_relay_host': get_relay_host() or '',
-        'demo_stream_relay_port': get_relay_port() or '',
+        'demo_stream_relay_host': relay_host or '',
+        'demo_stream_relay_port': relay_port or '',
         'demo_stream_hub_cert_pem': cert_pem if enabled else '',
     }
 
@@ -101,14 +103,15 @@ def configure_host_demo_stream_tunnel_logic(host_id, enabled, port, cert_pem):
     success, _stdout, _stderr = _run_host_ansible_playbook(
         host=host,
         playbook_name=PLAYBOOK,
-        extravars=build_tunnel_extravars(enabled, port, cert_pem),
+        extravars=build_tunnel_extravars(enabled, port, cert_pem, host_id),
     )
 
     if success:
         set_host_tunnel_enabled(host_id, enabled)
         set_host_tunnel_port(host_id, port)
         host.status = HostStatus.ACTIVE
-        line = (f"Demo stream tunnel enabled on port {port}." if enabled
+        relay_host, relay_port = get_effective_relay(host_id)
+        line = (f"Demo stream tunnel enabled on port {port}. Relay: {relay_host}:{relay_port}." if enabled
                 else "Demo stream tunnel disabled.")
         warning = '' if enabled else _release_from_hub(host)
         host.logs = f"{line}\n{warning}{host.logs or ''}"
