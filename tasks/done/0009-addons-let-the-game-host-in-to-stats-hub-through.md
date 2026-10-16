@@ -1,10 +1,10 @@
 ---
 id: qlsm-extra-0009
 title: Addons let the game host in to stats-hub through the hub firewall API
-status: blocked
+status: done
 created: 2026-10-15
-updated: 2026-10-15
-verified:
+updated: 2026-10-16
+verified: 2026-10-16
 depends_on: [ql-stats-hub-0014]
 related: [root-0020, ql-stats-hub/docs/superpowers/specs/2026-10-15-hub-firewall-api-design.md]
 ---
@@ -25,8 +25,8 @@ Telemetry Relay и Demo Stream Tunnel при включении на хосте 
 - [x] demo-stream: allow при включении, release после выключения, если relay выключен; новый status хоста
 - [x] `generate_manifest.py`, пакеты
 - [x] Merge, push
-- [ ] Установка в prod qlsm (оператор: Settings -> Repositories -> Update, перезапуск qlsm)
-- [ ] Проверка на одном хосте
+- [x] Установка в prod qlsm (оператор: Settings -> Repositories -> Update, перезапуск qlsm)
+- [x] Проверка на одном хосте
 
 ## Журнал
 
@@ -36,6 +36,7 @@ Telemetry Relay и Demo Stream Tunnel при включении на хосте 
 - 2026-10-15 - `generate_manifest.py` пересобрал и `packages/qlmatch-packer.zip` без изменений кода (другие байты на Windows) - откачено, в коммите только demo-stream и telemetry-relay
 - 2026-10-15 - merged `feat/hub-firewall-access` -> `origin/main` (af04f52, ls-remote подтвердил). Хаб с API уже задеплоен (`ql-stats-hub-0014`). Ждём установки оператором
 - 2026-10-15 - оператор поставил 1.4.0: у Telemetry Relay нет бейджа. Причина: панель `host_relay` в манифесте никогда не объявляла `status` (эндпоинт `GET hosts/{host_id}/status` был и раньше, UI его не вызывал), не проверил это до релиза. Исправлено: `status` в манифесте + тест, версия 1.4.2 (1.4.1 параллельно выпустила другая сессия - предупреждение о двух инстансах с одним server id; перебазировано поверх, `origin/main` 1e70838)
+- 2026-10-16 - оператор закрыл задачу в чате (файл уже лежал в `done/` со статусом `blocked`); статус `done`
 
 ## Результат
 
