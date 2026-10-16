@@ -1,7 +1,7 @@
 ---
 id: qlsm-extra-0014
 title: Per-host relay for the demo-stream tunnel and the telemetry sidecar
-status: in-progress
+status: done-unverified
 created: 2026-10-16
 updated: 2026-10-16
 verified:
@@ -24,14 +24,17 @@ related: [root-0023, ql-tournament-0063]
 - [x] demo-stream 1.6.0: поля хоста `relay_host` / `relay_port` (оба или ни одного), в `stunnel.conf` хоста; статус "demo stream through relay"
 - [x] telemetry-relay 1.6.0: поле хоста `forward_url` (`http://host:port`), только в маршрутах сайдкара; вызовы qlsm к хабу на прежнем URL
 - [x] Тесты: demo-stream 133 pass, telemetry-relay 82 pass
-- [ ] Merge, push, обновить аддоны в qlsm, выставить NN: relay `91.99.3.72:443`, forward `http://91.99.3.72:80`, Save
+- [x] Merge, push, обновить аддоны в qlsm, выставить NN: relay `91.99.3.72:443`, forward `http://91.99.3.72:80`, Save
 
 ## Журнал
 
 - 2026-10-16 - created; реализовано в ветке `feat/per-host-hub-route`
 - 2026-10-16 - `generate_manifest.py` пересобрал и чужие zip (file-forwarder, player-ranks, server-ping) с другими хешами без изменений в коде; откатил их и их хеши, чтобы не было ложного обновления
+- 2026-10-16 - `79a0950` в `main`, push; в production qlsm: sync репозитория, install-addon demo-stream и telemetry-relay 1.6.0, рестарт контейнеров qlsm; NN (host 3) сохранён с relay `91.99.3.72:443` и forward `http://91.99.3.72:80`; плейбуки отрисовали `stunnel.conf` и `telemetry-relay.json` с этими адресами, статусы в qlsm показывают реле
 
 ## Результат
+
+`79a0950` (demo-stream 1.6.0, telemetry-relay 1.6.0), установлено в production qlsm, NN настроен.
 
 ## Как проверить
 
