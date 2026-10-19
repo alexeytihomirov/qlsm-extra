@@ -11,7 +11,7 @@ import pytest
 from ui import db
 from ui.models import InstanceStatus, QLInstance
 from test_addon_demo_stream_panel import (  # noqa: F401
-    GET, PUT, URL, WIRED, _cfg, _hub, addon_id, auth, off, queued, streaming,
+    GET, PUT, URL, WIRED, _cfg, _hub, addon_id, auth, off, queued, streaming, switch_on,
 )
 
 
@@ -40,8 +40,8 @@ def test_launch_args_carry_the_stored_wiring(app, streaming, off):
     assert _launch_args(app, off) == ['+set sv_demoStream "0"']
 
 
-def test_no_launch_args_while_the_addon_is_off_for_the_instance(app, streaming):
-    assert _launch_args(app, streaming) == []
+def test_no_launch_args_while_the_addon_is_off_for_the_instance(app, off):
+    assert _launch_args(app, off) == []
 
 
 def test_disable_strips_server_cfg(app, streaming, monkeypatch):

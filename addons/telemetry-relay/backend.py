@@ -394,7 +394,9 @@ def _wiring_drift(instance):
         return 'qlx_statsHubUnifiedEnabled is not 1 in server.cfg'
     if cvars.get('qlx_statsHubServerId') != str(server_id):
         return 'qlx_statsHubServerId does not match the stored server ID'
-    if launch_args_active(instance.id) and cfg_telemetry_cvars(instance):
+    if not launch_args_active(instance.id):
+        return 'launch args not switched on for this instance'
+    if cfg_telemetry_cvars(instance):
         return 'server.cfg still sets qlx_statsHub* (now passed as launch args)'
     return None
 
@@ -441,6 +443,12 @@ def update_instance_telemetry(instance_id):
             instance, 'enable_instance_telemetry', 'enable')
     if enabled and not wanted:
         return _queue_instance_task(instance, 'disable_instance_telemetry', 'disable')
+    if not wanted:
+        from .instance_ops import cfg_telemetry_cvars
+        if cfg_telemetry_cvars(instance):
+            # Off, but server.cfg still carries the cvars from before 1.7.0:
+            # the disable moves them out of it.
+            return _queue_instance_task(instance, 'disable_instance_telemetry', 'disable')
     if wanted:
         drift = _wiring_drift(instance)
         if drift:

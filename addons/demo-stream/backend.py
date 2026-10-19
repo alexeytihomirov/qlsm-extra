@@ -503,13 +503,11 @@ def _wiring_drift(instance):
         DEMO_STREAM_CVARS, demo_stream_launch_cvars, launch_args_active, read_cfg_text,
     )
 
-    cfg_cvars = read_cvars_from_text(read_cfg_text(instance) or '', DEMO_STREAM_CVARS)
-    if launch_args_active(instance.id):
-        if cfg_cvars:
-            return 'server.cfg still sets sv_demoStream* (now passed as launch args)'
-        cvars = demo_stream_launch_cvars(instance)
-    else:
-        cvars = cfg_cvars
+    if not launch_args_active(instance.id):
+        return 'launch args not switched on for this instance'
+    if read_cvars_from_text(read_cfg_text(instance) or '', DEMO_STREAM_CVARS):
+        return 'server.cfg still sets sv_demoStream* (now passed as launch args)'
+    cvars = demo_stream_launch_cvars(instance)
     if cvars.get('sv_demoStream') != '1':
         return 'sv_demoStream is not 1 in server.cfg'
     if cvars.get('sv_demoStreamHost') != '127.0.0.1':
@@ -561,6 +559,12 @@ def update_instance_stream(instance_id):
     if not enabled:
         if delay is not None:
             return jsonify({"error": {"message": NOT_STREAMING_MESSAGE}}), 409
+        from .instance_ops import DEMO_STREAM_CVARS, read_cfg_text
+        from .settings import read_cvars_from_text
+        if read_cvars_from_text(read_cfg_text(instance) or '', DEMO_STREAM_CVARS):
+            # Off, but server.cfg still carries the cvars (the token among
+            # them) from before 1.7.0: the disable moves them out of it.
+            return _queue_instance_task(instance, 'disable_instance_demo_stream', 'disable')
         return jsonify({"message": "No changes."})
 
     # Streaming and staying on. Drifted wiring first (local state, then the
@@ -843,8 +847,9 @@ def register(ctx):
         cleanup does not know about them."""
         from .settings import (
             set_instance_demo_stream_enabled, set_instance_demo_stream_token,
-            set_instance_server_id,
+            set_instance_server_id, set_instance_stream_port,
         )
         set_instance_demo_stream_enabled(instance_id, False)
+        set_instance_stream_port(instance_id, None)
         set_instance_demo_stream_token(instance_id, None)
         set_instance_server_id(instance_id, None)

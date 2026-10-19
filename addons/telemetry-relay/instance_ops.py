@@ -65,6 +65,22 @@ def launch_args_active(instance_id):
     return bool(addon and addon.ctx and addon.ctx.settings.is_enabled('instance', instance_id))
 
 
+def open_launch_args(instance):
+    """Switch this addon on for the instance's host and the instance itself,
+    so core passes its instance.launch_args. qlsm's UI has only the global
+    switch, so nothing else ever sets these two layers; they gate nothing
+    else in this addon. Stays off (and server.cfg keeps the cvars) while the
+    addon is off globally."""
+    from ui.addons import get_addon
+
+    addon = get_addon('telemetry-relay')
+    if not (addon and addon.ctx):
+        return
+    addon.ctx.settings.set_enabled('host', instance.host_id, True, commit=False)
+    addon.ctx.settings.set_enabled('instance', instance.id, True, commit=False)
+    db.session.commit()
+
+
 def telemetry_launch_cvars(instance_id):
     server_id = get_instance_server_id(instance_id)
     if not server_id:
@@ -99,6 +115,7 @@ def _write_telemetry_cvars(instance, cvars):
     """Launch-args mode: drop the telemetry cvars (and the legacy ones) from
     server.cfg, the `+set` values carry them. Otherwise write them into
     server.cfg as before."""
+    open_launch_args(instance)
     text = _read_cfg_text(instance)
     if launch_args_active(instance.id):
         if text is None:

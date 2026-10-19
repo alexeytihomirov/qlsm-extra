@@ -70,6 +70,22 @@ def _make_instance(app, cfg_text=None, server_id=None, relay=True, status=Instan
         return inst.id
 
 
+CLEAN_CFG = 'set sv_hostname "duel"\n'
+
+
+def switch_on(app, iid):
+    """The addon on globally, for the host and the instance: its cvars go
+    as launch args, the way an enable leaves it."""
+    with app.app_context():
+        from ui.addons import get_addon
+        settings = get_addon('telemetry-relay').ctx.settings
+        host_id = db.session.get(QLInstance, iid).host_id
+        settings.set_enabled('global', 0, True)
+        settings.set_enabled('host', host_id, True)
+        settings.set_enabled('instance', iid, True)
+    return iid
+
+
 def _cfg_text(app, iid):
     with app.app_context():
         inst = db.session.get(QLInstance, iid)
@@ -138,8 +154,8 @@ def test_put_disable_queues_disable(app, client, auth, queued):
 
 
 def test_put_no_change_200(app, client, auth, queued):
-    on = _make_instance(app, ON_CFG, server_id=12)
-    off = _make_instance(app, OFF_CFG, server_id=None)
+    on = switch_on(app, _make_instance(app, CLEAN_CFG, server_id=12))
+    off = switch_on(app, _make_instance(app, CLEAN_CFG, server_id=None))
     for iid, enabled in ((on, True), (off, False)):
         resp = client.put(f'{URL}/instances/{iid}', json={'enabled': enabled}, headers=auth)
         assert resp.status_code == 200
@@ -264,7 +280,7 @@ def test_status_labels(app, client, auth, cfg, stored, relay, ok, label):
 
 def test_manifest_telemetry_in_instance_menu():
     m = json.loads((ADDONS_DIR / 'telemetry-relay' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.6.0'
+    assert m['version'] == '1.7.1'
     ui = m['ui']
     assert 'instance_tabs' not in ui
     (entry,) = ui['instance_menu']
@@ -543,9 +559,9 @@ def test_seta_off_cfg_is_read_as_off_and_enabled_once(app, client, auth, queued)
     with app.app_context():
         inst = db.session.get(QLInstance, iid)
         cfg = Path('configs') / inst.host.name / str(iid) / 'server.cfg'
-    cfg.write_text(_settings().upsert_cvars_in_text(
-        cfg.read_text(encoding='utf-8'), {'qlx_statsHubUnifiedEnabled': '1',
-                                          'qlx_statsHubServerId': '12'}), encoding='utf-8')
+    # what the enable leaves: the addon on at every layer, server.cfg clean
+    switch_on(app, iid)
+    cfg.write_text(CLEAN_CFG, encoding='utf-8')
     resp = client.put(f'{URL}/instances/{iid}', json={'enabled': True}, headers=auth)
     assert resp.status_code == 200 and resp.get_json()['message'] == 'No changes.'
     assert queued == []
@@ -582,7 +598,7 @@ def test_put_new_server_id_after_ten_minutes_queues_again(app, client, auth, que
 
 
 def test_plain_save_is_not_blocked_by_the_guard(app, client, auth, queued):
-    iid = _make_instance(app, ON_CFG, server_id=12)
+    iid = switch_on(app, _make_instance(app, CLEAN_CFG, server_id=12))
     _reserved_minutes_ago(app, iid, 1)
     resp = client.put(f'{URL}/instances/{iid}', json={'enabled': True, 'new_server_id': False},
                       headers=auth)

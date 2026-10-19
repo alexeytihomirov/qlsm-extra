@@ -40,6 +40,7 @@ from .settings import (
     get_effective_stats_hub_url,
     get_instance_demo_stream_token,
     get_instance_server_id,
+    get_instance_stream_port,
     get_host_tunnel_port,
     get_telemetry_server_id,
     get_telemetry_stats_hub_url,
@@ -51,6 +52,7 @@ from .settings import (
     set_instance_demo_stream_enabled,
     set_instance_demo_stream_token,
     set_instance_server_id,
+    set_instance_stream_port,
     strip_cvars_from_text,
     upsert_cvars_in_text,
 )
@@ -143,6 +145,22 @@ def launch_args_active(instance_id):
     return bool(addon and addon.ctx and addon.ctx.settings.is_enabled('instance', instance_id))
 
 
+def open_launch_args(instance):
+    """Switch this addon on for the instance's host and the instance itself,
+    so core passes its instance.launch_args. qlsm's UI has only the global
+    switch, so nothing else ever sets these two layers; they gate nothing
+    else in this addon. Stays off (and server.cfg keeps the cvars) while the
+    addon is off globally."""
+    from ui.addons import get_addon
+
+    addon = get_addon('demo-stream')
+    if not (addon and addon.ctx):
+        return
+    addon.ctx.settings.set_enabled('host', instance.host_id, True, commit=False)
+    addon.ctx.settings.set_enabled('instance', instance.id, True, commit=False)
+    db.session.commit()
+
+
 def demo_stream_launch_cvars(instance):
     """The sv_demoStream* values the enable/disable stored, as `+set` gets
     them: streaming only with the switch on and a token."""
@@ -152,7 +170,7 @@ def demo_stream_launch_cvars(instance):
     return {
         'sv_demoStream': '1',
         'sv_demoStreamHost': '127.0.0.1',
-        'sv_demoStreamPort': get_host_tunnel_port(instance.host_id),
+        'sv_demoStreamPort': get_instance_stream_port(instance.id) or get_host_tunnel_port(instance.host_id),
         'sv_demoStreamToken': token,
     }
 
@@ -172,6 +190,7 @@ def read_cfg_text(instance):
 def _write_cvars(instance, cvars):
     """Launch-args mode: drop the sv_demoStream* lines from server.cfg, the
     `+set` values carry them. Otherwise write them into server.cfg."""
+    open_launch_args(instance)
     text = read_cfg_text(instance)
     if launch_args_active(instance.id):
         if text is None:
@@ -252,6 +271,7 @@ def enable_instance_demo_stream_logic(instance_id, previous_status=None, delay_s
         return _finish(instance, False, f"Could not register the demo-stream route with stats-hub: {exc}", previous_status)
 
     set_instance_demo_stream_token(instance.id, token)
+    set_instance_stream_port(instance.id, get_host_tunnel_port(host_id))
     db.session.commit()
 
     _write_cvars(instance, {

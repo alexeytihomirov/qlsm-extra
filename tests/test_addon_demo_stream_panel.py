@@ -84,13 +84,30 @@ def _cfg(app, instance_id):
 
 @pytest.fixture
 def streaming(app, tmp_path, monkeypatch):
-    """Streaming with server.cfg wired the way the enable writes it."""
+    """Streaming the way the enable leaves it: the addon on at every layer
+    (launch args), the wired port stored, server.cfg without the cvars."""
     monkeypatch.chdir(tmp_path)
     iid = _configure(app, _make_instance(app), enabled=True)
+    switch_on(app, iid)
+    with app.app_context():
+        from qlsm_addon_demo_stream.settings import set_instance_stream_port
+        set_instance_stream_port(iid, '27999')
+        db.session.commit()
     cfg = _cfg(app, iid)
     cfg.parent.mkdir(parents=True)
-    cfg.write_text(WIRED, encoding='utf-8')
+    cfg.write_text('set sv_hostname "duel"\n', encoding='utf-8')
     return iid
+
+
+def switch_on(app, iid, instance=True):
+    """The addon on globally, for the host and (by default) the instance."""
+    with app.app_context():
+        from ui.addons import get_addon
+        settings = get_addon('demo-stream').ctx.settings
+        host_id = db.session.get(QLInstance, iid).host_id
+        settings.set_enabled('global', 0, True)
+        settings.set_enabled('host', host_id, True)
+        settings.set_enabled('instance', iid, instance)
 
 
 @pytest.fixture
@@ -273,10 +290,9 @@ def test_disable_logic_writes_sv_demoStream_0_and_restarts(app, streaming, monke
         assert settings.get_instance_demo_stream_token(streaming) == 'stream-token'
         assert settings.get_instance_server_id(streaming) == SERVER_ID
     assert ok is True and 'job-9' in message
-    text = cfg.read_text(encoding='utf-8')
-    assert 'set sv_demoStream "0"' in text
-    assert 'set sv_demoStreamToken "stream-token"' in text
-    assert 'set sv_hostname "duel"' in text
+    # the addon is on at every layer: the cvars leave server.cfg, the
+    # launch args carry sv_demoStream "0"
+    assert cfg.read_text(encoding='utf-8') == 'set sv_hostname "duel"\n'
     (task, args, kwargs), = applied
     assert task is ui.tasks.apply_instance_config
     assert args == (streaming,) and kwargs['restart'] is True
@@ -299,7 +315,7 @@ def test_put_no_change_200(request, client, auth, queued, state, body, hub):
 
 
 @pytest.mark.parametrize('drift', [
-    'no token', 'port', 'host', 'sv_demoStream 0', 'no server.cfg',
+    'no token', 'port', 'leftover server.cfg line', 'launch args off',
 ])
 def test_put_save_repairs_drifted_wiring(app, client, auth, streaming, queued, drift):
     cfg = _cfg(app, streaming)
@@ -309,13 +325,14 @@ def test_put_save_repairs_drifted_wiring(app, client, auth, streaming, queued, d
             set_instance_demo_stream_token(streaming, None)
             db.session.commit()
     elif drift == 'port':
-        cfg.write_text(WIRED.replace('"27999"', '"28001"'), encoding='utf-8')
-    elif drift == 'host':
-        cfg.write_text(WIRED.replace('"127.0.0.1"', '"10.0.0.5"'), encoding='utf-8')
-    elif drift == 'sv_demoStream 0':
-        cfg.write_text(WIRED.replace('sv_demoStream "1"', 'sv_demoStream "0"'), encoding='utf-8')
+        with app.app_context():
+            from qlsm_addon_demo_stream.settings import set_instance_stream_port
+            set_instance_stream_port(streaming, '28001')
+            db.session.commit()
+    elif drift == 'leftover server.cfg line':
+        cfg.write_text(WIRED, encoding='utf-8')
     else:
-        cfg.unlink()
+        switch_on(app, streaming, instance=False)
     with patch(GET) as get, patch(PUT) as put:
         resp = client.put(f'{URL}/instances/{streaming}',
                           json={'enabled': True, 'delay_sec': ''}, headers=auth)
@@ -483,7 +500,7 @@ def test_settings_need_a_login(client):
 
 def test_manifest_one_instance_entry_with_status():
     m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.6.0'
+    assert m['version'] == '1.7.1'
     ui = m['ui']
     (entry,) = ui['instance_menu']
     assert entry['id'] == 'demo-stream' and entry['label'] == 'Live Demo Stream'

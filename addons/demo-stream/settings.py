@@ -69,6 +69,7 @@ RELAY_HOST_SETTING = 'demo_stream_relay_host'
 RELAY_PORT_SETTING = 'demo_stream_relay_port'
 _ENABLED_PREFIX = 'demo_stream_enabled:'
 _TOKEN_PREFIX = 'demo_stream_token:'
+_PORT_PREFIX = 'demo_stream_port:'
 
 
 def _get(key):
@@ -150,6 +151,17 @@ def is_instance_demo_stream_enabled(instance_id):
 
 def set_instance_demo_stream_enabled(instance_id, enabled):
     _set(f'{_ENABLED_PREFIX}{instance_id}', '1' if enabled else '')
+
+
+def get_instance_stream_port(instance_id):
+    """The tunnel port the last enable wired the instance to (passed as
+    sv_demoStreamPort), so a later change of the host's tunnel port shows
+    as drift until a save re-runs the enable."""
+    return _get(f'{_PORT_PREFIX}{instance_id}')
+
+
+def set_instance_stream_port(instance_id, port):
+    _set(f'{_PORT_PREFIX}{instance_id}', port)
 
 
 def get_instance_demo_stream_token(instance_id):

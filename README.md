@@ -231,6 +231,15 @@ Demo Stream entry removes the lines and restarts once: do that once per
 instance after upgrading. Where the addon is not switched on for the
 instance, nothing changes: the cvars are written into `server.cfg` as before.
 
+**telemetry-relay 1.7.1, demo-stream 1.7.1:** qlsm's UI only has the global
+addon switch, so under 1.7.0 the host and instance layers stayed off and the
+cvars stayed in `server.cfg`. The enable and disable now switch the addon on
+for the instance's host and the instance themselves, and a **Save** in the
+Telemetry / Live Demo Stream entry runs them when those layers are off or
+`server.cfg` still has the cvars, also for an instance that is switched off.
+The stream remembers the tunnel port it was wired to, so a changed host
+tunnel port still shows as drift until a save.
+
 **player-ranks 0.4.0:** the installation-wide "on by default" switches for
 qlstats and Slipgate are gone; each instance picks its sources on its own
 Ranks tab, and a new instance starts with every source off. On the first load
