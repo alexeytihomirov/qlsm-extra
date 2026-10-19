@@ -53,15 +53,66 @@ def _config_path(instance):
     return os.path.join('configs', instance.host.name, str(instance.id), 'server.cfg')
 
 
-def read_instance_telemetry_cvars(instance):
-    """qlx_statsHubUnifiedEnabled / qlx_statsHubServerId as qlsm's copy of the
-    instance's server.cfg carries them; {} when there is no server.cfg."""
+def launch_args_active(instance_id):
+    """True when core passes this addon's instance.launch_args for the
+    instance (the addon is switched on for it at every scope). Then the
+    cvars travel as `+set` on the command line instead of in server.cfg, so
+    a preset saved from the instance never carries them and loading one
+    never wipes them."""
+    from ui.addons import get_addon
+
+    addon = get_addon('telemetry-relay')
+    return bool(addon and addon.ctx and addon.ctx.settings.is_enabled('instance', instance_id))
+
+
+def telemetry_launch_cvars(instance_id):
+    server_id = get_instance_server_id(instance_id)
+    if not server_id:
+        return {'qlx_statsHubUnifiedEnabled': '0'}
+    return {'qlx_statsHubUnifiedEnabled': '1', 'qlx_statsHubServerId': str(server_id)}
+
+
+def _read_cfg_text(instance):
     try:
         with open(_config_path(instance), 'r', encoding='utf-8') as f:
-            text = f.read()
+            return f.read()
     except FileNotFoundError:
-        return {}
-    return read_cvars_from_text(text, _TELEMETRY_CVARS)
+        return None
+
+
+def cfg_telemetry_cvars(instance):
+    """The telemetry cvars server.cfg itself sets, {} for none."""
+    return read_cvars_from_text(_read_cfg_text(instance) or '', _TELEMETRY_CVARS)
+
+
+def read_instance_telemetry_cvars(instance):
+    """qlx_statsHubUnifiedEnabled / qlx_statsHubServerId as the engine ends
+    up with them: the `+set` launch values when launch_args_active, with
+    server.cfg on top (it is exec'd after the command line). {} when there
+    is neither."""
+    cvars = telemetry_launch_cvars(instance.id) if launch_args_active(instance.id) else {}
+    cvars.update(cfg_telemetry_cvars(instance))
+    return cvars
+
+
+def _write_telemetry_cvars(instance, cvars):
+    """Launch-args mode: drop the telemetry cvars (and the legacy ones) from
+    server.cfg, the `+set` values carry them. Otherwise write them into
+    server.cfg as before."""
+    text = _read_cfg_text(instance)
+    if launch_args_active(instance.id):
+        if text is None:
+            return
+        new = strip_cvars_from_text(text, _LEGACY_INSTANCE_CVARS + _TELEMETRY_CVARS)
+    else:
+        new = upsert_cvars_in_text(
+            strip_cvars_from_text(text or '', _LEGACY_INSTANCE_CVARS), cvars)
+    if new == text:
+        return
+    config_path = _config_path(instance)
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    with open(config_path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(new)
 
 
 def sync_instance_server_id_from_config(instance):
@@ -166,21 +217,10 @@ def enable_instance_telemetry_logic(instance_id, previous_status=None, new_serve
     set_instance_server_id(instance.id, server_id)
     db.session.commit()
 
-    config_path = _config_path(instance)
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-    except FileNotFoundError:
-        text = ''
-
-    text = strip_cvars_from_text(text, _LEGACY_INSTANCE_CVARS)
-    text = upsert_cvars_in_text(text, {
+    _write_telemetry_cvars(instance, {
         'qlx_statsHubUnifiedEnabled': '1',
         'qlx_statsHubServerId': str(server_id),
     })
-    os.makedirs(os.path.dirname(config_path), exist_ok=True)
-    with open(config_path, 'w', encoding='utf-8', newline='\n') as f:
-        f.write(text)
 
     if not push_relay_config_logic(host_id):
         return _finish(instance, False, (
@@ -230,16 +270,7 @@ def disable_instance_telemetry_logic(instance_id, previous_status=None):
     set_instance_server_id(instance.id, None)
     db.session.commit()
 
-    config_path = _config_path(instance)
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-    except FileNotFoundError:
-        text = ''
-    text = upsert_cvars_in_text(text, {'qlx_statsHubUnifiedEnabled': '0'})
-    os.makedirs(os.path.dirname(config_path), exist_ok=True)
-    with open(config_path, 'w', encoding='utf-8', newline='\n') as f:
-        f.write(text)
+    _write_telemetry_cvars(instance, {'qlx_statsHubUnifiedEnabled': '0'})
 
     # A failed push leaves a route the instance no longer sends to; the
     # switch-off itself is what matters, so the apply still runs.

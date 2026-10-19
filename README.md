@@ -218,6 +218,19 @@ stats-hub sees the relay's address, so it must be in the hub firewall, and the
 status adds "sends through <url>". Blank sends straight to stats-hub as
 before.
 
+**telemetry-relay 1.7.0, demo-stream 1.7.0:** on an instance where the addon
+is switched on (Addons, at global, host and instance level), its cvars
+(`qlx_statsHubUnifiedEnabled`, `qlx_statsHubServerId`; `sv_demoStream`,
+`sv_demoStreamHost`, `sv_demoStreamPort`, `sv_demoStreamToken`) are passed as
+`+set` launch arguments from the addon's own state and no longer live in
+`server.cfg`. A preset saved from the instance does not carry them (the
+stream token included), and loading a preset onto it does not wipe them. A
+`server.cfg` line for one of them still wins (it is exec'd after the command
+line), so the panel reports it as drift and **Save** in the Telemetry / Live
+Demo Stream entry removes the lines and restarts once: do that once per
+instance after upgrading. Where the addon is not switched on for the
+instance, nothing changes: the cvars are written into `server.cfg` as before.
+
 **player-ranks 0.4.0:** the installation-wide "on by default" switches for
 qlstats and Slipgate are gone; each instance picks its sources on its own
 Ranks tab, and a new instance starts with every source off. On the first load

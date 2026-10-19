@@ -499,14 +499,17 @@ def _wiring_drift(instance):
     ids = _server_id_drift(instance)
     if ids:
         return f"stream server_id {ids[0]} differs from telemetry's {ids[1]}"
-    config_path = f"configs/{instance.host.name}/{instance.id}/server.cfg"
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-    except FileNotFoundError:
-        text = ''
-    cvars = read_cvars_from_text(
-        text, ('sv_demoStream', 'sv_demoStreamHost', 'sv_demoStreamPort'))
+    from .instance_ops import (
+        DEMO_STREAM_CVARS, demo_stream_launch_cvars, launch_args_active, read_cfg_text,
+    )
+
+    cfg_cvars = read_cvars_from_text(read_cfg_text(instance) or '', DEMO_STREAM_CVARS)
+    if launch_args_active(instance.id):
+        if cfg_cvars:
+            return 'server.cfg still sets sv_demoStream* (now passed as launch args)'
+        cvars = demo_stream_launch_cvars(instance)
+    else:
+        cvars = cfg_cvars
     if cvars.get('sv_demoStream') != '1':
         return 'sv_demoStream is not 1 in server.cfg'
     if cvars.get('sv_demoStreamHost') != '127.0.0.1':
@@ -808,6 +811,23 @@ def register(ctx):
         return configure_host_demo_stream_tunnel_logic(host_id, enabled, port, cert_pem)
 
     TASKS['configure_host_tunnel'] = configure_host_tunnel_task
+
+    @ctx.on('instance.launch_args')
+    def demo_stream_launch_args(instance_id):
+        """sv_demoStream* as `+set` from this addon's own state, so the token
+        lives in no file a preset could carry or overwrite. Core only asks
+        when the addon is on for the instance (see
+        instance_ops.launch_args_active); a server.cfg line for the same cvar
+        still wins, it is exec'd later."""
+        from ui.database import get_instance
+
+        from .instance_ops import demo_stream_launch_cvars
+
+        instance = get_instance(instance_id)
+        if instance is None or not instance.host:
+            return []
+        return [f'+set {name} "{value}"'
+                for name, value in demo_stream_launch_cvars(instance).items()]
 
     @ctx.on('host.delete')
     def forget_host(host_id):

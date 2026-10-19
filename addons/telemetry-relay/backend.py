@@ -273,7 +273,8 @@ def _instance_or_error(instance_id):
 
 
 def _cfg_enabled(instance):
-    """The switch: qlx_statsHubUnifiedEnabled in qlsm's copy of server.cfg."""
+    """The switch: qlx_statsHubUnifiedEnabled as the instance ends up with it
+    (launch args, then qlsm's copy of server.cfg)."""
     from .instance_ops import read_instance_telemetry_cvars
 
     return read_instance_telemetry_cvars(instance).get('qlx_statsHubUnifiedEnabled') == '1'
@@ -380,7 +381,9 @@ def _queue_instance_task(instance, task_key, what, data=None, **task_kwargs):
 def _wiring_drift(instance):
     """Why an enabled instance needs the enable run again, or None when the
     stored server ID and server.cfg agree with what the enable writes."""
-    from .instance_ops import read_instance_telemetry_cvars
+    from .instance_ops import (
+        cfg_telemetry_cvars, launch_args_active, read_instance_telemetry_cvars,
+    )
     from .settings import get_instance_server_id
 
     server_id = get_instance_server_id(instance.id)
@@ -391,6 +394,8 @@ def _wiring_drift(instance):
         return 'qlx_statsHubUnifiedEnabled is not 1 in server.cfg'
     if cvars.get('qlx_statsHubServerId') != str(server_id):
         return 'qlx_statsHubServerId does not match the stored server ID'
+    if launch_args_active(instance.id) and cfg_telemetry_cvars(instance):
+        return 'server.cfg still sets qlx_statsHub* (now passed as launch args)'
     return None
 
 
@@ -522,6 +527,17 @@ def register(ctx):
     TASKS['configure_host_relay'] = configure_host_relay
     TASKS['enable_instance_telemetry'] = enable_instance_telemetry_task
     TASKS['disable_instance_telemetry'] = disable_instance_telemetry_task
+
+    @ctx.on('instance.launch_args')
+    def telemetry_launch_args(instance_id):
+        """qlx_statsHub* as `+set` from this addon's own state, so they live
+        in no file a preset could carry or overwrite. Core only asks when the
+        addon is on for the instance (see instance_ops.launch_args_active);
+        a server.cfg line for the same cvar still wins, it is exec'd later."""
+        from .instance_ops import telemetry_launch_cvars
+
+        return [f'+set {name} "{value}"'
+                for name, value in telemetry_launch_cvars(instance_id).items()]
 
     @ctx.on('instance.config_applied')
     def resync_server_id(instance_id):

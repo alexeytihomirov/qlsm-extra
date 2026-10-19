@@ -61,6 +61,7 @@ from .stats_hub import (  # noqa: F401
     set_instance_server_id,
     set_stats_hub_ingest_token,
     set_stats_hub_url,
+    strip_cvars_from_text,
     upsert_cvars_in_text,
 )
 

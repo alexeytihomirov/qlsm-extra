@@ -44,12 +44,14 @@ from .settings import (
     get_telemetry_server_id,
     get_telemetry_stats_hub_url,
     is_host_tunnel_enabled,
+    is_instance_demo_stream_enabled,
     is_relay_configured,
     is_stats_hub_configured_for_host,
     reserve_server_id,
     set_instance_demo_stream_enabled,
     set_instance_demo_stream_token,
     set_instance_server_id,
+    strip_cvars_from_text,
     upsert_cvars_in_text,
 )
 from .stats_hub import HubDelayError, format_seconds, set_server_delay
@@ -126,18 +128,63 @@ def _resolve_server_id(instance, host_id):
     return server_id
 
 
-def _write_cvars(instance, cvars):
-    config_path = f"configs/{instance.host.name}/{instance.id}/server.cfg"
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-    except FileNotFoundError:
-        text = ''
+DEMO_STREAM_CVARS = ('sv_demoStream', 'sv_demoStreamHost', 'sv_demoStreamPort', 'sv_demoStreamToken')
 
-    text = upsert_cvars_in_text(text, cvars)
+
+def launch_args_active(instance_id):
+    """True when core passes this addon's instance.launch_args for the
+    instance (the addon is switched on for it at every scope). Then the
+    sv_demoStream* cvars travel as `+set` on the command line instead of in
+    server.cfg, so a preset saved from the instance never carries the token
+    and loading one never wipes the wiring."""
+    from ui.addons import get_addon
+
+    addon = get_addon('demo-stream')
+    return bool(addon and addon.ctx and addon.ctx.settings.is_enabled('instance', instance_id))
+
+
+def demo_stream_launch_cvars(instance):
+    """The sv_demoStream* values the enable/disable stored, as `+set` gets
+    them: streaming only with the switch on and a token."""
+    token = get_instance_demo_stream_token(instance.id)
+    if not (is_instance_demo_stream_enabled(instance.id) and token):
+        return {'sv_demoStream': '0'}
+    return {
+        'sv_demoStream': '1',
+        'sv_demoStreamHost': '127.0.0.1',
+        'sv_demoStreamPort': get_host_tunnel_port(instance.host_id),
+        'sv_demoStreamToken': token,
+    }
+
+
+def _config_path(instance):
+    return f"configs/{instance.host.name}/{instance.id}/server.cfg"
+
+
+def read_cfg_text(instance):
+    try:
+        with open(_config_path(instance), 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
+
+
+def _write_cvars(instance, cvars):
+    """Launch-args mode: drop the sv_demoStream* lines from server.cfg, the
+    `+set` values carry them. Otherwise write them into server.cfg."""
+    text = read_cfg_text(instance)
+    if launch_args_active(instance.id):
+        if text is None:
+            return
+        new = strip_cvars_from_text(text, DEMO_STREAM_CVARS)
+    else:
+        new = upsert_cvars_in_text(text or '', cvars)
+    if new == text:
+        return
+    config_path = _config_path(instance)
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
     with open(config_path, 'w', encoding='utf-8', newline='\n') as f:
-        f.write(text)
+        f.write(new)
 
 
 def _queue_apply_restart(instance_id):
