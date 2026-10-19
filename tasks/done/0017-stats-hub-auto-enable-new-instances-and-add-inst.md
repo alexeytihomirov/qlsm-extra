@@ -1,7 +1,7 @@
 ---
 id: qlsm-extra-0017
 title: Stats Hub: auto-enable new instances and add-instance tab
-status: in-progress
+status: done-unverified
 created: 2026-10-19
 updated: 2026-10-19
 verified:
@@ -33,7 +33,14 @@ related: [qlsm-extra-0015, qlsm-extra-0016]
 - 2026-10-19 - created
 - 2026-10-19 - qlsm-0016 pushed as `upstream-pr/add-instance-addon-hook` (0a1d45e5): `instance.created` (ungated, own `addon_options` per addon) + `ui.add_instance_tabs`.
 - 2026-10-19 - telemetry-relay 1.8.0 / demo-stream 1.8.0 on `feat/stats-hub-auto-enable`: setting "Switch on new instances" (AppSetting `stats_hub_auto_enable_new_instances`, in the Telemetry Stats Hub settings panel), tab "Stats Hub" (telemetry, demo_stream, optional server_id; prefill `GET add-instance`), handler `new_instance.prepare_new_instance`. One id: telemetry-relay reserves it (or takes the manual one) and stores it as its reserved id, then calls demo-stream's `prepare_new_instance` (published on its backend module), whose `_resolve_server_id` takes telemetry's id on the same hub; demo-stream registers no hook of its own because dispatch order is demo-stream < telemetry-relay. No apply/restart; only the relay's route push is queued (host sidecar config). Missing relay/tunnel/addon/hub -> "Stats Hub: ..." line in the instance log. Hook registered only when the core has it (older core: addon still loads, tab not shown).
+- 2026-10-19 - main 191d5ec запушен; на проде установлены telemetry-relay 1.8.0 и demo-stream 1.8.0 из репозитория, qlsm перезапущен; хук `instance.created` у telemetry-relay зарегистрирован, вкладка `add_instance_tabs` в манифесте; настройка автовключения пока не включена (AppSetting отсутствует)
 
 ## Результат
 
+telemetry-relay и demo-stream 1.8.0 (191d5ec в main), на проде с qlsm fork main 5b9ec2f7 (хук qlsm-0016).
+
 ## Как проверить
+
+1. Settings -> Addons -> Telemetry Relay (Stats Hub settings): включить "Switch on new instances".
+2. Servers -> Add Instance: вкладка "Stats Hub" с галками телеметрии и стрима (включены), поле Server ID пустое.
+3. Создать инстанс: после деплоя он сразу в hub под одним id (телеметрия и стрим), без дополнительных рестартов; в панелях Telemetry Relay и Live Demo Stream один и тот же id.
