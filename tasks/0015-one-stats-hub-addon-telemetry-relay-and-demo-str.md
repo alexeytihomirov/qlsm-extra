@@ -3,7 +3,7 @@ id: qlsm-extra-0015
 title: One Stats Hub addon: telemetry relay and demo stream in one settings section, host panel and instance panel with the delay
 status: in-progress
 created: 2026-10-16
-updated: 2026-10-19
+updated: 2026-10-20
 verified:
 depends_on: []
 related: [ql-tournament-0060, ql-stats-hub-0017, ql-tournament/docs/superpowers/specs/2026-10-16-public-match-analytics-design.md]
@@ -46,6 +46,7 @@ related: [ql-tournament-0060, ql-stats-hub-0017, ql-tournament/docs/superpowers/
 - 2026-10-19 - оператор выбрал вариант A на сейчас: один UI Stats Hub поверх двух пакетов, без миграции данных. Объём: одна запись в instance menu (телеметрия + стрим + задержка, один Save, не больше одного рестарта), одна в host menu (relay + туннель), одна секция Settings (URL/токен пишутся в оба аддона), статус меню On/Off, у demo-stream убраны свои menu/settings (API, задачи, плейбуки, hooks остаются), деградация без demo-stream. Ветка `feat/stats-hub-one-ui`.
 - 2026-10-19 - реализовано: telemetry-relay 1.9.0 (`addons/telemetry-relay/hub_ui.py`, маршруты `hub/...` в `addons/telemetry-relay/backend.py`, задачи `apply_stats_hub_instance` и `configure_stats_hub_host`), demo-stream 1.9.0 (`STATS_HUB_UI_API` и `stats_hub_ui_*` в `addons/demo-stream/backend.py`, `queue_apply=False` в enable/disable). Defer restarts ядра не учитывается: cvars идут launch args, без рестарта не применятся - как и раньше, всегда рестарт. Новые тесты `tests/test_addon_telemetry_relay_stats_hub.py` (36) зелёные.
 - 2026-10-19 - вариант A выложен: main d48de1e, на проде telemetry-relay 1.9.0 и demo-stream 1.9.0 из репозитория, qlsm перезапущен, оба загружены без ошибок; URL и токен хаба у обоих аддонов совпадали до выката (сверено по хешу). Ждёт проверки оператором; вариант Б (один пакет, миграция) остаётся в этой задаче
+- 2026-10-20 - оператор проверил вариант A на проде (меню инстанса/хоста, Settings, один Save = один рестарт, статусы On/Off): ок. Открытым остаётся вариант Б (слияние пакетов)
 
 ## Результат
 
