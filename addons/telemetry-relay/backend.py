@@ -84,15 +84,26 @@ def get_host_relay_status(host_id):
     One SSH round trip, so this is a separate endpoint from the form load --
     the panel fetches it once per open rather than on every keystroke.
     """
-    from .relay_ops import get_relay_status_logic
-
     host, error = _host_or_404(host_id)
     if error:
         return error
 
-    status = get_relay_status_logic(host_id)
-    if status is None:
+    result = _relay_status(host)
+    if result is None:
         return jsonify({"error": {"message": "Host not found"}}), 404
+    ok, label, routed = result
+    return jsonify({"data": {'ok': ok, 'label': label, 'routed_instances': routed}})
+
+
+def _relay_status(host):
+    """(ok, label, routed instances) of the relay sidecar, or None when the
+    host is gone. One SSH probe and one stats-hub call."""
+    from .relay_ops import get_relay_status_logic
+    from .settings import get_host_forward_url
+
+    status = get_relay_status_logic(host.id)
+    if status is None:
+        return None
 
     if not status.get('enabled'):
         label = 'Sidecar disabled'
@@ -102,17 +113,12 @@ def get_host_relay_status(host_id):
     else:
         label = status.get('error') or 'Unreachable'
     label = f'{label}; {_access_line(host)}'
-    from .settings import get_host_forward_url
-    forward = get_host_forward_url(host_id)
+    forward = get_host_forward_url(host.id)
     if forward:
         # stats-hub sees the POSTs from the relay's address, not this host's.
         label = f'{label}; sends through {forward}'
-
-    return jsonify({"data": {
-        'ok': bool(status.get('enabled') and status.get('reachable')),
-        'label': label,
-        'routed_instances': status.get('routed_instances') or [],
-    }})
+    return (bool(status.get('enabled') and status.get('reachable')), label,
+            status.get('routed_instances') or [])
 
 
 def _allow_or_error(host):
@@ -328,20 +334,26 @@ def get_instance_telemetry(instance_id):
 @bp.route('/instances/<int:instance_id>/status', methods=['GET'], endpoint='get_instance_telemetry_status')
 @jwt_required()
 def get_instance_telemetry_status(instance_id):
-    """Badge for the panel and the menu entry. Local reads only."""
-    from .settings import get_instance_server_id, is_relay_enabled
-
+    """Badge for the old Telemetry panel. Local reads only."""
     instance, error = _instance_or_error(instance_id)
     if error:
         return error
+    ok, label = _telemetry_status(instance)
+    return jsonify({"data": {'ok': ok, 'label': label}})
+
+
+def _telemetry_status(instance):
+    """(ok, label) of telemetry for this instance. Local reads only."""
+    from .settings import get_instance_server_id, is_relay_enabled
+
     if not is_relay_enabled(instance.host_id):
-        return jsonify({"data": {'ok': False, 'label': 'Relay off on host'}})
+        return False, 'Relay off on host'
     if not _cfg_enabled(instance):
-        return jsonify({"data": {'ok': False, 'label': 'Off'}})
+        return False, 'Off'
     server_id = get_instance_server_id(instance.id)
     if not server_id:
-        return jsonify({"data": {'ok': False, 'label': 'On, no server ID yet; save to repair'}})
-    return jsonify({"data": {'ok': True, 'label': f'Server ID {server_id}, relay on'}})
+        return False, 'On, no server ID yet; save to repair'
+    return True, f'Server ID {server_id}, relay on'
 
 
 BUSY_STATUSES = ('DEPLOYING', 'CONFIGURING', 'RESTARTING', 'DELETING', 'STOPPING', 'STARTING')
@@ -367,9 +379,10 @@ def _enable_blocked(instance):
     return None
 
 
-def _queue_instance_task(instance, task_key, what, data=None, **task_kwargs):
+def _queue_instance_task(instance, task_key, what, data=None, message=None, **task_kwargs):
     """Busy check, instance lock, CONFIGURING, enqueue: shared by enable and
-    disable. Returns the response, carrying `data` when given."""
+    disable. Returns the response, carrying `data` when given; `message`
+    replaces the default "Telemetry <what> queued" one."""
     from ui.database import update_instance
     from ui.models import InstanceStatus
     from ui.task_lock import acquire_lock, release_lock
@@ -398,7 +411,7 @@ def _queue_instance_task(instance, task_key, what, data=None, **task_kwargs):
                                  exc_info=True)
         return jsonify({"error": {"message": f"Failed to queue telemetry {what}."}}), 500
 
-    body = {"message": f'Telemetry {what} queued for "{instance.name}".'}
+    body = {"message": message or f'Telemetry {what} queued for "{instance.name}".'}
     if data is not None:
         body["data"] = data
     return jsonify(body), 202
@@ -445,44 +458,66 @@ def update_instance_telemetry(instance_id):
     new_server_id = body.get(NEW_SERVER_ID_KEY, False)
     if not isinstance(new_server_id, bool):
         return jsonify({"error": {"message": f"{NEW_SERVER_ID_KEY} must be true or false."}}), 400
-    wanted = body['enabled']
+    plan, error = _telemetry_plan(instance, body['enabled'], new_server_id)
+    if error:
+        return error
+    if plan is None:
+        return jsonify({"message": "No changes."})
+    if plan['telemetry'] == 'disable':
+        return _queue_instance_task(instance, 'disable_instance_telemetry', 'disable')
+    if plan['new_server_id']:
+        return _queue_instance_task(
+            instance, 'enable_instance_telemetry', 'enable with a new server ID',
+            data={"enabled": True, NEW_SERVER_ID_KEY: False}, new_server_id=True)
+    return _queue_instance_task(instance, 'enable_instance_telemetry', 'enable')
+
+
+def _telemetry_plan(instance, wanted, new_server_id):
+    """What saving the telemetry switch has to do: (plan, error response).
+    plan None is no change, else {'telemetry': 'enable' | 'disable',
+    'new_server_id': bool}. Off -> on enables, on -> off disables; an
+    enabled instance whose wiring drifted is enabled again, so a plain save
+    repairs it; `new_server_id` with the switch on enables with a freshly
+    reserved server ID, whether telemetry was on or off."""
     enabled = _cfg_enabled(instance)
+
+    def enable(new_id=False):
+        blocked = _enable_blocked(instance)
+        if blocked:
+            return None, blocked
+        return {'telemetry': 'enable', 'new_server_id': new_id}, None
 
     if new_server_id:
         from .settings import get_new_server_id_at, utcnow
 
         if not wanted:
-            return jsonify({"error": {
+            return None, (jsonify({"error": {
                 "message": "Switch telemetry on to get a new server ID."
-            }}), 409
+            }}), 409)
         last = get_new_server_id_at(instance.id)
         if last is not None and utcnow() - last < NEW_SERVER_ID_GUARD:
-            return jsonify({"error": {
+            return None, (jsonify({"error": {
                 "message": "A new server ID was reserved a few minutes ago; reopen the panel."
-            }}), 409
-        return _enable_blocked(instance) or _queue_instance_task(
-            instance, 'enable_instance_telemetry', 'enable with a new server ID',
-            data={"enabled": True, NEW_SERVER_ID_KEY: False}, new_server_id=True)
+            }}), 409)
+        return enable(new_id=True)
 
     if wanted and not enabled:
-        return _enable_blocked(instance) or _queue_instance_task(
-            instance, 'enable_instance_telemetry', 'enable')
+        return enable()
     if enabled and not wanted:
-        return _queue_instance_task(instance, 'disable_instance_telemetry', 'disable')
+        return {'telemetry': 'disable', 'new_server_id': False}, None
     if not wanted:
         from .instance_ops import cfg_telemetry_cvars
         if cfg_telemetry_cvars(instance):
             # Off, but server.cfg still carries the cvars from before 1.7.0:
             # the disable moves them out of it.
-            return _queue_instance_task(instance, 'disable_instance_telemetry', 'disable')
+            return {'telemetry': 'disable', 'new_server_id': False}, None
     if wanted:
         drift = _wiring_drift(instance)
         if drift:
             current_app.logger.info(
                 f'Addon telemetry-relay: re-enabling instance {instance.id} on save: {drift}')
-            return _enable_blocked(instance) or _queue_instance_task(
-                instance, 'enable_instance_telemetry', 'enable')
-    return jsonify({"message": "No changes."})
+            return enable()
+    return None, None
 
 
 @bp.route('/instances/<int:instance_id>/enable', methods=['POST', 'PUT'], endpoint='enable_instance_telemetry')
@@ -495,6 +530,423 @@ def enable_instance_telemetry(instance_id):
         return error
     return _enable_blocked(instance) or _queue_instance_task(
         instance, 'enable_instance_telemetry', 'enable')
+
+
+# ---- Stats Hub entries (1.9.0): telemetry and the live demo stream -------
+# One instance entry, one host entry, one settings section for both
+# features; see hub_ui.py. The routes above stay for API clients.
+
+STREAM_UNAVAILABLE = "The live demo stream cannot be switched on here: {why}."
+
+
+def _error(message, status):
+    return jsonify({"error": {"message": message}}), status
+
+
+def _on_off(on):
+    return jsonify({"data": {'ok': bool(on), 'label': 'On' if on else 'Off'}})
+
+
+@bp.route('/hub/instances/<int:instance_id>', methods=['GET'], endpoint='get_hub_instance')
+@jwt_required()
+def get_hub_instance(instance_id):
+    """The instance entry's form: telemetry switch, new server ID, stream
+    switch, delay (the stream fields stay off and blank without a usable
+    demo-stream addon)."""
+    from .hub_ui import demo_stream_api
+
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+    data = {'enabled': _cfg_enabled(instance), NEW_SERVER_ID_KEY: False,
+            'stream': False, 'delay_sec': ''}
+    api, _why = demo_stream_api()
+    if api is not None:
+        data.update(api.stats_hub_ui_instance(instance))
+    return jsonify({"data": data})
+
+
+@bp.route('/hub/instances/<int:instance_id>', methods=['PUT'], endpoint='update_hub_instance')
+@jwt_required()
+def update_hub_instance(instance_id):
+    """One save for telemetry and the stream. Everything that needs the
+    instance's config applied goes into one task with one apply + restart;
+    a delay-only change is one hub call and no restart. Nothing is queued
+    when either half refuses the save."""
+    from .hub_ui import demo_stream_api
+
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or not isinstance(body.get('enabled'), bool):
+        return _error("enabled must be true or false.", 400)
+    new_server_id = body.get(NEW_SERVER_ID_KEY, False)
+    if not isinstance(new_server_id, bool):
+        return _error(f"{NEW_SERVER_ID_KEY} must be true or false.", 400)
+    stream_wanted = body.get('stream')
+    if stream_wanted is not None and not isinstance(stream_wanted, bool):
+        return _error("stream must be true or false.", 400)
+
+    plan, error = _telemetry_plan(instance, body['enabled'], new_server_id)
+    if error:
+        return error
+
+    api, why = demo_stream_api()
+    stream = {'action': None, 'delay': None}
+    if api is not None:
+        force = None
+        if plan and plan['new_server_id'] and stream_wanted is not False \
+                and api.stats_hub_ui_is_streaming(instance.id):
+            force = 'following the new telemetry server ID'
+        stream = api.stats_hub_ui_instance_plan(instance, stream_wanted, body.get('delay_sec'),
+                                                force_enable=force)
+        if stream['error']:
+            return _error(*stream['error'])
+    elif stream_wanted:
+        return _error(STREAM_UNAVAILABLE.format(why=why), 409)
+
+    task_stream = stream['action'] if stream['action'] in ('enable', 'disable') else None
+    if stream['action'] == 'delay':
+        # One hub call, no restart; done before any task is queued so a hub
+        # refusal leaves the whole save undone.
+        result, status = api.stats_hub_ui_set_delay(instance, stream['delay'])
+        if plan is None or status >= 400:
+            return jsonify(result), status
+    if plan is None and task_stream is None:
+        return jsonify({"message": "No changes."})
+
+    return _queue_instance_task(
+        instance, 'apply_stats_hub_instance', 'Stats Hub change',
+        message=f'Stats Hub change queued for "{instance.name}" (one apply and restart).',
+        telemetry=plan['telemetry'] if plan else None,
+        new_server_id=bool(plan and plan['new_server_id']),
+        stream=task_stream,
+        delay_sec=stream['delay'] if task_stream == 'enable' else None)
+
+
+@bp.route('/hub/instances/<int:instance_id>/status', methods=['GET'],
+          endpoint='get_hub_instance_status')
+@jwt_required()
+def get_hub_instance_status(instance_id):
+    """The entry's badge inside the panel: both features in one line."""
+    from .hub_ui import demo_stream_api
+
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+    tele_on = _cfg_enabled(instance)
+    tele_ok, tele_label = _telemetry_status(instance)
+    api, why = demo_stream_api()
+    if api is None:
+        return jsonify({"data": {
+            'ok': tele_on and tele_ok,
+            'label': f'Telemetry: {tele_label}. Live demo stream: not available, {why}.'}})
+    stream_on = api.stats_hub_ui_is_streaming(instance.id)
+    stream_ok, stream_label = api.stats_hub_ui_instance_status(instance)
+    ok = (tele_on or stream_on) and (tele_ok or not tele_on) and (stream_ok or not stream_on)
+    return jsonify({"data": {
+        'ok': ok, 'label': f'Telemetry: {tele_label}. Live demo stream: {stream_label}.'}})
+
+
+@bp.route('/hub/instances/<int:instance_id>/menu-status', methods=['GET'],
+          endpoint='get_hub_instance_menu_status')
+@jwt_required()
+def get_hub_instance_menu_status(instance_id):
+    """On when telemetry or the live demo stream is switched on for the
+    instance, else Off. Local reads only: it is fetched every time the menu
+    opens; the panel's own badge has the detail."""
+    from .hub_ui import demo_stream_api
+
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+    if _cfg_enabled(instance):
+        return _on_off(True)
+    api, _why = demo_stream_api()
+    return _on_off(api is not None and api.stats_hub_ui_is_streaming(instance.id))
+
+
+_TUNNEL_DEFAULTS = {'tunnel_enabled': False, 'local_port': '', 'relay_host': '', 'relay_port': ''}
+
+
+@bp.route('/hub/hosts/<int:host_id>', methods=['GET'], endpoint='get_hub_host')
+@jwt_required()
+def get_hub_host(host_id):
+    """The host entry's form: relay and tunnel. The ingest token override is
+    a secret and never sent back (blank keeps the stored one)."""
+    from .hub_ui import demo_stream_api
+    from .settings import get_host_forward_url, get_host_stats_hub_url, is_relay_enabled
+
+    _, error = _host_or_404(host_id)
+    if error:
+        return error
+    data = {
+        'enabled': is_relay_enabled(host_id),
+        'url_override': get_host_stats_hub_url(host_id) or '',
+        'ingest_token_override': '',
+        'forward_url': get_host_forward_url(host_id) or '',
+        **_TUNNEL_DEFAULTS,
+    }
+    api, _why = demo_stream_api()
+    if api is not None:
+        data.update(api.stats_hub_ui_host(host_id))
+    return jsonify({"data": data})
+
+
+@bp.route('/hub/hosts/<int:host_id>', methods=['PUT'], endpoint='update_hub_host')
+@jwt_required()
+def update_hub_host(host_id):
+    """One save for the relay and the tunnel. The stats-hub override is
+    stored for both addons, so they keep pointing at the same hub. Whatever
+    has to run on the host (relay and/or tunnel playbook) goes into one host
+    task under one lock."""
+    from ui import db
+    from ui.database import update_host
+    from ui.models import HostStatus
+    from ui.task_lock import acquire_lock, release_lock
+    from ui.task_logic.job_failure_handlers import host_job_failure_handler
+    from ui.tasks import enqueue_task
+
+    from .hub_ui import demo_stream_api
+    from .relay_ops import push_relay_config_logic
+    from .settings import (
+        get_host_stats_hub_ingest_token, get_host_stats_hub_url, is_relay_enabled,
+        set_host_forward_url, set_host_stats_hub_ingest_token, set_host_stats_hub_url,
+    )
+
+    host, error = _host_or_404(host_id)
+    if error:
+        return error
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _error("The request body must be a JSON object.", 400)
+    url = data.get('url_override', '')
+    token = data.get('ingest_token_override', '')
+    if not isinstance(url, str) or not isinstance(token, str):
+        return _error("url_override and ingest_token_override must be strings.", 400)
+    if 'forward_url' in data:
+        forward_error = _forward_url_error(data['forward_url'])
+        if forward_error:
+            return _error(forward_error, 400)
+    relay_wanted = bool(data.get('enabled', False))
+    tunnel_wanted = data.get('tunnel_enabled')
+
+    api, why = demo_stream_api()
+    tunnel_task = None
+    if api is not None and tunnel_wanted is not None:
+        tunnel_data = {'enabled': bool(tunnel_wanted), 'local_port': data.get('local_port', '')}
+        for key in ('relay_host', 'relay_port'):
+            if key in data:
+                tunnel_data[key] = data[key]
+        tunnel = api.stats_hub_ui_host_plan(host, tunnel_data)
+        if tunnel['error']:
+            return _error(*tunnel['error'])
+        tunnel_task = tunnel['tunnel']
+    elif tunnel_wanted:
+        return _error(f"The demo stream tunnel cannot be switched on here: {why}.", 409)
+
+    set_host_stats_hub_url(host_id, url)
+    if not url.strip():
+        # No override URL, no override token: blank keeps a stored token, so
+        # clearing the URL is how the pair goes back to the Settings values.
+        set_host_stats_hub_ingest_token(host_id, '')
+    elif token.strip():
+        set_host_stats_hub_ingest_token(host_id, token)
+    if 'forward_url' in data:
+        set_host_forward_url(host_id, data['forward_url'])
+    if api is not None:
+        api.stats_hub_ui_save_host_hub(host_id, get_host_stats_hub_url(host_id) or '',
+                                       get_host_stats_hub_ingest_token(host_id) or '')
+    db.session.commit()
+
+    allowed = False
+    relay_task = None
+    if relay_wanted == is_relay_enabled(host_id):
+        # Nothing to install or remove: re-push the config so an edited
+        # URL/token reaches a relay that is already running.
+        if relay_wanted:
+            error = _allow_or_error(host)
+            if error:
+                return error
+            allowed = True
+        push_relay_config_logic(host_id)
+    else:
+        relay_task = relay_wanted
+
+    result = {'enabled': relay_wanted,
+              'tunnel_enabled': bool(tunnel_wanted) if api is not None else False}
+    if relay_task is None and tunnel_task is None:
+        return jsonify({"data": result, "message": "Stats Hub host settings saved."})
+
+    if host.status != HostStatus.ACTIVE:
+        return _error(f"Host must be ACTIVE to change the relay or the tunnel. "
+                      f"Current state: {host.status.value}", 400)
+    lock_token = str(uuid.uuid4())
+    if not acquire_lock('host', host.id, lock_token, ttl=480):
+        return _error(f'Another operation is running on host "{host.name}". '
+                      'Please wait for it to complete.', 409)
+    if not allowed and (relay_task or (tunnel_task and tunnel_task[0])):
+        # The hub must accept the host before the relay or the tunnel sends
+        # to it; only now, with the job certain to be queued.
+        error = _allow_or_error(host)
+        if error:
+            release_lock('host', host.id, lock_token)
+            return error
+    try:
+        update_host(host.id, status=HostStatus.CONFIGURING)
+        enqueue_task(TASKS['configure_stats_hub_host'], host.id, relay=relay_task,
+                     tunnel=tunnel_task, lock_token=lock_token,
+                     on_failure=host_job_failure_handler)
+    except Exception as e:
+        release_lock('host', host.id, lock_token)
+        current_app.logger.error(f'Addon telemetry-relay: failed to queue Stats Hub host {host_id}: {e}',
+                                 exc_info=True)
+        return _error("Failed to initiate the Stats Hub host configuration", 500)
+    return jsonify({"data": result, "message": "Stats Hub host configuration started."}), 202
+
+
+@bp.route('/hub/hosts/<int:host_id>/status', methods=['GET'], endpoint='get_hub_host_status')
+@jwt_required()
+def get_hub_host_status(host_id):
+    """The host entry's badge inside the panel: relay probe (SSH) and, when
+    the tunnel is on, its link at stats-hub."""
+    from .hub_ui import demo_stream_api
+
+    host, error = _host_or_404(host_id)
+    if error:
+        return error
+    result = _relay_status(host)
+    if result is None:
+        return _error("Host not found", 404)
+    relay_ok, relay_label, _routed = result
+    api, why = demo_stream_api()
+    if api is None:
+        tunnel_ok, tunnel_label = True, f'not available, {why}'
+    elif not api.stats_hub_ui_tunnel_enabled(host_id):
+        tunnel_ok, tunnel_label = True, 'off'
+    else:
+        tunnel_ok, tunnel_label = api.stats_hub_ui_host_status(host)
+    return jsonify({"data": {'ok': relay_ok and tunnel_ok,
+                             'label': f'Relay: {relay_label}. Tunnel: {tunnel_label}.'}})
+
+
+@bp.route('/hub/hosts/<int:host_id>/menu-status', methods=['GET'],
+          endpoint='get_hub_host_menu_status')
+@jwt_required()
+def get_hub_host_menu_status(host_id):
+    """On when the relay is on, and the tunnel too once any instance on the
+    host streams; else Off. Local reads only."""
+    from ui.models import QLInstance
+
+    from .hub_ui import demo_stream_api
+    from .settings import is_relay_enabled
+
+    _, error = _host_or_404(host_id)
+    if error:
+        return error
+    if not is_relay_enabled(host_id):
+        return _on_off(False)
+    api, _why = demo_stream_api()
+    if api is None or api.stats_hub_ui_tunnel_enabled(host_id):
+        return _on_off(True)
+    streaming = any(api.stats_hub_ui_is_streaming(instance.id)
+                    for instance in QLInstance.query.filter_by(host_id=host_id).all())
+    return _on_off(not streaming)
+
+
+@bp.route('/hub/settings', methods=['GET'], endpoint='get_hub_settings')
+@jwt_required()
+def get_hub_settings():
+    """The settings section: hub URL, ingest token (never sent back),
+    switch on new instances, the demo stream relay."""
+    from .hub_ui import demo_stream_api
+    from .settings import get_stats_hub_url, is_auto_enable_new_instances
+
+    data = {'url': get_stats_hub_url() or '', 'ingest_token': '',
+            'auto_enable_new_instances': is_auto_enable_new_instances(),
+            'relay_host': '', 'relay_port': ''}
+    api, _why = demo_stream_api()
+    if api is not None:
+        demo = api.stats_hub_ui_settings()
+        data.update(relay_host=demo['relay_host'], relay_port=demo['relay_port'])
+    return jsonify({"data": data})
+
+
+@bp.route('/hub/settings', methods=['PUT'], endpoint='update_hub_settings')
+@jwt_required()
+def update_hub_settings():
+    """Stores the hub URL and token for both addons (a blank token keeps the
+    stored one), so telemetry and the stream register on the same hub."""
+    from ui import db
+
+    from .hub_ui import demo_stream_api
+    from .settings import (
+        get_stats_hub_ingest_token, get_stats_hub_url, set_auto_enable_new_instances,
+        set_stats_hub_ingest_token, set_stats_hub_url,
+    )
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _error("The request body must be a JSON object.", 400)
+    url = data.get('url', '')
+    token = data.get('ingest_token', '')
+    if not isinstance(url, str) or not isinstance(token, str):
+        return _error("url and ingest_token must be strings.", 400)
+    auto = data.get('auto_enable_new_instances')
+    if auto is not None and not isinstance(auto, bool):
+        return _error("auto_enable_new_instances must be true or false.", 400)
+    relay_host = data.get('relay_host', '')
+    relay_port = data.get('relay_port', '')
+    api, _why = demo_stream_api()
+    if api is not None:
+        relay_error = api.stats_hub_ui_validate_settings(relay_host, relay_port)
+        if relay_error:
+            return _error(relay_error, 400)
+
+    set_stats_hub_url(url)
+    if token.strip():
+        set_stats_hub_ingest_token(token)
+    if auto is not None:
+        set_auto_enable_new_instances(auto)
+    if api is not None:
+        db.session.flush()
+        api.stats_hub_ui_save_settings(relay_host, relay_port, get_stats_hub_url() or '',
+                                       get_stats_hub_ingest_token() or '')
+    db.session.commit()
+    return get_hub_settings()
+
+
+@bp.route('/hub/settings/status', methods=['GET'], endpoint='get_hub_settings_status')
+@jwt_required()
+def get_hub_settings_status():
+    """Whether both addons are set up and point at the same hub. Never
+    shows a token."""
+    from .hub_ui import demo_stream_api
+    from .settings import get_stats_hub_ingest_token, get_stats_hub_url
+
+    url = get_stats_hub_url()
+    token = get_stats_hub_ingest_token()
+
+    def status(ok, label):
+        return jsonify({"data": {'ok': ok, 'label': label}})
+
+    if not url or not token:
+        return status(False, 'Stats-hub URL or ingest token not set')
+    api, why = demo_stream_api()
+    if api is None:
+        return status(True, f'Telemetry uses {url}; live demo stream not available, {why}')
+    demo = api.stats_hub_ui_settings()
+    if demo['stats_hub_url'] != url:
+        return status(False, f"The live demo stream still uses {demo['stats_hub_url'] or 'no stats-hub'}; "
+                             'Save to point it at the URL above')
+    if not api.stats_hub_ui_ingest_token_equals(token):
+        return status(False, 'The live demo stream has another ingest token; Save to use the one above')
+    if not (demo['relay_host'] and demo['relay_port']):
+        return status(False, f'Telemetry and live demo stream use {url}; demo stream relay not set')
+    return status(True, f'Telemetry and live demo stream use {url}')
 
 
 # Set by register(); the endpoints enqueue through these rather than through
@@ -566,6 +1018,26 @@ def register(ctx):
 
         return push_relay_config_logic(host_id)
 
+    @ctx.task(timeout=600, lock_scope='instance')
+    def apply_stats_hub_instance(instance_id, previous_status=None, telemetry=None,
+                                 new_server_id=False, stream=None, delay_sec=None):
+        """A Stats Hub instance save: telemetry and the stream as asked,
+        then one apply + restart for both (hub_ui.py)."""
+        from .hub_ui import apply_instance_logic
+
+        return apply_instance_logic(instance_id, previous_status=previous_status,
+                                    telemetry=telemetry, new_server_id=new_server_id,
+                                    stream=stream, delay_sec=delay_sec)
+
+    @ctx.task(timeout=450, lock_scope='host')
+    def configure_stats_hub_host(host_id, relay=None, tunnel=None):
+        """A Stats Hub host save: relay and/or tunnel playbook in one task."""
+        from .hub_ui import configure_host_logic
+
+        return configure_host_logic(host_id, relay=relay, tunnel=tunnel)
+
+    TASKS['apply_stats_hub_instance'] = apply_stats_hub_instance
+    TASKS['configure_stats_hub_host'] = configure_stats_hub_host
     TASKS['configure_host_relay'] = configure_host_relay
     TASKS['push_host_relay_routes'] = push_host_relay_routes
     TASKS['enable_instance_telemetry'] = enable_instance_telemetry_task

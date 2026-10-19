@@ -121,10 +121,10 @@
     {
       "id": "demo-stream",
       "zip": "packages/demo-stream.zip",
-      "sha256": "4fdc9ebbb6ba916e355e0bb735ffeab6f9cbfb6f24fc23b9b9ada755fdbf3e78",
-      "version": "1.8.0",
+      "sha256": "ee9b67e3e9410a5bc3d381d3aba32d13b9176dfe57accc683854fa3458d478c3",
+      "version": "1.9.0",
       "label": "Live Demo Stream",
-      "description": "Streams players' views live from an instance to ql-stats-hub through a central relay, over a TLS tunnel on each host. Needs the relay set in Settings, the host's Demo Stream Tunnel on and a game server with the sv_demoStream cvars; each instance has a Live Demo Stream switch."
+      "description": "Streams players' views live from an instance to ql-stats-hub through a central relay, over a TLS tunnel on each host. Has no menu entries of its own: the stream, its delay, the host tunnel and the relay are set in the Stats Hub entries of the Telemetry Relay addon (1.9.0 or newer), next to telemetry. Needs a game server with the sv_demoStream cvars."
     },
     {
       "id": "file-forwarder",
@@ -177,10 +177,10 @@
     {
       "id": "telemetry-relay",
       "zip": "packages/telemetry-relay.zip",
-      "sha256": "8cdea63fb95f674ed353e522118d74b87d90ba0d47fd8a874268200876339940",
-      "version": "1.8.0",
+      "sha256": "2c1416128d1efabf2534e64a396c33dbd991989c2718d5a00f1972c77a76bf0f",
+      "version": "1.9.0",
       "label": "Telemetry Relay",
-      "description": "Sends live telemetry (positions, item pickups, match events) from game instances to ql-stats-hub through a relay on each host. Needs the stats-hub URL and token in Settings, the host's Telemetry Relay on and the stream_telemetry_unified plugin; each instance has a Telemetry switch."
+      "description": "Sends live telemetry (positions, item pickups, match events) from game instances to ql-stats-hub through a relay on each host, and owns the Stats Hub entries: one host entry, one instance entry and one settings section for telemetry and the live demo stream (the stream itself needs the Live Demo Stream addon 1.9.0 or newer). Needs the stream_telemetry_unified plugin on the instances."
     }
   ]
 }

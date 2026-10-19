@@ -550,7 +550,7 @@ def test_enable_endpoint_400_without_host_tunnel(app, client, auth, instance_id)
         _set_relay_and_hub()
     resp = client.post(f'{URL}/instances/{instance_id}/enable', json={}, headers=auth)
     assert resp.status_code == 400
-    assert 'Demo Stream Tunnel' in resp.get_json()['error']['message']
+    assert 'Stats Hub' in resp.get_json()['error']['message']
 
 
 def test_enable_writes_loopback_and_tunnel_port(app, host_id, instance_id, tmp_path, monkeypatch):
@@ -572,7 +572,7 @@ def test_enable_logic_refuses_without_tunnel(app, host_id, instance_id, tmp_path
         _setup_enable(host_id, instance_id, tunnel=False)
         (ok, msg), route = _run_enable(instance_id)
         assert ok is False
-        assert 'Demo Stream Tunnel' in msg
+        assert 'Stats Hub' in msg
         route.assert_not_called()
     assert not (tmp_path / 'configs').exists()
 
@@ -628,16 +628,21 @@ def test_status_reports_tunnel_off(app, client, auth, instance_id):
 # ---- Task 6: manifest ---------------------------------------------------
 
 def test_manifest_declares_host_tunnel_panel():
+    """1.9.0: the tunnel fields live in telemetry-relay's Stats Hub host
+    entry; demo-stream mounts nothing of its own."""
     import json
     m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.6.0'
+    assert m['version'] == '1.9.0'
     assert m['ui_api'] == 1
-    assert m['ui']['host_menu'][0]['panel'] == 'host_tunnel'
-    p = m['ui']['panels']['host_tunnel']
-    assert (p['load'], p['submit']) == ('GET hosts/{host_id}', 'PUT hosts/{host_id}')
-    assert [f['key'] for f in p['fields']] == ['enabled', 'local_port', 'relay_host', 'relay_port']
+    for mount in ('host_menu', 'instance_menu', 'settings_section', 'panels'):
+        assert mount not in m['ui'], mount
+    t = json.loads((ADDONS_DIR / 'telemetry-relay' / 'qlsm-addon.json').read_text(encoding='utf-8'))
+    p = t['ui']['panels']['host_stats_hub']
+    keys = [f['key'] for f in p['fields']]
+    assert keys[-4:] == ['tunnel_enabled', 'local_port', 'relay_host', 'relay_port']
     assert next(f for f in p['fields'] if f['key'] == 'local_port')['placeholder'] == '27999'
-    relay_port = next(f for f in m['ui']['panels']['settings']['fields'] if f['key'] == 'relay_port')
+    relay_port = next(f for f in t['ui']['panels']['settings_stats_hub']['fields']
+                      if f['key'] == 'relay_port')
     assert relay_port['placeholder'] == '27999'
 
 
@@ -759,8 +764,8 @@ def test_playbook_waits_for_the_listener_when_enabled():
 
 def test_manifest_panel_mentions_repinning():
     import json
-    m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert 'certificate changes' in m['ui']['panels']['host_tunnel']['description']
+    m = json.loads((ADDONS_DIR / 'telemetry-relay' / 'qlsm-addon.json').read_text(encoding='utf-8'))
+    assert 'certificate changes' in m['ui']['panels']['host_stats_hub']['description']
 
 
 def test_gitattributes_pins_j2_to_lf():

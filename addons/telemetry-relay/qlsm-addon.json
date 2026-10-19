@@ -1,8 +1,8 @@
 {
   "id": "telemetry-relay",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "name": "Telemetry Relay",
-  "description": "Sends live telemetry (positions, item pickups, match events) from game instances to ql-stats-hub through a relay on each host. Needs the stats-hub URL and token in Settings, the host's Telemetry Relay on and the stream_telemetry_unified plugin; each instance has a Telemetry switch.",
+  "description": "Sends live telemetry (positions, item pickups, match events) from game instances to ql-stats-hub through a relay on each host, and owns the Stats Hub entries: one host entry, one instance entry and one settings section for telemetry and the live demo stream (the stream itself needs the Live Demo Stream addon 1.9.0 or newer). Needs the stream_telemetry_unified plugin on the instances.",
   "scopes": ["global", "host", "instance"],
   "ui_api": 1,
 
@@ -11,71 +11,80 @@
 
     "host_menu": [
       {
-        "id": "relay",
-        "label": "Telemetry Relay",
+        "id": "stats-hub",
+        "label": "Stats Hub",
         "icon": "radio",
-        "panel": "host_relay",
-        "status": "GET hosts/{host_id}/status"
+        "panel": "host_stats_hub",
+        "status": "GET hub/hosts/{host_id}/menu-status"
       }
     ],
     "instance_menu": [
       {
-        "id": "telemetry",
-        "label": "Telemetry",
+        "id": "stats-hub",
+        "label": "Stats Hub",
         "icon": "radio",
-        "panel": "instance_telemetry",
-        "status": "GET instances/{instance_id}/status"
+        "panel": "instance_stats_hub",
+        "status": "GET hub/instances/{instance_id}/menu-status"
       }
     ],
     "settings_section": {
-      "label": "Telemetry Stats Hub", "icon": "radio", "panel": "global_settings"
+      "label": "Stats Hub", "icon": "radio", "panel": "settings_stats_hub"
     },
     "add_instance_tabs": [
       { "id": "stats-hub", "label": "Stats Hub", "icon": "radio", "panel": "add_instance" }
     ],
 
     "panels": {
-      "host_relay": {
+      "host_stats_hub": {
         "kind": "form",
-        "description": "Relay sidecar that forwards telemetry from every instance on this host to the stats-hub target below, or to the cluster-wide default when left blank. Enabling lets this host's IP through the stats-hub firewall, and turning the relay off takes it out again unless the Demo Stream Tunnel is still on.",
-        "load": "GET hosts/{host_id}",
-        "submit": "PUT hosts/{host_id}",
-        "status": { "load": "GET hosts/{host_id}/status" },
+        "description": "The telemetry relay forwards telemetry from every instance on this host to stats-hub; the demo stream tunnel (stunnel, pinning the hub's TLS certificate) carries the live demo stream. Saving runs what changed on the host in one job; save again with the tunnel on after the hub's certificate changes to re-pin it. Switching either on lets this host's IP through the stats-hub firewall; it is taken out again once both are off.",
+        "load": "GET hub/hosts/{host_id}",
+        "submit": "PUT hub/hosts/{host_id}",
+        "status": { "load": "GET hub/hosts/{host_id}/status" },
         "fields": [
-          { "key": "enabled", "type": "bool", "label": "Enabled", "default": false, "description": "Deploys and starts the relay sidecar on this host." },
-          { "key": "url_override", "type": "string", "label": "Stats-hub URL override", "placeholder": "https://stats.example", "description": "Leave blank to use the cluster-wide default." },
-          { "key": "ingest_token_override", "type": "secret", "label": "Ingest token override", "description": "Leave blank to use the cluster-wide default." },
-          { "key": "forward_url", "type": "string", "label": "Forward through", "placeholder": "stats-hub URL", "description": "Only for a host that cannot reach stats-hub directly: the sidecar sends its POSTs to this address (http://host:port, a relay that forwards to stats-hub) instead. qlsm itself still talks to the stats-hub URL. stats-hub then sees the relay's address, so that address must be allowed in its firewall. Leave blank to send straight to stats-hub." }
+          { "key": "enabled", "type": "bool", "label": "Telemetry relay", "default": false, "description": "Deploys and starts the relay sidecar on this host." },
+          { "key": "url_override", "type": "string", "label": "Stats-hub URL override", "placeholder": "https://stats.example", "description": "Leave blank to use the Stats Hub settings. Used by telemetry and the live demo stream alike." },
+          { "key": "ingest_token_override", "type": "secret", "label": "Ingest token override", "description": "Never shown once saved; leave blank to keep the stored one. Clearing the URL override clears it too." },
+          { "key": "forward_url", "type": "string", "label": "Forward telemetry through", "placeholder": "stats-hub URL", "description": "Only for a host that cannot reach stats-hub directly: the relay sends its POSTs to this address (http://host:port, a relay that forwards to stats-hub) instead. qlsm itself still talks to the stats-hub URL. stats-hub then sees the relay's address, so that address must be allowed in its firewall. Leave blank to send straight to stats-hub." },
+          { "key": "tunnel_enabled", "type": "bool", "label": "Demo stream tunnel", "default": false, "description": "Installs and starts the tunnel for the live demo stream on this host. Needs the Live Demo Stream addon and the relay in Settings." },
+          { "key": "local_port", "type": "string", "label": "Tunnel local port", "placeholder": "27999", "description": "Port the tunnel listens on at 127.0.0.1. Leave blank for 27999. After a change, save each streaming instance's Stats Hub entry again so it picks up the new port." },
+          { "key": "relay_host", "type": "string", "label": "Demo stream relay host for this host", "placeholder": "relay in Settings", "description": "Where this host's tunnel connects instead of the relay in Settings, for a host that cannot reach it directly (e.g. a TCP relay on port 443 that forwards to stats-hub). Leave both relay fields blank to use Settings. stats-hub then sees the relay's address, so that address must be allowed in its firewall." },
+          { "key": "relay_port", "type": "string", "label": "Demo stream relay port for this host", "placeholder": "relay in Settings", "description": "Port of the relay above, e.g. 443." }
         ]
       },
 
-      "instance_telemetry": {
+      "instance_stats_hub": {
         "kind": "form",
-        "description": "Sends this instance's telemetry to ql-stats-hub through the host relay. Switching it on or off applies the config and restarts the instance; the server ID is reserved automatically and kept when switched off.",
-        "load": "GET instances/{instance_id}",
-        "submit": "PUT instances/{instance_id}",
-        "status": { "load": "GET instances/{instance_id}/status" },
+        "description": "Telemetry and the live demo stream of this instance. One Save applies everything that changed with at most one restart; a delay change alone needs none. The server ID is reserved automatically, shared by both, and kept when switched off. The stream needs the Live Demo Stream addon; without it the stream fields are ignored.",
+        "load": "GET hub/instances/{instance_id}",
+        "submit": "PUT hub/instances/{instance_id}",
+        "status": { "load": "GET hub/instances/{instance_id}/status" },
         "fields": [
-          { "key": "enabled", "type": "bool", "label": "Send telemetry", "default": false, "description": "Needs the Telemetry Relay on this host and the stream_telemetry_unified plugin on the instance." },
-          { "key": "new_server_id", "type": "bool", "label": "Reserve a new server ID", "default": false, "description": "Asks stats-hub for a fresh server ID on save; use it when two servers share one. Untick it after saving." }
+          { "key": "enabled", "type": "bool", "label": "Send telemetry", "default": false, "description": "Needs the telemetry relay on this host (its Stats Hub entry) and the stream_telemetry_unified plugin on the instance." },
+          { "key": "new_server_id", "type": "bool", "label": "Reserve a new server ID", "default": false, "description": "Asks stats-hub for a fresh server ID on save, for telemetry and the stream; use it when two servers share one. Untick it after saving." },
+          { "key": "stream", "type": "bool", "label": "Live demo stream", "default": false, "description": "Streams players' views to stats-hub so spectators can watch live. Needs the relay in Settings and the demo stream tunnel on this host." },
+          { "key": "delay_sec", "type": "string", "label": "Stream delay (seconds)", "placeholder": "hub default", "description": "How far behind the live game viewers see it: 0 to 300, blank for the hub default. Set while the stream is on." }
         ]
       },
 
-      "global_settings": {
+      "settings_stats_hub": {
         "kind": "form",
-        "description": "Cluster-wide stats-hub target. Individual hosts may override both values.",
-        "load": "GET stats-hub",
-        "submit": "PUT stats-hub",
+        "description": "The stats-hub that telemetry and the live demo stream both use, and the relay the streams connect to. Hosts may override the stats-hub in their Stats Hub entry.",
+        "load": "GET hub/settings",
+        "submit": "PUT hub/settings",
+        "status": { "load": "GET hub/settings/status" },
         "fields": [
-          { "key": "url", "type": "string", "label": "Stats-hub URL", "placeholder": "https://stats.example", "description": "Default ql-stats-hub base URL every host's relay forwards to." },
-          { "key": "ingest_token", "type": "secret", "label": "Ingest token", "description": "STATS_HUB_INGEST_TOKEN, not STATS_HUB_API_TOKEN. The wrong one fails silently with a 401 that trips the circuit breaker on every feed." },
-          { "key": "auto_enable_new_instances", "type": "bool", "label": "Switch on new instances", "default": false, "description": "A new instance gets telemetry and the live demo stream from its first deploy, under one server ID reserved once, with no extra restart. The Stats Hub tab of the Add Instance form can turn either off or set the server ID by hand. Needs the Telemetry Relay (and for the stream the Demo Stream Tunnel) already on for the host, and a qlsm with the Add Instance addon tab." }
+          { "key": "url", "type": "string", "label": "Stats-hub URL", "placeholder": "https://stats.example", "description": "ql-stats-hub base URL for telemetry and the live demo stream." },
+          { "key": "ingest_token", "type": "secret", "label": "Ingest token", "description": "STATS_HUB_INGEST_TOKEN, not STATS_HUB_API_TOKEN: the wrong one fails silently with a 401. Never shown once saved; leave blank to keep the stored one." },
+          { "key": "auto_enable_new_instances", "type": "bool", "label": "Switch on new instances", "default": false, "description": "A new instance gets telemetry and the live demo stream from its first deploy, under one server ID reserved once, with no extra restart. The Stats Hub tab of the Add Instance form can turn either off or set the server ID by hand. Needs the relay (and for the stream the tunnel) already on in the host's Stats Hub entry, and a qlsm with the Add Instance addon tab." },
+          { "key": "relay_host", "type": "string", "label": "Demo stream relay host", "placeholder": "stats.example or 10.0.0.5", "description": "Hostname or IP the game hosts' tunnels connect to. Needs the Live Demo Stream addon." },
+          { "key": "relay_port", "type": "string", "label": "Demo stream relay port", "placeholder": "27999", "description": "TLS ingest port of stats-hub (STATS_HUB_DEMO_STREAM_TCP_PORT)." }
         ]
       },
 
       "add_instance": {
         "kind": "form",
-        "description": "Set up before the first deploy, so the new server starts in the hub with no extra restart. Telemetry needs the Telemetry Relay on this host, the stream the Demo Stream Tunnel; what cannot be switched on is skipped with a line in the instance log.",
+        "description": "Set up before the first deploy, so the new server starts in the hub with no extra restart. Telemetry needs the relay on this host, the stream the demo stream tunnel (both in the host's Stats Hub entry); what cannot be switched on is skipped with a line in the instance log.",
         "load": "GET add-instance?host_id={host_id}",
         "fields": [
           { "key": "telemetry", "type": "bool", "label": "Send telemetry", "description": "Starts from the Switch on new instances setting." },

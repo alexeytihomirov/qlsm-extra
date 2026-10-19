@@ -61,8 +61,8 @@ from .stats_hub import HubDelayError, format_seconds, set_server_delay
 _ROUTES_TIMEOUT_SEC = 10
 
 TUNNEL_REQUIRED_MESSAGE = (
-    "Enable the Demo Stream Tunnel on this instance's host first "
-    "(Hosts -> Demo Stream Tunnel). Plain TCP to the relay is no longer configured."
+    "Switch the demo stream tunnel on for this instance's host first "
+    "(host menu -> Stats Hub). Plain TCP to the relay is no longer configured."
 )
 
 
@@ -232,9 +232,12 @@ def _set_delay_after_enable(instance, host_id, server_id, delay_sec):
     return f" Stream delay set to {format_seconds(state['delay_sec'])} s."
 
 
-def enable_instance_demo_stream_logic(instance_id, previous_status=None, delay_sec=None):
+def enable_instance_demo_stream_logic(instance_id, previous_status=None, delay_sec=None,
+                                      queue_apply=True):
     """Returns (ok: bool, message: str). `delay_sec` (seconds) is set on the
-    hub as the last step; None leaves the hub's delay alone."""
+    hub as the last step; None leaves the hub's delay alone. `queue_apply`
+    False leaves the apply + restart to the caller (telemetry-relay's Stats
+    Hub save, which queues one for telemetry and the stream together)."""
     instance = db.session.get(QLInstance, instance_id)
     if not instance:
         return False, "Instance or associated host not found."
@@ -284,6 +287,11 @@ def enable_instance_demo_stream_logic(instance_id, previous_status=None, delay_s
     set_instance_demo_stream_enabled(instance.id, True)
     db.session.commit()
 
+    if not queue_apply:
+        delay_note = _set_delay_after_enable(instance, host_id, server_id, delay_sec)
+        return _finish(instance, True,
+                       f"Live demo stream enabled, server_id={server_id}.{delay_note}")
+
     job = _queue_apply_restart(instance.id)
     if not job:
         return _finish(
@@ -298,9 +306,10 @@ def enable_instance_demo_stream_logic(instance_id, previous_status=None, delay_s
     )
 
 
-def disable_instance_demo_stream_logic(instance_id, previous_status=None):
-    """Returns (ok: bool, message: str). Sets sv_demoStream "0" and restarts;
-    the token, server_id and hub route stay for a later enable."""
+def disable_instance_demo_stream_logic(instance_id, previous_status=None, queue_apply=True):
+    """Returns (ok: bool, message: str). Sets sv_demoStream "0" and restarts
+    (`queue_apply` False: the caller does); the token, server_id and hub
+    route stay for a later enable."""
     instance = db.session.get(QLInstance, instance_id)
     if not instance:
         return False, "Instance or associated host not found."
@@ -310,6 +319,9 @@ def disable_instance_demo_stream_logic(instance_id, previous_status=None):
     _write_cvars(instance, {'sv_demoStream': '0'})
     set_instance_demo_stream_enabled(instance.id, False)
     db.session.commit()
+
+    if not queue_apply:
+        return _finish(instance, True, "Live demo stream disabled.")
 
     job = _queue_apply_restart(instance.id)
     if not job:
@@ -346,8 +358,9 @@ def prepare_new_instance(instance_id):
         return False, ("live demo stream not switched on: configure the demo stream's "
                        "stats-hub URL/ingest token in Settings first.")
     if not is_host_tunnel_enabled(host_id):
-        return False, ("live demo stream not switched on: enable the Demo Stream Tunnel on host "
-                       f"{instance.host.name} first, then switch it on in the instance's panel.")
+        return False, ("live demo stream not switched on: switch the demo stream tunnel on in host "
+                       f"{instance.host.name}'s Stats Hub entry first, then the stream in "
+                       "the instance's Stats Hub entry.")
 
     shared = telemetry_server_id_on_same_hub(instance.id, host_id) is not None
     try:

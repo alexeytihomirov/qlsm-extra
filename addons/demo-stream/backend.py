@@ -202,65 +202,61 @@ def _host_relay_error(host, port):
     return None
 
 
+def _host_status(host):
+    """(ok, label) for the tunnel's status badge: whether stats-hub lets this
+    host in and has a demo-stream link from it. One call to stats-hub."""
+    from .settings import HubAccessError, firewall_label, get_host_relay_override, host_access_status
+
+    try:
+        state = host_access_status(host)
+    except HubAccessError as exc:
+        return False, exc.label
+    firewall = firewall_label(state)
+    relay_host, relay_port = get_host_relay_override(host.id)
+    if relay_host:
+        # stats-hub sees the link from the relay's address, not this host's, so
+        # it cannot be counted here.
+        return (firewall == 'Firewall ok',
+                f"{firewall}; demo stream through relay {relay_host}:{relay_port}")
+    connected = (state.get('demo_stream_links') or 0) > 0
+    return (firewall == 'Firewall ok' and connected,
+            f"{firewall}; demo stream {'connected' if connected else 'not connected'}")
+
+
 @bp.route('/hosts/<int:host_id>/status', methods=['GET'], endpoint='get_host_tunnel_status')
 @jwt_required()
 def get_host_tunnel_status(host_id):
     """Whether stats-hub lets this host in and has a demo-stream link from it,
     shaped for the tunnel panel's status badge. One call to stats-hub."""
-    from .settings import HubAccessError, firewall_label, get_host_relay_override, host_access_status
-
     host, error = _host_or_404(host_id)
     if error:
         return error
-    try:
-        state = host_access_status(host)
-    except HubAccessError as exc:
-        return jsonify({"data": {'ok': False, 'label': exc.label}})
-    firewall = firewall_label(state)
-    relay_host, relay_port = get_host_relay_override(host_id)
-    if relay_host:
-        # stats-hub sees the link from the relay's address, not this host's, so
-        # it cannot be counted here.
-        return jsonify({"data": {
-            'ok': firewall == 'Firewall ok',
-            'label': f"{firewall}; demo stream through relay {relay_host}:{relay_port}",
-        }})
-    connected = (state.get('demo_stream_links') or 0) > 0
-    return jsonify({"data": {
-        'ok': firewall == 'Firewall ok' and connected,
-        'label': f"{firewall}; demo stream {'connected' if connected else 'not connected'}",
-    }})
+    ok, label = _host_status(host)
+    return jsonify({"data": {'ok': ok, 'label': label}})
 
 
-@bp.route('/hosts/<int:host_id>', methods=['PUT'], endpoint='update_host_tunnel')
-@jwt_required()
-def update_host_tunnel(host_id):
-    """Stores the local port, then installs/removes the host's stunnel client.
-    Enabled-and-wanted always re-queues (the playbook is idempotent), which is
-    what lets a port edit reach a tunnel that is already running."""
+def _tunnel_plan(host, data):
+    """What a tunnel save has to do, shared by PUT hosts/{id} and the Stats
+    Hub host panel of telemetry-relay. Validates, stores the relay override
+    (and, with nothing installed and nothing wanted, the port), fetches the
+    hub certificate when the tunnel is wanted. Returns a dict:
+    `error` (message, status) or None; `tunnel` (wanted, port, cert_pem) when
+    the host task has to run, else None; `port` the port asked for."""
     from ui import db
-    from ui.database import update_host
-    from ui.models import HostStatus
-    from ui.task_lock import acquire_lock, release_lock
-    from ui.task_logic.job_failure_handlers import host_job_failure_handler
-    from ui.tasks import enqueue_task
     from .settings import (
-        DEFAULT_TUNNEL_PORT, HubAccessError, allow_host, get_effective_relay,
-        is_host_tunnel_enabled, set_host_relay_override, set_host_tunnel_port,
+        DEFAULT_TUNNEL_PORT, get_effective_relay, is_host_tunnel_enabled,
+        set_host_relay_override, set_host_tunnel_port,
     )
     from .tunnel_ops import TunnelCertError, fetch_hub_tls_cert
 
-    host, error = _host_or_404(host_id)
-    if error:
-        return error
-
-    data = request.get_json(silent=True) or {}
+    host_id = host.id
     port = data.get('local_port', '')
     # 1024 and up: the tunnel runs as user ql and cannot bind privileged ports.
     if not isinstance(port, str) or (
             port.strip() and not (port.strip().isascii() and port.strip().isdigit()
                                   and 1024 <= int(port.strip()) <= 65535)):
-        return jsonify({"error": {"message": "local_port must be a port number (1024-65535)."}}), 400
+        return {'error': ("local_port must be a port number (1024-65535).", 400),
+                'tunnel': None, 'port': None}
 
     port = port.strip() or DEFAULT_TUNNEL_PORT
     wanted = bool(data.get('enabled', False))
@@ -270,7 +266,7 @@ def update_host_tunnel(host_id):
         relay_port = data.get('relay_port', '')
         relay_error = _host_relay_error(relay_host, relay_port)
         if relay_error:
-            return jsonify({"error": {"message": relay_error}}), 400
+            return {'error': (relay_error, 400), 'tunnel': None, 'port': port}
         # Stored before the job is queued, so the playbook renders the value
         # just typed (the tunnel's own port is stored only once it succeeds).
         set_host_relay_override(host_id, relay_host, relay_port)
@@ -281,19 +277,45 @@ def update_host_tunnel(host_id):
         # the port. Otherwise the port is stored only once the playbook succeeds.
         set_host_tunnel_port(host_id, port)
         db.session.commit()
-        return jsonify({"data": {'enabled': False, 'local_port': port},
-                        "message": "Tunnel settings saved."})
+        return {'error': None, 'tunnel': None, 'port': port}
 
     cert_pem = ''
     if wanted:
         if get_effective_relay(host_id)[0] is None:
-            return jsonify({"error": {
-                "message": "Set the demo-stream relay host and port in Settings first."
-            }}), 409
+            return {'error': ("Set the demo-stream relay host and port in Settings first.", 409),
+                    'tunnel': None, 'port': port}
         try:
             cert_pem = fetch_hub_tls_cert(host_id)
         except TunnelCertError as exc:
-            return jsonify({"error": {"message": str(exc)}}), 409
+            return {'error': (str(exc), 409), 'tunnel': None, 'port': port}
+    return {'error': None, 'tunnel': (wanted, port, cert_pem), 'port': port}
+
+
+@bp.route('/hosts/<int:host_id>', methods=['PUT'], endpoint='update_host_tunnel')
+@jwt_required()
+def update_host_tunnel(host_id):
+    """Stores the local port, then installs/removes the host's stunnel client.
+    Enabled-and-wanted always re-queues (the playbook is idempotent), which is
+    what lets a port edit reach a tunnel that is already running."""
+    from ui.database import update_host
+    from ui.models import HostStatus
+    from ui.task_lock import acquire_lock, release_lock
+    from ui.task_logic.job_failure_handlers import host_job_failure_handler
+    from ui.tasks import enqueue_task
+    from .settings import HubAccessError, allow_host
+
+    host, error = _host_or_404(host_id)
+    if error:
+        return error
+
+    plan = _tunnel_plan(host, request.get_json(silent=True) or {})
+    if plan['error']:
+        message, status = plan['error']
+        return jsonify({"error": {"message": message}}), status
+    if plan['tunnel'] is None:
+        return jsonify({"data": {'enabled': False, 'local_port': plan['port']},
+                        "message": "Tunnel settings saved."})
+    wanted, port, cert_pem = plan['tunnel']
 
     if host.status != HostStatus.ACTIVE:
         return jsonify({"error": {
@@ -381,59 +403,70 @@ def get_instance_stream(instance_id):
     return jsonify({"data": {'enabled': enabled, 'delay_sec': _delay_field(state)}})
 
 
-@bp.route('/instances/<int:instance_id>/status', methods=['GET'], endpoint='get_instance_stream_status')
-@jwt_required()
-def get_instance_stream_status(instance_id):
-    """Badge for the panel and the menu entry: says why it cannot be switched
-    on, before the operator tries and gets a task that fails somewhere they
-    cannot see; when streaming, the delay in effect (one hub call)."""
+def _instance_status(instance):
+    """(ok, label) for the stream's status badge: says why it cannot be
+    switched on, before the operator tries and gets a task that fails
+    somewhere they cannot see; when streaming, the delay in effect (one hub
+    call)."""
     from .settings import (
         get_instance_demo_stream_token, is_host_tunnel_enabled,
         is_instance_demo_stream_enabled, is_relay_configured,
     )
 
-    instance, error = _instance_or_error(instance_id)
-    if error:
-        return error
-
     if not is_relay_configured():
-        return jsonify({"data": {'ok': False, 'label': 'Relay address not set'}})
+        return False, 'Relay address not set'
     if not is_host_tunnel_enabled(instance.host_id):
-        return jsonify({"data": {'ok': False, 'label': 'Tunnel not enabled on host'}})
+        return False, 'Tunnel not enabled on host'
     if not is_instance_demo_stream_enabled(instance.id):
-        return jsonify({"data": {'ok': False, 'label': 'Not streaming'}})
+        return False, 'Not streaming'
     if not get_instance_demo_stream_token(instance.id):
-        return jsonify({"data": {'ok': False, 'label': 'Enabled, no route registered yet'}})
+        return False, 'Enabled, no route registered yet'
     ids = _server_id_drift(instance)
     if ids:
         from .settings import is_telemetry_routing
         telemetry = (f'telemetry uses {ids[1]}' if is_telemetry_routing(instance.id, ids[1])
                      else f"telemetry's reserved ID is {ids[1]}")
-        return jsonify({"data": {'ok': False, 'label': (
-            f'Streaming on server ID {ids[0]}, {telemetry}; save to repair')}})
+        return False, f'Streaming on server ID {ids[0]}, {telemetry}; save to repair'
     state = _hub_delay_state(instance)
     label = 'Streaming'
     if state:
         label += f", delay {_seconds(state['delay_sec'])} s"
         if not state['override']:
             label += ' (hub default)'
-    return jsonify({"data": {'ok': True, 'label': label}})
+    return True, label
+
+
+@bp.route('/instances/<int:instance_id>/status', methods=['GET'], endpoint='get_instance_stream_status')
+@jwt_required()
+def get_instance_stream_status(instance_id):
+    """Badge for the panel and the menu entry, see _instance_status."""
+    instance, error = _instance_or_error(instance_id)
+    if error:
+        return error
+    ok, label = _instance_status(instance)
+    return jsonify({"data": {'ok': ok, 'label': label}})
 
 
 BUSY_STATUSES = ('DEPLOYING', 'CONFIGURING', 'RESTARTING', 'DELETING', 'STOPPING', 'STARTING')
 
 
-def _enable_blocked(instance):
-    """An error response when the stream cannot be switched on yet, else None."""
+def _enable_blocked_error(instance):
+    """(message, status) when the stream cannot be switched on yet, else None."""
     from .instance_ops import TUNNEL_REQUIRED_MESSAGE
     from .settings import is_host_tunnel_enabled, is_relay_configured
 
     if not is_relay_configured():
-        return jsonify({"error": {
-            "message": "Set the demo-stream relay host and port in Settings first."
-        }}), 409
+        return "Set the demo-stream relay host and port in Settings first.", 409
     if not is_host_tunnel_enabled(instance.host_id):
-        return jsonify({"error": {"message": TUNNEL_REQUIRED_MESSAGE}}), 400
+        return TUNNEL_REQUIRED_MESSAGE, 400
+    return None
+
+
+def _enable_blocked(instance):
+    """An error response when the stream cannot be switched on yet, else None."""
+    blocked = _enable_blocked_error(instance)
+    if blocked:
+        return jsonify({"error": {"message": blocked[0]}}), blocked[1]
     return None
 
 
@@ -526,8 +559,6 @@ def update_instance_stream(instance_id):
     the disable, a delay change while streaming is one hub call. Saving a
     streaming instance whose wiring drifted (no token, server.cfg not what
     the enable writes) queues the enable again: a plain save repairs it."""
-    from .settings import is_instance_demo_stream_enabled
-
     instance, error = _instance_or_error(instance_id)
     if error:
         return error
@@ -537,61 +568,86 @@ def update_instance_stream(instance_id):
         return jsonify({"error": {
             "message": "The request body must be a JSON object with enabled and delay_sec."
         }}), 400
+
+    plan = _stream_plan(instance, body)
+    if plan['error']:
+        message, status = plan['error']
+        return jsonify({"error": {"message": message}}), status
+    if plan['action'] == 'enable':
+        return _queue_instance_task(instance, 'enable_instance_demo_stream', 'enable',
+                                    delay_sec=plan['delay'])
+    if plan['action'] == 'disable':
+        return _queue_instance_task(instance, 'disable_instance_demo_stream', 'disable')
+    if plan['action'] == 'delay':
+        return _set_delay(instance, plan['delay'])
+    return jsonify({"message": "No changes."})
+
+
+def _stream_plan(instance, body, force_enable=None):
+    """What saving {enabled, delay_sec} for this instance has to do; shared by
+    PUT instances/{id} and telemetry-relay's Stats Hub panel. A dict:
+    `action` None (no change), 'enable', 'disable' or 'delay' (one hub call,
+    no restart); `delay` the parsed delay (None: hub default); `error`
+    (message, status) or None. `force_enable` (a reason) runs the enable of
+    a streaming instance again, e.g. to follow a new telemetry server ID."""
+    from .settings import is_instance_demo_stream_enabled
+
+    def fail(message, status):
+        return {'action': None, 'delay': None, 'error': (message, status)}
+
     try:
         delay = _parse_delay(body.get('delay_sec'))
     except (ValueError, OverflowError):
-        return jsonify({"error": {"message": DELAY_VALUE_MESSAGE}}), 400
-
+        return fail(DELAY_VALUE_MESSAGE, 400)
     if 'enabled' in body and not isinstance(body['enabled'], bool):
-        return jsonify({"error": {"message": "enabled must be true or false."}}), 400
+        return fail("enabled must be true or false.", 400)
 
     enabled = is_instance_demo_stream_enabled(instance.id)
     wanted = body.get('enabled', enabled)
 
+    def plan(action):
+        if action == 'enable':
+            blocked = _enable_blocked_error(instance)
+            if blocked:
+                return fail(*blocked)
+        return {'action': action, 'delay': delay, 'error': None}
+
     if not enabled and wanted:
-        blocked = _enable_blocked(instance)
-        if blocked:
-            return blocked
-        return _queue_instance_task(instance, 'enable_instance_demo_stream', 'enable',
-                                    delay_sec=delay)
+        return plan('enable')
     if enabled and not wanted:
-        return _queue_instance_task(instance, 'disable_instance_demo_stream', 'disable')
+        return plan('disable')
     if not enabled:
         if delay is not None:
-            return jsonify({"error": {"message": NOT_STREAMING_MESSAGE}}), 409
+            return fail(NOT_STREAMING_MESSAGE, 409)
         from .instance_ops import DEMO_STREAM_CVARS, read_cfg_text
         from .settings import read_cvars_from_text
         if read_cvars_from_text(read_cfg_text(instance) or '', DEMO_STREAM_CVARS):
             # Off, but server.cfg still carries the cvars (the token among
             # them) from before 1.7.0: the disable moves them out of it.
-            return _queue_instance_task(instance, 'disable_instance_demo_stream', 'disable')
-        return jsonify({"message": "No changes."})
+            return plan('disable')
+        return plan(None)
 
     # Streaming and staying on. Drifted wiring first (local state, then the
     # hub saying it has no route): the enable re-registers the route,
     # rewrites the cvars and restarts once, and takes the delay along as on
     # off -> on (setting an unchanged delay again is harmless).
-    drift = _wiring_drift(instance)
+    drift = force_enable or _wiring_drift(instance)
     state = None
     if not drift:
         state, drift = _hub_delay_state_or_lost_route(instance)
     if drift:
         current_app.logger.info(
             f'Addon demo-stream: re-enabling instance {instance.id} on save: {drift}')
-        blocked = _enable_blocked(instance)
-        if blocked:
-            return blocked
-        return _queue_instance_task(instance, 'enable_instance_demo_stream', 'enable',
-                                    delay_sec=delay)
+        return plan('enable')
 
     # Then the delay, compared with what the hub reports, the way the GET
     # showed it. Blank with nothing to compare with is no change.
     if delay is None and (state is None or not state['override']):
-        return jsonify({"message": "No changes."})
+        return plan(None)
     if delay is not None and state is not None and state['override'] \
             and abs(state['delay_sec'] - delay) <= DELAY_MATCH_TOLERANCE_SEC:
-        return jsonify({"message": "No changes."})
-    return _set_delay(instance, delay)
+        return plan(None)
+    return plan('delay')
 
 
 @bp.route('/instances/<int:instance_id>/enable', methods=['POST', 'PUT'], endpoint='enable_instance_stream')
@@ -606,7 +662,7 @@ def enable_instance_stream(instance_id):
     if not (request.get_json(silent=True) or {}).get('enabled', True):
         return jsonify({"error": {
             "message": "This route only switches the stream on; "
-                       "save the Live Demo Stream panel to switch it off."
+                       "save the instance's Stats Hub entry to switch it off."
         }}), 400
 
     blocked = _enable_blocked(instance)
@@ -618,8 +674,8 @@ def enable_instance_stream(instance_id):
 DELAY_MATCH_TOLERANCE_SEC = 0.001
 DELAY_VALUE_MESSAGE = ("delay_sec must be a number of seconds from 0 to 300, "
                        "or blank for the hub default.")
-NOT_STREAMING_MESSAGE = ("This instance is not streaming yet. Enable it from its Live Demo "
-                         "Stream menu entry first; the delay can be set once that has finished.")
+NOT_STREAMING_MESSAGE = ("This instance is not streaming yet. Switch the stream on in its Stats "
+                         "Hub menu entry first; the delay can be set once that has finished.")
 
 
 def _delay_target(instance):
@@ -633,7 +689,7 @@ def _delay_target(instance):
     if not is_stats_hub_configured_for_host(instance.host_id):
         return None, ('Stats-hub not configured',
                       "Set the stats-hub URL and ingest token in Settings first "
-                      "(Live Demo Stream).")
+                      "(Stats Hub).")
     server_id = get_instance_server_id(instance.id)
     if server_id is None or not is_instance_demo_stream_enabled(instance.id):
         return None, ('Not streaming', NOT_STREAMING_MESSAGE)
@@ -746,15 +802,24 @@ def update_instance_delay(instance_id):
 def _set_delay(instance, delay):
     """One call to stats-hub that sets (or, for None, resets) the delay and
     checks the hub applied it. Returns the response."""
+    body, status = _set_delay_result(instance, delay)
+    return jsonify(body), status
+
+
+def _set_delay_result(instance, delay):
+    """_set_delay as (JSON body, HTTP status), for telemetry-relay's Stats
+    Hub panel too."""
     from .stats_hub import HubDelayError, set_server_delay
 
     server_id, blocked = _delay_target(instance)
     if server_id is None:
-        return jsonify({"error": {"message": blocked[1]}}), 409
+        return {"error": {"message": blocked[1]}}, 409
     try:
         state = set_server_delay(instance.host_id, server_id, delay)
     except HubDelayError as exc:
-        return _delay_hub_error(instance.id, exc)
+        current_app.logger.error(
+            f'Addon demo-stream: delay call for instance {instance.id} failed: {exc}')
+        return {"error": {"message": str(exc)}}, exc.status
 
     # A 200 that does not show what was asked for is not a save: say so
     # rather than let the form report "Saved".
@@ -764,17 +829,17 @@ def _set_delay(instance, delay):
         current_app.logger.error(
             f'Addon demo-stream: stats-hub answered 200 for instance {instance.id} but '
             f'reports delay {state["delay_sec"]} (override={state["override"]}), asked {delay}')
-        return jsonify({"error": {
+        return {"error": {
             "message": "stats-hub answered but did not apply the delay: it reports "
                        f"{_seconds(state['delay_sec'])} s"
                        f"{'' if state['override'] else ' (hub default)'}. "
                        "Check the stats-hub and try again."
-        }}), 502
+        }}, 502
 
     effective = _seconds(state['delay_sec'])
     message = f"Stream delay set to {effective} s." if state['override'] \
         else f"Stream delay back on the hub default ({effective} s)."
-    return jsonify({"data": _delay_data(state), "message": message})
+    return {"data": _delay_data(state), "message": message}, 200
 
 
 # Set by register(); the instance endpoints enqueue through
@@ -793,6 +858,163 @@ def prepare_new_instance(instance_id):
     from .instance_ops import prepare_new_instance as prepare
 
     return prepare(instance_id)
+
+
+# ---- Stats Hub UI (1.9.0) -----------------------------------------------
+# Since 1.9.0 this addon has no menu entry or settings section of its own:
+# telemetry-relay's "Stats Hub" entries show the stream next to telemetry
+# and save both with one apply. A tier-1 panel only reaches its own addon's
+# routes, so telemetry-relay calls the functions below in-process, found on
+# this module through its addon context (the same way it calls
+# prepare_new_instance). STATS_HUB_UI_API is what it checks for; raise it
+# only for a change an older telemetry-relay must not call. Nothing here
+# commits unless it says so, and none of it queues an apply or a restart.
+
+STATS_HUB_UI_API = 1
+
+
+def stats_hub_ui_settings():
+    """Relay address and this addon's stats-hub URL. Never the token."""
+    from .settings import (
+        get_relay_host, get_relay_port, get_stats_hub_ingest_token, get_stats_hub_url,
+    )
+
+    return {'relay_host': get_relay_host() or '', 'relay_port': get_relay_port() or '',
+            'stats_hub_url': get_stats_hub_url() or '',
+            'has_ingest_token': bool(get_stats_hub_ingest_token())}
+
+
+def stats_hub_ui_ingest_token_equals(token):
+    """Whether this addon's global ingest token is `token` (compared here, so
+    the value never leaves the addon)."""
+    from .settings import get_stats_hub_ingest_token
+
+    return (get_stats_hub_ingest_token() or '') == (token or '').strip()
+
+
+def stats_hub_ui_validate_settings(relay_host, relay_port):
+    """An error message for the relay fields, else None."""
+    if not isinstance(relay_host, str) or not isinstance(relay_port, str):
+        return "relay_host and relay_port must be strings."
+    if relay_port and not relay_port.strip().isdigit():
+        return "relay_port must be a number."
+    return None
+
+
+def stats_hub_ui_save_settings(relay_host, relay_port, url, token):
+    """Stores the relay and the stats-hub target; a blank token keeps the
+    stored one. Validate first. Does not commit."""
+    from .settings import (
+        set_relay_host, set_relay_port, set_stats_hub_ingest_token, set_stats_hub_url,
+    )
+
+    set_relay_host(relay_host)
+    set_relay_port(relay_port)
+    set_stats_hub_url(url)
+    if token.strip():
+        set_stats_hub_ingest_token(token)
+
+
+def stats_hub_ui_host_hub(host_id):
+    """This addon's per-host stats-hub URL override ('' for none)."""
+    from .stats_hub import get_host_stats_hub_url
+
+    return get_host_stats_hub_url(host_id) or ''
+
+
+def stats_hub_ui_save_host_hub(host_id, url, token):
+    """This addon's per-host stats-hub override; `token` None keeps the
+    stored one, '' clears it. Does not commit."""
+    from .stats_hub import set_host_stats_hub_ingest_token, set_host_stats_hub_url
+
+    set_host_stats_hub_url(host_id, url)
+    if token is not None:
+        set_host_stats_hub_ingest_token(host_id, token)
+
+
+def stats_hub_ui_host(host_id):
+    """The tunnel fields of the host panel."""
+    from .settings import get_host_relay_override, get_host_tunnel_port, is_host_tunnel_enabled
+
+    relay_host, relay_port = get_host_relay_override(host_id)
+    return {'tunnel_enabled': is_host_tunnel_enabled(host_id),
+            'local_port': get_host_tunnel_port(host_id),
+            'relay_host': relay_host or '', 'relay_port': relay_port or ''}
+
+
+def stats_hub_ui_tunnel_enabled(host_id):
+    from .settings import is_host_tunnel_enabled
+
+    return is_host_tunnel_enabled(host_id)
+
+
+def stats_hub_ui_host_status(host):
+    """(ok, label) of the tunnel; one stats-hub call."""
+    return _host_status(host)
+
+
+def stats_hub_ui_host_plan(host, data):
+    """_tunnel_plan for {enabled, local_port, relay_host, relay_port}."""
+    return _tunnel_plan(host, data)
+
+
+def stats_hub_ui_configure_host(host_id, wanted, port, cert_pem):
+    """The tunnel's host task body, run inside telemetry-relay's host task.
+    Returns ok."""
+    from .tunnel_ops import configure_host_demo_stream_tunnel_logic
+
+    return configure_host_demo_stream_tunnel_logic(host_id, wanted, port, cert_pem)
+
+
+def stats_hub_ui_is_streaming(instance_id):
+    from .settings import is_instance_demo_stream_enabled
+
+    return is_instance_demo_stream_enabled(instance_id)
+
+
+def stats_hub_ui_instance(instance):
+    """The stream fields of the instance panel (one hub call when streaming)."""
+    from .settings import is_instance_demo_stream_enabled
+
+    enabled = is_instance_demo_stream_enabled(instance.id)
+    state = _hub_delay_state(instance) if enabled else None
+    return {'stream': enabled, 'delay_sec': _delay_field(state)}
+
+
+def stats_hub_ui_instance_status(instance):
+    """(ok, label) of the stream."""
+    return _instance_status(instance)
+
+
+def stats_hub_ui_instance_plan(instance, enabled, delay_sec, force_enable=None):
+    """_stream_plan for the instance panel's stream fields; `enabled` None
+    keeps the stream as it is."""
+    body = {'delay_sec': delay_sec}
+    if enabled is not None:
+        body['enabled'] = enabled
+    return _stream_plan(instance, body, force_enable=force_enable)
+
+
+def stats_hub_ui_set_delay(instance, delay):
+    """(JSON body, status) of a delay-only save: one hub call, no restart."""
+    return _set_delay_result(instance, delay)
+
+
+def stats_hub_ui_enable(instance_id, previous_status=None, delay_sec=None):
+    """The stream's enable without its own apply/restart (the caller queues
+    one for everything it changed). Returns (ok, message)."""
+    from .instance_ops import enable_instance_demo_stream_logic
+
+    return enable_instance_demo_stream_logic(instance_id, previous_status=previous_status,
+                                             delay_sec=delay_sec, queue_apply=False)
+
+
+def stats_hub_ui_disable(instance_id, previous_status=None):
+    """The stream's disable without its own apply/restart. (ok, message)."""
+    from .instance_ops import disable_instance_demo_stream_logic
+
+    return disable_instance_demo_stream_logic(instance_id, previous_status=previous_status,
+                                              queue_apply=False)
 
 
 def register(ctx):

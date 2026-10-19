@@ -230,7 +230,7 @@ def test_put_delay_not_streaming_is_409_with_what_to_do(client, auth, streaming,
                           headers=auth)
     assert resp.status_code == 409
     assert 'not streaming yet' in _message(resp)
-    assert 'Live Demo Stream' in _message(resp)
+    assert 'Stats Hub' in _message(resp)
     put.assert_not_called()
 
 
@@ -264,7 +264,7 @@ def test_put_delay_hub_unknown_server_id_says_reenable(client, auth, streaming):
                           headers=auth)
     assert resp.status_code == 409
     assert f'no demo-stream route for server_id {SERVER_ID}' in _message(resp)
-    assert 'Live Demo Stream' in _message(resp)
+    assert 'Stats Hub' in _message(resp)
 
 
 def test_put_delay_hub_401_names_the_token_setting_and_never_leaks_it(
@@ -353,7 +353,7 @@ def test_get_delay_does_not_follow_redirects(client, auth, streaming, status):
     assert get.call_args.kwargs['allow_redirects'] is False
     assert resp.status_code == 502
     assert 'redirected' in _message(resp)
-    assert 'Settings -> Live Demo Stream' in _message(resp)
+    assert 'Settings -> Stats Hub' in _message(resp)
     assert badge.get_json()['data'] == {'ok': False, 'label': 'Stats-hub redirected the call'}
 
 
@@ -365,7 +365,7 @@ def test_put_delay_does_not_follow_redirects(client, auth, streaming, status):
     assert put.call_args.kwargs['allow_redirects'] is False
     assert resp.status_code == 502
     assert 'redirected' in _message(resp)
-    assert 'Settings -> Live Demo Stream' in _message(resp)
+    assert 'Settings -> Stats Hub' in _message(resp)
 
 
 @pytest.mark.parametrize('sent, hub', [

@@ -185,10 +185,12 @@ def test_status_hub_error(app, client, auth, host_id):
 
 
 def test_manifest_declares_host_status(app):
+    """1.9.0: no host entry of its own; the Stats Hub host entry of
+    telemetry-relay shows the tunnel's status."""
     import json
     from conftest import ADDONS_DIR
     manifest = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert manifest['ui']['panels']['host_tunnel']['status'] == {'load': 'GET hosts/{host_id}/status'}
+    assert 'host_menu' not in manifest['ui']
 
 
 def test_busy_host_lock_lets_nothing_in(app, client, auth, host_id):

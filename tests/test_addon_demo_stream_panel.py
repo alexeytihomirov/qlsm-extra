@@ -499,36 +499,14 @@ def test_settings_need_a_login(client):
 # ---- manifest -------------------------------------------------------------
 
 def test_manifest_one_instance_entry_with_status():
+    """1.9.0: the stream switch and delay moved into telemetry-relay's Stats
+    Hub instance entry; demo-stream keeps its routes but mounts nothing."""
     m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.8.0'
-    ui = m['ui']
-    (entry,) = ui['instance_menu']
-    assert entry['id'] == 'demo-stream' and entry['label'] == 'Live Demo Stream'
-    assert entry['status'] == 'GET instances/{instance_id}/status'
-    panel = ui['panels'][entry['panel']]
-    assert (panel['load'], panel['submit']) == ('GET instances/{instance_id}',
-                                                'PUT instances/{instance_id}')
-    assert panel['status'] == {'load': 'GET instances/{instance_id}/status'}
-    assert [(f['key'], f['type']) for f in panel['fields']] == [
-        ('enabled', 'bool'), ('delay_sec', 'string')]
-
-    sections = ui['settings_section']
-    sections = sections if isinstance(sections, list) else [sections]
-    (section,) = sections
-    assert section['label'] == 'Live Demo Stream'
-    settings_panel = ui['panels'][section['panel']]
-    assert (settings_panel['load'], settings_panel['submit']) == ('GET settings', 'PUT settings')
-    assert [(f['key'], f['type']) for f in settings_panel['fields']] == [
-        ('relay_host', 'string'), ('relay_port', 'string'),
-        ('stats_hub_url', 'string'), ('ingest_token', 'secret')]
-
-    (host_entry,) = ui['host_menu']
-    assert host_entry['status'] == 'GET hosts/{host_id}/status'
-
-    # no panel left pointing at the old routes
-    routes = json.dumps(ui['panels'])
-    for old in ('/delay', '/enable', '"GET relay"', '"GET stats-hub"'):
-        assert old not in routes, old
+    assert m['version'] == '1.9.0'
+    assert m['ui'] == {'icon': 'share'}
+    t = json.loads((ADDONS_DIR / 'telemetry-relay' / 'qlsm-addon.json').read_text(encoding='utf-8'))
+    fields = t['ui']['panels']['instance_stats_hub']['fields']
+    assert [(f['key'], f['type']) for f in fields][-2:] == [('stream', 'bool'), ('delay_sec', 'string')]
 
 
 # ---- stream server ID drifted from telemetry's (1.5.1) ----------------------

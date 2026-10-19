@@ -214,7 +214,7 @@ def test_relay_off_on_the_host_degrades_with_a_note(app, hub, queued):
     _created(app, iid)
     assert queued == []
     assert '+set qlx_statsHubUnifiedEnabled "1"' not in _launch_args(app, iid)
-    assert 'enable the Telemetry Relay on host' in _logs(app, iid)
+    assert 'switch the telemetry relay on in host' in _logs(app, iid)
     # the stream still goes out under the reserved ID
     assert hub['routes'] == [41]
 
@@ -223,7 +223,7 @@ def test_no_tunnel_on_the_host_degrades_with_a_note(app, hub, queued):
     iid = _setup(app, tunnel=False)()
     _created(app, iid)
     assert hub['routes'] == []
-    assert 'enable the Demo Stream Tunnel on host' in _logs(app, iid)
+    assert 'switch the demo stream tunnel on in host' in _logs(app, iid)
     assert '+set qlx_statsHubServerId "41"' in _launch_args(app, iid)
 
 

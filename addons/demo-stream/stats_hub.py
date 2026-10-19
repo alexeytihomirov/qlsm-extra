@@ -194,16 +194,16 @@ def _server_delay_call(send, host_id, server_id, **kwargs):
         raise HubDelayError(
             f"stats-hub redirected the delay call (HTTP {resp.status_code}) instead of "
             "answering it. Check the scheme (http or https) and host of the Stats-hub URL "
-            "under Settings -> Live Demo Stream.", 502, 'Stats-hub redirected the call')
+            "under Settings -> Stats Hub.", 502, 'Stats-hub redirected the call')
     if resp.status_code in (401, 403):
         raise HubDelayError(
             f"stats-hub rejected the ingest token (HTTP {resp.status_code}). Check Ingest "
-            "token under Settings -> Live Demo Stream: it must be the hub's "
+            "token under Settings -> Stats Hub: it must be the hub's "
             "STATS_HUB_INGEST_TOKEN, not STATS_HUB_API_TOKEN.", 502, 'Ingest token rejected')
     if resp.status_code == 404 and detail == 'unknown server_id':
         raise HubDelayError(
             f"stats-hub has no demo-stream route for server_id {server_id}. Save the "
-            "instance's Live Demo Stream panel again to register it (that restarts the "
+            "instance's Stats Hub entry again to register it (that restarts the "
             "instance).",
             409, 'No route on stats-hub')
     if resp.status_code in (404, 405):
@@ -211,7 +211,7 @@ def _server_delay_call(send, host_id, server_id, **kwargs):
             f"stats-hub answered HTTP {resp.status_code} for this server's delay. Either "
             "this stats-hub is older than the per-server delay API and needs an update, or "
             f"it has no demo-stream route for server_id {server_id} (save the instance's "
-            "Live Demo Stream panel again to register it, which restarts the instance).",
+            "Stats Hub entry again to register it, which restarts the instance).",
             502, 'Stats-hub has no delay API or no route')
     if resp.status_code in (400, 422):
         raise HubDelayError(

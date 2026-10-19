@@ -279,25 +279,47 @@ def test_status_labels(app, client, auth, cfg, stored, relay, ok, label):
 # ---- manifest -------------------------------------------------------------
 
 def test_manifest_telemetry_in_instance_menu():
+    """1.9.0: one Stats Hub entry per menu and one settings section, for
+    telemetry and the live demo stream together."""
     m = json.loads((ADDONS_DIR / 'telemetry-relay' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.8.0'
+    assert m['version'] == '1.9.0'
     ui = m['ui']
     assert 'instance_tabs' not in ui
     (entry,) = ui['instance_menu']
-    assert (entry['id'], entry['label']) == ('telemetry', 'Telemetry')
-    assert entry['status'] == 'GET instances/{instance_id}/status'
+    assert (entry['id'], entry['label']) == ('stats-hub', 'Stats Hub')
+    assert entry['status'] == 'GET hub/instances/{instance_id}/menu-status'
     panel = ui['panels'][entry['panel']]
-    assert (panel['load'], panel['submit']) == ('GET instances/{instance_id}',
-                                                'PUT instances/{instance_id}')
+    assert (panel['load'], panel['submit']) == ('GET hub/instances/{instance_id}',
+                                                'PUT hub/instances/{instance_id}')
+    assert panel['status'] == {'load': 'GET hub/instances/{instance_id}/status'}
     assert [(f['key'], f['type'], f['label']) for f in panel['fields']] == [
         ('enabled', 'bool', 'Send telemetry'),
-        ('new_server_id', 'bool', 'Reserve a new server ID')]
+        ('new_server_id', 'bool', 'Reserve a new server ID'),
+        ('stream', 'bool', 'Live demo stream'),
+        ('delay_sec', 'string', 'Stream delay (seconds)')]
     assert panel['fields'][1]['default'] is False
 
     (host_entry,) = ui['host_menu']
-    assert host_entry['status'] == 'GET hosts/{host_id}/status'
-    host_keys = [f['key'] for f in ui['panels'][host_entry['panel']]['fields']]
-    assert host_keys == ['enabled', 'url_override', 'ingest_token_override', 'forward_url']
+    assert (host_entry['id'], host_entry['label']) == ('stats-hub', 'Stats Hub')
+    assert host_entry['status'] == 'GET hub/hosts/{host_id}/menu-status'
+    host_panel = ui['panels'][host_entry['panel']]
+    assert [(f['key'], f['type']) for f in host_panel['fields']] == [
+        ('enabled', 'bool'), ('url_override', 'string'), ('ingest_token_override', 'secret'),
+        ('forward_url', 'string'), ('tunnel_enabled', 'bool'), ('local_port', 'string'),
+        ('relay_host', 'string'), ('relay_port', 'string')]
+
+    section = ui['settings_section']
+    assert section['label'] == 'Stats Hub'
+    settings_panel = ui['panels'][section['panel']]
+    assert (settings_panel['load'], settings_panel['submit']) == ('GET hub/settings', 'PUT hub/settings')
+    assert [(f['key'], f['type']) for f in settings_panel['fields']] == [
+        ('url', 'string'), ('ingest_token', 'secret'), ('auto_enable_new_instances', 'bool'),
+        ('relay_host', 'string'), ('relay_port', 'string')]
+
+    # Every panel but the Add Instance tab goes through the hub/ routes.
+    for name, p in ui['panels'].items():
+        if name != 'add_instance':
+            assert p['load'].startswith('GET hub/') and p['submit'].startswith('PUT hub/'), name
 
 
 # ---- instances enabled before 1.5.0 (routed key only) ---------------------
@@ -482,7 +504,7 @@ def test_new_server_id_message_mentions_the_demo_stream(app, queued, monkeypatch
         db.session.add(AppSetting(key=f'demo_stream_enabled:{iid}', value='1'))
         db.session.commit()
         ok, message = ops.enable_instance_telemetry_logic(iid, new_server_id=True)
-    assert ok and 'Live Demo Stream' in message
+    assert ok and 'live demo stream' in message
 
 
 def test_new_server_id_reserve_failure_keeps_the_old_id(app, queued, monkeypatch):

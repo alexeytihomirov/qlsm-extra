@@ -141,9 +141,9 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 
 | Addon | Role |
 |-------|------|
-| `telemetry-relay` | Per-host relay that forwards `stream_telemetry_unified` data to ql-stats-hub. Turn it on per host (host menu, **Telemetry Relay**), then per instance with the **Send telemetry** switch in its **Telemetry** menu entry; the server ID is reserved automatically and shown in the entry's status. **Switch on new instances** in its settings (or the **Stats Hub** tab of the Add Instance form) sets up telemetry and the live demo stream before the first deploy |
+| `telemetry-relay` | Per-host relay that forwards `stream_telemetry_unified` data to ql-stats-hub, and the owner of the **Stats Hub** entries for telemetry and the live demo stream together: host menu **Stats Hub** (relay and demo stream tunnel), instance menu **Stats Hub** (**Send telemetry**, **Live demo stream**, the stream delay, one Save with at most one restart), Settings -> **Stats Hub** (hub URL, ingest token, **Switch on new instances**, demo stream relay). The server ID is reserved automatically and shared by both. **Switch on new instances** (or the **Stats Hub** tab of the Add Instance form) sets up telemetry and the live demo stream before the first deploy |
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
-| `demo-stream` | Live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub (host menu, **Demo Stream Tunnel**). Each instance's **Live Demo Stream** menu entry has the stream switch and the delay; a delay change applies on stats-hub without a restart. Relay and stats-hub are set in one **Live Demo Stream** settings section |
+| `demo-stream` | Live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub. No menu entries of its own since 1.9.0: it is switched on and configured in the **Stats Hub** entries of `telemetry-relay` (1.9.0 or newer); its API routes, tasks and launch args are unchanged. A delay change applies on stats-hub without a restart |
 | `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen. The `qlmatch_packer.py` plugin runs it when the engine finishes a match's demos |
 | `file-forwarder` | Ships demo files (.qlmatch packs, replay sidecars, raw demos) from game hosts to the VPS over SFTP with rclone, keeps a delivery ledger, cleans up delivered raw demos, and offers manual sync from the host menu. The VPS address is a setting; saving it scans the VPS host keys and shows their fingerprints. The host menu entry **File Forwarder** has the host switch, the status and **Apply to host**, **Sync now** and **Sync now and delete delivered** |
 | `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enter repository + commit in **Runtime Source**, then **Re-run Host Setup**. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
@@ -258,6 +258,35 @@ setting is shown but nothing happens on create and the tab does not appear,
 everything else works as in 1.7.1. Update both addons together: the stream
 part runs demo-stream 1.8.0's set-up, an older demo-stream is reported in the
 log instead.
+
+**telemetry-relay 1.9.0, demo-stream 1.9.0:** one **Stats Hub** entry each in
+the host menu, the instance menu and Settings, all from telemetry-relay;
+demo-stream's own **Demo Stream Tunnel**, **Live Demo Stream** entries and
+settings section are gone (its API routes stay). Both addons keep their own
+stored settings, nothing is migrated:
+- Instance entry: **Send telemetry**, **Reserve a new server ID**, **Live demo
+  stream**, **Stream delay**. One Save runs whatever changed for both in one
+  task with one apply and restart; a delay change alone is one hub call and no
+  restart. A new server ID now moves a streaming instance's stream to it in the
+  same restart. It always restarts, like the old entries: the cvars are launch
+  args, which a deferred restart (Settings -> Defer restarts) would not pick up.
+- Host entry: the relay fields and the tunnel fields; what has to run on the
+  host (relay and/or tunnel playbook) runs in one host job. The stats-hub URL
+  and token override are stored for both addons.
+- Settings: hub URL, ingest token, **Switch on new instances**, demo stream
+  relay host and port. Saving writes the URL and token to both addons, so they
+  point at the same hub (a stream that used a different hub moves to this one
+  with its next enable); the status line says when they still differ.
+- Ingest tokens are never sent back to the browser any more: blank keeps the
+  stored one; clearing a host's URL override clears its token override too.
+- Menu statuses are just **On** / **Off**, from local state only (no SSH or hub
+  call when the menu opens). Instance: On when telemetry or the stream is
+  switched on. Host: On when the relay is on, and the tunnel too once any
+  instance on the host streams. The details are in the entry's own status line.
+- Without a usable demo-stream (not installed, switched off, older than 1.9.0)
+  the entries show and save telemetry only; switching the stream or the tunnel
+  on is refused with the reason, and the status line says why.
+Update both addons together; after the update use the Stats Hub entries.
 
 **player-ranks 0.4.0:** the installation-wide "on by default" switches for
 qlstats and Slipgate are gone; each instance picks its sources on its own

@@ -111,7 +111,7 @@ def _resolve_server_id(instance, manual_id, notes):
             current_app.logger.error(
                 f"telemetry-relay: no server ID reserved for new instance {instance.id}: {exc}")
             notes.append(f"Stats Hub: could not reserve a server ID from stats-hub ({exc}); "
-                         "switch Telemetry on in the instance's panel once the hub answers.")
+                         "switch telemetry on in the instance's Stats Hub entry once the hub answers.")
             return None
     set_reserved_server_id(instance.id, server_id)
     db.session.commit()
@@ -140,7 +140,7 @@ def _switch_telemetry_on(instance, server_id, push_routes, notes):
             f"telemetry-relay: route push for new instance {instance.id} not queued: {exc}")
     if not queued:
         notes.append("Stats Hub: the relay's routes were not pushed; save the host's "
-                     "Telemetry Relay panel once so the relay forwards this server.")
+                     "Stats Hub entry once so the relay forwards this server.")
     notes.append(f"Stats Hub: telemetry on, server ID {server_id}.")
 
 
@@ -162,7 +162,7 @@ def _prepare_demo_stream(instance_id):
     prepare = getattr(module, 'prepare_new_instance', None)
     if prepare is None:
         return ("Stats Hub: live demo stream not switched on: the installed demo-stream addon "
-                "predates 1.8.0; switch it on in the instance's Live Demo Stream panel.")
+                "predates 1.8.0; update it, then switch the stream on in the instance's Stats Hub entry.")
     _ok, message = prepare(instance_id)
     return f"Stats Hub: {message}"
 
@@ -190,8 +190,8 @@ def prepare_new_instance(instance_id, options, push_routes=None):
         if is_relay_enabled(instance.host_id):
             _switch_telemetry_on(instance, server_id, push_routes, notes)
         else:
-            notes.append(f"Stats Hub: telemetry not switched on: enable the Telemetry Relay on "
-                         f"host {instance.host.name} first. Server ID {server_id} stays reserved for it.")
+            notes.append(f"Stats Hub: telemetry not switched on: switch the telemetry relay on in "
+                         f"host {instance.host.name}'s Stats Hub entry first. Server ID {server_id} stays reserved for it.")
     elif server_id is not None:
         notes.append(f"Stats Hub: server ID {server_id} reserved, telemetry left off.")
 

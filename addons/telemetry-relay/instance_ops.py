@@ -201,10 +201,13 @@ def _finish(instance, ok, message, previous_status=None):
     return ok, message
 
 
-def enable_instance_telemetry_logic(instance_id, previous_status=None, new_server_id=False):
+def enable_instance_telemetry_logic(instance_id, previous_status=None, new_server_id=False,
+                                   queue_apply=True):
     """Returns (ok: bool, message: str). `new_server_id` reserves a fresh
     server_id from stats-hub instead of reusing the stored one (two servers
-    sharing one); the old one is simply abandoned."""
+    sharing one); the old one is simply abandoned. `queue_apply` False
+    leaves the apply + restart to the caller (the Stats Hub save, which
+    queues one for telemetry and the stream together)."""
     instance = db.session.get(QLInstance, instance_id)
     if not instance:
         return False, "Instance or associated host not found."
@@ -245,6 +248,11 @@ def enable_instance_telemetry_logic(instance_id, previous_status=None, new_serve
             "relay's routes to the host failed - re-run once the host is reachable."
         ), previous_status)
 
+    if not queue_apply:
+        new = f" New server ID reserved (was {old_server_id})." \
+            if new_server_id and old_server_id else ''
+        return _finish(instance, True, f"Telemetry enabled, server_id={server_id}.{new}")
+
     from ui.tasks import apply_instance_config, enqueue_task
     from ui.task_logic.job_failure_handlers import instance_job_failure_handler
 
@@ -264,18 +272,19 @@ def enable_instance_telemetry_logic(instance_id, previous_status=None, new_serve
     if new_server_id:
         note = f" New server ID reserved (was {old_server_id})." if old_server_id else ''
         if is_instance_demo_stream_enabled(instance.id):
-            note += (" The Live Demo Stream keeps its previous server ID until its panel "
-                     "is saved once (one more restart).")
+            note += (" The live demo stream keeps its previous server ID until the "
+                     "instance's Stats Hub entry is saved once (one more restart).")
     return _finish(
         instance, True,
         f"Telemetry enabled, server_id={server_id}.{note} Applying config and restarting (job {job.id}).",
     )
 
 
-def disable_instance_telemetry_logic(instance_id, previous_status=None):
+def disable_instance_telemetry_logic(instance_id, previous_status=None, queue_apply=True):
     """Switches telemetry off: qlx_statsHubUnifiedEnabled 0, the relay route
-    dropped, apply + restart. The reserved server_id is kept (and stays in
-    server.cfg) so a re-enable gets the same one. Returns (ok, message)."""
+    dropped, apply + restart (`queue_apply` False: the caller does). The
+    reserved server_id is kept (and stays in server.cfg) so a re-enable gets
+    the same one. Returns (ok, message)."""
     instance = db.session.get(QLInstance, instance_id)
     if not instance:
         return False, "Instance or associated host not found."
@@ -295,6 +304,10 @@ def disable_instance_telemetry_logic(instance_id, previous_status=None):
         " Pushing the relay's routes failed; the relay keeps this instance's "
         "route until its next push.")
 
+    kept = f" server_id {server_id} stays reserved." if server_id else ''
+    if not queue_apply:
+        return _finish(instance, True, f"Telemetry disabled.{kept}{warning}")
+
     from ui.tasks import apply_instance_config, enqueue_task
     from ui.task_logic.job_failure_handlers import instance_job_failure_handler
 
@@ -308,7 +321,6 @@ def disable_instance_telemetry_logic(instance_id, previous_status=None):
         return _finish(instance, False, "Telemetry switched off in server.cfg, but queuing the "
                        "config apply/restart failed." + warning, previous_status)
 
-    kept = f" server_id {server_id} stays reserved." if server_id else ''
     return _finish(
         instance, True,
         f"Telemetry disabled.{kept}{warning} Applying config and restarting (job {job.id}).",
