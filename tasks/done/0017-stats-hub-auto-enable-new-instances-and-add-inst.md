@@ -1,10 +1,10 @@
 ---
 id: qlsm-extra-0017
 title: Stats Hub: auto-enable new instances and add-instance tab
-status: done-unverified
+status: done
 created: 2026-10-19
-updated: 2026-10-19
-verified:
+updated: 2026-10-20
+verified: 2026-10-20
 depends_on: [qlsm-0016]
 related: [qlsm-extra-0015, qlsm-extra-0016]
 ---
@@ -34,6 +34,7 @@ related: [qlsm-extra-0015, qlsm-extra-0016]
 - 2026-10-19 - qlsm-0016 pushed as `upstream-pr/add-instance-addon-hook` (0a1d45e5): `instance.created` (ungated, own `addon_options` per addon) + `ui.add_instance_tabs`.
 - 2026-10-19 - telemetry-relay 1.8.0 / demo-stream 1.8.0 on `feat/stats-hub-auto-enable`: setting "Switch on new instances" (AppSetting `stats_hub_auto_enable_new_instances`, in the Telemetry Stats Hub settings panel), tab "Stats Hub" (telemetry, demo_stream, optional server_id; prefill `GET add-instance`), handler `new_instance.prepare_new_instance`. One id: telemetry-relay reserves it (or takes the manual one) and stores it as its reserved id, then calls demo-stream's `prepare_new_instance` (published on its backend module), whose `_resolve_server_id` takes telemetry's id on the same hub; demo-stream registers no hook of its own because dispatch order is demo-stream < telemetry-relay. No apply/restart; only the relay's route push is queued (host sidecar config). Missing relay/tunnel/addon/hub -> "Stats Hub: ..." line in the instance log. Hook registered only when the core has it (older core: addon still loads, tab not shown).
 - 2026-10-19 - main 191d5ec запушен; на проде установлены telemetry-relay 1.8.0 и demo-stream 1.8.0 из репозитория, qlsm перезапущен; хук `instance.created` у telemetry-relay зарегистрирован, вкладка `add_instance_tabs` в манифесте; настройка автовключения пока не включена (AppSetting отсутствует)
+- 2026-10-20 - оператор проверил на проде: ок, закрыто
 
 ## Результат
 
