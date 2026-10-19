@@ -141,3 +141,19 @@ def set_new_server_id_at(instance_id, when):
 
 def utcnow():
     return datetime.now(timezone.utc)
+
+
+# "Switch on new instances": a new instance gets telemetry and the live demo
+# stream from its first deploy, under one reserved server ID (see
+# new_instance.py). Global, in AppSetting next to the stats-hub URL it goes
+# with.
+_AUTO_ENABLE_KEY = 'stats_hub_auto_enable_new_instances'
+
+
+def is_auto_enable_new_instances():
+    return _get(_AUTO_ENABLE_KEY) == '1'
+
+
+def set_auto_enable_new_instances(enabled):
+    """Does not commit."""
+    _set(_AUTO_ENABLE_KEY, '1' if enabled else '')

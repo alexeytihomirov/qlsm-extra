@@ -141,7 +141,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 
 | Addon | Role |
 |-------|------|
-| `telemetry-relay` | Per-host relay that forwards `stream_telemetry_unified` data to ql-stats-hub. Turn it on per host (host menu, **Telemetry Relay**), then per instance with the **Send telemetry** switch in its **Telemetry** menu entry; the server ID is reserved automatically and shown in the entry's status |
+| `telemetry-relay` | Per-host relay that forwards `stream_telemetry_unified` data to ql-stats-hub. Turn it on per host (host menu, **Telemetry Relay**), then per instance with the **Send telemetry** switch in its **Telemetry** menu entry; the server ID is reserved automatically and shown in the entry's status. **Switch on new instances** in its settings (or the **Stats Hub** tab of the Add Instance form) sets up telemetry and the live demo stream before the first deploy |
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
 | `demo-stream` | Live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub (host menu, **Demo Stream Tunnel**). Each instance's **Live Demo Stream** menu entry has the stream switch and the delay; a delay change applies on stats-hub without a restart. Relay and stats-hub are set in one **Live Demo Stream** settings section |
 | `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen. The `qlmatch_packer.py` plugin runs it when the engine finishes a match's demos |
@@ -239,6 +239,25 @@ Telemetry / Live Demo Stream entry runs them when those layers are off or
 `server.cfg` still has the cvars, also for an instance that is switched off.
 The stream remembers the tunnel port it was wired to, so a changed host
 tunnel port still shows as drift until a save.
+
+**telemetry-relay 1.8.0, demo-stream 1.8.0:** Settings -> **Telemetry Stats
+Hub** has **Switch on new instances**. With it on, a new instance gets
+telemetry and the live demo stream before its first deploy: one server ID is
+reserved once (telemetry-relay reserves it, demo-stream takes the same one
+whenever both use the same stats-hub), the addon layers are switched on and
+the `+set` launch args are in the very first start, so there is no extra
+apply or restart. The Add Instance form has a **Stats Hub** tab (from
+telemetry-relay) with both switches, prefilled from that setting, and an
+optional **Server ID** to use instead of reserving one. What a host cannot do
+yet (Telemetry Relay off, no Demo Stream Tunnel, Live Demo Stream addon
+switched off, hub unreachable) is skipped with a "Stats Hub: ..." line in the
+instance log; switch that on and save the instance's panel as before. Needs a
+qlsm with the `instance.created` hook and the `add_instance_tabs` mount point
+(upstream PR `upstream-pr/add-instance-addon-hook`); on an older qlsm the
+setting is shown but nothing happens on create and the tab does not appear,
+everything else works as in 1.7.1. Update both addons together: the stream
+part runs demo-stream 1.8.0's set-up, an older demo-stream is reported in the
+log instead.
 
 **player-ranks 0.4.0:** the installation-wide "on by default" switches for
 qlstats and Slipgate are gone; each instance picks its sources on its own

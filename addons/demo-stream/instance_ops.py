@@ -322,3 +322,59 @@ def disable_instance_demo_stream_logic(instance_id, previous_status=None):
         instance, True,
         f"Live demo stream disabled. Applying config and restarting (job {job.id}).",
     )
+
+
+def prepare_new_instance(instance_id):
+    """The enable for an instance that has not been deployed yet, called by
+    telemetry-relay's `instance.created` handler (see that addon's
+    new_instance.py) after it stored the instance's server ID. Same steps as
+    enable_instance_demo_stream_logic minus the apply + restart and the
+    status handling: the first deploy passes the `+set` launch args.
+
+    The server ID comes from _resolve_server_id, so it is telemetry's
+    whenever both addons use the same stats-hub; only a different stats-hub
+    gets an ID of its own. Returns (ok, message); never raises for a
+    missing prerequisite or an unreachable hub."""
+    instance = db.session.get(QLInstance, instance_id)
+    if not instance or not instance.host:
+        return False, "live demo stream not switched on: instance or host not found."
+    host_id = instance.host_id
+    if not is_relay_configured():
+        return False, ("live demo stream not switched on: configure the demo-stream relay "
+                       "host/port in Settings first.")
+    if not is_stats_hub_configured_for_host(host_id):
+        return False, ("live demo stream not switched on: configure the demo stream's "
+                       "stats-hub URL/ingest token in Settings first.")
+    if not is_host_tunnel_enabled(host_id):
+        return False, ("live demo stream not switched on: enable the Demo Stream Tunnel on host "
+                       f"{instance.host.name} first, then switch it on in the instance's panel.")
+
+    shared = telemetry_server_id_on_same_hub(instance.id, host_id) is not None
+    try:
+        server_id = _resolve_server_id(instance, host_id)
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        current_app.logger.error(
+            f"Demo-stream: no server_id for new instance {instance.id}: {exc}")
+        return False, f"live demo stream not switched on: could not reserve a server_id ({exc})."
+
+    token = get_instance_demo_stream_token(instance.id) or secrets.token_hex(24)
+    try:
+        _register_route(host_id, server_id, instance.name, token)
+    except requests.RequestException as exc:
+        current_app.logger.error(
+            f"Demo-stream: route for new instance {instance.id} not registered: {exc}")
+        return False, f"live demo stream not switched on: could not register its route ({exc})."
+
+    set_instance_demo_stream_token(instance.id, token)
+    set_instance_stream_port(instance.id, get_host_tunnel_port(host_id))
+    db.session.commit()
+    _write_cvars(instance, {
+        'sv_demoStream': '1',
+        'sv_demoStreamHost': '127.0.0.1',
+        'sv_demoStreamPort': get_host_tunnel_port(host_id),
+        'sv_demoStreamToken': token,
+    })
+    set_instance_demo_stream_enabled(instance.id, True)
+    db.session.commit()
+    own = '' if shared else " (its own stats-hub, so its own server ID)"
+    return True, f"live demo stream on, server ID {server_id}{own}."

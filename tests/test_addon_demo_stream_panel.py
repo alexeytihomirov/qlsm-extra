@@ -500,7 +500,7 @@ def test_settings_need_a_login(client):
 
 def test_manifest_one_instance_entry_with_status():
     m = json.loads((ADDONS_DIR / 'demo-stream' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.7.1'
+    assert m['version'] == '1.8.0'
     ui = m['ui']
     (entry,) = ui['instance_menu']
     assert entry['id'] == 'demo-stream' and entry['label'] == 'Live Demo Stream'

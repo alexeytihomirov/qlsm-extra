@@ -233,11 +233,14 @@ def update_host_relay(host_id):
 @bp.route('/stats-hub', methods=['GET'], endpoint='get_stats_hub')
 @jwt_required()
 def get_stats_hub():
-    from .settings import get_stats_hub_ingest_token, get_stats_hub_url
+    from .settings import (
+        get_stats_hub_ingest_token, get_stats_hub_url, is_auto_enable_new_instances,
+    )
 
     return jsonify({"data": {
         'url': get_stats_hub_url() or '',
         'ingest_token': get_stats_hub_ingest_token() or '',
+        'auto_enable_new_instances': is_auto_enable_new_instances(),
     }})
 
 
@@ -247,18 +250,41 @@ def update_stats_hub():
     """Cluster-wide stats-hub target. Same AppSetting keys the built-in
     Settings page writes, so the two cannot disagree while both exist."""
     from ui import db
-    from .settings import set_stats_hub_ingest_token, set_stats_hub_url
+    from .settings import (
+        is_auto_enable_new_instances, set_auto_enable_new_instances,
+        set_stats_hub_ingest_token, set_stats_hub_url,
+    )
 
     data = request.get_json(silent=True) or {}
     url = data.get('url', '')
     token = data.get('ingest_token', '')
     if not isinstance(url, str) or not isinstance(token, str):
         return jsonify({"error": {"message": "url and ingest_token must be strings."}}), 400
+    auto = data.get('auto_enable_new_instances')
+    if auto is not None and not isinstance(auto, bool):
+        return jsonify({"error": {"message": "auto_enable_new_instances must be true or false."}}), 400
 
     set_stats_hub_url(url)
     set_stats_hub_ingest_token(token)
+    if auto is not None:
+        set_auto_enable_new_instances(auto)
     db.session.commit()
-    return jsonify({"data": {'url': url.strip().rstrip('/'), 'ingest_token': token.strip()}})
+    return jsonify({"data": {
+        'url': url.strip().rstrip('/'),
+        'ingest_token': token.strip(),
+        'auto_enable_new_instances': is_auto_enable_new_instances(),
+    }})
+
+
+@bp.route('/add-instance', methods=['GET'], endpoint='get_add_instance_defaults')
+@jwt_required()
+def get_add_instance_defaults():
+    """Prefill of the Add Instance form's Stats Hub tab (`host_id` is passed
+    by core and not needed yet): both switches follow "Switch on new
+    instances", no manual server ID."""
+    from .new_instance import tab_defaults
+
+    return jsonify({"data": tab_defaults()})
 
 
 def _instance_or_error(instance_id):
@@ -532,7 +558,16 @@ def register(ctx):
 
         return disable_instance_telemetry_logic(instance_id, previous_status=previous_status)
 
+    @ctx.task(timeout=120)
+    def push_host_relay_routes(host_id):
+        """Re-render the relay's routes on a host (a new instance's server ID).
+        Touches the relay sidecar's config only, no game server."""
+        from .relay_ops import push_relay_config_logic
+
+        return push_relay_config_logic(host_id)
+
     TASKS['configure_host_relay'] = configure_host_relay
+    TASKS['push_host_relay_routes'] = push_host_relay_routes
     TASKS['enable_instance_telemetry'] = enable_instance_telemetry_task
     TASKS['disable_instance_telemetry'] = disable_instance_telemetry_task
 
@@ -546,6 +581,18 @@ def register(ctx):
 
         return [f'+set {name} "{value}"'
                 for name, value in telemetry_launch_cvars(instance_id).items()]
+
+    # qlsm with the Add Instance addon tab only; an older core has no such
+    # hook and ctx.on() would mark the whole addon broken.
+    from ui.addons.hooks import HOOK_SCOPES
+    if 'instance.created' in HOOK_SCOPES:
+        @ctx.on('instance.created')
+        def prepare_new_instance(instance_id, options):
+            """Telemetry and the live demo stream for a new instance under one
+            server ID, before its first deploy; see new_instance.py."""
+            from .new_instance import prepare_new_instance as prepare
+
+            prepare(instance_id, options, push_routes=TASKS.get('push_host_relay_routes'))
 
     @ctx.on('instance.config_applied')
     def resync_server_id(instance_id):

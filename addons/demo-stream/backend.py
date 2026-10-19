@@ -783,6 +783,18 @@ def _set_delay(instance, delay):
 TASKS = {}
 
 
+def prepare_new_instance(instance_id):
+    """Switch the stream on for an instance that is about to get its first
+    deploy, without an apply or restart. Not a hook of this addon: called by
+    telemetry-relay's `instance.created` handler once it stored the
+    instance's server ID (hooks run in addon-id order, this addon first, so
+    a handler here would run before that ID exists). Looked up on this
+    module by name; returns (ok, message)."""
+    from .instance_ops import prepare_new_instance as prepare
+
+    return prepare(instance_id)
+
+
 def register(ctx):
     ctx.blueprint(bp)
 

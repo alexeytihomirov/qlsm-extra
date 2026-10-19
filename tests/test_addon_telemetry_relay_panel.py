@@ -280,7 +280,7 @@ def test_status_labels(app, client, auth, cfg, stored, relay, ok, label):
 
 def test_manifest_telemetry_in_instance_menu():
     m = json.loads((ADDONS_DIR / 'telemetry-relay' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.7.1'
+    assert m['version'] == '1.8.0'
     ui = m['ui']
     assert 'instance_tabs' not in ui
     (entry,) = ui['instance_menu']

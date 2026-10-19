@@ -67,21 +67,22 @@ def addon_id():
 
 @pytest.fixture
 def app(tmp_path, monkeypatch, addon_id):
-    """A qlsm app with exactly one addon installed, from the volume."""
+    """A qlsm app with the addon under test installed, from the volume.
+    `addon_id` may also be a tuple, for tests of addons working together."""
     from ui import create_app, db
     from ui.addons import registry
 
-    source = ADDONS_DIR / addon_id
-    assert source.is_dir(), f'no addon named {addon_id} in this repo'
-
     packages = tmp_path / 'addon-packages'
     packages.mkdir()
-    shutil.copytree(
-        source, packages / addon_id,
-        ignore=shutil.ignore_patterns('node_modules', 'ui-src', '__pycache__',
-                                      'package.json', 'package-lock.json',
-                                      'vite.config.js'),
-    )
+    for one_id in (addon_id if isinstance(addon_id, tuple) else (addon_id,)):
+        source = ADDONS_DIR / one_id
+        assert source.is_dir(), f'no addon named {one_id} in this repo'
+        shutil.copytree(
+            source, packages / one_id,
+            ignore=shutil.ignore_patterns('node_modules', 'ui-src', '__pycache__',
+                                          'package.json', 'package-lock.json',
+                                          'vite.config.js'),
+        )
 
     # Installed-only: drop qlsm's bundled addons/ dir from the scan so a
     # stale copy there could never be what these tests exercise.
