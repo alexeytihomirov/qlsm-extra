@@ -244,6 +244,6 @@ def test_manifest_declares_host_relay_status(app):
     import json
     from conftest import ADDONS_DIR
     manifest = json.loads((ADDONS_DIR / 'telemetry-relay' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert manifest['version'] == '1.9.0'
+    assert manifest['version'] == '1.10.0'
     assert manifest['ui']['panels']['host_stats_hub']['status'] == {
         'load': 'GET hub/hosts/{host_id}/status'}

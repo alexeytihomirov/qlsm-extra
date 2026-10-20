@@ -62,6 +62,7 @@ _stats: dict[str, Any] = {
     "dropped_busy": 0,
     "dropped_no_route": 0,
     "queue_depth_max": 0,
+    "telemetry_coalesced": 0,
     "forward_errors": 0,
     "last_forward_at": None,
     "last_error": None,
@@ -106,7 +107,11 @@ def _forward_error_reply(exc: Exception, server_id: Any) -> tuple[int, dict[str,
 
 
 class _StreamForwarder:
-    """Sequential forward queue — never drop under burst."""
+    """Sequential forward queue over one kept-open connection.
+
+    A queued job with a `key` is a state sample (telemetry): a newer sample with the same key
+    replaces it in place, so a link slower than the samples never builds a backlog. Jobs
+    without a key are never dropped."""
 
     def __init__(self, name: str) -> None:
         self._name = name
@@ -114,6 +119,42 @@ class _StreamForwarder:
         self._forward_lock = threading.Lock()
         self._queue: list[dict[str, Any]] = []
         self._worker: threading.Thread | None = None
+        self._conn: http.client.HTTPConnection | None = None
+        self._conn_target: tuple[str, str, int, float] | None = None
+
+    def _close_conn(self) -> None:
+        if self._conn is not None:
+            try:
+                self._conn.close()
+            except OSError:
+                pass
+        self._conn = None
+        self._conn_target = None
+
+    def _post_once(self, target: tuple[str, str, int, float], path: str, token: str, body: bytes) -> int:
+        scheme, host, port, timeout = target
+        if self._conn is None or self._conn_target != target:
+            self._close_conn()
+            if scheme == "https":
+                self._conn = http.client.HTTPSConnection(host, port, timeout=timeout)
+            else:
+                self._conn = http.client.HTTPConnection(host, port, timeout=timeout)
+            self._conn_target = target
+        try:
+            self._conn.request(
+                "POST",
+                path,
+                body=body,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+            )
+            resp = self._conn.getresponse()
+            resp.read()
+        except BaseException:
+            self._close_conn()
+            raise
+        if resp.will_close:
+            self._close_conn()
+        return resp.status
 
     def _forward_post(self, url: str, token: str, body: bytes, timeout: float) -> None:
         parsed = urlparse(url)
@@ -125,31 +166,27 @@ class _StreamForwarder:
         path = parsed.path or "/"
         if parsed.query:
             path = f"{path}?{parsed.query}"
+        target = (scheme, host, port, timeout)
         with self._forward_lock:
-            if scheme == "https":
-                conn = http.client.HTTPSConnection(host, port, timeout=timeout)
-            else:
-                conn = http.client.HTTPConnection(host, port, timeout=timeout)
+            reused = self._conn is not None and self._conn_target == target
             try:
-                conn.request(
-                    "POST",
-                    path,
-                    body=body,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {token}",
-                        "Connection": "close",
-                    },
-                )
-                resp = conn.getresponse()
-                resp.read()
-                if resp.status >= 400:
-                    raise UpstreamHTTPError(resp.status)
-            finally:
-                try:
-                    conn.close()
-                except OSError:
-                    pass
+                status = self._post_once(target, path, token, body)
+            except (http.client.RemoteDisconnected, ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+                # A kept-open connection the hub (or a proxy on the way) closed while idle:
+                # the request never got through, send it once more on a new connection.
+                if not reused:
+                    raise
+                status = self._post_once(target, path, token, body)
+            if status >= 400:
+                raise UpstreamHTTPError(status)
+
+    def queue_state(self) -> tuple[int, float | None]:
+        """(queued jobs, seconds the oldest one waits), the job in flight not counted."""
+        with self._lock:
+            if not self._queue:
+                return 0, None
+            oldest = min(job["queued_at"] for job in self._queue)
+            return len(self._queue), round(time.monotonic() - oldest, 1)
 
     def forward_now(
         self,
@@ -176,17 +213,26 @@ class _StreamForwarder:
         body: bytes,
         timeout: float,
         counter_key: str,
+        key: str | None = None,
     ) -> str:
+        job = {
+            "url": url,
+            "token": token,
+            "body": body,
+            "timeout": timeout,
+            "counter_key": counter_key,
+            "key": key,
+            "queued_at": time.monotonic(),
+        }
         with self._lock:
-            self._queue.append(
-                {
-                    "url": url,
-                    "token": token,
-                    "body": body,
-                    "timeout": timeout,
-                    "counter_key": counter_key,
-                }
-            )
+            for i, queued in enumerate(self._queue):
+                if key is not None and queued["key"] == key:
+                    self._queue[i] = job
+                    with _stats_lock:
+                        counter = f"{self._name}_coalesced"
+                        _stats[counter] = int(_stats.get(counter) or 0) + 1
+                    return "replaced"
+            self._queue.append(job)
             depth = len(self._queue)
             if depth > 1:
                 with _stats_lock:
@@ -222,6 +268,8 @@ class _StreamForwarder:
                 if retries < 2:
                     job["retries"] = retries + 1
                     with self._lock:
+                        if job["key"] is not None and any(q["key"] == job["key"] for q in self._queue):
+                            continue  # a newer sample of the same server is already queued
                         self._queue.insert(0, job)
                         if self._worker is None or not self._worker.is_alive():
                             self._worker = threading.Thread(
@@ -318,6 +366,7 @@ def _health_payload() -> dict[str, Any]:
         cfg = dict(_config)
     with _stats_lock:
         st = dict(_stats)
+    st["telemetry_queue_depth"], st["telemetry_queue_oldest_sec"] = _telemetry_forwarder_get().queue_state()
     return {
         "ok": True,
         "service": "ql-telemetry-relay",
@@ -546,6 +595,7 @@ class RelayHandler(BaseHTTPRequestHandler):
             body=forward_body,
             timeout=timeout,
             counter_key=counter_key,
+            key=str(route.get("server_id") or payload.get("server_id")),
         )
         self._send_json(
             HTTPStatus.ACCEPTED,

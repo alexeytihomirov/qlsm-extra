@@ -45,6 +45,8 @@
         owner: ql
         group: ql
         mode: '0755'
+      # new relay code only runs after a restart; without this an update kept the old process
+      notify: reload systemd and (re)start telemetry relay
 
     - name: Render telemetry-relay.json config
       copy:

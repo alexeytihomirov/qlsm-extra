@@ -1,6 +1,6 @@
 {
   "id": "telemetry-relay",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "name": "Telemetry Relay",
   "description": "Sends live telemetry (positions, item pickups, match events) from game instances to ql-stats-hub through a relay on each host, and owns the Stats Hub entries: one host entry, one instance entry and one settings section for telemetry and the live demo stream (the stream itself needs the Live Demo Stream addon 1.9.0 or newer). Needs the stream_telemetry_unified plugin on the instances.",
   "scopes": ["global", "host", "instance"],

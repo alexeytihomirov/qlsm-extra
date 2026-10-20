@@ -282,7 +282,7 @@ def test_manifest_telemetry_in_instance_menu():
     """1.9.0: one Stats Hub entry per menu and one settings section, for
     telemetry and the live demo stream together."""
     m = json.loads((ADDONS_DIR / 'telemetry-relay' / 'qlsm-addon.json').read_text(encoding='utf-8'))
-    assert m['version'] == '1.9.0'
+    assert m['version'] == '1.10.0'
     ui = m['ui']
     assert 'instance_tabs' not in ui
     (entry,) = ui['instance_menu']
