@@ -3,7 +3,7 @@ id: qlsm-extra-0018
 title: Forfeit leaver has no engine stats in match_end
 status: in-progress
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-10-21
 verified:
 depends_on: []
 related: [docs/superpowers/specs/2026-10-15-tournament-player-stats-design.md]
@@ -28,13 +28,17 @@ related: [docs/superpowers/specs/2026-10-15-tournament-player-stats-design.md]
 - [x] Тест: спектатор со счетом получает stats, спектатор без игры - нет
 - [x] Фикс в `_player_summary`
 - [x] Манифест, merge в main, push
-- [ ] Обновить плагин на серверах (qlsm, Plugins) - оператор, вне идущих матчей
+- [x] Снимок строки и stats в момент ухода (`team_switch_attempt`, `player_disconnect`), подстановка в match_end
+- [ ] Обновить плагин на серверах (qlsm, Plugins) - вне идущих матчей
 - [ ] Проверить на новой тех. победе
 
 ## Журнал
 
 - 2026-10-20 - created; причина найдена по данным прода
 - 2026-10-20 - фикс `96b737b` в `origin/main` (тесты `tests/test_telemetry_player_stats.py`, `tests/test_telemetry_winner.py`: 14 passed); на серверы не выкатывал - ждет оператора
+
+- 2026-10-21 - оператор: статистика ушедшего все еще неполная. Проверено: исправленный плагин (`96b737b`) лежит на всех хостах с 2026-10-20 16:31 UTC, но в match_end всех технических побед 2026-10-20 у ушедшего строка 0/0/0 (`spectator`). Предположение выше неверно: к game_end движок уже обнулил и счет, и expandedStats ушедшего (у daz 7/11 на сайте были из ленты фрагов хаба, не из match_end). NN QLDS работал со старым плагином до рестарта 2026-10-20 21:16 UTC, но и новый не помог бы
+- 2026-10-21 - фикс: плагин снимает строку и stats игрока до смены команды (`team_switch_attempt` из SetTeam, до перемещения) и при отключении (`player_disconnect`, до SV_DropClient), только пока идет матч; в match_end ушедший - зритель со снятыми строкой и stats, отключившийся добавляется зрителем. Тесты `tests/test_telemetry_player_stats.py` и соседние: 59 passed
 
 ## Результат
 

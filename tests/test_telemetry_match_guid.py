@@ -51,6 +51,7 @@ def _plugin(monkeypatch, configstring, last_end_guid=None):
         _pause_lifecycle_open=False,
         _post_session_lifecycle_now=lambda kind, *, game_time_ms=None, meta=None: posted.append((kind, meta)),
         _last_end_guid=last_end_guid,
+        _left_players={},
         logger=_Log(),
     )
     return p, posted, calls

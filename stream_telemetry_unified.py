@@ -396,6 +396,9 @@ class stream_telemetry_unified(minqlx.Plugin):
         # the next game starts, and it must not tie that game to the old one.
         self._last_end_guid = None
         self._last_sv_paused = None
+        # steam id -> player summary taken when that player left the running game (to the
+        # spectators or off the server): by game_end the engine has zeroed his line and stats.
+        self._left_players = {}
 
         # --- cvars (shared with the three standalone plugins, plus the one new switch) ---
         self.set_cvar_once("qlx_statsHubFeedPositions", "0")
@@ -442,6 +445,8 @@ class stream_telemetry_unified(minqlx.Plugin):
             self.add_hook("player_spawn", self.on_player_spawn, priority=minqlx.Priority.LOWEST)
         if self._has_dispatcher("team_switch"):
             self.add_hook("team_switch", self.on_team_switch, priority=minqlx.Priority.LOWEST)
+        if self._has_dispatcher("team_switch_attempt"):
+            self.add_hook("team_switch_attempt", self.on_team_switch_attempt, priority=minqlx.Priority.LOWEST)
         if self._has_dispatcher("round_start"):
             self.add_hook("round_start", self.on_round_start, priority=minqlx.Priority.LOWEST)
         if self._has_dispatcher("round_end"):
@@ -1875,6 +1880,34 @@ class stream_telemetry_unified(minqlx.Plugin):
                 rows.append(row)
         return rows
 
+    def _keep_leaver(self, player):
+        """Remember what a player had when leaving the running game; see _add_leavers."""
+        if not self._session_match_running:
+            return
+        try:
+            row = self._player_summary(player)
+        except Exception as exc:  # never break a disconnect or a team change
+            self.logger.warning("stream_telemetry_unified: keeping a leaver's stats failed: %s", exc)
+            return
+        if row and row["team"] != "spectator":
+            self._left_players[row["steam_id64"]] = row
+
+    def _add_leavers(self, rows):
+        """A player who left the running game ends it as a spectator with the line and stats he
+        had when leaving (a duel forfeit): the engine has zeroed both by game_end. One who came
+        back keeps his own row."""
+        by_steam = {r["steam_id64"]: r for r in rows}
+        for steam, kept in self._left_players.items():
+            row = by_steam.get(steam)
+            if row is None:
+                rows.append(dict(kept, team="spectator"))
+            elif row["team"] == "spectator" and not (row["score"] or row["kills"] or row["deaths"]):
+                row.update(score=kept["score"], kills=kept["kills"], deaths=kept["deaths"])
+                if "stats" in kept:
+                    row["stats"] = kept["stats"]
+                else:
+                    row.pop("stats", None)
+
     def _winner_steam_id64(self, players, aborted=False):
         if not players:
             return None
@@ -1963,6 +1996,7 @@ class stream_telemetry_unified(minqlx.Plugin):
 
     def on_game_start(self):
         self._session_match_running = True
+        self._left_players = {}
         if stats_hub_pause is not None:
             stats_hub_pause.reset_pause_state()
         self._last_game_time_ms = 0
@@ -1986,6 +2020,8 @@ class stream_telemetry_unified(minqlx.Plugin):
 
     def on_game_end(self, aborted):
         players = self._collect_player_summaries()
+        self._add_leavers(players)
+        self._left_players = {}
         meta = {
             "players": players,
             "timelimit_sec": self._timelimit_sec(),
@@ -2050,6 +2086,7 @@ class stream_telemetry_unified(minqlx.Plugin):
         self._enqueue_session("connect", player)
 
     def on_player_disconnect(self, player, reason):
+        self._keep_leaver(player)
         self._invalidate_fov_cache(self._steam_str(player))
         self._enqueue_session("disconnect", player, meta={"reason": reason})
 
@@ -2074,6 +2111,12 @@ class stream_telemetry_unified(minqlx.Plugin):
         except (AttributeError, TypeError, ValueError, minqlx.EngineStateError):
             pass
         self._enqueue_session("spawn", player, meta=meta)
+        return minqlx.Return.NONE
+
+    def on_team_switch_attempt(self, player, old_team, new_team, *args):
+        # Before SetTeam moves him: the engine still has his line and stats.
+        if str(new_team) == "spectator" and str(old_team) != "spectator":
+            self._keep_leaver(player)
         return minqlx.Return.NONE
 
     def on_team_switch(self, player, old_team, new_team):

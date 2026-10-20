@@ -106,6 +106,7 @@ def _plugin(expanded_by_steam, teams, lines=None):
         _pause_lifecycle_open=False,
         _post_session_lifecycle_now=lambda kind, *, game_time_ms=None, meta=None: posted.append((kind, meta)),
         _last_end_guid=None,
+        _left_players={},
         logger=_Log(),
     )
     return p, posted
@@ -140,6 +141,63 @@ def test_forfeit_leaver_in_spectators_keeps_stats():
     by = {r["steam_id64"]: r for r in meta["players"]}
     assert by[B]["stats"]["kills"] == 7
     assert meta["winner_steam_id64"] == A
+
+
+def _running(p):
+    p._session_match_running = True
+    p._left_players = {}
+    p._invalidate_fov_cache = lambda steam: None
+    p._enqueue_session = lambda *args, **kwargs: None
+    return p
+
+
+def _zero_out(player, expanded_by_steam):
+    # What the engine does to a player who leaves the game: line and stats start again.
+    player.stats = SimpleNamespace(score=0, kills=0, deaths=0)
+    expanded_by_steam[player.steam] = _expanded(kills=0, deaths=0, damage_dealt=0)
+
+
+def test_duel_leaver_to_spectators_keeps_what_he_had_when_leaving():
+    expanded = {A: _expanded(kills=11), B: _expanded(kills=7, damage_dealt=2500)}
+    p, posted = _plugin(expanded, {A: "free", B: "free"}, {A: (11, 11, 7), B: (7, 7, 11)})
+    _running(p)
+    b = next(pl for pl in p.players() if pl.steam == B)
+    p.on_team_switch_attempt(b, "free", "spectator", "s")
+    b.team = "spectator"
+    _zero_out(b, expanded)
+    p.on_game_end(True)
+    meta = posted[-1][1]
+    by = {r["steam_id64"]: r for r in meta["players"]}
+    assert by[B]["team"] == "spectator"
+    assert (by[B]["score"], by[B]["kills"], by[B]["deaths"]) == (7, 7, 11)
+    assert by[B]["stats"]["kills"] == 7 and by[B]["stats"]["dmg_dealt"] == 2500
+    assert meta["winner_steam_id64"] == A
+    assert p._left_players == {}  # the next game starts clean
+
+
+def test_duel_leaver_who_disconnected_is_listed_as_a_spectator_with_his_stats():
+    expanded = {A: _expanded(kills=11), B: _expanded(kills=4)}
+    p, posted = _plugin(expanded, {A: "free", B: "free"}, {A: (11, 11, 4), B: (4, 4, 11)})
+    _running(p)
+    b = next(pl for pl in p.players() if pl.steam == B)
+    p.on_player_disconnect(b, "disconnected")
+    p.players().remove(b)
+    p.on_game_end(True)
+    meta = posted[-1][1]
+    by = {r["steam_id64"]: r for r in meta["players"]}
+    assert by[B]["team"] == "spectator" and by[B]["kills"] == 4 and by[B]["stats"]["kills"] == 4
+    assert meta["winner_steam_id64"] == A
+
+
+def test_nothing_is_kept_outside_a_running_game():
+    expanded = {A: _expanded(), B: _expanded()}
+    p, posted = _plugin(expanded, {A: "free", B: "free"}, {B: (0, 0, 0)})
+    _running(p)
+    p._session_match_running = False  # warmup
+    b = next(pl for pl in p.players() if pl.steam == B)
+    p.on_team_switch_attempt(b, "free", "spectator", "s")
+    p.on_player_disconnect(b, "disconnected")
+    assert p._left_players == {}
 
 
 def test_expanded_stats_none_has_no_stats():
