@@ -1,9 +1,9 @@
 ---
 id: qlsm-extra-0019
 title: Telemetry relay falls hours behind on a slow link
-status: in-progress
+status: done-unverified
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-10-21
 verified:
 depends_on: []
 related: [qlsm-extra-0018, ql-stats-hub-0018, root-0023]
@@ -28,14 +28,18 @@ Relay телеметрии на хосте не отстает от игры: п
 - [x] 2026-10-20 21:34 UTC: `ql-telemetry-relay` на NN перезапущен по команде оператора (QLDS не затронуты), позиции стали живыми
 - [x] Тесты: схлопывание по серверу, одно соединение, переподключение, длина/возраст очереди в `/health`
 - [x] Фикс relay, notify на копировании relay.py, аддон 1.10.0
-- [ ] Merge, push
-- [ ] Обновить аддон в qlsm и разослать relay на хосты; проверить `/health` на NN
+- [x] Merge, push (`eb827c1`)
+- [x] Аддон 1.10.0 поставлен в qlsm из репозитория, relay разослан на все 8 хостов (`push_relay_config_logic`), `/health` проверен
 
 ## Журнал
 
-- 2026-10-20 - created; relay на NN перезапущен; фикс и тесты
+- 2026-10-20 - created; relay на NN перезапущен; фикс и тесты (`tests/test_relay_telemetry_backlog.py`, `tests/test_relay_forward_status.py`, manifest-тесты аддона)
+- 2026-10-20 22:01 UTC - telemetry-relay 1.10.0 установлен в prod qlsm из репозитория qlsm-extra (без рестарта qlsm: изменены только relay.py, playbook и версия)
+- 2026-10-20 22:03-22:05 UTC - relay разослан на хосты 1, 3-9; у всех в `/health` есть `telemetry_queue_depth`, очереди 0-1; NN: за 30 с 260 принято, 250 отправлено (было 5,9/с, стало ~8,3/с), 9 схлопнуто; QLDS не перезапускались (время старта `qlds@*` раньше рассылки)
 
 ## Результат
+
+Relay держит одно соединение с хабом и при отставании заменяет устаревший снимок сервера в очереди новым; в `/health` видны длина и возраст очереди. Обновление relay через playbook теперь перезапускает сервис. Раскатано на все хосты 2026-10-20.
 
 ## Как проверить
 
