@@ -1844,7 +1844,8 @@ class stream_telemetry_unified(minqlx.Plugin):
             "kills": kills,
             "deaths": deaths,
         }
-        if row["team"] != "spectator":
+        # A spectator with a score line played this game: a duel leaver who went to spectators (a forfeit).
+        if row["team"] != "spectator" or score or kills or deaths:
             engine_stats = self._engine_stats(player, steam)
             if engine_stats:
                 row["stats"] = engine_stats

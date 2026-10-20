@@ -72,14 +72,16 @@ def test_zero_weapons_omitted():
     assert empty["weapons"] == {}
 
 
-def _plugin(expanded_by_steam, teams):
+def _plugin(expanded_by_steam, teams, lines=None):
     posted = []
+    lines = lines or {}
 
     class _P:
         def __init__(self, steam):
             self.steam = steam
             self.team = teams[steam]
-            self.stats = SimpleNamespace(score=1, kills=1, deaths=0)
+            score, kills, deaths = lines.get(steam, (1, 1, 0))
+            self.stats = SimpleNamespace(score=score, kills=kills, deaths=deaths)
 
         @property
         def expanded_stats(self):
@@ -113,6 +115,7 @@ def test_spectator_and_failure_have_no_stats():
     p, posted = _plugin(
         {A: _expanded(), B: _expanded(), C: RuntimeError("boom")},
         {A: "free", B: "spectator", C: "free"},
+        {B: (0, 0, 0)},
     )
     p.on_game_end(False)
     by = {r["steam_id64"]: r for r in posted[-1][1]["players"]}
@@ -123,6 +126,20 @@ def test_spectator_and_failure_have_no_stats():
     warnings = [r for r in p.logger.records if r[0] == "warning" and "boom" in r[1]]
     assert len(warnings) == 1
     assert C in warnings[0][1]  # names the player whose stats could not be read
+
+
+def test_forfeit_leaver_in_spectators_keeps_stats():
+    # A duel player who went to spectators stopped the game; the engine still holds the game's numbers.
+    p, posted = _plugin(
+        {A: _expanded(), B: _expanded(kills=7)},
+        {A: "free", B: "spectator"},
+        {A: (11, 11, 7), B: (7, 7, 11)},
+    )
+    p.on_game_end(True)
+    meta = posted[-1][1]
+    by = {r["steam_id64"]: r for r in meta["players"]}
+    assert by[B]["stats"]["kills"] == 7
+    assert meta["winner_steam_id64"] == A
 
 
 def test_expanded_stats_none_has_no_stats():
