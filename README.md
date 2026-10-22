@@ -108,6 +108,11 @@ game's value; logged as a warning). It
 is the key that ties a hub result, a `.qlmatch` pack and a tournament game together
 (see `addons/qlmatch-packer/assets/README.md` for the manifest side).
 
+Every session event and item pickup carries `sample_wall_ms` (int ms of the game
+host's `time.time()` in the hook), the same clock as the positions' `sample_wall_ms`,
+so the hub can place it on the positions' time line instead of stamping it on arrival.
+The relay forwards it unchanged; a hub that does not know it ignores it.
+
 `match_end` also carries `players[].stats` for every non-spectator: the engine's own
 end-of-game numbers (`Player.expanded_stats`, minqlxtended fork), read once on the game
 thread. Shape: `time_ms`, `dmg_dealt`, `dmg_taken`, `kills`, `deaths`, `suicides`,

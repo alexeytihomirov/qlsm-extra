@@ -1529,6 +1529,7 @@ class stream_telemetry_unified(minqlx.Plugin):
                 "y": float(y),
                 "z": float(z),
                 "game_time": int(game_time),
+                "sample_wall_ms": int(time.time() * 1000),
             }
         )
         self._warn_items_queue_pressure()
@@ -1931,6 +1932,7 @@ class stream_telemetry_unified(minqlx.Plugin):
             "text": None,
             "game_time_ms": game_time_ms,
             "meta": meta or {},
+            "sample_wall_ms": int(time.time() * 1000),
         }
         if len(self._session_queue) >= self._SESSION_MAX_QUEUE:
             self._session_queue.pop(0)
@@ -2066,6 +2068,9 @@ class stream_telemetry_unified(minqlx.Plugin):
             "text": text,
             "game_time_ms": self._game_time_ms(),
             "meta": meta or {},
+            # The plugin's clock, as for positions: the hub places the event on the
+            # positions' time line instead of stamping it when it arrives.
+            "sample_wall_ms": int(time.time() * 1000),
         }
         if len(self._session_queue) >= self._SESSION_MAX_QUEUE:
             self._session_queue.pop(0)
