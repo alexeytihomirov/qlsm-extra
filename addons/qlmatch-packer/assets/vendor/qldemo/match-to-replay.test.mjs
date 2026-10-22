@@ -149,3 +149,40 @@ test("mergePositions carries map_name/gametype on every frame, not just the one-
     assert.equal(f.gametype, "duel");
   }
 });
+
+test("an explosion a second POV only sees late (up to 300 ms) merges into one, other impacts keep the short window", () => {
+  const boom = { kind: "explosion", weapon: 5, weapon_slug: "rocketlauncher", clientNum: 0, x: -443, y: -542, z: -91 };
+  const hit = { kind: "shaft", weapon: 6, weapon_slug: "lightninggun", clientNum: 1, x: 10, y: 20, z: 30 };
+  const povReplays = [
+    {
+      clientNum: 0,
+      replay: {
+        meta: baseMeta(),
+        events: [
+          { event: "impacts", game_time_ms: 1000, impacts: [boom] },
+          { event: "impacts", game_time_ms: 2000, impacts: [hit] },
+        ],
+      },
+    },
+    {
+      clientNum: 1,
+      replay: {
+        meta: baseMeta(),
+        events: [
+          { event: "impacts", game_time_ms: 1300, impacts: [boom] },
+          // the same spot 200 ms later is the next LG hit, not a repeat
+          { event: "impacts", game_time_ms: 2200, impacts: [hit] },
+        ],
+      },
+    },
+  ];
+  const merged = mergeReplays(povReplays);
+  const impacts = merged.events
+    .filter((e) => e.event === "impacts")
+    .flatMap((e) => e.impacts.map((i) => [e.game_time_ms, i.kind]));
+  assert.deepEqual(impacts, [
+    [1000, "explosion"],
+    [2000, "shaft"],
+    [2200, "shaft"],
+  ]);
+});

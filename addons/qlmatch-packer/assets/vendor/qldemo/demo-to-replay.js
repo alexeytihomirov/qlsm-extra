@@ -26,6 +26,8 @@ import {
   ET_GENERAL,
   EV_GLOBAL_ITEM_PICKUP,
   EV_ITEM_PICKUP,
+  EV_MISSILE_HIT,
+  EV_MISSILE_MISS,
   EV_OBITUARY,
   EV_RAIL_TRAIL,
   PROJECTILE_WEAPONS,
@@ -125,18 +127,31 @@ function yawFromEntity(ent) {
   return round1(y);
 }
 
-// LG has no dedicated network beam (unlike rail's EV_RAIL_TRAIL) and the
-// bullet-hit temp entities that could mark its wall impact carry no usable
-// weapon/shooter field in this protocol (verified empirically: always 0,
-// matching the same `es.weapon` field the real UDT viewer keys shaft-impact
-// matching off - so it's a wire-format gap, not a parser bug on our side).
-// Draw the beam along the shooter's aim direction like UDT's own fallback
-// does, but clip it to whichever live player it geometrically passes closest
-// to (lgBeamHitDistance) instead of always drawing the full LG_BEAM_LENGTH -
-// a beam that visibly stops on the opponent it's hitting matches what you'd
-// actually see watching the demo, a straight line through them doesn't.
+// LG has no dedicated network beam (unlike rail's EV_RAIL_TRAIL): the beam is
+// drawn along the shooter's aim direction. What the server does send is one
+// temp entity per LG hit (every 50 ms refire), and neither kind names the
+// shooter - `clientNum` is never set on them and reads back 0 whatever slot
+// fired (verified on the real game-249 pack, both POVs):
+// - a hit on a player: EV_MISSILE_HIT, weapon 6 (WP_SHAFT), otherEntityNum =
+//   the victim;
+// - a hit on a wall: EV_MISSILE_MISS with weapon 0 (LG_WALL_IMPACT_WEAPON).
+// shaftShooterFor() gives each one its shooter: the player firing the LG in
+// the same snapshot whose aim ray it lies on (558 of 567 wall hits there are
+// within 64 units of one, for both players). clipLgBeamsAtShaftImpacts() then
+// ends each beam at its shooter's hit nearest in time. A beam with no hit
+// near it falls back to the live player it geometrically passes closest to
+// (lgBeamHitDistance), else the full LG_BEAM_LENGTH.
 const LG_BEAM_LENGTH = 768;
 const LG_HIT_RADIUS = 32;
+const LG_WALL_IMPACT_WEAPON = 0;
+// A hit lies within this distance of its shooter's aim ray; it may be a bit
+// past LG_BEAM_LENGTH along it (the shooter's origin is not the muzzle).
+const LG_IMPACT_OFF_RAY = 64;
+const LG_IMPACT_MAX_ALONG = LG_BEAM_LENGTH + LG_IMPACT_OFF_RAY;
+// A beam ends at a hit of its shooter at most this far away in time: the LG
+// fires every 50 ms and snapshots come every 25 ms, so every other beam frame
+// has no hit of its own and borrows its neighbour's.
+const LG_IMPACT_WINDOW_MS = 50;
 
 function lgAimDir(pitchDeg, yawDeg) {
   const yawRad = (Number(yawDeg) || 0) * (Math.PI / 180);
@@ -163,6 +178,83 @@ function lgBeamHitDistance(x, y, z, fx, fy, fz, playersByCn, shooterClientNum) {
 
 function lgBeamEndpoint(x, y, z, fx, fy, fz, length) {
   return [round1(x + fx * length), round1(y + fy * length), round1(z + fz * length)];
+}
+
+/** Along-ray distance and off-ray distance of point (px,py,pz) from a ray (x,y,z)+(fx,fy,fz)*t. */
+function rayOffsets(x, y, z, fx, fy, fz, px, py, pz) {
+  const dx = px - x;
+  const dy = py - y;
+  const dz = pz - z;
+  const along = dx * fx + dy * fy + dz * fz;
+  return { along, off: Math.hypot(dx - fx * along, dy - fy * along, dz - fz * along) };
+}
+
+/**
+ * The clientNum of the LG shooter (firingShaft: clientNum -> {x,y,z,pitch,yaw}
+ * of this snapshot) whose aim ray the hit at (x,y,z) lies on, or null. The
+ * victim of a hit on a player cannot be its shooter.
+ */
+function shaftShooterFor(x, y, z, firingShaft, victimCn) {
+  let best = null;
+  for (const [cn, s] of firingShaft) {
+    if (cn === victimCn) continue;
+    const [fx, fy, fz] = lgAimDir(s.pitch, s.yaw);
+    const { along, off } = rayOffsets(s.x, s.y, s.z, fx, fy, fz, x, y, z);
+    if (along <= 0 || along > LG_IMPACT_MAX_ALONG || off > LG_IMPACT_OFF_RAY) continue;
+    if (best == null || off < best.off) best = { cn, off };
+  }
+  return best ? best.cn : null;
+}
+
+/**
+ * Ends every LG beam of one POV's events at the shooter's own LG hit (an
+ * attributed "shaft" impact) nearest in time within LG_IMPACT_WINDOW_MS that
+ * lies on the beam's aim ray. Beams without one keep their synthesized end.
+ */
+function clipLgBeamsAtShaftImpacts(events) {
+  const hitsByCn = new Map();
+  for (const ev of events) {
+    if (ev.event !== "impacts") continue;
+    for (const it of ev.impacts) {
+      if (it.kind !== "shaft" || it.clientNum == null) continue;
+      if (!hitsByCn.has(it.clientNum)) hitsByCn.set(it.clientNum, []);
+      hitsByCn.get(it.clientNum).push({ g: ev.game_time_ms, it });
+    }
+  }
+  if (!hitsByCn.size) return;
+  for (const ev of events) {
+    if (ev.event !== "beams") continue;
+    for (const b of ev.beams) {
+      if (b.weapon !== WP_SHAFT) continue;
+      const hits = hitsByCn.get(b.clientNum);
+      if (!hits) continue;
+      const len = Math.hypot(b.x1 - b.x0, b.y1 - b.y0, b.z1 - b.z0);
+      if (!(len > 0)) continue;
+      const fx = (b.x1 - b.x0) / len;
+      const fy = (b.y1 - b.y0) / len;
+      const fz = (b.z1 - b.z0) / len;
+      let best = null;
+      // hits are in time order: start at the first one inside the window
+      let lo = 0;
+      let hi = hits.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (hits[mid].g < ev.game_time_ms - LG_IMPACT_WINDOW_MS) lo = mid + 1;
+        else hi = mid;
+      }
+      for (let i = lo; i < hits.length && hits[i].g <= ev.game_time_ms + LG_IMPACT_WINDOW_MS; i++) {
+        const { it } = hits[i];
+        const { along, off } = rayOffsets(b.x0, b.y0, b.z0, fx, fy, fz, it.x, it.y, it.z);
+        if (along <= 0 || along > LG_IMPACT_MAX_ALONG || off > LG_IMPACT_OFF_RAY) continue;
+        const dt = Math.abs(hits[i].g - ev.game_time_ms);
+        if (best == null || dt < best.dt || (dt === best.dt && off < best.off)) best = { dt, off, it };
+      }
+      if (!best) continue;
+      b.x1 = round1(best.it.x);
+      b.y1 = round1(best.it.y);
+      b.z1 = round1(best.it.z);
+    }
+  }
 }
 
 function saneVital(value) {
@@ -639,7 +731,28 @@ function impactKind(ev, weapon) {
   return "impact";
 }
 
-function collectFxFromEntity(ent, snap, impacts, projectiles) {
+/**
+ * True the first time an exploded missile's impact event is seen. G_ExplodeMissile
+ * turns the missile into an ET_GENERAL entity carrying the event, and it stays in
+ * the snapshots for EVENT_VALID_MSEC (300 ms) until the server frees it, and a
+ * POV can lose it from view and see it again meanwhile; only its first sighting
+ * is the explosion. seen: entity number -> { raw event, serverTime of the first
+ * sighting }. A freed slot is not reused within a second (on the game-249 pack
+ * the earliest reuse is 1.3 s after the explosion, and a first event's raw value
+ * is always the same), so the same entity number with the same raw event later
+ * than EXPLOSION_SAME_ENTITY_MS is a new explosion.
+ */
+const EXPLOSION_SAME_ENTITY_MS = 1000;
+
+function isNewExplosion(ent, serverTime, seen) {
+  const raw = ent.event | 0;
+  const prev = seen.get(ent.number);
+  if (prev && prev.raw === raw && serverTime - prev.t <= EXPLOSION_SAME_ENTITY_MS) return false;
+  seen.set(ent.number, { raw, t: serverTime });
+  return true;
+}
+
+function collectFxFromEntity(ent, snap, impacts, projectiles, seenExplosions) {
   if (ent.eType === ET_MISSILE && PROJECTILE_WEAPONS.has(ent.weapon)) {
     const [x, y, z] = entityOriginAt(ent, snap.serverTime);
     const [vx, vy, vz] = entityVelocity(ent);
@@ -661,6 +774,7 @@ function collectFxFromEntity(ent, snap, impacts, projectiles) {
   if (ent.eType === ET_GENERAL) {
     const ev = eventId(ent.event);
     if (!isMissileImpactEvent(ev)) return;
+    if (!isNewExplosion(ent, snap.serverTime, seenExplosions)) return;
     const [x, y, z] = entityOriginAt(ent, snap.serverTime);
     impacts.push({
       kind: impactKind(ev, ent.weapon),
@@ -674,7 +788,7 @@ function collectFxFromEntity(ent, snap, impacts, projectiles) {
   }
 }
 
-function collectFxFromChangedEntity(ent, snap, impacts, beams, deaths, rosterByClient) {
+function collectFxFromChangedEntity(ent, snap, impacts, beams, deaths, rosterByClient, firingShaft) {
   if (ent.eType < ET_EVENTS || !ent.newEvent) return;
   const ev = entityEventId(ent);
   const [x, y, z] = entityOriginAt(ent, snap.serverTime);
@@ -716,12 +830,28 @@ function collectFxFromChangedEntity(ent, snap, impacts, beams, deaths, rosterByC
   }
 
   if (isBulletImpactEvent(ev) || isMissileImpactEvent(ev)) {
-    // Bullet/missile impact temp entities are anonymous in this protocol
-    // (weapon/clientNum/otherEntityNum all read back as 0 - verified against
-    // the real UDT viewer source: it keys shaft-beam matching off `es.weapon`
-    // on this exact same entity, which means it's subject to the same gap).
-    // The LG beam is synthesized separately from the shooter's own aim
-    // direction instead of impact-matching (see collectLightningBeams).
+    // Impact temp entities never carry their shooter: clientNum reads back 0
+    // whoever fired. An LG hit (on a player: EV_MISSILE_HIT + WP_SHAFT, on a
+    // wall: EV_MISSILE_MISS + weapon 0) gets its shooter from the aim rays of
+    // the players firing the LG this snapshot - see the LG_BEAM_LENGTH comment.
+    const lgHit = ev === EV_MISSILE_HIT && ent.weapon === WP_SHAFT;
+    const lgWallCandidate = ev === EV_MISSILE_MISS && ent.weapon === LG_WALL_IMPACT_WEAPON;
+    if (lgHit || lgWallCandidate) {
+      const victimCn = lgHit && ent.otherEntityNum >= 0 && ent.otherEntityNum < MAX_CLIENTS ? ent.otherEntityNum : null;
+      const shooterCn = shaftShooterFor(x, y, z, firingShaft, victimCn);
+      if (shooterCn != null) {
+        impacts.push({
+          kind: "shaft",
+          weapon: WP_SHAFT,
+          weapon_slug: "lightninggun",
+          clientNum: shooterCn,
+          x,
+          y,
+          z,
+        });
+        return;
+      }
+    }
     impacts.push({
       kind: impactKind(ev, ent.weapon),
       weapon: ent.weapon,
@@ -863,6 +993,7 @@ export function demoToReplay(parser, options = {}) {
   // whole demo, so a plain raw-value comparison is the correct (and
   // simpler) check here - same technique real cgame uses.
   const lastPlayerEventRaw = new Map();
+  const seenExplosions = new Map();
   let fightItemsReady = false;
   let lastEmitMs = -POSITION_EMIT_MS;
   let lastEmitKey = "";
@@ -1041,15 +1172,17 @@ export function demoToReplay(parser, options = {}) {
         const key = staticItems.register(classname, x, y, z);
         snapItems.add(key);
       }
-      collectFxFromEntity(ent, snap, impacts, projectiles);
+      collectFxFromEntity(ent, snap, impacts, projectiles, seenExplosions);
     }
     for (const ent of snap.changedEntities || []) {
-      collectFxFromChangedEntity(ent, snap, impacts, beams, deaths, rosterByClient);
+      collectFxFromChangedEntity(ent, snap, impacts, beams, deaths, rosterByClient, firingShaft);
     }
     // LG has no dedicated network beam (unlike rail's EV_RAIL_TRAIL): draw a
     // beam along the shooter's aim direction for every player actively firing
     // it this snapshot, clipped to whichever live opponent it geometrically
-    // hits (see lgBeamHitDistance()/lgBeamEndpoint() comment above).
+    // hits (see lgBeamHitDistance()/lgBeamEndpoint() comment above). Once all
+    // snapshots are read, clipLgBeamsAtShaftImpacts() moves its end onto the
+    // shooter's real hit when there is one.
     for (const [clientNum, shooter] of firingShaft) {
       const [fx, fy, fz] = lgAimDir(shooter.pitch, shooter.yaw);
       const hitDist = lgBeamHitDistance(shooter.x, shooter.y, shooter.z, fx, fy, fz, playersByCn, clientNum);
@@ -1073,19 +1206,8 @@ export function demoToReplay(parser, options = {}) {
         weapon: WP_SHAFT,
         weapon_slug: "lightninggun",
       });
-      // The beam is synthesized (see lgBeamEndpoint() comment above) and never
-      // wall-snapped, so it has no matched impact temp-entity like other
-      // weapons — push its own end point as a "shaft" impact so the overlay
-      // draws a hit marker at the beam tip like UDT does.
-      impacts.push({
-        kind: "shaft",
-        weapon: WP_SHAFT,
-        weapon_slug: "lightninggun",
-        clientNum,
-        x: x1,
-        y: y1,
-        z: z1,
-      });
+      // No made-up hit marker at the synthesized tip: the server's own LG
+      // hits arrive as "shaft" impacts with their shooter (see above).
     }
     for (const death of deaths) {
       deathEvents++;
@@ -1298,6 +1420,7 @@ export function demoToReplay(parser, options = {}) {
       });
     }
   }
+  clipLgBeamsAtShaftImpacts(events);
 
   return {
     meta: {

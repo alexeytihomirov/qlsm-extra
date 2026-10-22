@@ -279,3 +279,142 @@ test("PVS heuristic (no exact event at all) also reports an ammo box's own name,
   assert.equal(pickups.length, 1);
   assert.equal(pickups[0].item, "ammo_rockets", "the registry itself must store the map's true classname, not weapon_rocketlauncher");
 });
+
+// ---- impacts: one per explosion, LG hits with their shooter ----
+
+const ET_GENERAL = 0;
+const ET_EVENTS = 13;
+const EV_MISSILE_HIT = 47;
+const EV_MISSILE_MISS = 48;
+const WP_ROCKET = 5;
+const WP_SHAFT = 6;
+const EF_FIRING = 1 << 8;
+
+/** A rocket after G_ExplodeMissile: ET_GENERAL carrying EV_MISSILE_MISS (first event: toggle bit 0x100). */
+function explodedRocket({ number = 200, x, y, z, clientNum = 1 }) {
+  const ent = createEntityState();
+  ent.number = number;
+  ent.eType = ET_GENERAL;
+  ent.pos.trType = TR_STATIONARY;
+  ent.pos.trBase = [x, y, z];
+  ent.weapon = WP_ROCKET;
+  ent.clientNum = clientNum;
+  ent.event = EV_MISSILE_MISS | 0x100;
+  return ent;
+}
+
+/** An LG impact temp entity as the server sends it: no shooter, clientNum 0. */
+function shaftTempEntity({ number = 300, ev, weapon, x, y, z, victim = 0 }) {
+  const ent = createEntityState();
+  ent.number = number;
+  ent.eType = ET_EVENTS + ev;
+  ent.pos.trType = TR_STATIONARY;
+  ent.pos.trBase = [x, y, z];
+  ent.weapon = weapon;
+  ent.otherEntityNum = victim;
+  ent.newEvent = true;
+  return ent;
+}
+
+/** clientNum's player entity firing the LG along +x from (x,y,z). */
+function lgShooter({ clientNum, x, y, z, yaw = 0 }) {
+  const ent = otherPlayerEntity({ clientNum, x, y, z });
+  ent.weapon = WP_SHAFT;
+  ent.eFlags = EF_FIRING;
+  ent.apos.trBase = [0, yaw, 0];
+  return ent;
+}
+
+const impactsOf = (replay) => replay.events.filter((e) => e.event === "impacts").flatMap((e) => e.impacts);
+const beamsOf = (replay) => replay.events.filter((e) => e.event === "beams").flatMap((e) => e.beams);
+
+test("an exploded missile that stays in several snapshots is one explosion, not one per snapshot", () => {
+  const rocket = { x: 500, y: 20, z: 30 };
+  const parser = fakeParser([
+    { serverTime: 1000, entities: [explodedRocket(rocket)] },
+    { serverTime: 1025, entities: [explodedRocket(rocket)] },
+    { serverTime: 1100, entities: [explodedRocket(rocket)] },
+    // out of this POV's view for a moment, then back while still not freed
+    { serverTime: 1200, entities: [] },
+    { serverTime: 1300, entities: [explodedRocket(rocket)] },
+    // the same slot reused by a later rocket: a new explosion
+    { serverTime: 2500, entities: [explodedRocket({ x: -100, y: 0, z: 0 })] },
+  ]);
+  const replay = demoToReplay(parser, { povClientNum: 0, mapTable: [] });
+  const explosions = impactsOf(replay).filter((i) => i.kind === "explosion");
+  assert.deepEqual(
+    explosions.map((i) => [i.x, i.y, i.z]),
+    [
+      [500, 20, 30],
+      [-100, 0, 0],
+    ],
+  );
+});
+
+test("an LG wall hit gets its shooter from the aim ray and ends the beam there, also in the next snapshot", () => {
+  const parser = fakeParser([
+    {
+      serverTime: 1000,
+      entities: [lgShooter({ clientNum: 1, x: 100, y: 0, z: 0 })],
+      changedEntities: [shaftTempEntity({ ev: EV_MISSILE_MISS, weapon: 0, x: 400, y: 10, z: 0 })],
+    },
+    // the LG fires every 50 ms: no hit of its own in this snapshot
+    { serverTime: 1025, entities: [lgShooter({ clientNum: 1, x: 100, y: 0, z: 0 })] },
+  ]);
+  const replay = demoToReplay(parser, { povClientNum: 0, mapTable: [] });
+
+  const impacts = impactsOf(replay);
+  assert.equal(impacts.length, 1, "the server's hit only, no made-up marker at the beam tip");
+  assert.deepEqual(impacts[0], {
+    kind: "shaft",
+    weapon: WP_SHAFT,
+    weapon_slug: "lightninggun",
+    clientNum: 1,
+    x: 400,
+    y: 10,
+    z: 0,
+  });
+  const beams = beamsOf(replay);
+  assert.equal(beams.length, 2);
+  for (const b of beams) {
+    assert.equal(b.clientNum, 1);
+    assert.deepEqual([b.x1, b.y1, b.z1], [400, 10, 0], "the beam stops at the wall, not at 768 units");
+  }
+});
+
+test("an LG hit on a player is the other shooter's, never the victim's own", () => {
+  // Both fire the LG at each other along the x axis; the hit lands on player 1 (victim).
+  const parser = fakeParser([
+    {
+      serverTime: 1000,
+      entities: [
+        lgShooter({ clientNum: 1, x: 300, y: 0, z: 0, yaw: 180 }),
+        lgShooter({ clientNum: 2, x: 10, y: 0, z: 0 }),
+      ],
+      changedEntities: [shaftTempEntity({ ev: EV_MISSILE_HIT, weapon: WP_SHAFT, x: 290, y: 0, z: 0, victim: 1 })],
+    },
+  ]);
+  parser.gamestate.players[2] = { n: "C" };
+  parser.playerRows = () => [{ clientNum: 0 }, { clientNum: 1 }, { clientNum: 2 }];
+  const replay = demoToReplay(parser, { povClientNum: 0, mapTable: [] });
+  const impacts = impactsOf(replay);
+  assert.equal(impacts.length, 1);
+  assert.equal(impacts[0].kind, "shaft");
+  assert.equal(impacts[0].clientNum, 2);
+});
+
+test("an anonymous missile miss off every LG aim ray keeps its old kind", () => {
+  const parser = fakeParser([
+    {
+      serverTime: 1000,
+      entities: [lgShooter({ clientNum: 1, x: 100, y: 0, z: 0 })],
+      changedEntities: [shaftTempEntity({ ev: EV_MISSILE_MISS, weapon: 0, x: 400, y: 300, z: 0 })],
+    },
+  ]);
+  const replay = demoToReplay(parser, { povClientNum: 0, mapTable: [] });
+  const impacts = impactsOf(replay);
+  assert.equal(impacts.length, 1);
+  assert.equal(impacts[0].kind, "missile");
+  const [beam] = beamsOf(replay);
+  assert.equal(Math.round(beam.x1 - beam.x0), 768, "no hit on its ray: full range");
+});

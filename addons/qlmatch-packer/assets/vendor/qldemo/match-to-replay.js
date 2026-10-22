@@ -16,7 +16,7 @@ import { itemFamilyKey, loadMapPickupTable, normalizeMapKey } from "./map-item-r
 import { unpackQlMatch } from "./qlmatch-pack.js?v=20260829a";
 
 /** Bump when the merge algorithm changes so a stale sidecar can be detected and regenerated. */
-export const MATCH_REPLAY_GENERATOR_VERSION = 11;
+export const MATCH_REPLAY_GENERATOR_VERSION = 12;
 
 // All POVs of one match sit on the same 25 ms server snapshot grid (sv_fps
 // 40) - see research doc section 4.
@@ -32,6 +32,10 @@ const PICKUP_WINDOW_MS = 2000;
 // vs map-spawn origin vs picker position differ by droptofloor/touch range).
 const PICKUP_MATCH_DIST = 128;
 const IMPACT_WINDOW_MS = 60;
+// An exploded missile stays visible for 300 ms (EVENT_VALID_MSEC), and a POV
+// that only gets it into view late reports the same explosion up to that much
+// later than the others (seen on the game-249 pack).
+const EXPLOSION_WINDOW_MS = 325;
 // Impact/beam positions differ slightly per POV (aim-synthesized LG beam,
 // extrapolated entity position) - round to a coarse grid before keying so
 // near-identical observations of the same event still dedup.
@@ -646,13 +650,15 @@ function preferOwnPov(cluster) {
   return cluster.find((c) => c.item.clientNum != null && c.item.clientNum === c._povClientNum);
 }
 
-function mergeFrameItems(povs, eventName, itemsField, keyFn, windowMs) {
+function mergeFrameItems(povs, eventName, itemsField, keyFn, windowMs, keep = () => true) {
   const all = [];
   for (const p of povs) {
     for (const ev of p.replay.events) {
       if (ev.event !== eventName) continue;
       const gtm = ev.game_time_ms + p.offsetMs;
-      for (const item of ev[itemsField] || []) all.push({ item, game_time_ms: gtm, _povClientNum: p.clientNum });
+      for (const item of ev[itemsField] || []) {
+        if (keep(item)) all.push({ item, game_time_ms: gtm, _povClientNum: p.clientNum });
+      }
     }
   }
   all.sort((a, b) => a.game_time_ms - b.game_time_ms);
@@ -691,13 +697,12 @@ function groupIntoFrames(deduped, eventName, itemsField) {
 }
 
 function mergeImpacts(povs) {
-  const deduped = mergeFrameItems(
-    povs,
-    "impacts",
-    "impacts",
-    (it) => it.kind + "|" + (it.clientNum ?? "") + "|" + posGridKey(it.x, it.y, it.z),
-    IMPACT_WINDOW_MS,
-  );
+  const key = (it) => it.kind + "|" + (it.clientNum ?? "") + "|" + posGridKey(it.x, it.y, it.z);
+  const isExplosion = (it) => it.kind === "explosion";
+  const deduped = [
+    ...mergeFrameItems(povs, "impacts", "impacts", key, IMPACT_WINDOW_MS, (it) => !isExplosion(it)),
+    ...mergeFrameItems(povs, "impacts", "impacts", key, EXPLOSION_WINDOW_MS, isExplosion),
+  ];
   const events = groupIntoFrames(deduped, "impacts", "impacts");
   return { events, frames: events.length };
 }

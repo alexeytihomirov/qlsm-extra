@@ -81,6 +81,20 @@ filename template differs, or `!restore match` will not find it.
 (`MATCH_REPLAY_GENERATOR_VERSION` in `vendor/qldemo/match-to-replay.js`) so
 stale sidecars can be detected and regenerated after upgrades.
 
+Effects in the sidecar (generator version 12, addon 1.3.3):
+
+- `impacts` with `kind: "explosion"` (RL, GL): one per explosion. The exploded
+  missile stays in the demo's snapshots for 300 ms; only its first sighting is
+  written, and the merge folds the POVs' copies within 325 ms.
+- `impacts` with `kind: "shaft"`: the server's own LG hits, on a wall or on a
+  player, each with its shooter's `clientNum`. The demo does not name the
+  shooter (the temp entity's `clientNum` is always 0); it is the player firing
+  the LG that snapshot whose aim ray the hit lies on (within 64 units).
+- `beams` with `weapon_slug: "lightninggun"` are synthesized from the shooter's
+  aim and end at the shooter's hit nearest in time (within 50 ms) on that ray;
+  only a beam with no such hit keeps the nearest player along it or the full
+  768-unit range.
+
 
 ## Match meta
 
