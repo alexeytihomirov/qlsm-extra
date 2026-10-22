@@ -1,5 +1,5 @@
 ---
-id: qlsm-extra-0018
+id: qlsm-extra-0020
 title: qlmatch-packer: one impact per explosion, LG wall impacts for every shooter
 status: in-progress
 created: 2026-10-22
@@ -53,6 +53,7 @@ related: []
 - 2026-10-22 - cause 1: an exploded missile stays an ET_GENERAL entity carrying EV_MISSILE_MISS/HIT for ~300 ms and collectFxFromEntity emitted it from every snapshot it was in
 - 2026-10-22 - cause 2: weapon-6 EV_MISSILE_HIT temp entities are LG hits on a player (otherEntityNum = victim), clientNum is never set (always 0, k1llsen's slot by chance); LG wall hits are EV_MISSILE_MISS temp entities with weapon 0 and no shooter field, 558 of 567 lie within 64 units of a firing LG shooter's aim ray in the same snapshot, both shooters
 - 2026-10-22 - fixed in demo-to-replay.js (first sighting per exploded missile; LG hits attributed by aim ray, beams end at the shooter's hit within 50 ms; no synthetic tip marker), merge folds explosions within 325 ms (a POV that sees one late); generator version 12, addon 1.3.3, manifest regenerated; tests pass; real-pack numbers in Результат
+- 2026-10-22 - id 0018 был занят (`tasks/done/0018-forfeit-...`), задача перенумерована в 0020; ревью родителя пройдено, merge в main
 
 ## Результат
 
