@@ -28,12 +28,13 @@ Session-события (lifecycle, death, chat, ...) и подборы пред�
 - [x] `sample_wall_ms` в строках session- и item-событий
 - [x] Тесты `tests/test_telemetry_event_sample_wall.py` (плагин + сквозной relay)
 - [x] Манифест, merge в main, push
-- [ ] Выкатка плагина на хосты (родительская сессия `root-0030`)
+- [x] Выкатка плагина на хосты (родительская сессия `root-0030`)
 
 ## Журнал
 
 - 2026-10-22 - created
 - 2026-10-22 - сделано: поле в трех местах плагина, README, манифест (zip-пакеты не изменились). Тесты: `tests/test_telemetry_event_sample_wall.py` и соседние тесты плагина и relay - 87 passed (с `QLSM_REPO`)
+- 2026-10-22 14:44-15:07 UTC - выкатка через qlsm: sync репозитория qlsm-extra, `download_plugin` (sha256 `290663b8571c...`) в operator pool и `download_addon` qlmatch-packer 1.3.3 (задача `0020`), рестарт qlsm web/worker-1..5/poller; затем `apply_plugin_updates_task` по хостам 1, 3, 4, 5, 6, 7, 8, 9 (общий пул + файл в `configs/<host>/<inst>/scripts` + рестарт только пустых инстансов), пакер - только плейбук аддона `sync_qlmatch_packer.yml` по каждому хосту (`apply_plugin_updates_task` не вызывает `host.payload_sync`). Moscow #2 шла игра - выкачен в 15:05 после ее конца. Рестарты NN #1/#2 и Frankfurt #1/#2 упали по 120 с таймауту плейбука (инстанс ERROR), повторены по одному через `restart_instance`. Итог: все 15 инстансов RUNNING, в каждом `minqlxtended-plugins` новый файл, в логе `Loading plugin 'stream_telemetry_unified'` и `active match_id=server-N` после рестарта, на всех 8 хостах пакер с `MATCH_REPLAY_GENERATOR_VERSION = 12`, телеметрия всех 14 server_id идет в хаб (`/api/health` 15:07 UTC)
 
 ## Результат
 
