@@ -27,7 +27,7 @@ related: [root-0029, docs/superpowers/specs/2026-10-23-tournament-match-notice-d
 - [x] `qlsm-repository.json` (generate_manifest), README
 - [x] merge, push (37ad70d)
 - [x] Только в разминке (оператор): проверка `game.state` в `_announce` (игровой кадр), отсчет больше не объявляется, ожидающее объявление повторяется по `new_game`
-- [ ] qlsm: синхронизировать репозиторий, скачать плагин, включить на турнирных серверах с тремя cvar, применить
+- [x] qlsm: синхронизировать репозиторий, скачать плагин, включить с тремя cvar, применить (13 пустых инстансов; Tallin #2 (14) и Moscow #1 (9) - автоматически, когда опустеют)
 - [ ] Проверка на живом сервере с двумя игроками матча
 
 ## Журнал
@@ -35,6 +35,7 @@ related: [root-0029, docs/superpowers/specs/2026-10-23-tournament-match-notice-d
 - 2026-10-23 - created
 - 2026-10-23 - 12 тестов зеленые; `tests/test_descriptions.py` падает на 4 описаниях аддонов (demo-stream, telemetry-relay) и на чистом `origin/main`, к задаче не относится
 - 2026-10-23 - оператор: показывать только в разминке; версия 1.1, 14 тестов зеленые
+- 2026-10-23 13:44-13:50 UTC - выкатка через qlsm (скрипт в контейнере qlsm-web-1, без штатного маршрута, чтобы не рассылать пул по хостам): sync репозитория qlsm-extra, `download_plugin` в operator pool (sha256 `9e89955e...`), для каждого пустого инстанса - файл в `configs/<host>/<id>/scripts`, три cvar в конец `server.cfg`, `tournament_match_notice` в `qlx_plugins`, `apply_instance_config` с рестартом под instance lock. Пустоту проверял по статусу поллера (свежий, 0 игроков), для Stockholm/Helsinki поллер отставал на ~200 с - перепроверил A2S. Инстансы 1, 11, 12, 15, 16, 22, 13, 10, 21, 19, 20, 17, 18 - RUNNING, задачи успешны. Germany (1): файл с ожидаемым sha, cvar на месте, в логе `Loading plugin 'tournament_match_notice'`, ошибок нет. Tallin #2 (14, hoOp/sano) и Moscow #1 (9, daz/chr) были заняты: на home-docker фоновый `/tmp/wait_empty.sh` (лог `/tmp/wait_empty.log`, до 4 ч) выкатит на них, когда A2S дважды подряд покажет 0 игроков
 
 ## Результат
 
