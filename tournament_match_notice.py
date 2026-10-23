@@ -1,14 +1,16 @@
 """tournament_match_notice - says in game that the players on the server have a tournament match.
 
-When both players of a ready or live tournament match are on the server, the plugin prints one chat line
-and a centre print to everyone: once when the second of them arrives, and again on every game countdown.
+When both players of a ready or live tournament match are on the server and the server is in warmup,
+the plugin prints one chat line and a centre print to everyone, once per map. If the pair is complete
+during a game, the notice waits until the server is back in warmup.
 The tournament site (ql-tournament) answers which match that is: GET <url>/api/integrations/game-match
 with the steam ids of the players, a service token with the scope game:read (spec
 docs/superpowers/specs/2026-10-23-tournament-match-notice-design.md in the monorepo).
 
 Nothing runs on the hot path: the hooks only set flags; one background worker wakes every POLL_S
-seconds and asks the site only when the roster changed or a countdown began (timeout TIMEOUT_S, answers
-cached CACHE_S per set of players, one request at a time). Only the output goes into the game frame.
+seconds and asks the site only when the roster changed or a new game began (timeout TIMEOUT_S, answers
+cached CACHE_S per set of players, one request at a time). Only the output goes into the game frame,
+and that is where the warmup is checked.
 A failed request is logged at most once a minute and the notice is skipped.
 
 CVARs:
@@ -66,22 +68,23 @@ def center_text(match):
 
 
 class NoticeState:
-    """Which match was announced on arrival on this map. A countdown is always announced."""
+    """Which matches were announced on this map: each one once."""
 
     def __init__(self):
-        self._arrived = set()
+        self._announced = set()
 
     def reset(self):
-        self._arrived.clear()
+        self._announced.clear()
 
-    def due(self, match, countdown):
-        if countdown:
-            self._arrived.add(match.get("key"))
-            return True
-        if match.get("key") in self._arrived:
+    def due(self, match):
+        if match.get("key") in self._announced:
             return False
-        self._arrived.add(match.get("key"))
+        self._announced.add(match.get("key"))
         return True
+
+    def forget(self, key):
+        """The notice was not shown (no warmup): due again on the next try."""
+        self._announced.discard(key)
 
 
 class LookupCache:
@@ -144,7 +147,6 @@ class tournament_match_notice(minqlx.Plugin):
 
         self._lock = threading.Lock()
         self._roster_changed = True
-        self._countdown = False
         self._state = NoticeState()
         self._cache = LookupCache(CACHE_S)
         self._last_error_log = None
@@ -153,14 +155,14 @@ class tournament_match_notice(minqlx.Plugin):
         self.add_hook("player_loaded", self.handle_roster)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("team_switch", self.handle_team_switch)
-        self.add_hook("game_countdown", self.handle_game_countdown)
+        self.add_hook("new_game", self.handle_new_game)
         self.add_hook("map", self.handle_map)
         self.add_hook("unload", self.handle_unload)
 
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
-        self.plugin_version = "1.0"
+        self.plugin_version = "1.1"
 
     # Hooks: flags only (under the lock the worker reads and clears them with, so none is lost).
     def _flag_roster(self):
@@ -176,9 +178,8 @@ class tournament_match_notice(minqlx.Plugin):
     def handle_team_switch(self, player, old_team, new_team):
         self._flag_roster()
 
-    def handle_game_countdown(self):
-        with self._lock:
-            self._countdown = True
+    def handle_new_game(self):
+        self._flag_roster()  # back in warmup after a game: a notice that waited is due now
 
     def handle_map(self, mapname, factory):
         with self._lock:
@@ -205,9 +206,8 @@ class tournament_match_notice(minqlx.Plugin):
 
     def _tick(self, now):
         with self._lock:
-            changed, countdown = self._roster_changed, self._countdown
-            self._roster_changed = self._countdown = False
-        if not (changed or countdown):
+            changed, self._roster_changed = self._roster_changed, False
+        if not changed:
             return
         settings = self._settings()
         if settings is None:
@@ -226,12 +226,17 @@ class tournament_match_notice(minqlx.Plugin):
         if match is None:
             return
         with self._lock:
-            due = self._state.due(match, countdown)
+            due = self._state.due(match)
         if due:
-            self._announce(chat_text(match), center_text(match))
+            self._announce(match.get("key"), chat_text(match), center_text(match))
 
     @minqlx.next_frame
-    def _announce(self, chat, center):
+    def _announce(self, key, chat, center):
+        game = self.game
+        if game is None or game.state != "warmup":
+            with self._lock:
+                self._state.forget(key)
+            return
         self.msg(chat)
         self.center_print(center)  # Plugin.center_print is the broadcast
 

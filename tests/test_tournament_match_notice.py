@@ -36,14 +36,14 @@ def test_texts():
     assert "Cyber ^7vs^7 CheckTest08" in tmn.center_text(MATCH)
 
 
-def test_state_once_on_arrival_always_on_countdown_and_again_after_map():
+def test_state_once_per_map_unless_forgotten():
     s = tmn.NoticeState()
-    assert s.due(MATCH, countdown=False) is True
-    assert s.due(MATCH, countdown=False) is False
-    assert s.due(MATCH, countdown=True) is True
-    assert s.due(MATCH, countdown=True) is True
+    assert s.due(MATCH) is True
+    assert s.due(MATCH) is False
+    s.forget(MATCH["key"])
+    assert s.due(MATCH) is True
     s.reset()
-    assert s.due(MATCH, countdown=False) is True
+    assert s.due(MATCH) is True
 
 
 def test_cache_expires():
@@ -113,27 +113,47 @@ def _plugin(players, fetch, enabled=True):
     said = []
     p = bare_instance(
         tmn.tournament_match_notice,
-        _lock=threading.Lock(), _roster_changed=True, _countdown=False, _state=tmn.NoticeState(),
+        _lock=threading.Lock(), _roster_changed=True, _state=tmn.NoticeState(),
         _cache=tmn.LookupCache(tmn.CACHE_S), _last_error_log=None, _fetch=fetch,
         get_cvar=lambda name, kind=str: cvars[name],
         players=lambda: [SimpleNamespace(steam_id=s) for s in players],
         logger=SimpleNamespace(warning=lambda *a: said.append(("warn",) + a)),
     )
-    p._announce = lambda chat, center: said.append(("say", chat))
+    p._announce = lambda key, chat, center: said.append(("say", chat))
     return p, said
 
 
-def test_tick_announces_once_on_arrival_then_on_countdown():
+def test_tick_announces_once_per_map():
     calls = []
     p, said = _plugin([A, B, "90071996842377216"], lambda url, token, ids: calls.append(ids) or MATCH)
     p._tick(0)
     p._tick(1)  # nothing flagged: no request, no output
     p._flag_roster()
-    p._tick(2)  # roster changed again: cached answer, already announced on arrival
-    p.handle_game_countdown()
+    p._tick(2)  # roster changed again: cached answer, already announced
+    p.handle_new_game()
     p._tick(3)
     assert calls == [sorted([A, B])]
+    assert [s[0] for s in said] == ["say"]
+    p.handle_map("campgrounds", "duel")
+    p.handle_new_game()
+    p._tick(4)
     assert [s[0] for s in said] == ["say", "say"]
+
+
+@pytest.mark.parametrize("state", ["countdown", "in_progress"])
+def test_announce_outside_warmup_says_nothing_and_waits_for_the_next_game(state):
+    said = []
+    game = SimpleNamespace(state=state)
+    p = bare_instance(
+        tmn.tournament_match_notice, _lock=threading.Lock(), _state=tmn.NoticeState(), game=game,
+        msg=lambda text: said.append(("say", text)), center_print=lambda text: said.append(("center", text)))
+    assert p._state.due(MATCH)
+    p._announce(MATCH["key"], "chat", "center")
+    assert said == []
+    assert p._state.due(MATCH) is True  # forgotten, so due again once back in warmup
+    game.state = "warmup"
+    p._announce(MATCH["key"], "chat", "center")
+    assert said == [("say", "chat"), ("center", "center")]
 
 
 def test_tick_quiet_without_match_settings_or_pair():

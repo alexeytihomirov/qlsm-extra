@@ -81,8 +81,8 @@
       "filename": "tournament_match_notice.py",
       "runtime": "minqlxtended",
       "label": "Tournament Match Notice",
-      "description": "Says in chat and on screen that the players here have a tournament match: when both players of a ready or live match are on the server, and on every game countdown. The site is asked in the background only when the players change; a failure just skips the notice.",
-      "sha256": "6156cf5dd9b818ed55f84272054e3610bb39881aa1ff6034d0ef7ff5b030443a"
+      "description": "Says in chat and on screen that the players here have a tournament match: when both players of a ready or live match are on the server, in warmup only, once per map. The site is asked in the background only when the players change; a failure just skips the notice.",
+      "sha256": "9e89955efc11d3b036ad5c8f8a77e0dcf2b27d1b15204f459ce0010280ccad48"
     },
     {
       "filename": "qlmatch_packer.py",

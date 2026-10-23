@@ -25,7 +25,8 @@ related: [root-0029, docs/superpowers/specs/2026-10-23-tournament-match-notice-d
 - [x] Тесты `tests/test_tournament_match_notice.py` (чистые функции, HTTP к локальному серверу, `_tick`)
 - [x] API сверено с исходником движка (`_build/minqlxtended-fork`, коммит 90e24bd): сигнатуры шести хуков, `Plugin.msg`, `Plugin.center_print` (broadcast), `get_cvar`
 - [x] `qlsm-repository.json` (generate_manifest), README
-- [ ] merge, push
+- [x] merge, push (37ad70d)
+- [x] Только в разминке (оператор): проверка `game.state` в `_announce` (игровой кадр), отсчет больше не объявляется, ожидающее объявление повторяется по `new_game`
 - [ ] qlsm: синхронизировать репозиторий, скачать плагин, включить на турнирных серверах с тремя cvar, применить
 - [ ] Проверка на живом сервере с двумя игроками матча
 
@@ -33,6 +34,7 @@ related: [root-0029, docs/superpowers/specs/2026-10-23-tournament-match-notice-d
 
 - 2026-10-23 - created
 - 2026-10-23 - 12 тестов зеленые; `tests/test_descriptions.py` падает на 4 описаниях аддонов (demo-stream, telemetry-relay) и на чистом `origin/main`, к задаче не относится
+- 2026-10-23 - оператор: показывать только в разминке; версия 1.1, 14 тестов зеленые
 
 ## Результат
 
