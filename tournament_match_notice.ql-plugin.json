@@ -1,0 +1,9 @@
+{
+  "label": "Tournament Match Notice",
+  "description": "Says in chat and on screen that the players here have a tournament match: when both players of a ready or live match are on the server, and on every game countdown. The site is asked in the background only when the players change; a failure just skips the notice.",
+  "cvars": [
+    { "cvar": "qlx_matchNoticeEnabled", "label": "Enabled", "description": "Turns the notice on. It also needs the site URL and token.", "type": "bool", "default": false },
+    { "cvar": "qlx_matchNoticeUrl", "label": "Site URL", "description": "Base URL of the tournament site, e.g. https://frontiersgaming.com", "type": "string", "default": "" },
+    { "cvar": "qlx_matchNoticeToken", "label": "Site token", "description": "Service token of the tournament site with the scope game:read.", "type": "string", "default": "" }
+  ]
+}
