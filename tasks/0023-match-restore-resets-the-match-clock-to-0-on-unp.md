@@ -36,7 +36,7 @@ QL сам сдвигает `level.start_time` на паузах (`skills/ql-live
 - [x] Найти матч и причину по логам stats-hub и сервера
 - [x] Тесты, воспроизводящие инцидент (`tests/test_match_restore_pause_clock.py`)
 - [x] Фикс: движок пишется на unpause только после restore; время матча при live-матче читается из движка (`level.time - level.start_time`)
-- [ ] Merge в `main`, push
+- [x] Merge в `main`, push
 - [ ] Обновить плагин на серверах через qlsm
 - [ ] Проверка на живом сервере: пауза в идущем матче, unpause, таймер продолжается
 
@@ -45,7 +45,12 @@ QL сам сдвигает `level.start_time` на паузах (`skills/ql-live
 - 2026-10-24 - created
 - 2026-10-24 - причина найдена по `minqlxtended.log` на Frankfurt; запись `level.start_time` при `frozen_ms=0` в `_resync_match_clock_after_unpause`
 - 2026-10-24 - фикс + 4 теста; `tests/test_match_restore_*.py` зелёные (14 passed); манифест пересобран
+- 2026-10-24 - `b8da09b` в `origin/main` (rebase на свежий main, тесты и манифест перепроверены). Выкатка на инстансы ждёт OK оператора: на серверах есть игроки
 
 ## Результат
 
+`b8da09b` fix(match_restore): leave the engine match clock alone on a plain unpause (qlsm-extra `main`). На серверы ещё не выкачено.
+
 ## Как проверить
+
+На сервере с обновлённым `match_restore`: запустить duel, на ~1:00 `!pause`, через 20 с `!unpause`. Таймер продолжается с ~1:00, в `minqlxtended.log` строка `unpause clock thaw frozen_ms=<около 60000> ... eng=engine untouched`.
