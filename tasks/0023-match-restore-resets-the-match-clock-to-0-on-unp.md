@@ -3,7 +3,7 @@ id: qlsm-extra-0023
 title: match_restore resets the match clock to 0 on unpause
 status: in-progress
 created: 2026-10-24
-updated: 2026-10-24
+updated: 2026-10-25
 verified:
 depends_on: []
 related: []
@@ -37,7 +37,7 @@ QL сам сдвигает `level.start_time` на паузах (`skills/ql-live
 - [x] Тесты, воспроизводящие инцидент (`tests/test_match_restore_pause_clock.py`)
 - [x] Фикс: движок пишется на unpause только после restore; время матча при live-матче читается из движка (`level.time - level.start_time`)
 - [x] Merge в `main`, push
-- [ ] Обновить плагин на серверах через qlsm
+- [x] Обновить плагин на серверах через qlsm
 - [ ] Проверка на живом сервере: пауза в идущем матче, unpause, таймер продолжается
 
 ## Журнал
@@ -46,10 +46,11 @@ QL сам сдвигает `level.start_time` на паузах (`skills/ql-live
 - 2026-10-24 - причина найдена по `minqlxtended.log` на Frankfurt; запись `level.start_time` при `frozen_ms=0` в `_resync_match_clock_after_unpause`
 - 2026-10-24 - фикс + 4 теста; `tests/test_match_restore_*.py` зелёные (14 passed); манифест пересобран
 - 2026-10-24 - `b8da09b` в `origin/main` (rebase на свежий main, тесты и манифест перепроверены). Выкатка на инстансы ждёт OK оператора: на серверах есть игроки
+- 2026-10-24 23:13-23:20 UTC - OK оператора; выкатка по рецепту `qlsm-extra-0022` (скрипт `/tmp/qlsm_rollout_mr.py` на home-docker, запуск в qlsm-web-1): sync репозитория, `download_plugin` в operator pool (sha256 `eff128b2...`), для каждого пустого инстанса - файл в `configs/<host>/<id>/scripts`, `apply_instance_config` с рестартом под instance lock. Пустоту проверял по поллеру и A2S (везде 0). Инстансы 9-25 (17 шт.) - `running`. Frankfurt (27960-27962): файл с ожидаемым sha, `Loading plugin 'match_restore'` без ошибок. sD test server (1) пропущен: статус `updated`, не `running`
 
 ## Результат
 
-`b8da09b` fix(match_restore): leave the engine match clock alone on a plain unpause (qlsm-extra `main`). На серверы ещё не выкачено.
+`b8da09b` fix(match_restore): leave the engine match clock alone on a plain unpause (qlsm-extra `main`). Выкачено 2026-10-24 на все 17 турнирных инстансов (9-25); живая проверка паузы ещё не сделана.
 
 ## Как проверить
 
