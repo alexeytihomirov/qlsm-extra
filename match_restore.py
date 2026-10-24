@@ -226,6 +226,7 @@ class match_restore(minqlx.Plugin):
         self._restore_hold_until_unpause = False
         self._awaiting_unfreeze_after_unpause = False
         self._unfreeze_hold_ms = None
+        self._unfreeze_from_restore = False
         self._unfreeze_thaw_token = 0
         self._unfreeze_thaw_at_wall = None
         self._engine_clock_synced = False
@@ -292,6 +293,7 @@ class match_restore(minqlx.Plugin):
         self._restore_hold_until_unpause = False
         self._awaiting_unfreeze_after_unpause = False
         self._unfreeze_hold_ms = None
+        self._unfreeze_from_restore = False
         self._unfreeze_thaw_token = 0
         self._unfreeze_thaw_at_wall = None
         self._engine_clock_synced = False
@@ -716,6 +718,7 @@ class match_restore(minqlx.Plugin):
         self._pause_frozen_ms = None
         self._awaiting_unfreeze_after_unpause = False
         self._unfreeze_hold_ms = None
+        self._unfreeze_from_restore = False
         self._unfreeze_thaw_token = 0
         self._unfreeze_thaw_at_wall = None
         self._engine_clock_synced = False
@@ -741,6 +744,9 @@ class match_restore(minqlx.Plugin):
         if frozen is None:
             frozen = self._level_time_ms
         self._unfreeze_hold_ms = max(0, int(frozen or 0))
+        # Only a restore rewrites the engine clock at thaw; a plain pause leaves
+        # it to QL, which shifts level.start_time over the pause itself.
+        self._unfreeze_from_restore = self._restore_clock_latch_ms is not None
         self._awaiting_unfreeze_after_unpause = True
         self._level_time_ms = self._unfreeze_hold_ms
         self._clock_source = "unfreeze_hold"
@@ -787,7 +793,10 @@ class match_restore(minqlx.Plugin):
         if frozen is None:
             frozen = self._level_time_ms
         self._restore_clock_latch_ms = max(0, int(frozen or 0))
-        self._resync_match_clock_after_unpause()
+        self._resync_match_clock_after_unpause(
+            sync_engine=getattr(self, "_unfreeze_from_restore", False)
+        )
+        self._unfreeze_from_restore = False
         self._awaiting_unfreeze_after_unpause = False
         self._unfreeze_hold_ms = None
         self._unfreeze_thaw_at_wall = None
@@ -893,10 +902,10 @@ class match_restore(minqlx.Plugin):
         effective = self._effective_match_state()
         if effective not in ("countdown", "in_progress"):
             return max(0, int(self._level_time_ms or 0))
-        candidates = []
         native = self._native_elapsed_ms()
         if native is not None:
-            candidates.append(native)
+            return native
+        candidates = []
         mt = self._native_map_time_ms()
         if mt is not None and self._match_start_map_time is not None:
             candidates.append(max(0, mt - int(self._match_start_map_time)))
@@ -1107,7 +1116,10 @@ class match_restore(minqlx.Plugin):
         return True, "engine_elapsed={}ms".format(ms)
 
     def _native_elapsed_ms(self):
-        if not (self._native_clock_enabled() or self._engine_clock_synced):
+        # While a match is live level.start_time is the match start, shifted by
+        # QL over every pause: the timer players see. In countdown it is not.
+        live = self._game_state_label() == "in_progress"
+        if not (live or self._native_clock_enabled() or self._engine_clock_synced):
             return None
         if not hasattr(minqlx, "level"):
             return None
@@ -1168,8 +1180,11 @@ class match_restore(minqlx.Plugin):
         self._clock_source = "cache"
         return max(0, int(self._level_time_ms or 0))
 
-    def _resync_match_clock_after_unpause(self):
-        """Map time keeps ticking during QL pause; re-anchor so elapsed resumes at freeze."""
+    def _resync_match_clock_after_unpause(self, sync_engine=False):
+        """Map time keeps ticking during QL pause; re-anchor so elapsed resumes at freeze.
+
+        The engine clock is written only with ``sync_engine`` (thaw after a
+        restore): a wrong frozen value written there restarts the timelimit."""
         frozen = self._restore_clock_latch_ms
         if frozen is None:
             frozen = self._pause_frozen_ms
@@ -1185,7 +1200,9 @@ class match_restore(minqlx.Plugin):
         if mt is not None:
             self._match_start_map_time = mt - int(frozen)
             self._clock_source = "pause_thaw"
-        ok_eng, eng_detail = self._sync_engine_level_time(int(frozen))
+        ok_eng, eng_detail = (
+            self._sync_engine_level_time(int(frozen)) if sync_engine else (False, "engine untouched")
+        )
         self._restore_clock_latch_ms = None
         self.logger.info(
             "match_restore: unpause clock thaw frozen_ms=%s map_t=%s start_t=%s eng=%s",
