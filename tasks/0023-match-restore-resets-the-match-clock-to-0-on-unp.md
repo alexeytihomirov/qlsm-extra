@@ -47,10 +47,12 @@ QL сам сдвигает `level.start_time` на паузах (`skills/ql-live
 - 2026-10-24 - фикс + 4 теста; `tests/test_match_restore_*.py` зелёные (14 passed); манифест пересобран
 - 2026-10-24 - `b8da09b` в `origin/main` (rebase на свежий main, тесты и манифест перепроверены). Выкатка на инстансы ждёт OK оператора: на серверах есть игроки
 - 2026-10-24 23:13-23:20 UTC - OK оператора; выкатка по рецепту `qlsm-extra-0022` (скрипт `/tmp/qlsm_rollout_mr.py` на home-docker, запуск в qlsm-web-1): sync репозитория, `download_plugin` в operator pool (sha256 `eff128b2...`), для каждого пустого инстанса - файл в `configs/<host>/<id>/scripts`, `apply_instance_config` с рестартом под instance lock. Пустоту проверял по поллеру и A2S (везде 0). Инстансы 9-25 (17 шт.) - `running`. Frankfurt (27960-27962): файл с ожидаемым sha, `Loading plugin 'match_restore'` без ошибок. sD test server (1) пропущен: статус `updated`, не `running`
+- 2026-10-25 - проверка оператора прошла на sD test (1) со **старой** версией: две паузы на ~4:41, снимок верный (`frozen_ms=281675`), `eng=engine_elapsed=281675ms`; баг не воспроизвелся, потому что снимок был правильный. Фикс живьем еще не проверен
+- 2026-10-25 12:53 UTC - по OK оператора обновлен sD test (1, `91.99.3.72:27960`): `updated` - нормальный статус qlsm, скрипт теперь его принимает. Файл `eff128b2...`, `Loading plugin 'match_restore'` без ошибок. Ждет повторной паузы
 
 ## Результат
 
-`b8da09b` fix(match_restore): leave the engine match clock alone on a plain unpause (qlsm-extra `main`). Выкачено 2026-10-24 на все 17 турнирных инстансов (9-25); живая проверка паузы ещё не сделана.
+`b8da09b` fix(match_restore): leave the engine match clock alone on a plain unpause (qlsm-extra `main`). Выкачено 2026-10-24 на все 17 турнирных инстансов (9-25), 2026-10-25 - на sD test (1); живая проверка паузы ещё не сделана.
 
 ## Как проверить
 
