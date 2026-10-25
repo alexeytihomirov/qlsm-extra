@@ -159,8 +159,8 @@
     {
       "id": "live-settings",
       "zip": "packages/live-settings.zip",
-      "sha256": "44eaded7aedacee12d31b2724aec580fb54d24dde86756cd579b356b43976edd",
-      "version": "1.0.1",
+      "sha256": "017da601b7f7a97be9678a9ec7220ef3510a86233199450bdc9bb088d21abdab",
+      "version": "1.0.2",
       "label": "Live Settings",
       "description": "Adds a Live Settings tab to each instance's Edit Configuration window: the cvars of its plugins and any server cvars you pin, with the live value from the running server next to the server.cfg value. Changes go to the server over RCON at once, no restart, and are written to server.cfg too unless you untick that. Needs QLSM with ui_api 3 or newer."
     },

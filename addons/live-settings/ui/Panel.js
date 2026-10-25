@@ -193,13 +193,15 @@ function Panel({ ctx }) {
   const [revealed, setRevealed] = useState({});
   const retryTimer = useRef(null);
   const alive = useRef(true);
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
   const load = useCallback(async ({ quiet = false } = {}) => {
     var _a2, _b2, _c;
     if (!instanceId) return null;
     if (!quiet) setLoading(true);
     setError(null);
     try {
-      const result = await ctx.api("GET", `instances/${instanceId}/cvars`);
+      const result = await ctxRef.current.api("GET", `instances/${instanceId}/cvars`);
       if (!alive.current) return null;
       setData(result);
       return result;
@@ -209,7 +211,7 @@ function Panel({ ctx }) {
     } finally {
       if (alive.current && !quiet) setLoading(false);
     }
-  }, [ctx, instanceId]);
+  }, [instanceId]);
   useEffect(() => {
     alive.current = true;
     load();

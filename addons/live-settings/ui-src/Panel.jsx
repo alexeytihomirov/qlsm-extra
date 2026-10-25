@@ -152,13 +152,20 @@ function Panel({ ctx }) {
   const [revealed, setRevealed] = useState({});
   const retryTimer = useRef(null);
   const alive = useRef(true);
+  // The host builds a fresh ctx on every render, and the instance page re-renders
+  // on its server status poll (15 s). A load keyed on ctx re-ran on each of those: a
+  // new rcon session every 15 s, and an rcon client that disconnects while
+  // the game is printing can leave the engine's send to it waiting forever (a hung
+  // server, root-0032). So load is keyed on the instance alone and reads ctx here.
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
 
   const load = useCallback(async ({ quiet = false } = {}) => {
     if (!instanceId) return null;
     if (!quiet) setLoading(true);
     setError(null);
     try {
-      const result = await ctx.api('GET', `instances/${instanceId}/cvars`);
+      const result = await ctxRef.current.api('GET', `instances/${instanceId}/cvars`);
       if (!alive.current) return null;
       setData(result);
       return result;
@@ -168,7 +175,7 @@ function Panel({ ctx }) {
     } finally {
       if (alive.current && !quiet) setLoading(false);
     }
-  }, [ctx, instanceId]);
+  }, [instanceId]);
 
   useEffect(() => {
     alive.current = true;
