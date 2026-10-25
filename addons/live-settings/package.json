@@ -1,7 +1,7 @@
 {
   "name": "qlsm-addon-live-settings-ui",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Build for the live-settings addon's tier-2 QLSM component (ui/Panel.js + ui/Panel.css).",
   "scripts": {

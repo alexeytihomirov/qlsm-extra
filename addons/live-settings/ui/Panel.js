@@ -16,6 +16,9 @@ const {
 } = React;
 runtime.ui;
 const CVAR_NAME_RE = /^[A-Za-z0-9_]+$/;
+function isSecretName(name) {
+  return /token|passw|secret|apikey|api_key/i.test(String(name || ""));
+}
 function baselineValue(row) {
   if (row.reported && row.live !== null && row.live !== void 0) return row.live;
   if (row.cfg !== null && row.cfg !== void 0) return row.cfg;
@@ -95,12 +98,20 @@ const SpinIcon = () => /* @__PURE__ */ React.createElement("svg", { className: "
 function Chip({ kind, children }) {
   return /* @__PURE__ */ React.createElement("span", { className: `ls-chip ls-chip-${kind}` }, children);
 }
-function Value({ value, placeholder }) {
+function Value({ value, placeholder, secret, revealed, onReveal }) {
   if (value === null || value === void 0) return /* @__PURE__ */ React.createElement("span", { className: "ls-empty" }, placeholder);
   if (value === "") return /* @__PURE__ */ React.createElement("span", { className: "ls-empty" }, "(empty)");
-  return /* @__PURE__ */ React.createElement("span", { title: value }, stripColors(value));
+  if (secret && !revealed) {
+    return /* @__PURE__ */ React.createElement("button", { type: "button", className: "ls-reveal", title: "Show the value", onClick: onReveal }, "•".repeat(8));
+  }
+  return /* @__PURE__ */ React.createElement("span", { title: secret ? void 0 : value }, stripColors(value));
 }
-function Editor({ row, value, onChange }) {
+function maskDiffLine(line) {
+  const m = line.match(/^([+-]\s*seta?\s+)([A-Za-z0-9_]+)(\s+)(".*"|\S+)(.*)$/);
+  if (m && isSecretName(m[2])) return `${m[1]}${m[2]}${m[3]}"${"•".repeat(8)}"${m[5]}`;
+  return line;
+}
+function Editor({ row, value, onChange, revealed }) {
   const label = row.label ? `${row.name}: ${row.label}` : row.name;
   if (row.type === "bool") {
     const on = value === "1" || value.toLowerCase() === "true";
@@ -131,11 +142,13 @@ function Editor({ row, value, onChange }) {
       }
     );
   }
+  const secret = isSecretName(row.name) && !revealed;
   return /* @__PURE__ */ React.createElement(
     "input",
     {
       className: "ls-input",
-      type: "text",
+      type: secret ? "password" : "text",
+      autoComplete: "off",
       "aria-label": label,
       value,
       onChange: (e) => onChange(e.target.value)
@@ -144,7 +157,7 @@ function Editor({ row, value, onChange }) {
 }
 function DiffBlock({ diff }) {
   if (!diff) return null;
-  const lines = diff.replace(/\n$/, "").split("\n");
+  const lines = diff.replace(/\n$/, "").split("\n").map(maskDiffLine);
   return /* @__PURE__ */ React.createElement("details", { className: "ls-diff", open: true }, /* @__PURE__ */ React.createElement("summary", null, "server.cfg diff"), /* @__PURE__ */ React.createElement("pre", null, lines.map((line, i) => {
     let cls = "";
     if (line.startsWith("+") && !line.startsWith("+++")) cls = "ls-add-line";
@@ -159,7 +172,10 @@ function ApplyLog({ apply }) {
   const persist = persistLine(apply);
   return /* @__PURE__ */ React.createElement("div", { className: "ls-log" }, /* @__PURE__ */ React.createElement("div", { className: "ls-log-head" }, "Apply ", formatDateTime(apply.at), /* @__PURE__ */ React.createElement("span", { className: "ls-chip ls-chip-muted", style: { marginLeft: "auto" } }, "rcon · set, then read back")), /* @__PURE__ */ React.createElement("pre", null, (apply.entries || []).map((entry) => {
     const state = entryState(entry);
-    return /* @__PURE__ */ React.createElement(React.Fragment, { key: entry.name }, /* @__PURE__ */ React.createElement("span", { className: "ls-time" }, time), " ", /* @__PURE__ */ React.createElement("span", { className: "ls-cmd" }, entry.command), "\n", "         ", entry.reply ? stripColors(entry.reply) : "(no reply)", "   ", /* @__PURE__ */ React.createElement("span", { className: `ls-${state.kind === "ok" ? "ok" : "warn"}` }, state.text), "\n");
+    const secret = isSecretName(entry.name);
+    const command = secret ? `set ${entry.name} "${"•".repeat(8)}"` : entry.command;
+    const reply = secret ? `"${entry.name}" is:"${"•".repeat(8)}"` : stripColors(entry.reply);
+    return /* @__PURE__ */ React.createElement(React.Fragment, { key: entry.name }, /* @__PURE__ */ React.createElement("span", { className: "ls-time" }, time), " ", /* @__PURE__ */ React.createElement("span", { className: "ls-cmd" }, command), "\n", "         ", entry.reply ? reply : "(no reply)", "   ", /* @__PURE__ */ React.createElement("span", { className: `ls-${state.kind === "ok" ? "ok" : "warn"}` }, state.text), "\n");
   }), "         ", /* @__PURE__ */ React.createElement("span", { className: `ls-${persist.kind === "ok" ? "ok" : persist.kind === "muted" ? "muted" : "warn"}` }, persist.text), "\n"), /* @__PURE__ */ React.createElement(DiffBlock, { diff: (_a = apply.persist_result) == null ? void 0 : _a.diff }));
 }
 function Panel({ ctx }) {
@@ -174,6 +190,7 @@ function Panel({ ctx }) {
   const [applyError, setApplyError] = useState(null);
   const [addName, setAddName] = useState("");
   const [pinBusy, setPinBusy] = useState(false);
+  const [revealed, setRevealed] = useState({});
   const retryTimer = useRef(null);
   const alive = useRef(true);
   const load = useCallback(async ({ quiet = false } = {}) => {
@@ -314,7 +331,10 @@ function Panel({ ctx }) {
     const changed = isChanged(row, edits);
     const state = rowState(row, edits, rconOk);
     const cfgPlaceholder = row.default !== null && row.default !== void 0 ? `not set (default ${row.default})` : "not set";
-    return /* @__PURE__ */ React.createElement("tr", { key: row.name, className: changed ? "ls-row-changed" : void 0 }, /* @__PURE__ */ React.createElement("td", { className: "ls-name" }, row.name, row.label || row.description ? /* @__PURE__ */ React.createElement("small", null, row.label, row.label && row.description ? " · " : "", row.description) : null), /* @__PURE__ */ React.createElement("td", { className: "ls-val" }, /* @__PURE__ */ React.createElement(Value, { value: row.reported ? row.live : null, placeholder: rconOk ? "no reply" : "-" })), /* @__PURE__ */ React.createElement("td", { className: "ls-val" }, /* @__PURE__ */ React.createElement(Value, { value: row.cfg, placeholder: cfgPlaceholder })), /* @__PURE__ */ React.createElement("td", { className: "ls-edit" }, /* @__PURE__ */ React.createElement(Editor, { row, value, onChange: (v) => setEdit(row.name, v) })), /* @__PURE__ */ React.createElement("td", { className: "ls-state" }, /* @__PURE__ */ React.createElement(Chip, { kind: state.kind }, state.text)), /* @__PURE__ */ React.createElement("td", { className: "ls-act" }, /* @__PURE__ */ React.createElement(
+    const secret = isSecretName(row.name);
+    const shown = Boolean(revealed[row.name]);
+    const reveal = () => setRevealed((prev) => ({ ...prev, [row.name]: true }));
+    return /* @__PURE__ */ React.createElement("tr", { key: row.name, className: changed ? "ls-row-changed" : void 0 }, /* @__PURE__ */ React.createElement("td", { className: "ls-name" }, row.name, row.label || row.description ? /* @__PURE__ */ React.createElement("small", null, row.label, row.label && row.description ? " · " : "", row.description) : null), /* @__PURE__ */ React.createElement("td", { className: "ls-val" }, /* @__PURE__ */ React.createElement(Value, { value: row.reported ? row.live : null, placeholder: rconOk ? "no reply" : "-", secret, revealed: shown, onReveal: reveal })), /* @__PURE__ */ React.createElement("td", { className: "ls-val" }, /* @__PURE__ */ React.createElement(Value, { value: row.cfg, placeholder: cfgPlaceholder, secret, revealed: shown, onReveal: reveal })), /* @__PURE__ */ React.createElement("td", { className: "ls-edit" }, /* @__PURE__ */ React.createElement(Editor, { row, value, onChange: (v) => setEdit(row.name, v), revealed: shown })), /* @__PURE__ */ React.createElement("td", { className: "ls-state" }, /* @__PURE__ */ React.createElement(Chip, { kind: state.kind }, state.text)), /* @__PURE__ */ React.createElement("td", { className: "ls-act" }, /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",

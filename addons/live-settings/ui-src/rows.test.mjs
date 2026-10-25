@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  baselineValue, entryState, isChanged, pendingChanges, persistLine, rowState, stripColors,
+  baselineValue, entryState, isChanged, isSecretName, pendingChanges, persistLine, rowState, stripColors,
 } from './rows.js';
 
 const row = (over) => ({
@@ -46,4 +46,12 @@ test('apply log lines', () => {
   assert.equal(persistLine({ persist: true, persist_result: { ok: true, diff: 'x' } }).kind, 'ok');
   assert.equal(persistLine({ persist: true, persist_result: { ok: false, skipped: 'busy' } }).text, 'busy');
   assert.equal(stripColors('^1sD ^7test'), 'sD test');
+});
+
+test('secret-looking cvar names are recognised', () => {
+  assert.equal(isSecretName('qlx_matchNoticeToken'), true);
+  assert.equal(isSecretName('g_password'), true);
+  assert.equal(isSecretName('qlx_rankedApiKey'), true);
+  assert.equal(isSecretName('qlx_itemRouletteTakeChance'), false);
+  assert.equal(isSecretName('sv_hostname'), false);
 });

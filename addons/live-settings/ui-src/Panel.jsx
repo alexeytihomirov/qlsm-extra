@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CVAR_NAME_RE, baselineValue, currentValue, entryState, formatDateTime, formatTime, isChanged,
-  pendingChanges, persistLine, rowState, stripColors,
+  isSecretName, pendingChanges, persistLine, rowState, stripColors,
 } from './rows.js';
 import './panel.css';
 
@@ -42,13 +42,27 @@ function Chip({ kind, children }) {
   return <span className={`ls-chip ls-chip-${kind}`}>{children}</span>;
 }
 
-function Value({ value, placeholder }) {
+function Value({ value, placeholder, secret, revealed, onReveal }) {
   if (value === null || value === undefined) return <span className="ls-empty">{placeholder}</span>;
   if (value === '') return <span className="ls-empty">(empty)</span>;
-  return <span title={value}>{stripColors(value)}</span>;
+  if (secret && !revealed) {
+    return (
+      <button type="button" className="ls-reveal" title="Show the value" onClick={onReveal}>
+        {'\u2022'.repeat(8)}
+      </button>
+    );
+  }
+  return <span title={secret ? undefined : value}>{stripColors(value)}</span>;
 }
 
-function Editor({ row, value, onChange }) {
+function maskDiffLine(line) {
+  // `+set qlx_matchNoticeToken "abc"` -> the value hidden, the cvar name kept.
+  const m = line.match(/^([+-]\s*seta?\s+)([A-Za-z0-9_]+)(\s+)(".*"|\S+)(.*)$/);
+  if (m && isSecretName(m[2])) return `${m[1]}${m[2]}${m[3]}"${'\u2022'.repeat(8)}"${m[5]}`;
+  return line;
+}
+
+function Editor({ row, value, onChange, revealed }) {
   const label = row.label ? `${row.name}: ${row.label}` : row.name;
   if (row.type === 'bool') {
     const on = value === '1' || value.toLowerCase() === 'true';
@@ -69,9 +83,10 @@ function Editor({ row, value, onChange }) {
       />
     );
   }
+  const secret = isSecretName(row.name) && !revealed;
   return (
     <input
-      className="ls-input" type="text" aria-label={label} value={value}
+      className="ls-input" type={secret ? 'password' : 'text'} autoComplete="off" aria-label={label} value={value}
       onChange={(e) => onChange(e.target.value)}
     />
   );
@@ -79,7 +94,7 @@ function Editor({ row, value, onChange }) {
 
 function DiffBlock({ diff }) {
   if (!diff) return null;
-  const lines = diff.replace(/\n$/, '').split('\n');
+  const lines = diff.replace(/\n$/, '').split('\n').map(maskDiffLine);
   return (
     <details className="ls-diff" open>
       <summary>server.cfg diff</summary>
@@ -105,10 +120,13 @@ function ApplyLog({ apply }) {
       </div>
       <pre>{(apply.entries || []).map((entry) => {
         const state = entryState(entry);
+        const secret = isSecretName(entry.name);
+        const command = secret ? `set ${entry.name} "${'\u2022'.repeat(8)}"` : entry.command;
+        const reply = secret ? `"${entry.name}" is:"${'\u2022'.repeat(8)}"` : stripColors(entry.reply);
         return (
           <React.Fragment key={entry.name}>
-            <span className="ls-time">{time}</span> <span className="ls-cmd">{entry.command}</span>{'\n'}
-            {'         '}{entry.reply ? stripColors(entry.reply) : '(no reply)'}
+            <span className="ls-time">{time}</span> <span className="ls-cmd">{command}</span>{'\n'}
+            {'         '}{entry.reply ? reply : '(no reply)'}
             {'   '}<span className={`ls-${state.kind === 'ok' ? 'ok' : 'warn'}`}>{state.text}</span>{'\n'}
           </React.Fragment>
         );
@@ -131,6 +149,7 @@ function Panel({ ctx }) {
   const [applyError, setApplyError] = useState(null);
   const [addName, setAddName] = useState('');
   const [pinBusy, setPinBusy] = useState(false);
+  const [revealed, setRevealed] = useState({});
   const retryTimer = useRef(null);
   const alive = useRef(true);
 
@@ -312,6 +331,9 @@ function Panel({ ctx }) {
                   const state = rowState(row, edits, rconOk);
                   const cfgPlaceholder = row.default !== null && row.default !== undefined
                     ? `not set (default ${row.default})` : 'not set';
+                  const secret = isSecretName(row.name);
+                  const shown = Boolean(revealed[row.name]);
+                  const reveal = () => setRevealed((prev) => ({ ...prev, [row.name]: true }));
                   return (
                     <tr key={row.name} className={changed ? 'ls-row-changed' : undefined}>
                       <td className="ls-name">
@@ -320,9 +342,9 @@ function Panel({ ctx }) {
                           <small>{row.label}{row.label && row.description ? ' · ' : ''}{row.description}</small>
                         ) : null}
                       </td>
-                      <td className="ls-val"><Value value={row.reported ? row.live : null} placeholder={rconOk ? 'no reply' : '-'} /></td>
-                      <td className="ls-val"><Value value={row.cfg} placeholder={cfgPlaceholder} /></td>
-                      <td className="ls-edit"><Editor row={row} value={value} onChange={(v) => setEdit(row.name, v)} /></td>
+                      <td className="ls-val"><Value value={row.reported ? row.live : null} placeholder={rconOk ? 'no reply' : '-'} secret={secret} revealed={shown} onReveal={reveal} /></td>
+                      <td className="ls-val"><Value value={row.cfg} placeholder={cfgPlaceholder} secret={secret} revealed={shown} onReveal={reveal} /></td>
+                      <td className="ls-edit"><Editor row={row} value={value} onChange={(v) => setEdit(row.name, v)} revealed={shown} /></td>
                       <td className="ls-state"><Chip kind={state.kind}>{state.text}</Chip></td>
                       <td className="ls-act">
                         <button

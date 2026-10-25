@@ -4,6 +4,13 @@
 
 export const CVAR_NAME_RE = /^[A-Za-z0-9_]+$/;
 
+/** Cvars whose value is a credential (a site token, the join password, an
+ *  API key): shown masked until the operator asks, and edited in a password
+ *  field, so the tab never puts a secret on screen by default. */
+export function isSecretName(name) {
+  return /token|passw|secret|apikey|api_key/i.test(String(name || ''));
+}
+
 /** The value the operator edits against: the engine's when it answered,
  *  else qlsm's server.cfg copy, else the plugin's declared default. */
 export function baselineValue(row) {
