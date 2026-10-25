@@ -37,9 +37,11 @@ minqlxtended-плагин: при подборе предмета случайн
 
 - 2026-10-25 00:40-00:45 UTC - `c7ebf83` в `origin/main` (ls-remote). Выкатка на sD test server по рецепту `qlsm-extra-0022`: скрипт `/tmp/qlsm_rollout_roulette.py` на home-docker, запуск в qlsm-web-1 с `PYTHONPATH=/app` (без него `No module named 'ui'`); инстанс был в статусе UPDATED, не RUNNING - скрипт пускает оба; sync репозитория, `download_plugin` в operator pool (`/app/data/shared-plugins/minqlxtended/item_roulette.py`, sha `7acce6a7...`), файл в `configs/GermanyHetzner/1/scripts`, `set qlx_itemRouletteEnabled "1"` в конец `server.cfg`, `item_roulette` в `qlx_plugins`, `apply_instance_config` с рестартом (job `1c9fa81f`). На germany: unit active с 02:43:44 CEST, файл с ожидаемым sha, `item_roulette` в `+set qlx_plugins`, в логе `Loading plugin 'item_roulette'` без ошибок (только штатный шум PluginLoadError хелперов). Хук `item_touch` гейтед - до первого касания предмета игроком плагин ничего не делает; живая проверка за оператором
 
+- 2026-10-25 00:55 UTC - оператор проверил на sD test server, плагин работает; при 50 % случались серии почти сплошных "take". По его просьбе шанс 25 %: rcon `set qlx_itemRouletteTakeChance 25` на лету (cvar читается на каждом касании, подтверждено rcon-запросом: 25, default 50) и `set qlx_itemRouletteTakeChance "25"` в `server.cfg` инстанса (копия qlsm `configs/GermanyHetzner/1/server.cfg` и копия на хосте). Default в плагине оставлен 50
+
 ## Результат
 
-`c7ebf83` feat(item_roulette) в qlsm-extra `main`: `item_roulette.py`, `item_roulette.ql-plugin.json`, тесты, README, `qlsm-repository.json`. Стоит и включён (`qlx_itemRouletteEnabled 1`, остальное по умолчанию: шанс 50 %, RA -66, YA -50, GA -33, шард -2, хп 5/15/33/66, патроны -6 (LG -66), оружие отнимается, пауэрапы - проклятия quad 0.5 / bs 1.5 / regen 1) на sD test server (germany :27960) с 2026-10-25 02:43 CEST.
+`c7ebf83` feat(item_roulette) в qlsm-extra `main`: `item_roulette.py`, `item_roulette.ql-plugin.json`, тесты, README, `qlsm-repository.json`. Стоит и включён (`qlx_itemRouletteEnabled 1`, остальное по умолчанию: шанс 25 % на sD test (default 50), RA -66, YA -50, GA -33, шард -2, хп 5/15/33/66, патроны -6 (LG -66), оружие отнимается, пауэрапы - проклятия quad 0.5 / bs 1.5 / regen 1) на sD test server (germany :27960) с 2026-10-25 02:43 CEST.
 
 ## Как проверить
 
