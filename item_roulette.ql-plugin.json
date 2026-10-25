@@ -1,0 +1,14 @@
+{
+  "label": "Item Roulette",
+  "description": "Every pickup is a coin flip: the item gives what it always gives, or takes instead - armor, health and ammo go down, a weapon is lost, a powerup turns into a curse of the same length. What each item gives and takes is configurable.",
+  "cvars": [
+    { "cvar": "qlx_itemRouletteEnabled", "label": "Enabled", "description": "Turns the roulette on. Read on every pickup, so it can be switched at any time.", "type": "bool", "default": false },
+    { "cvar": "qlx_itemRouletteTakeChance", "label": "Take chance (%)", "description": "Percent of pickups that take instead of give.", "type": "number", "default": 50, "min": 0, "max": 100 },
+    { "cvar": "qlx_itemRouletteAnnounce", "label": "Announce", "description": "Show the player what happened in the centre of the screen.", "type": "bool", "default": true },
+    { "cvar": "qlx_itemRouletteArmor", "label": "Armor rules", "description": "key=give/take per armor: shard ga ya ra. * = what the engine gives.", "type": "string", "default": "shard=*/2 ga=*/33 ya=*/50 ra=*/66" },
+    { "cvar": "qlx_itemRouletteHealth", "label": "Health rules", "description": "key=give/take per health item: 5 25 50 mega. * = what the engine gives. Health never drops below 1.", "type": "string", "default": "5=*/5 25=*/15 50=*/33 mega=*/66" },
+    { "cvar": "qlx_itemRouletteWeapons", "label": "Weapon rules", "description": "key=give per weapon (g mg sg gl rl lg rg pg bfg gh ng pl cg hmg, or default): ammo given with the weapon, * = engine. A take always removes the weapon (or does not give it).", "type": "string", "default": "default=*" },
+    { "cvar": "qlx_itemRouletteAmmo", "label": "Ammo rules", "description": "key=give/take per ammo, by its weapon (default, lg, rl, ...). * = what the engine gives.", "type": "string", "default": "default=*/6 lg=*/66" },
+    { "cvar": "qlx_itemRoulettePowerups", "label": "Powerup curses", "description": "quad = damage multiplier while cursed (0.5 = half), bs = damage taken multiplier (1.5), regen = health lost per second (1). Invisibility shows a talk balloon over the head, haste is just denied.", "type": "string", "default": "quad=0.5 bs=1.5 regen=1" }
+  ]
+}

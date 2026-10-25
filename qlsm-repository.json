@@ -114,6 +114,13 @@
       "label": "Frame Timing",
       "description": "Writes server frame timing (late frames, max, p50 and p99 gap over the last 10 seconds) to Redis every 10 seconds for the host-metrics addon. No commands and no settings.",
       "sha256": "5fdd4ffb7b8d3dcc1b81cb9dac8492f1b02da48694d4e742fad5e42c39a577f5"
+    },
+    {
+      "filename": "item_roulette.py",
+      "runtime": "minqlxtended",
+      "label": "Item Roulette",
+      "description": "Every pickup is a coin flip: the item gives what it always gives, or takes instead - armor, health and ammo go down, a weapon is lost, a powerup turns into a curse of the same length. What each item gives and takes is configurable.",
+      "sha256": "7acce6a7b00cd3be3bd082c40e346fba8dab75c3a9047724a4523fdf4ab0ab50"
     }
   ],
   "addons": [
