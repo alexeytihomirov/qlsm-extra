@@ -6,7 +6,7 @@ that do **not** ship in the standard qlsm image / plugin pools.
 | Kind | What |
 |------|------|
 | Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `referee_call`, `match_restore`), demo packing and live stream repair (`qlmatch_packer`, `demo_stream_resync_hold`), server frame timing (`frame_timing`), live telemetry for the `minqlxtended` runtime |
-| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `file-forwarder`, `runtime-source`, `player-ranks`, `host-metrics`, `server-ping` |
+| Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `file-forwarder`, `runtime-source`, `player-ranks`, `host-metrics`, `server-ping`, `live-settings` |
 
 Merged from the former local `minqlxtended-plugins` and `qlsm-addons` trees.
 
@@ -157,6 +157,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enter repository + commit in **Runtime Source**, then **Re-run Host Setup**. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
 | `host-metrics` | Per-host and per-instance resource metrics: a low-priority collector on every game host keeps 30 days of CPU (incl. steal), memory, disk, players and frame timing in SQLite; the Host Metrics page is a health board (status, findings in plain English, hardware, charts) with a capacity verdict per host. Collector changes reach a host with **Apply to host** |
+| `live-settings` | A **Live Settings** tab in each instance's Edit Configuration window: the cvars of its plugins (from their `.ql-plugin.json`) and any server cvars you pin, with the live value from the running server next to the `server.cfg` value. Changes go to the server over RCON at once, no restart; by default they are also written to `server.cfg` and synced to the host without a restart (the instance then shows UPDATED, as after any save without restart). The tab keeps the last applies with the engine's answers and the `server.cfg` diff |
 | `server-ping` | Browser ping to game hosts: deploys `ql-ping-echo` (a static Go WebRTC UDP echo, `Nice=19`, `CPUWeight=1`, user `ql-ping`) to each enabled host and opens its UDP port (default 28111) in its own firewall chain `QLPING-INPUT`, never touching qlsm's `QLSM-INPUT`. One DTLS key + certificate for all hosts: generate it once on the **Server Ping** page and put the fingerprint shown there into the ql-tournament env (`PING_DTLS_FINGERPRINT`). Per host: switch, Status, **Apply**; a host setup re-applies it; Apply refuses while the addon is switched off globally. While enabled, the `QLPING-INPUT` chain and hook also end up in `/etc/iptables/rules.v4`, because qlsm runs `iptables-save > /etc/iptables/rules.v4` on every instance add/start; switching a host off + Apply re-saves that file when it still holds the chain, so the port stays closed after a reboot. Rebuild the binary with `addons/server-ping/build.sh` |
 
 qlsm's image ships **no** addon - install every one of these from this
@@ -360,13 +361,55 @@ on the relevant panel and in `qlsm-addon.json`. A third-party addon can add a
 further source via the `player_ranks.providers` hook without touching this
 addon's code (see qlsm's `addons/README.md`, "Cross-addon UI contribution").
 
+### live-settings
+
+One tab, three columns per cvar: **Live** (what the running server reports
+over RCON, read when the tab opens and on Refresh), **server.cfg** (qlsm's
+copy of the instance's file, last `set` wins) and **New value**. Rows come
+from two places:
+
+- every plugin listed in the instance's `qlx_plugins` whose `.ql-plugin.json`
+  declares `cvars` (the same sidecar qlsm's Plugins tab uses for its form);
+- **Server**: engine cvars pinned to this instance with the field above the
+  table (suggestions come from qlsm's own cvar catalog). The list is the
+  addon's per-instance setting `pinned_cvars`, so it is also editable on the
+  Addons page.
+
+**Apply N changes live** sends `set <cvar> "<value>"` for every changed row
+over RCON, reads each cvar back and shows the engine's answer verbatim. With
+**Also write to server.cfg** (on by default) the values are also written into
+qlsm's `server.cfg` (rewriting the last `set`, or appending) and core's own
+config sync runs without a restart - the instance shows UPDATED afterwards,
+exactly as after a save with "Restart after saving" off. The block under the
+table keeps the last 20 applies per instance (`data/addons/live-settings/`)
+with the `server.cfg` diff of each.
+
+What the tab says honestly rather than claiming every value applied:
+
+- a **latched** cvar (`sv_maxclients`, ...) comes back with `latched:"x"` and
+  the chip says "on next map";
+- a plugin cvar the plugin reads once at load (`set_cvar_once`) is changed on
+  the server but the plugin keeps its old value until `!reload` or a restart -
+  `item_roulette` reads its cvars on every pickup, so it reacts at once;
+- a value applied without the `server.cfg` write is **live only** and gone
+  after a restart; a `server.cfg` value that differs from the live one shows
+  as **drift**.
+
+The addon talks to the engine itself: a short-lived zmq DEALER/PLAIN
+connection per request from the web process (the same protocol as qlsm's
+rcon service, which stays a one-way console pipe and is not involved). The
+instance must be RUNNING or UPDATED with RCON configured; a STOPPED instance
+still shows the `server.cfg` column. Addon switched off on the Addons page
+-> its endpoints answer 403 and the tab shows that.
+
 Framework docs: qlsm's `addons/README.md`, `addons/TRUST.md`, `addons/UI-GUIDE.md`.
 Addons run in-process with qlsm's full authority - only install what you trust.
 
 ### Building an addon's UI
 
-`demo-management` ships a **tier-2** component: its own pre-built
-`ui/Panel.js` + `ui/Panel.css`, built from `ui-src/` with Vite. qlsm installs
+`demo-management` and `live-settings` ship a **tier-2** component: their own
+pre-built `ui/Panel.js` + `ui/Panel.css`, built from `ui-src/` with Vite
+(`live-settings` without Tailwind: plain CSS against qlsm's variables). qlsm installs
 a zip and can never build anything, so the built files are committed; the
 sources and toolchain are not part of the package (`generate_manifest.py`
 skips them).

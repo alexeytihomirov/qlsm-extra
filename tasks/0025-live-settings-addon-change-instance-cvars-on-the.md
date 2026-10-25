@@ -1,7 +1,7 @@
 ---
 id: qlsm-extra-0025
 title: Live Settings addon: change instance cvars on the fly without a restart
-status: todo
+status: in-progress
 created: 2026-10-25
 updated: 2026-10-25
 verified:
@@ -29,16 +29,18 @@ related: [qlsm-extra-0024, qlsm-extra-0016]
 
 ## Шаги
 
-- [ ] Согласовать дизайн и макет с оператором.
-- [ ] Backend: rcon-клиент (pyzmq), чтение cvar-ов, apply, upsert в server.cfg, синк на хост.
-- [ ] Frontend: tier-2 компонент по макету, сборка `ui/Panel.js` + `Panel.css`.
-- [ ] Манифест аддона, `generate_manifest.py`, README, тесты (`tests/`).
+- [x] Согласовать дизайн и макет с оператором.
+- [x] Backend: rcon-клиент (pyzmq), чтение cvar-ов, apply, upsert в server.cfg, синк на хост.
+- [x] Frontend: tier-2 компонент по макету, сборка `ui/Panel.js` + `Panel.css`.
+- [x] Манифест аддона, `generate_manifest.py`, README, тесты (`tests/`).
 - [ ] Установить на прод qlsm, проверить на sD test server (item_roulette take chance).
 - [ ] Merge в main, push.
 
 ## Журнал
 
 - 2026-10-25 - created; изучены rcon-транспорт qlsm, mount point instance_tabs, PluginCvarsModal, apply без рестарта; нарисован макет вкладки.
+- 2026-10-25 - оператор принял дизайн и макет; запись в server.cfg через штатный `apply_instance_config(restart=False)` (статус UPDATED), итоговый дифф server.cfg показывается в логе apply и хранится в `data/addons/live-settings/instance-<id>.json` (20 последних).
+- 2026-10-25 - реализован аддон `addons/live-settings/`: `rcon_client.py` (своё zmq DEALER/PLAIN соединение на запрос), `cvar_reply.py` (разбор `"name" is:"v^7" default:"d^7" latched:"x"`), `cvar_text.py` (порт serverCfgCvars.js: последний set, seta, без кавычек, unified diff), `catalog.py` (cvar-ы плагинов из sidecar через `ui.plugin_manifest`, pinned из настроек инстанса `pinned_cvars`), `backend.py` (GET cvars, POST cvars/apply, PUT pinned; apply = set + чтение обратно + upsert + enqueue core apply без рестарта), tier-2 `ui-src/Panel.jsx` + `panel.css` (без Tailwind) -> `ui/Panel.js`. Тесты: 16 standalone (cvar_text, cvar_reply), 13 с qlsm (`tests/test_addon_live_settings.py`, rcon замокан), 5 node (`ui-src/rows.test.mjs`) - все зелёные. Открытие: модуль аддона в реестре называется `qlsm_addon_live_settings` и это сам backend.py, патчить нужно `sys.modules[...]`, а не `.backend`.
 
 ## Результат
 

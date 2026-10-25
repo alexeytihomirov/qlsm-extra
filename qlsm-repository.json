@@ -157,6 +157,14 @@
       "description": "CPU, memory, disk and per-instance load of every game host, with a capacity verdict."
     },
     {
+      "id": "live-settings",
+      "zip": "packages/live-settings.zip",
+      "sha256": "4522d4ef47a1704a009f6e0b84e32625369139cbe269b53f21a256fd9dbaeaed",
+      "version": "1.0.0",
+      "label": "Live Settings",
+      "description": "Adds a Live Settings tab to each instance's Edit Configuration window: the cvars of its plugins and any server cvars you pin, with the live value from the running server next to the server.cfg value. Changes go to the server over RCON at once, no restart, and are written to server.cfg too unless you untick that. Needs QLSM with ui_api 3 or newer."
+    },
+    {
       "id": "player-ranks",
       "zip": "packages/player-ranks.zip",
       "sha256": "10b5eac255576a3566e923000ca581a8eb3bd9c4cec5e8550900b7f4dbade900",

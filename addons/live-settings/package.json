@@ -1,0 +1,14 @@
+{
+  "name": "qlsm-addon-live-settings-ui",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Build for the live-settings addon's tier-2 QLSM component (ui/Panel.js + ui/Panel.css).",
+  "scripts": {
+    "build": "vite build",
+    "test": "node --test ui-src/rows.test.mjs"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}

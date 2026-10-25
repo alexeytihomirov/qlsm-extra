@@ -1,0 +1,26 @@
+{
+  "id": "live-settings",
+  "version": "1.0.0",
+  "name": "Live Settings",
+  "description": "Adds a Live Settings tab to each instance's Edit Configuration window: the cvars of its plugins and any server cvars you pin, with the live value from the running server next to the server.cfg value. Changes go to the server over RCON at once, no restart, and are written to server.cfg too unless you untick that. Needs QLSM with ui_api 3 or newer.",
+  "scopes": ["global", "instance"],
+  "ui_api": 3,
+
+  "settings": {
+    "instance": [
+      { "key": "pinned_cvars", "type": "string", "label": "Pinned server cvars",
+        "description": "Comma-separated engine cvars shown on this instance's Live Settings tab next to its plugin cvars, e.g. timelimit, g_password.",
+        "placeholder": "timelimit, fraglimit, g_password" }
+    ]
+  },
+
+  "ui": {
+    "icon": "zap",
+
+    "instance_tabs": [
+      { "id": "live-settings", "label": "Live Settings", "icon": "zap", "component": "Panel.js" }
+    ],
+
+    "panels": {}
+  }
+}
