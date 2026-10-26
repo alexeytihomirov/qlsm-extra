@@ -178,3 +178,21 @@ def test_state_phase_writes_view_when_pause_never_happens(gc):
     assert gc.instances[2].ps.delta_angles[1] == _short(270.0) - 65600
     assert p._restore_pending_views == {}
     assert [j["client_id"] for j in p._view_apply_queue] == [2]
+
+
+def test_qlmatch_rows_carry_yaw_and_level_pitch():
+    from restore import codec, qlmatch
+
+    ev = {"players": [
+        {"clientNum": 0, "x": 1, "y": 2, "z": 3, "yaw": -88.4},
+        {"clientNum": 1, "x": 1, "y": 2, "z": 3, "yaw": 10, "pitch": 5.5},
+        {"clientNum": 2, "x": 1, "y": 2, "z": 3},
+        {"clientNum": 3, "x": 1, "y": 2, "z": 3, "yaw": "nan"},
+    ]}
+    rows = qlmatch.build_player_rows(ev)
+    assert (rows[0]["ya"], rows[0]["pa"]) == (-88.4, 0.0)
+    assert (rows[1]["ya"], rows[1]["pa"]) == (10.0, 5.5)
+    assert "ya" not in rows[2] and "pa" not in rows[2]
+    assert "ya" not in rows[3]
+    cp = codec.canonicalize({"t_ms": 1, "map": "q4sun", "players": rows})
+    assert cp["players"][0]["ya"] == -88.4 and cp["players"][0]["pa"] == 0.0

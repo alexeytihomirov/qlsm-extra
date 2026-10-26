@@ -466,6 +466,20 @@ def _attach_velocity(row, p, prev_p=None, dt_ms=None):
         row["vz"] = float(vz)
 
 
+def _attach_view(row, p):
+    """Copy the sidecar's yaw (degrees) as ya; pitch (pa) when the sidecar has
+    one, else 0 (level): replay-v2 positions rows carry yaw only."""
+    try:
+        yaw = float(p["yaw"])
+        pitch = float(p.get("pitch", 0.0))
+    except (TypeError, ValueError, KeyError):
+        return
+    if not (math.isfinite(yaw) and math.isfinite(pitch)):
+        return
+    row["ya"] = round(yaw, 2)
+    row["pa"] = round(pitch, 2)
+
+
 def build_player_rows(snapshot_event, prev_by_cn=None, dt_ms=None, roster=None):
     """Loose (pre-canonicalize) players[] rows from one 'positions' event.
 
@@ -536,6 +550,7 @@ def build_player_rows(snapshot_event, prev_by_cn=None, dt_ms=None, roster=None):
             if w > 0:
                 row["w"] = w
         _attach_velocity(row, p, prev_by_cn.get(cn), dt_ms)
+        _attach_view(row, p)
         loadout_keys, ammo, _holdable = _extract_inventory(p)
         if loadout_keys is not None:
             row["lo"] = loadout_to_mask(loadout_keys)

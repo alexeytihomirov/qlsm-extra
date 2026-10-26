@@ -49,6 +49,8 @@ Design (mirrors the velocity path, which already survives the pause):
 
 - 2026-10-26 - live round 2: view did not turn. Log: in warmup the pause cannot start ("pause command had no effect"), `_finish_restore_pause_kinematics` returns before the kinematics phase, where the view was applied. Fix: the state phase (same place as the teleport) now also writes the view and queues it for a few frames; only the kinematics phase remembers it for the unpause flush (so a late re-aim never fights the mouse in warmup)
 
+- 2026-10-26 - operator confirmed the view turns on `!restore apply` (draft, germany 27960). Asked: `!restore match` must use it too. The .qlmatch sidecar (replay-v2, checked on germany `20261025T214209Z_q4sun.replay.json.gz`, generator_version 12) has `yaw` per player in `positions` but no pitch: `build_player_rows` now sets `ya` = yaw and `pa` = pitch if present else 0 (level). Checked the real positions event through `build_player_rows` + `canonicalize`. Live `!restore match` check pending
+
 ## Результат
 
 - Commit `3d0643d` on `origin/main` of `alexeytihomirov/qlsm-extra` (confirmed with `git ls-remote`). Deployed on germany 27960 (`sD test server`) 2026-10-26 21:14 CET; other hosts get it through Check for Updates. Live check by the operator is pending.
