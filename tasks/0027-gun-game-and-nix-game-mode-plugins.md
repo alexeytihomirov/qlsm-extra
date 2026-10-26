@@ -47,6 +47,8 @@ related: [root-0033, root-0034, qlsm-extra/docs/superpowers/specs/2026-10-26-gun
 - 2026-10-26 - operator approved the spec. Spec refined: fraglimit 0 during the match, winner score = ladder length + 1 (no tie on the last step), SWITCH_TEAMS deaths never demote, score writes on the next frame. Plan: `docs/superpowers/plans/2026-10-26-gungame.md`
 
 - 2026-10-26 - gungame.py + gungame.ql-plugin.json + tests (43 unit/hook tests), repository entry, README row. Fork detail found: `map` fires on a fresh load only, `new_game` also on restarts (items respawn), so items are hidden on new_game and fraglimit is restored on game_end / map / unload
+- 2026-10-26 - fresh review (opus) found: game_start handler took an argument the fork never passes (plugin would not load), bots shared one state (steam_id 0), fraglimit lost if enabled mid-match, frags counted after a win, hidden powerups come back on respawn. All fixed with failing-first tests (61 pass); map items now freed with minqlx.remove_entity. Merged to main 4b19628, pushed
+- 2026-10-26 - installed on instance 26 via qlsm API (repo sync, download, draft, save with restart): qlds@27964 restarted 17:53:15 MSK; rcon: qlx_gunGameEnabled 1, g_infiniteAmmo 1, default ladder, g_gametype 0; log: `Loading plugin 'gungame'`, `gungame: took 8 weapons and powerups off the map`, no gungame traceback. gungame.py also pushed to every host's pool (off by default, enabled only on #26). Waiting for the operator's live round
 
 ## Результат
 
