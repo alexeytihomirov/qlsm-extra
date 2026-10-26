@@ -145,3 +145,19 @@ def test_codec_keeps_angles_and_old_rows_have_none():
     cp = codec.canonicalize(base)
     assert cp["players"][0]["pa"] == 12.35 and cp["players"][0]["ya"] == -90.0
     assert "pa" not in cp["players"][1]
+
+
+def test_draft_view_field_reaches_the_checkpoint():
+    from restore import draft as restore_draft
+
+    tells = []
+    p = _plugin(
+        _restore_draft={"t_ms": 0, "map": "campgrounds", "players": {}, "items": []},
+        _draft_tell=lambda player, channel, text, loud=False: tells.append(text),
+    )
+    p._cmd_restore_draft_player(None, None, ["0", "pos", "1", "2", "3"])
+    p._cmd_restore_draft_player(None, None, ["0", "view", "12.345", "-90"])
+    cp = restore_draft.draft_to_checkpoint(p._restore_draft)
+    assert cp["players"][0]["pa"] == 12.35 and cp["players"][0]["ya"] == -90.0
+    p._cmd_restore_draft_player(None, None, ["0", "view", "5"])
+    assert "view needs pitch yaw" in tells[-1]

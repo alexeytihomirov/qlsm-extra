@@ -1958,7 +1958,7 @@ class match_restore(minqlx.Plugin):
             self._draft_tell(
                 player,
                 channel,
-                "^1restore player^7: slot + field — bot | sid | nick | pos | vel | "
+                "^1restore player^7: slot + field — bot | sid | nick | pos | vel | view | "
                 "hp | armor | score | active weapon | weapon | ammo | powerup | dead",
                 loud=True,
             )
@@ -2013,6 +2013,17 @@ class match_restore(minqlx.Plugin):
                 row["vy"] = int(float(args[1]))
                 row["vz"] = int(float(args[2]))
                 self._draft_tell(player, channel, "^2restore player^7: slot {} vel".format(slot))
+                return minqlx.Return.STOP_ALL
+            if field == "view":
+                if len(args) < 2:
+                    raise ValueError("view needs pitch yaw")
+                row["pa"] = round(float(args[0]), 2)
+                row["ya"] = round(float(args[1]), 2)
+                self._draft_tell(
+                    player,
+                    channel,
+                    "^2restore player^7: slot {} view {:.1f} {:.1f}".format(slot, row["pa"], row["ya"]),
+                )
                 return minqlx.Return.STOP_ALL
             if field == "hp":
                 if not args:
