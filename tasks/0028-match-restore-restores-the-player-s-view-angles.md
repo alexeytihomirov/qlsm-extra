@@ -33,7 +33,7 @@ Design (mirrors the velocity path, which already survives the pause):
 - [x] Apply in the kinematics phase, queue, unpause flush, clear on abort / map change / new session
 - [x] Tests `tests/test_match_restore_view_angles.py`; the three existing match_restore tests got the new bare-instance fields
 - [x] `generate_manifest.py`, `check_manifest_hashes.py`
-- [ ] Merge into `main`, push, `git ls-remote`
+- [x] Merge into `main`, push, `git ls-remote` (3d0643d)
 - [ ] Deploy through qlsm (plugin update on germany)
 - [ ] Live check with the operator on germany 27960
 
@@ -41,8 +41,11 @@ Design (mirrors the velocity path, which already survives the pause):
 
 - 2026-10-26 - created; related root-0036
 - 2026-10-26 - tests: view_angles + velocities + pause_clock + item_pickups + restore_codec_respawn, all green (only these files, not the whole suite)
+- 2026-10-26 - merged into origin/main (3d0643d). Deploy to germany waits for the operator: the plugin update goes through the qlsm Repositories page, no verified API path is documented
 
 ## Результат
+
+- Commit `3d0643d` on `origin/main` of `alexeytihomirov/qlsm-extra` (confirmed with `git ls-remote`). Not deployed yet.
 
 ## Как проверить
 
