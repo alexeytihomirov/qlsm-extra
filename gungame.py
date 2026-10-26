@@ -161,6 +161,7 @@ class gungame(minqlx.Plugin):
         self.add_hook("map", self.handle_map)
         self.add_hook("new_game", self.handle_new_game)
         self.add_hook("game_start", self.handle_game_start)
+        self.add_hook("game_end", self.handle_game_end)
         self.add_hook("player_spawn", self.handle_player_spawn)
         self.add_hook("kill", self.handle_kill)
         self.add_hook("death", self.handle_death)
@@ -234,8 +235,7 @@ class gungame(minqlx.Plugin):
     # --- map items ---
 
     def handle_map(self, mapname, factory):
-        if self._active():
-            self._hide_map_items()
+        self._restore_fraglimit()
 
     @minqlx.next_frame
     def _hide_map_items(self):
@@ -348,8 +348,11 @@ class gungame(minqlx.Plugin):
             self._saved_fraglimit = None
 
     def handle_new_game(self):
+        # Every map load and every restart (match start included) respawns the
+        # map items; the map event fires on a fresh load only.
         self._reset()
-        self._restore_fraglimit()
+        if self._active():
+            self._hide_map_items()
 
     def handle_game_start(self, data):
         self._reset()
@@ -358,6 +361,9 @@ class gungame(minqlx.Plugin):
         if self._saved_fraglimit is None:
             self._saved_fraglimit = self.get_cvar("fraglimit") or "0"
         self.set_cvar("fraglimit", "0")
+
+    def handle_game_end(self, data):
+        self._restore_fraglimit()
 
     def handle_unload(self, plugin):
         if plugin == self.__class__.__name__:

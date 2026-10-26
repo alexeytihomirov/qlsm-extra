@@ -123,7 +123,7 @@ def test_map_hides_weapons_and_powerups(monkeypatch):
     rl, quad, mega = make_entity(10, "weapon_rocketlauncher"), make_entity(11, "item_quad"), make_entity(12, "item_health_mega")
     engine = make_engine([rl, quad, mega])
     plugin = make_plugin(monkeypatch, engine)
-    plugin.handle_map("campgrounds", "ffa")
+    plugin.handle_new_game()
     for ent in (rl, quad):
         assert ent.s.e_flags & gg.EF_NODRAW
         assert ent.r.sv_flags & gg.SVF_NOCLIENT
@@ -141,7 +141,7 @@ def test_disabled_or_not_ffa_is_inert(monkeypatch, cvars):
     plugin.handle_player_spawn(player)
     assert held(player) == ["g", "mg"]
     assert plugin.handle_item_touch(player, rl) is None
-    plugin.handle_map("campgrounds", "ffa")
+    plugin.handle_new_game()
     assert rl.r.contents == 1 and engine.linked == []
 
 
@@ -157,15 +157,32 @@ def test_invalid_ladder_keeps_previous(monkeypatch):
     assert len(plugin.warnings) == 1
 
 
-def test_game_start_zeroes_fraglimit_and_new_game_restores(monkeypatch):
+def test_game_start_zeroes_fraglimit_and_game_end_restores(monkeypatch):
     plugin = make_plugin(monkeypatch)
     plugin._states["1"] = (3, 0)
     plugin.handle_game_start({})
     assert plugin.settings["fraglimit"] == "0"
     assert plugin._states == {}
-    plugin.handle_new_game()
+    plugin.handle_new_game()  # a restart right around the start must not undo it
+    assert plugin.settings["fraglimit"] == "0"
+    plugin.handle_game_end({})
     assert plugin.settings["fraglimit"] == "50"
     assert plugin._saved_fraglimit is None
+
+
+def test_map_change_restores_fraglimit(monkeypatch):
+    plugin = make_plugin(monkeypatch)
+    plugin.handle_game_start({})
+    plugin.handle_map("campgrounds", "ffa")
+    assert plugin.settings["fraglimit"] == "50"
+
+
+def test_new_game_hides_items_again_after_a_restart(monkeypatch):
+    rl = make_entity(10, "weapon_rocketlauncher")
+    engine = make_engine([rl])
+    plugin = make_plugin(monkeypatch, engine)
+    plugin.handle_new_game()
+    assert rl.r.contents == 0 and engine.linked == [10]
 
 
 # --- notifications --------------------------------------------------------
