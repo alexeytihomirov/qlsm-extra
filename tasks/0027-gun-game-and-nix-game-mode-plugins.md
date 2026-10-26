@@ -54,6 +54,7 @@ related: [root-0033, root-0034, qlsm-extra/docs/superpowers/specs/2026-10-26-gun
 - 2026-10-26 - operator asks: weapon delay in ms, remove map weapons/powerups for real, 100 armor on spawn, gauntlet frag = whole step up (switchable). Done in 08a1f62 (qlx_gunGameWeaponDelay 0, qlx_gunGameSpawnArmor 100, qlx_gunGameGauntletSkip 1, item rescan 0.5 s after new_game), 70 tests; deployed to #26 18:40 MSK (`_scan_items: took 8`), new cvars visible over rcon. Note: a pool download alone does not refresh the instance's own plugin copy; a config save through qlsm does
 - 2026-10-26 - live round 2 (operator): "почти всё ок". Asked: the delay must sit between taking the old weapon and giving the new one (the old one fired during the pause); a suicide costs one frag, not a whole step. Done in 828d665 (gauntlet only during the delay; `advance(..., "back")`: one frag back, into the previous step one frag short when the step has none), 72 tests; deployed to #26 18:52 MSK. The crash goes to root-0035 (engine fork, operator chose to fix the fork)
 - 2026-10-26 - live round 3 (operator, #26 with bots, several match starts): "всё ок". Gun Game accepted; delay between disarm and new weapon, suicide -1 frag, no crash (engine fix root-0035). Next: NIX spec
+- 2026-10-26 - operator: NIX is not needed for now (on hold); Gun Game stays on #26 with bots for further testing and improvements
 
 ## Результат
 
