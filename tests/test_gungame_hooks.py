@@ -244,15 +244,16 @@ def test_gauntlet_demote_switch_off(monkeypatch):
     assert plugin._states["2"] == (2, 0)
 
 
-def test_suicide_and_world_death_demote(monkeypatch):
+def test_suicide_and_world_death_cost_one_frag(monkeypatch):
     plugin = ladder3(monkeypatch)
     a = FakePlayer(1, "A")
-    plugin._states["1"] = (2, 0)
+    plugin._states["1"] = (1, 0)
     plugin.handle_death(a, None, "LAVA")
-    assert plugin._states["1"] == (1, 0)
+    assert plugin._states["1"] == (0, 1)
+    assert a.tells == ["Down to step 1/3: ^3RL^7"] and a.score == 1
     plugin.handle_death(a, a, "ROCKET_SPLASH")
     assert plugin._states["1"] == (0, 0)
-    assert a.tells == ["Down to step 2/3: ^3LG^7", "Down to step 1/3: ^3RL^7"] and a.score == 1
+    assert a.tells[-1] == "Step 1/3: ^3RL^7 (0/2)"
 
 
 def test_suicide_demote_switch_off(monkeypatch):
@@ -460,7 +461,7 @@ def test_weapon_delay_gives_the_new_weapon_later(monkeypatch):
     a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
     plugin._states["1"] = (0, 1)
     plugin.handle_kill(b, a, "ROCKET")
-    assert held(a) == ["g", "mg"]  # still the old loadout
+    assert held(a) == ["g"]        # the old weapon is gone, the new one not here yet
     assert a.score == 2            # the score does not wait
     seconds, func, args = plugin.delays[-1]
     assert seconds == 0.5
@@ -491,3 +492,15 @@ def test_new_game_scans_items_again_after_they_spawn(monkeypatch):
     assert 0 < seconds <= 1
     func(*args)
     assert removed == [10]
+
+
+def test_weapon_delay_takes_the_old_weapon_at_once(monkeypatch):
+    plugin = ladder3(monkeypatch, qlx_gunGameWeaponDelay="500")
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    a.weapons = gg.loadout_weapons("rl")
+    plugin._states["1"] = (0, 1)
+    plugin.handle_kill(b, a, "ROCKET")
+    assert held(a) == ["g"] and a.weapon == W.index("g") + 1
+    seconds, func, args = plugin.delays[-1]
+    func(*args)
+    assert held(a) == ["g", "lg"] and a.weapon == W.index("lg") + 1

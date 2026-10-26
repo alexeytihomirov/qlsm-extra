@@ -57,6 +57,12 @@ def test_advance_skip_jumps_a_whole_step():
     assert gg.advance((2, 0), L3, "skip") == ((2, 1), "win")
 
 
+def test_advance_back_takes_one_frag():
+    assert gg.advance((0, 1), L3, "back") == ((0, 0), "back")
+    assert gg.advance((1, 0), L3, "back") == ((0, 1), "down")  # into the previous step, one frag short
+    assert gg.advance((0, 0), L3, "back") == ((0, 0), "none")
+
+
 def test_parse_ms():
     assert gg.parse_ms("500") == 500
     assert gg.parse_ms(" 0 ") == 0

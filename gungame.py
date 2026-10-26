@@ -9,7 +9,7 @@
 #   frag                     counts on the killer's step; enough frags = next step
 #   gauntlet frag            the killer skips the rest of the step (switchable)
 #   death by gauntlet        the victim goes one step down
-#   suicide / world death    one step down
+#   suicide / world death    one frag back (into the previous step when the step has none)
 # The scoreboard shows the step (score = step number). The win sets fraglimit
 # so the engine ends the match through its own exit rules.
 #
@@ -19,9 +19,9 @@
 #                                                weapon:frags per step, read at match start;
 #                                                weapons g mg sg gl rl lg rg pg bfg gh ng pl cg hmg
 #   qlx_gunGameGauntletDemote "1"                a gauntlet death costs the victim a step
-#   qlx_gunGameSuicideDemote "1"                 suicides and world deaths cost a step
+#   qlx_gunGameSuicideDemote "1"                 suicides and world deaths cost a frag
 #   qlx_gunGameGauntletSkip "1"                  a gauntlet frag moves the killer a whole step up
-#   qlx_gunGameWeaponDelay "0"                   ms before a new step's weapon arrives (0 = next frame)
+#   qlx_gunGameWeaponDelay "0"                   ms between losing the old weapon and getting the new one
 #   qlx_gunGameSpawnArmor "100"                  armor on every spawn (0 = leave the engine's)
 #   qlx_gunGameStepNotify "print"                own step news: print, center, print,center, off
 #   qlx_gunGameLeaderNotify "print"              leader news to everyone, same values
@@ -91,9 +91,15 @@ def parse_channels(text):
 
 
 def advance(state, ladder, event):
-    """(step, frags_on_step) after a "frag", "skip" (the whole step at once) or
-    "demote" -> (state, outcome)."""
+    """(step, frags_on_step) after a "frag", "skip" (the whole step at once),
+    "back" (one frag) or "demote" (one step) -> (state, outcome)."""
     step, frags = state
+    if event == "back":
+        if frags:
+            return (step, frags - 1), "back"
+        if step == 0:
+            return (0, 0), "none"
+        return (step - 1, ladder[step - 1][1] - 1), "down"
     if event == "skip":
         if step == len(ladder) - 1:
             return (step, frags + 1), "win"
@@ -266,7 +272,17 @@ class gungame(minqlx.Plugin):
             self._give_loadout(player)
             return
         self._write_score(player)
+        self._disarm(player)
         self.delay(ms / 1000.0, self._apply_loadout, player)
+
+    @minqlx.next_frame
+    def _disarm(self, player):
+        """Gauntlet only while the new weapon is on its way."""
+        try:
+            player.weapons = minqlx.Weapons(loadout_weapons("g"))
+            player.weapon = WEAPON_FIELDS.index("g") + 1
+        except Exception:
+            return
 
     @minqlx.next_frame
     def _write_score(self, player):
@@ -355,13 +371,15 @@ class gungame(minqlx.Plugin):
         if str(mod) == "SWITCH_TEAMS" or not self._counts():
             return
         if self.get_cvar("qlx_gunGameSuicideDemote", bool):
-            self._demote(victim)
+            self._demote(victim, "back")
 
-    def _demote(self, player):
-        state, outcome = advance(self._state(player), self._ladder, "demote")
+    def _demote(self, player, event="demote"):
+        state, outcome = advance(self._state(player), self._ladder, event)
         self._states[self._key(player)] = state
         if outcome == "down":
             self._notify(player, demote_text(self._ladder, state), "qlx_gunGameStepNotify")
+        elif outcome == "back":
+            self._notify(player, step_text(self._ladder, state), "qlx_gunGameStepNotify")
         self._write_score(player)
 
     def _announce_leader(self, player, state):
