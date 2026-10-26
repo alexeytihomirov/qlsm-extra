@@ -60,7 +60,7 @@ Text items use `textstyle` shadowed so they read over any map. Rects are in the 
 
 ## Plugin behaviour
 
-- Pure `hud_fields(ladder, state, leader_key, leader_name, leader_step, own_key) -> dict` builds the five server-written fields. `hud_diff(sent, fields) -> dict` returns only changed ones. `hud_command(systeminfo, fields) -> str` builds the `cs` command with values cleaned.
+- Pure `hud_fields(ladder, state, lead) -> dict` builds the five server-written fields; `lead_text(own_key, leader_key, leader_name, leader_step, total)` builds the leader line. `hud_diff(sent, fields) -> dict` returns only changed ones. `hud_command(systeminfo, fields) -> str` builds the `cs` command with values cleaned.
 - Sending: handlers mark players dirty; one `next_frame` flush per frame sends one command per dirty player with only the changed fields, and records what was sent per client. Bots (steam_id 0) are skipped. No timers: without events nothing is sent.
 - Marked dirty: the player on spawn, on a kill or death that changed their state, on match start (`new_game` after a reset); everyone on a leader change.
 - Cleared (`mod_gg_on` empty, other fields empty): on `team_switch` to spectator, on `game_end`, on unload, on `new_game` when Gun Game is not active (players who still have a panel), on `player_disconnect` (best effort). The sent-cache entry is dropped with it.
