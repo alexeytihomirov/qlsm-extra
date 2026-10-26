@@ -133,3 +133,161 @@ def last_step_text(name, key):
 
 def win_text(name):
     return "^3{}^7 wins Gun Game!".format(name)
+
+
+# --- plugin ------------------------------------------------------------------
+
+EF_NODRAW = getattr(minqlx, "EF_NODRAW", 0x80)
+SVF_NOCLIENT = getattr(minqlx, "SVF_NOCLIENT", 0x01)
+ET_ITEM = getattr(minqlx, "ET_ITEM", 2)
+
+
+class gungame(minqlx.Plugin):
+    def __init__(self):
+        self._states = {}        # steam_id (str) -> (step, frags_on_step), this match
+        self._ladder = parse_ladder(DEFAULT_LADDER)
+        self._ladder_raw = DEFAULT_LADDER
+        self._leader = None      # steam_id (str) of the announced leader
+        self._saved_fraglimit = None
+
+        for name, value in CVAR_DEFAULTS:
+            self.set_cvar_once(name, value)
+        self._reload_ladder()
+
+        if "item_touch" in minqlx.EVENT_DISPATCHERS:
+            self.add_hook("item_touch", self.handle_item_touch, priority=minqlx.Priority.HIGH)
+        else:
+            self.logger.warning("gungame: no item_touch event in this runtime, map weapons stay pickable")
+        self.add_hook("map", self.handle_map)
+        self.add_hook("new_game", self.handle_new_game)
+        self.add_hook("game_start", self.handle_game_start)
+        self.add_hook("player_spawn", self.handle_player_spawn)
+        self.add_hook("unload", self.handle_unload)
+
+        self.plugin_version = "1.0"
+
+    # --- settings ---
+
+    def _active(self):
+        return bool(self.get_cvar("qlx_gunGameEnabled", bool)) and self.get_cvar("g_gametype") == "0"
+
+    def _in_progress(self):
+        try:
+            return self.game is not None and self.game.state == "in_progress"
+        except Exception:
+            return False
+
+    def _reload_ladder(self):
+        raw = self.get_cvar("qlx_gunGameLadder") or ""
+        if raw == self._ladder_raw:
+            return
+        try:
+            self._ladder = parse_ladder(raw)
+        except ValueError as exc:
+            self.logger.warning("gungame: qlx_gunGameLadder ignored, keeping %s: %s", self._ladder_raw, exc)
+        else:
+            self._ladder_raw = raw
+            return
+        self._ladder_raw = raw  # warn once per bad value
+
+    def _state(self, player):
+        return self._states.setdefault(str(player.steam_id), (0, 0))
+
+    def _notify(self, target, text, cvar):
+        channels = parse_channels(self.get_cvar(cvar))
+        try:
+            if target is None:
+                if "print" in channels:
+                    self.msg(text)
+                if "center" in channels:
+                    self.center_print(text)
+            else:
+                if "print" in channels:
+                    target.tell(text)
+                if "center" in channels:
+                    target.center_print(text)
+        except Exception:
+            pass
+
+    @minqlx.next_frame
+    def _give_loadout(self, player):
+        step = self._state(player)[0] if self._in_progress() else 0
+        key = loadout(self._ladder, min(step, len(self._ladder) - 1))
+        try:
+            player.weapons = minqlx.Weapons(loadout_weapons(key))
+            player.weapon = WEAPON_FIELDS.index(key) + 1
+            if self._in_progress():
+                player.score = step + 1
+        except Exception:
+            # Gone or dead by the next frame.
+            return
+
+    # --- map items ---
+
+    def handle_map(self, mapname, factory):
+        if self._active():
+            self._hide_map_items()
+
+    @minqlx.next_frame
+    def _hide_map_items(self):
+        """Same writes as match_restore's stock hide: no draw, no client, no touch."""
+        try:
+            ents = list(minqlx.entities(inuse=True, etype=ET_ITEM))
+        except Exception as exc:
+            self.logger.warning("gungame: item scan failed: %s", exc)
+            return
+        hidden = 0
+        for ent in ents:
+            try:
+                if not is_blocked_item(str(ent.classname or "")):
+                    continue
+                ent.s.e_flags = int(ent.s.e_flags) | EF_NODRAW
+                ent.r.sv_flags = int(ent.r.sv_flags) | SVF_NOCLIENT
+                ent.r.contents = 0
+                minqlx.link_entity(int(ent.s.number))
+                hidden += 1
+            except Exception:
+                continue
+        self.logger.info("gungame: hid %d weapons and powerups", hidden)
+
+    def handle_item_touch(self, player, entity):
+        if not self._active():
+            return
+        try:
+            classname = str(entity.classname or "")
+        except Exception:
+            return
+        if is_blocked_item(classname):
+            return minqlx.Return.STOP_EVENT
+
+    # --- match lifecycle ---
+
+    def handle_player_spawn(self, player):
+        if self._active():
+            self._give_loadout(player)
+
+    def _reset(self):
+        self._states = {}
+        self._leader = None
+        self._reload_ladder()
+
+    def _restore_fraglimit(self):
+        if self._saved_fraglimit is not None:
+            self.set_cvar("fraglimit", self._saved_fraglimit)
+            self._saved_fraglimit = None
+
+    def handle_new_game(self):
+        self._reset()
+        self._restore_fraglimit()
+
+    def handle_game_start(self, data):
+        self._reset()
+        if not self._active():
+            return
+        if self._saved_fraglimit is None:
+            self._saved_fraglimit = self.get_cvar("fraglimit") or "0"
+        self.set_cvar("fraglimit", "0")
+
+    def handle_unload(self, plugin):
+        if plugin == self.__class__.__name__:
+            self._restore_fraglimit()
