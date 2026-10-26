@@ -34,7 +34,7 @@ Design (mirrors the velocity path, which already survives the pause):
 - [x] Tests `tests/test_match_restore_view_angles.py`; the three existing match_restore tests got the new bare-instance fields
 - [x] `generate_manifest.py`, `check_manifest_hashes.py`
 - [x] Merge into `main`, push, `git ls-remote` (3d0643d)
-- [ ] Deploy through qlsm (plugin update on germany)
+- [x] Deploy through qlsm (plugin update on germany)
 - [ ] Live check with the operator on germany 27960
 
 ## Журнал
@@ -42,10 +42,11 @@ Design (mirrors the velocity path, which already survives the pause):
 - 2026-10-26 - created; related root-0036
 - 2026-10-26 - tests: view_angles + velocities + pause_clock + item_pickups + restore_codec_respawn, all green (only these files, not the whole suite)
 - 2026-10-26 - merged into origin/main (3d0643d). Deploy to germany waits for the operator: the plugin update goes through the qlsm Repositories page, no verified API path is documented
+- 2026-10-26 - deployed to germany 27960 from inside `qlsm-web-1` (same code as the Repositories download route, common-pool refresh queued for host 1 only, not the 8-host push). The instance keeps its own copy in `configs/GermanyHetzner/1/scripts/`, and the instance-selected path copies basenames only, so `restore/codec.py` was staged by hand next to `match_restore.py`; then `restart_instance`. Verified on the host: `/home/ql/qlds-27960/minqlxtended-plugins/` has `_write_player_view` and `"pa"`, plugin loaded at 21:14:56 CET with no error (the `match_restore_util` PluginLoadError is old noise). Server was empty (warmup, 0 players) during the restart
 
 ## Результат
 
-- Commit `3d0643d` on `origin/main` of `alexeytihomirov/qlsm-extra` (confirmed with `git ls-remote`). Not deployed yet.
+- Commit `3d0643d` on `origin/main` of `alexeytihomirov/qlsm-extra` (confirmed with `git ls-remote`). Deployed on germany 27960 (`sD test server`) 2026-10-26 21:14 CET; other hosts get it through Check for Updates. Live check by the operator is pending.
 
 ## Как проверить
 
