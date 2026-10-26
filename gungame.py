@@ -42,6 +42,9 @@ POWERUP_CLASSNAMES = frozenset({"item_quad", "item_enviro", "item_haste", "item_
 CHANNELS = ("print", "center")
 # A restart respawns map items a couple of frames after new_game; scan again then.
 ITEM_RESCAN_S = 0.5
+# A frag's obituary shows the client's own "You fragged X" in the centre, replacing a centre
+# print sent in the same frame; ours goes out after it.
+CENTER_DELAY_S = 0.2
 
 DEFAULT_LADDER = "rl:2 rg:2 lg:2 pg:2 sg:2 gl:2 mg:2 g:1"
 CVAR_DEFAULTS = (
@@ -178,13 +181,14 @@ class gungame(minqlx.Plugin):
         self._leader = None      # steam_id (str) of the announced leader
         self._saved_fraglimit = None
         self._won = False        # the match is decided; nothing counts until the next one
+        self._item_hooked = False
 
         for name, value in CVAR_DEFAULTS:
             self.set_cvar_once(name, value)
         self._reload_ladder()
 
         if "item_touch" in minqlx.EVENT_DISPATCHERS:
-            self.add_hook("item_touch", self.handle_item_touch, priority=minqlx.Priority.HIGH)
+            self._sync_item_hook()
         else:
             self.logger.warning("gungame: no item_touch event in this runtime, map weapons stay pickable")
         self.add_hook("map", self.handle_map)
@@ -231,21 +235,39 @@ class gungame(minqlx.Plugin):
     def _state(self, player):
         return self._states.setdefault(self._key(player), (0, 0))
 
+    def _sync_item_hook(self):
+        """The engine only calls into Python for item_touch while it is hooked, so hook it
+        only while Gun Game is active. Checked on load and on every new_game."""
+        active = self._active()
+        if active == self._item_hooked or "item_touch" not in minqlx.EVENT_DISPATCHERS:
+            return
+        if active:
+            self.add_hook("item_touch", self.handle_item_touch, priority=minqlx.Priority.HIGH)
+        else:
+            self.remove_hook("item_touch", self.handle_item_touch, priority=minqlx.Priority.HIGH)
+        self._item_hooked = active
+
     def _notify(self, target, text, cvar):
         channels = parse_channels(self.get_cvar(cvar))
         try:
             if target is None:
                 if "print" in channels:
                     self.msg(text)
-                if "center" in channels:
-                    self.center_print(text)
-            else:
-                if "print" in channels:
-                    target.tell(text)
-                if "center" in channels:
-                    target.center_print(text)
+            elif "print" in channels:
+                target.tell(text)
         except Exception:
             pass
+        if "center" in channels:
+            self.delay(CENTER_DELAY_S, self._center_print, target, text)
+
+    def _center_print(self, target, text):
+        try:
+            if target is None:
+                self.center_print(text)
+            else:
+                target.center_print(text)
+        except Exception:
+            pass  # the player left
 
     def _apply_loadout(self, player, armor=False):
         step = self._state(player)[0] if self._in_progress() else 0
@@ -378,17 +400,29 @@ class gungame(minqlx.Plugin):
         self._states[self._key(player)] = state
         if outcome == "down":
             self._notify(player, demote_text(self._ladder, state), "qlx_gunGameStepNotify")
+            self._update_leader(player)
         elif outcome == "back":
             self._notify(player, step_text(self._ladder, state), "qlx_gunGameStepNotify")
         self._write_score(player)
 
+    def _update_leader(self, player):
+        """Re-pick the leader after *player*'s step changed; announce a new one."""
+        leader = pick_leader(self._states, self._leader)
+        if leader == self._leader:
+            return
+        self._leader = leader
+        if leader is None:
+            return
+        if leader != self._key(player):
+            player = next((p for p in self.players() if self._key(p) == leader), None)
+            if player is None:
+                return
+        text = leader_text(player.name, self._states[leader][0] + 1, len(self._ladder))
+        self._notify(None, text, "qlx_gunGameLeaderNotify")
+
     def _announce_leader(self, player, state):
         total = len(self._ladder)
-        leader = pick_leader(self._states, self._leader)
-        if leader is not None and leader != self._leader:
-            self._leader = leader
-            if leader == self._key(player):
-                self._notify(None, leader_text(player.name, state[0] + 1, total), "qlx_gunGameLeaderNotify")
+        self._update_leader(player)
         if state[0] == total - 1:
             self._notify(None, last_step_text(player.name, self._ladder[-1][0]), "qlx_gunGameLeaderNotify")
 
@@ -426,6 +460,7 @@ class gungame(minqlx.Plugin):
         # Every map load and every restart (match start included) respawns the
         # map items; the map event fires on a fresh load only.
         self._reset()
+        self._sync_item_hook()
         if self._active():
             self._hide_map_items()
             self.delay(ITEM_RESCAN_S, self._scan_items)

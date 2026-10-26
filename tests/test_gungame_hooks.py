@@ -76,11 +76,16 @@ def make_plugin(monkeypatch, engine=None, cvars=None, state="in_progress"):
 
     warnings = []
     delays = []
+    hooks = []
+    players = []
     broadcast = {"msg": [], "center": []}
     plugin = bare_instance(
         gg.gungame,
         _states={}, _ladder=gg.parse_ladder(gg.DEFAULT_LADDER), _ladder_raw=gg.DEFAULT_LADDER,
-        _leader=None, _saved_fraglimit=None, _won=False,
+        _leader=None, _saved_fraglimit=None, _won=False, _item_hooked=True,
+        add_hook=lambda event, handler, priority=0: hooks.append(("add", event)),
+        remove_hook=lambda event, handler, priority=0: hooks.append(("remove", event)),
+        players=lambda: list(players),
         get_cvar=get_cvar, set_cvar=set_cvar,
         msg=broadcast["msg"].append, center_print=broadcast["center"].append,
         game=SimpleNamespace(state=state),
@@ -91,6 +96,8 @@ def make_plugin(monkeypatch, engine=None, cvars=None, state="in_progress"):
     plugin.warnings = warnings
     plugin.delays = delays
     plugin.broadcast = broadcast
+    plugin.hooks = hooks
+    plugin.player_list = players
     plugin.engine = engine
     return plugin
 
@@ -193,10 +200,17 @@ def test_new_game_hides_items_again_after_a_restart(monkeypatch):
 
 # --- notifications --------------------------------------------------------
 
+def run_delays(plugin):
+    pending, plugin.delays[:] = list(plugin.delays), []
+    for _, func, args in pending:
+        func(*args)
+
+
 def test_notify_channels(monkeypatch):
     plugin = make_plugin(monkeypatch, cvars={"qlx_gunGameStepNotify": "print,center"})
     player = FakePlayer()
     plugin._notify(player, "hi", "qlx_gunGameStepNotify")
+    run_delays(plugin)
     assert player.tells == ["hi"] and player.centers == ["hi"]
     plugin.settings["qlx_gunGameStepNotify"] = "off"
     plugin._notify(player, "again", "qlx_gunGameStepNotify")
@@ -504,3 +518,66 @@ def test_weapon_delay_takes_the_old_weapon_at_once(monkeypatch):
     seconds, func, args = plugin.delays[-1]
     func(*args)
     assert held(a) == ["g", "lg"] and a.weapon == W.index("lg") + 1
+
+
+# --- live round 3 ---------------------------------------------------------
+
+def test_center_notify_waits_for_the_clients_own_frag_message(monkeypatch):
+    plugin = make_plugin(monkeypatch, cvars={"qlx_gunGameStepNotify": "center", "qlx_gunGameLeaderNotify": "center"})
+    player = FakePlayer()
+    plugin._notify(player, "step", "qlx_gunGameStepNotify")
+    plugin._notify(None, "lead", "qlx_gunGameLeaderNotify")
+    assert player.centers == [] and plugin.broadcast["center"] == []
+    assert [d[0] for d in plugin.delays] == [gg.CENTER_DELAY_S] * 2
+    run_delays(plugin)
+    assert player.centers == ["step"] and plugin.broadcast["center"] == ["lead"]
+
+
+def test_center_notify_to_a_player_who_left_is_dropped(monkeypatch):
+    plugin = make_plugin(monkeypatch, cvars={"qlx_gunGameStepNotify": "center"})
+    player = FakePlayer()
+
+    def gone(msg):
+        raise plugin.engine.NonexistentPlayerError()
+    player.center_print = gone
+    plugin._notify(player, "step", "qlx_gunGameStepNotify")
+    run_delays(plugin)
+
+
+L4 = "rl:1 lg:1 pg:1 g:1"
+
+
+def test_leader_passes_on_when_the_leader_is_demoted(monkeypatch):
+    plugin = ladder3(monkeypatch, qlx_gunGameLadder=L4)
+    a, b, c = FakePlayer(1, "A"), FakePlayer(2, "B"), FakePlayer(3, "C")
+    plugin.player_list.extend([a, b, c])
+    plugin._states.update({"1": (2, 0), "2": (2, 0)})
+    plugin._leader = "1"
+    plugin.handle_kill(a, c, "GAUNTLET")
+    assert plugin._states["1"] == (1, 0)
+    assert plugin._leader == "2"
+    assert plugin.broadcast["msg"] == ["^3B^7 leads: step 3/4"]
+
+
+def test_leader_cleared_when_a_suicide_drops_everyone_below_step_two(monkeypatch):
+    plugin = ladder3(monkeypatch, qlx_gunGameLadder=L4)
+    a = FakePlayer(1, "A")
+    plugin.player_list.append(a)
+    plugin._states["1"] = (1, 0)
+    plugin._leader = "1"
+    plugin.handle_death(a, None, "LAVA")
+    assert plugin._states["1"] == (0, 0)
+    assert plugin._leader is None and plugin.broadcast["msg"] == []
+
+
+def test_item_touch_hook_only_while_active(monkeypatch):
+    plugin = make_plugin(monkeypatch, cvars={"qlx_gunGameEnabled": "0"})
+    plugin._sync_item_hook()
+    plugin._sync_item_hook()
+    assert plugin.hooks == [("remove", "item_touch")] and plugin._item_hooked is False
+    plugin.settings["qlx_gunGameEnabled"] = "1"
+    plugin.handle_new_game()
+    assert plugin.hooks[-1] == ("add", "item_touch") and plugin._item_hooked is True
+    plugin.settings["g_gametype"] = "4"
+    plugin.handle_new_game()
+    assert plugin.hooks[-1] == ("remove", "item_touch")
