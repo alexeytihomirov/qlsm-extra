@@ -44,6 +44,7 @@ related: [root-0033, root-0034, qlsm-extra/docs/superpowers/specs/2026-10-26-gun
 - 2026-10-26 - decision: notifications configurable to try variants; step up/down goes to the player only, leader news to everyone; "echo" style = server `print` line (what ChatChannel/TellChannel already send, `_commands.py:451`), centre print as the other channel
 - 2026-10-26 - decisions: weapons/powerups hidden by the plugin at map load (match_restore `_stock_hide_item` technique) + `item_touch` STOP as a safety net; gauntlet always in hand, a gauntlet frag counts for the killer like any frag; a mid-match joiner starts at step 1; state per SteamID for the match (rejoin keeps the step); score = step number; win ends the match via fraglimit (to verify live, fallback timelimit)
 - 2026-10-26 - spec written: `docs/superpowers/specs/2026-10-26-gungame-design.md` (worktree `.worktrees/qlsm-extra-gungame`, branch feat/gungame from origin/main d8c3ff3); waiting for operator review
+- 2026-10-26 - operator approved the spec. Spec refined: fraglimit 0 during the match, winner score = ladder length + 1 (no tie on the last step), SWITCH_TEAMS deaths never demote, score writes on the next frame. Plan: `docs/superpowers/plans/2026-10-26-gungame.md`
 
 ## Результат
 

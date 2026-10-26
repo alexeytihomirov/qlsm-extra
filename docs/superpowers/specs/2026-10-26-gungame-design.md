@@ -80,11 +80,13 @@ Active only when `qlx_gunGameEnabled` is 1 and `g_gametype` is 0 (FFA); otherwis
 2. If `mod` is `GAUNTLET` and `qlx_gunGameGauntletDemote`: victim gets `advance(..., demote)`, step notify.
 3. Leader check: when the top step changes hands or someone reaches the last step, leader notify.
 
-**`death` without a killer, or killer == victim.** If `qlx_gunGameSuicideDemote`: `advance(..., demote)`, step notify.
+**`death` without a killer, or killer == victim.** If `qlx_gunGameSuicideDemote`: `advance(..., demote)`, step notify. `mod` `SWITCH_TEAMS` (the engine kills a player who changes team) never demotes.
+
+**Score writes.** The engine changes the score itself on a kill (+1) and a suicide (-1) around the event, so every score write happens on the next frame.
 
 **Score.** After every change the player's `score` is set to their step number (1-based), so the standard scoreboard shows progress.
 
-**Match end.** On `win` the plugin sets `fraglimit` to the winner's score so the engine ends the match through its own exit rules. To be confirmed on the test server; fallback: `timelimit` to the elapsed minute. `fraglimit` is restored on `new_game` to what it was.
+**Match end.** At match start the plugin saves `fraglimit` and sets it to 0, so the instance's own limit cannot end a match while scores are step numbers. On `win` it sets the winner's score to ladder length + 1 (one above anyone else on the last step, so there is no tie) and `fraglimit` to the same number, so the engine ends the match through its own exit rules. To be confirmed on the test server; fallback: `timelimit` to the elapsed minute. The saved `fraglimit` is restored on `new_game` and plugin unload.
 
 **Notifications.** Texts (colour codes as QL): step to the player "Step 3/8: ^3LG^7 (0/2)", demote "Down to step 2/8: ^3RG^7", leader "^3X^7 leads: step 5/8", last step "^3X^7 is on the last step (^3GAUNTLET^7)!", win "^3X^7 wins Gun Game!". Channels from the two notify cvars.
 
