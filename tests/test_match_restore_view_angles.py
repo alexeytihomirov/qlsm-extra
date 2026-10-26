@@ -161,3 +161,20 @@ def test_draft_view_field_reaches_the_checkpoint():
     assert cp["players"][0]["pa"] == 12.35 and cp["players"][0]["ya"] == -90.0
     p._cmd_restore_draft_player(None, None, ["0", "view", "5"])
     assert "view needs pitch yaw" in tells[-1]
+
+
+def test_state_phase_writes_view_when_pause_never_happens(gc):
+    p = _plugin(
+        _apply_player_vitals=lambda target, payload: True,
+        _teleport_player=lambda *a, **k: True,
+        _is_bot_player=lambda target: False,
+    )
+    ok, detail = p._apply_player_snapshot(
+        SimpleNamespace(id=2),
+        {"cid": 2, "x": 1, "y": 2, "z": 3, "pa": 30.0, "ya": 270.0},
+        state_only=True,
+    )
+    assert ok and "view" in detail
+    assert gc.instances[2].ps.delta_angles[1] == _short(270.0) - 65600
+    assert p._restore_pending_views == {}
+    assert [j["client_id"] for j in p._view_apply_queue] == [2]

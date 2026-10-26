@@ -4160,7 +4160,7 @@ class match_restore(minqlx.Plugin):
             planned = [
                 p
                 for p in planned
-                if p in ("pos", "hp", "ar", "loadout", "ammo") or p.startswith(("w=", "sc="))
+                if p in ("pos", "view", "hp", "ar", "loadout", "ammo") or p.startswith(("w=", "sc="))
             ]
             if not planned:
                 return False, "no state fields"
@@ -4174,6 +4174,12 @@ class match_restore(minqlx.Plugin):
                     else RESTORE_POS_FRAMES
                 )
                 self._teleport_player(target, x, y, z, frames=pos_frames)
+            if pitch is not None and yaw is not None:
+                # Also here, not only in the kinematics phase: that phase is
+                # skipped when the pause cannot start (warmup). Not remembered
+                # for the unpause flush, so a late re-aim never fights the mouse.
+                self._write_player_view(target, pitch, yaw)
+                self._queue_player_view(client_id, pitch, yaw)
             if want_dead:
                 self._schedule_dead_state_reassert(target, respawn_at_ms=respawn_at_ms)
             return True, ", ".join(planned)

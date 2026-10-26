@@ -47,6 +47,8 @@ Design (mirrors the velocity path, which already survives the pause):
 
 - 2026-10-26 - live check round 1: `export` on germany wrote `"pa":1.76,"ya":22.71` into the JSON (export works); `!restore apply` said "no players in draft" because my check steps were wrong: `export` does not fill the draft. Added the `view` draft field (commit 1767c80), redeployed to germany 2026-10-26 21:24 CET (plugin loaded, no error)
 
+- 2026-10-26 - live round 2: view did not turn. Log: in warmup the pause cannot start ("pause command had no effect"), `_finish_restore_pause_kinematics` returns before the kinematics phase, where the view was applied. Fix: the state phase (same place as the teleport) now also writes the view and queues it for a few frames; only the kinematics phase remembers it for the unpause flush (so a late re-aim never fights the mouse in warmup)
+
 ## Результат
 
 - Commit `3d0643d` on `origin/main` of `alexeytihomirov/qlsm-extra` (confirmed with `git ls-remote`). Deployed on germany 27960 (`sD test server`) 2026-10-26 21:14 CET; other hosts get it through Check for Updates. Live check by the operator is pending.
