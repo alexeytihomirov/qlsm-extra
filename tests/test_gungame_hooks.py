@@ -180,3 +180,150 @@ def test_notify_channels(monkeypatch):
     assert player.tells == ["hi"]
     plugin._notify(None, "all", "qlx_gunGameLeaderNotify")
     assert plugin.broadcast["msg"] == ["all"] and plugin.broadcast["center"] == []
+
+
+# --- kills and deaths -----------------------------------------------------
+
+L3 = {"qlx_gunGameLadder": "rl:2 lg:1 g:1"}
+
+
+def ladder3(monkeypatch, **cvars):
+    plugin = make_plugin(monkeypatch, cvars={**L3, **cvars})
+    plugin._reload_ladder()
+    return plugin
+
+
+def test_kill_counts_then_steps_up_with_loadout_and_notify(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin.handle_kill(b, a, "ROCKET")
+    assert plugin._states["1"] == (0, 1) and a.score == 1 and a.tells == []
+    plugin.handle_kill(b, a, "ROCKET")
+    assert plugin._states["1"] == (1, 0)
+    assert held(a) == ["g", "lg"] and a.score == 2
+    assert a.tells == ["Step 2/3: ^3LG^7 (0/1)"]
+
+
+def test_gauntlet_kill_demotes_victim(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin._states["2"] = (2, 0)
+    plugin.handle_kill(b, a, "GAUNTLET")
+    assert plugin._states["2"] == (1, 0)
+    assert b.tells == ["Down to step 2/3: ^3LG^7"] and b.score == 2
+
+
+def test_gauntlet_demote_switch_off(monkeypatch):
+    plugin = ladder3(monkeypatch, qlx_gunGameGauntletDemote="0")
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin._states["2"] = (2, 0)
+    plugin.handle_kill(b, a, "GAUNTLET")
+    assert plugin._states["2"] == (2, 0)
+
+
+def test_suicide_and_world_death_demote(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a = FakePlayer(1, "A")
+    plugin._states["1"] = (2, 0)
+    plugin.handle_death(a, None, "LAVA")
+    assert plugin._states["1"] == (1, 0)
+    plugin.handle_death(a, a, "ROCKET_SPLASH")
+    assert plugin._states["1"] == (0, 0)
+    assert a.tells == ["Down to step 2/3: ^3LG^7", "Down to step 1/3: ^3RL^7"] and a.score == 1
+
+
+def test_suicide_demote_switch_off(monkeypatch):
+    plugin = ladder3(monkeypatch, qlx_gunGameSuicideDemote="0")
+    a = FakePlayer(1, "A")
+    plugin._states["1"] = (2, 0)
+    plugin.handle_death(a, None, "LAVA")
+    assert plugin._states["1"] == (2, 0)
+
+
+def test_death_by_other_player_is_left_to_kill(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin._states["2"] = (2, 0)
+    plugin.handle_death(b, a, "ROCKET")
+    assert plugin._states["2"] == (2, 0)
+
+
+def test_switch_teams_death_does_not_demote(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a = FakePlayer(1, "A")
+    plugin._states["1"] = (2, 0)
+    plugin.handle_death(a, a, "SWITCH_TEAMS")
+    plugin.handle_death(a, None, "SWITCH_TEAMS")
+    assert plugin._states["1"] == (2, 0)
+
+
+def test_warmup_kill_does_not_count(monkeypatch):
+    plugin = make_plugin(monkeypatch, state="warmup")
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin.handle_kill(b, a, "GAUNTLET")
+    plugin.handle_death(a, None, "LAVA")
+    assert plugin._states == {}
+
+
+def test_leader_announced_once_on_change(monkeypatch):
+    plugin = ladder3(monkeypatch, qlx_gunGameLadder="rl:1 lg:2 pg:1 g:1")
+    plugin._reload_ladder()
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin.handle_kill(b, a, "ROCKET")
+    assert plugin.broadcast["msg"] == ["^3A^7 leads: step 2/4"]
+    plugin.handle_kill(b, a, "LIGHTNING")
+    assert plugin.broadcast["msg"] == ["^3A^7 leads: step 2/4"]
+
+
+def test_last_step_announced(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin._states["1"] = (1, 0)
+    plugin._leader = "1"
+    plugin.handle_kill(b, a, "LIGHTNING")
+    assert plugin.broadcast["msg"] == ["^3A^7 is on the last step (^3GAUNTLET^7)!"]
+
+
+def test_win_sets_score_and_fraglimit_above_ladder(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin._states.update({"1": (2, 0), "2": (2, 0)})
+    plugin.handle_kill(b, a, "GAUNTLET")
+    assert a.score == 4
+    assert plugin.settings["fraglimit"] == "4"
+    assert plugin.broadcast["msg"][-1] == "^3A^7 wins Gun Game!"
+
+
+class GonePlayer(FakePlayer):
+    """Disconnected by the next frame: every engine write raises."""
+    gone = False
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.gone = True
+
+    @property
+    def weapons(self):
+        return self.__dict__.get("_weapons", ())
+
+    @weapons.setter
+    def weapons(self, value):
+        if self.gone:
+            raise gg.minqlx.NonexistentPlayerError("gone")
+        self.__dict__["_weapons"] = value
+
+
+def test_kill_by_disconnected_killer_does_not_raise(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a, b = GonePlayer(1, "A"), FakePlayer(2, "B")
+    plugin._states["1"] = (0, 1)
+    plugin.handle_kill(b, a, "ROCKET")
+    assert plugin._states["1"] == (1, 0)
+
+
+def test_mid_match_joiner_starts_at_step_one(monkeypatch):
+    plugin = make_plugin(monkeypatch)
+    player = FakePlayer(7, "New")
+    plugin.handle_player_spawn(player)
+    assert plugin._states["7"] == (0, 0)
+    assert held(player) == ["g", "rl"] and player.score == 1

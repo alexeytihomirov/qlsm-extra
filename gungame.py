@@ -162,6 +162,8 @@ class gungame(minqlx.Plugin):
         self.add_hook("new_game", self.handle_new_game)
         self.add_hook("game_start", self.handle_game_start)
         self.add_hook("player_spawn", self.handle_player_spawn)
+        self.add_hook("kill", self.handle_kill)
+        self.add_hook("death", self.handle_death)
         self.add_hook("unload", self.handle_unload)
 
         self.plugin_version = "1.0"
@@ -222,6 +224,13 @@ class gungame(minqlx.Plugin):
             # Gone or dead by the next frame.
             return
 
+    @minqlx.next_frame
+    def _write_score(self, player):
+        try:
+            player.score = self._state(player)[0] + 1
+        except Exception:
+            return
+
     # --- map items ---
 
     def handle_map(self, mapname, factory):
@@ -259,6 +268,68 @@ class gungame(minqlx.Plugin):
             return
         if is_blocked_item(classname):
             return minqlx.Return.STOP_EVENT
+
+    # --- frags ---
+
+    def _counts(self):
+        return self._active() and self._in_progress()
+
+    def handle_kill(self, victim, killer, mod):
+        if killer is None or not self._counts():
+            return
+        sid = str(killer.steam_id)
+        state, outcome = advance(self._state(killer), self._ladder, "frag")
+        self._states[sid] = state
+        if outcome == "win":
+            self._finish(killer)
+            return
+        if outcome == "up":
+            self._give_loadout(killer)
+            self._notify(killer, step_text(self._ladder, state), "qlx_gunGameStepNotify")
+        else:
+            self._write_score(killer)
+
+        if str(mod) == "GAUNTLET" and self.get_cvar("qlx_gunGameGauntletDemote", bool):
+            self._demote(victim)
+
+        if outcome == "up":
+            self._announce_leader(killer, state)
+
+    def handle_death(self, victim, killer, mod):
+        if killer is not None and str(killer.steam_id) != str(victim.steam_id):
+            return  # a frag: handle_kill has it
+        if str(mod) == "SWITCH_TEAMS" or not self._counts():
+            return
+        if self.get_cvar("qlx_gunGameSuicideDemote", bool):
+            self._demote(victim)
+
+    def _demote(self, player):
+        state, outcome = advance(self._state(player), self._ladder, "demote")
+        self._states[str(player.steam_id)] = state
+        if outcome == "down":
+            self._notify(player, demote_text(self._ladder, state), "qlx_gunGameStepNotify")
+        self._write_score(player)
+
+    def _announce_leader(self, player, state):
+        total = len(self._ladder)
+        leader = pick_leader(self._states, self._leader)
+        if leader is not None and leader != self._leader:
+            self._leader = leader
+            if leader == str(player.steam_id):
+                self._notify(None, leader_text(player.name, state[0] + 1, total), "qlx_gunGameLeaderNotify")
+        if state[0] == total - 1:
+            self._notify(None, last_step_text(player.name, self._ladder[-1][0]), "qlx_gunGameLeaderNotify")
+
+    @minqlx.next_frame
+    def _finish(self, winner):
+        limit = len(self._ladder) + 1
+        try:
+            winner.score = limit
+            name = winner.name
+        except Exception:
+            name = "?"
+        self.set_cvar("fraglimit", str(limit))
+        self._notify(None, win_text(name), "qlx_gunGameLeaderNotify")
 
     # --- match lifecycle ---
 
