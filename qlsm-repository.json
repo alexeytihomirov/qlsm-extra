@@ -121,6 +121,13 @@
       "label": "Item Roulette",
       "description": "Every pickup is a coin flip: the item gives what it always gives, or takes instead - armor, health and ammo go down, a weapon is lost, a powerup turns into a curse of the same length. What each item gives and takes is configurable.",
       "sha256": "7acce6a7b00cd3be3bd082c40e346fba8dab75c3a9047724a4523fdf4ab0ab50"
+    },
+    {
+      "filename": "gungame.py",
+      "runtime": "minqlxtended",
+      "label": "Gun Game",
+      "description": "FFA Gun Game: every frag moves the killer one weapon down a configurable ladder, a frag on the last step wins the match. Map weapons and powerups are removed, the instance needs g_infiniteAmmo 1.",
+      "sha256": "6f1d941ebb705da4a09448237afd52ef21c6eb298e98af6a935d3659af25bb4b"
     }
   ],
   "addons": [

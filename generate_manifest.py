@@ -46,6 +46,7 @@ DEFAULT_PLUGINS = [
     'referee_call.py',
     'demo_stream_resync_hold.py',
     'item_roulette.py',
+    'gungame.py',
 ]
 
 # filename -> folder (relative to this script) that must be downloaded

@@ -26,7 +26,7 @@ related: [root-0033, root-0034, qlsm-extra/docs/superpowers/specs/2026-10-26-gun
 ## Шаги
 
 - [x] Дизайн с оператором (brainstorming) -> спека
-- [ ] Gun Game плагин + manifest + тесты
+- [x] Gun Game плагин + manifest + тесты
 - [ ] NIX плагин + manifest + тесты
 - [ ] Factory / пресет fun-инстанса
 - [ ] Проверка на живом fun-инстансе
@@ -45,6 +45,8 @@ related: [root-0033, root-0034, qlsm-extra/docs/superpowers/specs/2026-10-26-gun
 - 2026-10-26 - decisions: weapons/powerups hidden by the plugin at map load (match_restore `_stock_hide_item` technique) + `item_touch` STOP as a safety net; gauntlet always in hand, a gauntlet frag counts for the killer like any frag; a mid-match joiner starts at step 1; state per SteamID for the match (rejoin keeps the step); score = step number; win ends the match via fraglimit (to verify live, fallback timelimit)
 - 2026-10-26 - spec written: `docs/superpowers/specs/2026-10-26-gungame-design.md` (worktree `.worktrees/qlsm-extra-gungame`, branch feat/gungame from origin/main d8c3ff3); waiting for operator review
 - 2026-10-26 - operator approved the spec. Spec refined: fraglimit 0 during the match, winner score = ladder length + 1 (no tie on the last step), SWITCH_TEAMS deaths never demote, score writes on the next frame. Plan: `docs/superpowers/plans/2026-10-26-gungame.md`
+
+- 2026-10-26 - gungame.py + gungame.ql-plugin.json + tests (43 unit/hook tests), repository entry, README row. Fork detail found: `map` fires on a fresh load only, `new_game` also on restarts (items respawn), so items are hidden on new_game and fraglimit is restored on game_end / map / unload
 
 ## Результат
 
