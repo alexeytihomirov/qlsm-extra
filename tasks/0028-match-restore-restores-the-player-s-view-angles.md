@@ -45,7 +45,7 @@ Design (mirrors the velocity path, which already survives the pause):
 - 2026-10-26 - merged into origin/main (3d0643d). Deploy to germany waits for the operator: the plugin update goes through the qlsm Repositories page, no verified API path is documented
 - 2026-10-26 - deployed to germany 27960 from inside `qlsm-web-1` (same code as the Repositories download route, common-pool refresh queued for host 1 only, not the 8-host push). The instance keeps its own copy in `configs/GermanyHetzner/1/scripts/`, and the instance-selected path copies basenames only, so `restore/codec.py` was staged by hand next to `match_restore.py`; then `restart_instance`. Verified on the host: `/home/ql/qlds-27960/minqlxtended-plugins/` has `_write_player_view` and `"pa"`, plugin loaded at 21:14:56 CET with no error (the `match_restore_util` PluginLoadError is old noise). Server was empty (warmup, 0 players) during the restart
 
-- 2026-10-26 - live check round 1: `export` on germany wrote `"pa":1.76,"ya":22.71` into the JSON (export works); `!restore apply` said "no players in draft" because my check steps were wrong: `export` does not fill the draft. Added the `view` draft field, redeploying
+- 2026-10-26 - live check round 1: `export` on germany wrote `"pa":1.76,"ya":22.71` into the JSON (export works); `!restore apply` said "no players in draft" because my check steps were wrong: `export` does not fill the draft. Added the `view` draft field (commit 1767c80), redeployed to germany 2026-10-26 21:24 CET (plugin loaded, no error)
 
 ## Результат
 
@@ -53,10 +53,9 @@ Design (mirrors the velocity path, which already survives the pause):
 
 ## Как проверить
 
-Germany 27960 (`sD test server`), operator in the game:
+Germany 27960 (`sD test server`), operator in the game. `export` only writes JSON to the server log and does not fill the draft, so the check builds a draft by hand:
 
-1. Join, start a match (or warm-up with another player/bot), run to a spot and look at a recognisable landmark.
-2. `/rcon qlx !restore export` (or `qlx restore export` over RCON): the log line must contain `"pa"` and `"ya"` for your row.
+1. Stand at a recognisable spot, look at a landmark. Run `!restore export` and read `x y z pa ya` of your row in the server log (line `match_restore export json=`).
+2. Build the draft with those numbers (slot = your `cid`, usually 0): `!restore clear`, `!restore map` (current map), `!restore player 0 sid <your steam id>`, `!restore player 0 pos <x> <y> <z>`, `!restore player 0 view <pa> <ya>`, `!restore player 0 hp 100`.
 3. Turn away about 180 degrees and move.
-4. Apply the checkpoint with `!restore apply` (the draft from step 2).
-5. Expected: you are back at the position and look at the same landmark as in step 2 (also after the unpause, even if you moved the mouse during the pause).
+4. `!restore apply`. Expected: back at the position, looking at the same landmark; also after `!unpause`, even if the mouse was moved during the pause.
