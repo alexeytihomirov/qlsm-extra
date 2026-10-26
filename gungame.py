@@ -1,11 +1,13 @@
 # gungame.py - Gun Game for FFA: every frag moves the killer one weapon down a
 # configurable ladder; a frag on the last step wins the match.
 #
-# Map weapons and powerups are hidden at map load and cannot be picked up
-# (weapons dropped by dying players included); armor and health stay. Every
-# player always holds the gauntlet plus the weapon of their step. Ammo is the
+# Map weapons and powerups are taken off the map on every map load and restart
+# and cannot be picked up (weapons dropped by dying players included); armor and
+# health stay. Every player always holds the gauntlet plus the weapon of their
+# step and spawns with armor. Ammo is the
 # instance's business: run it with g_infiniteAmmo 1.
 #   frag                     counts on the killer's step; enough frags = next step
+#   gauntlet frag            the killer skips the rest of the step (switchable)
 #   death by gauntlet        the victim goes one step down
 #   suicide / world death    one step down
 # The scoreboard shows the step (score = step number). The win sets fraglimit
@@ -18,6 +20,9 @@
 #                                                weapons g mg sg gl rl lg rg pg bfg gh ng pl cg hmg
 #   qlx_gunGameGauntletDemote "1"                a gauntlet death costs the victim a step
 #   qlx_gunGameSuicideDemote "1"                 suicides and world deaths cost a step
+#   qlx_gunGameGauntletSkip "1"                  a gauntlet frag moves the killer a whole step up
+#   qlx_gunGameWeaponDelay "0"                   ms before a new step's weapon arrives (0 = next frame)
+#   qlx_gunGameSpawnArmor "100"                  armor on every spawn (0 = leave the engine's)
 #   qlx_gunGameStepNotify "print"                own step news: print, center, print,center, off
 #   qlx_gunGameLeaderNotify "print"              leader news to everyone, same values
 
@@ -35,6 +40,8 @@ WEAPON_LABELS = {
 }
 POWERUP_CLASSNAMES = frozenset({"item_quad", "item_enviro", "item_haste", "item_invis", "item_regen", "item_flight"})
 CHANNELS = ("print", "center")
+# A restart respawns map items a couple of frames after new_game; scan again then.
+ITEM_RESCAN_S = 0.5
 
 DEFAULT_LADDER = "rl:2 rg:2 lg:2 pg:2 sg:2 gl:2 mg:2 g:1"
 CVAR_DEFAULTS = (
@@ -42,6 +49,9 @@ CVAR_DEFAULTS = (
     ("qlx_gunGameLadder", DEFAULT_LADDER),
     ("qlx_gunGameGauntletDemote", "1"),
     ("qlx_gunGameSuicideDemote", "1"),
+    ("qlx_gunGameGauntletSkip", "1"),
+    ("qlx_gunGameWeaponDelay", "0"),
+    ("qlx_gunGameSpawnArmor", "100"),
     ("qlx_gunGameStepNotify", "print"),
     ("qlx_gunGameLeaderNotify", "print"),
 )
@@ -68,14 +78,26 @@ def parse_ladder(text):
     return ladder
 
 
+def parse_ms(text):
+    try:
+        return max(0, int(str(text).strip()))
+    except (TypeError, ValueError):
+        return 0
+
+
 def parse_channels(text):
     words = {w.strip() for w in (text or "").split(",")}
     return frozenset(w for w in words if w in CHANNELS)
 
 
 def advance(state, ladder, event):
-    """(step, frags_on_step) after a "frag" or "demote" -> (state, outcome)."""
+    """(step, frags_on_step) after a "frag", "skip" (the whole step at once) or
+    "demote" -> (state, outcome)."""
     step, frags = state
+    if event == "skip":
+        if step == len(ladder) - 1:
+            return (step, frags + 1), "win"
+        return (step + 1, 0), "up"
     if event == "frag":
         frags += 1
         if frags < ladder[step][1]:
@@ -219,8 +241,7 @@ class gungame(minqlx.Plugin):
         except Exception:
             pass
 
-    @minqlx.next_frame
-    def _give_loadout(self, player):
+    def _apply_loadout(self, player, armor=False):
         step = self._state(player)[0] if self._in_progress() else 0
         key = loadout(self._ladder, min(step, len(self._ladder) - 1))
         try:
@@ -228,9 +249,24 @@ class gungame(minqlx.Plugin):
             player.weapon = WEAPON_FIELDS.index(key) + 1
             if self._in_progress():
                 player.score = step + 1
+            if armor:
+                spawn_armor = parse_ms(self.get_cvar("qlx_gunGameSpawnArmor"))
+                if spawn_armor:
+                    player.armor = spawn_armor
         except Exception:
-            # Gone or dead by the next frame.
+            # Gone or dead by now.
             return
+
+    _give_loadout = minqlx.next_frame(_apply_loadout)
+
+    def _step_up_loadout(self, player):
+        """The new step's weapon, after qlx_gunGameWeaponDelay ms (the score does not wait)."""
+        ms = parse_ms(self.get_cvar("qlx_gunGameWeaponDelay"))
+        if not ms:
+            self._give_loadout(player)
+            return
+        self._write_score(player)
+        self.delay(ms / 1000.0, self._apply_loadout, player)
 
     @minqlx.next_frame
     def _write_score(self, player):
@@ -244,8 +280,7 @@ class gungame(minqlx.Plugin):
     def handle_map(self, mapname, factory):
         self._restore_fraglimit()
 
-    @minqlx.next_frame
-    def _hide_map_items(self):
+    def _scan_items(self):
         """Free the items where the engine can (a hidden powerup would come back
         visible on its first respawn); else match_restore's stock hide: no draw,
         no client, no touch. A restart spawns them again and new_game repeats this."""
@@ -271,7 +306,10 @@ class gungame(minqlx.Plugin):
                 hidden += 1
             except Exception:
                 continue
-        self.logger.info("gungame: took %d weapons and powerups off the map", hidden)
+        if hidden:
+            self.logger.info("gungame: took %d weapons and powerups off the map", hidden)
+
+    _hide_map_items = minqlx.next_frame(_scan_items)
 
     def handle_item_touch(self, player, entity):
         if not self._active():
@@ -291,19 +329,21 @@ class gungame(minqlx.Plugin):
     def handle_kill(self, victim, killer, mod):
         if killer is None or not self._counts():
             return
-        state, outcome = advance(self._state(killer), self._ladder, "frag")
+        gauntlet = str(mod) == "GAUNTLET"
+        event = "skip" if gauntlet and self.get_cvar("qlx_gunGameGauntletSkip", bool) else "frag"
+        state, outcome = advance(self._state(killer), self._ladder, event)
         self._states[self._key(killer)] = state
         if outcome == "win":
             self._won = True
             self._finish(killer)
             return
         if outcome == "up":
-            self._give_loadout(killer)
+            self._step_up_loadout(killer)
             self._notify(killer, step_text(self._ladder, state), "qlx_gunGameStepNotify")
         else:
             self._write_score(killer)
 
-        if str(mod) == "GAUNTLET" and self.get_cvar("qlx_gunGameGauntletDemote", bool):
+        if gauntlet and self.get_cvar("qlx_gunGameGauntletDemote", bool):
             self._demote(victim)
 
         if outcome == "up":
@@ -351,7 +391,7 @@ class gungame(minqlx.Plugin):
 
     def handle_player_spawn(self, player):
         if self._active():
-            self._give_loadout(player)
+            self._give_loadout(player, armor=True)
 
     def _reset(self):
         self._states = {}
@@ -370,6 +410,7 @@ class gungame(minqlx.Plugin):
         self._reset()
         if self._active():
             self._hide_map_items()
+            self.delay(ITEM_RESCAN_S, self._scan_items)
 
     def handle_game_start(self):
         self._reset()

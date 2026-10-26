@@ -47,6 +47,7 @@ class FakePlayer:
         self.weapons = tuple(f in ("g", "mg") for f in W)
         self.weapon = W.index("mg") + 1
         self.score = 0
+        self.armor = 0
         self.tells = []
         self.centers = []
 
@@ -74,6 +75,7 @@ def make_plugin(monkeypatch, engine=None, cvars=None, state="in_progress"):
         settings[name] = str(value)
 
     warnings = []
+    delays = []
     broadcast = {"msg": [], "center": []}
     plugin = bare_instance(
         gg.gungame,
@@ -82,10 +84,12 @@ def make_plugin(monkeypatch, engine=None, cvars=None, state="in_progress"):
         get_cvar=get_cvar, set_cvar=set_cvar,
         msg=broadcast["msg"].append, center_print=broadcast["center"].append,
         game=SimpleNamespace(state=state),
+        delay=lambda seconds, func, *args: delays.append((seconds, func, args)),
         logger=SimpleNamespace(warning=lambda *a, **k: warnings.append(a), info=lambda *a, **k: None),
     )
     plugin.settings = settings
     plugin.warnings = warnings
+    plugin.delays = delays
     plugin.broadcast = broadcast
     plugin.engine = engine
     return plugin
@@ -418,3 +422,72 @@ def test_map_items_are_removed_when_the_engine_can(monkeypatch):
     plugin.handle_new_game()
     assert removed == [10]
     assert engine.linked == []
+
+
+# --- operator feedback round 1 -------------------------------------------
+
+def test_spawn_gives_armor(monkeypatch):
+    plugin = make_plugin(monkeypatch)
+    player = FakePlayer()
+    plugin.handle_player_spawn(player)
+    assert player.armor == 100
+
+
+def test_spawn_armor_off(monkeypatch):
+    plugin = make_plugin(monkeypatch, cvars={"qlx_gunGameSpawnArmor": "0"})
+    player = FakePlayer()
+    plugin.handle_player_spawn(player)
+    assert player.armor == 0
+
+
+def test_gauntlet_kill_skips_the_rest_of_the_step(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin.handle_kill(b, a, "GAUNTLET")
+    assert plugin._states["1"] == (1, 0)
+    assert held(a) == ["g", "lg"]
+
+
+def test_gauntlet_skip_off_counts_one_frag(monkeypatch):
+    plugin = ladder3(monkeypatch, qlx_gunGameGauntletSkip="0")
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin.handle_kill(b, a, "GAUNTLET")
+    assert plugin._states["1"] == (0, 1)
+
+
+def test_weapon_delay_gives_the_new_weapon_later(monkeypatch):
+    plugin = ladder3(monkeypatch, qlx_gunGameWeaponDelay="500")
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin._states["1"] = (0, 1)
+    plugin.handle_kill(b, a, "ROCKET")
+    assert held(a) == ["g", "mg"]  # still the old loadout
+    assert a.score == 2            # the score does not wait
+    seconds, func, args = plugin.delays[-1]
+    assert seconds == 0.5
+    func(*args)
+    assert held(a) == ["g", "lg"]
+
+
+def test_weapon_delay_zero_is_immediate(monkeypatch):
+    plugin = ladder3(monkeypatch, qlx_gunGameWeaponDelay="0")
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin._states["1"] = (0, 1)
+    plugin.handle_kill(b, a, "ROCKET")
+    assert held(a) == ["g", "lg"] and plugin.delays == []
+
+
+def test_new_game_scans_items_again_after_they_spawn(monkeypatch):
+    rl = make_entity(10, "weapon_rocketlauncher")
+    engine = make_engine([])
+    later = []
+    engine.entities = lambda inuse=True, etype=None: list(later)
+    removed = []
+    engine.remove_entity = removed.append
+    plugin = make_plugin(monkeypatch, engine)
+    plugin.handle_new_game()
+    assert removed == []           # restart: items not spawned yet on the next frame
+    later.append(rl)
+    seconds, func, args = plugin.delays[-1]
+    assert 0 < seconds <= 1
+    func(*args)
+    assert removed == [10]

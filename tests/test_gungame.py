@@ -51,6 +51,20 @@ def test_advance_demote_floor_and_reset():
     assert gg.advance((0, 0), L3, "demote") == ((0, 0), "none")
 
 
+def test_advance_skip_jumps_a_whole_step():
+    assert gg.advance((0, 1), L3, "skip") == ((1, 0), "up")
+    assert gg.advance((1, 0), L3, "skip") == ((2, 0), "up")
+    assert gg.advance((2, 0), L3, "skip") == ((2, 1), "win")
+
+
+def test_parse_ms():
+    assert gg.parse_ms("500") == 500
+    assert gg.parse_ms(" 0 ") == 0
+    assert gg.parse_ms("-5") == 0
+    assert gg.parse_ms("abc") == 0
+    assert gg.parse_ms(None) == 0
+
+
 def test_loadout_and_weapons():
     assert gg.loadout(L3, 1) == "lg"
     held = gg.loadout_weapons("lg")
