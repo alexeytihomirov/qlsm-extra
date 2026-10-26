@@ -1,4 +1,5 @@
 """gungame: hook wiring against fake engine objects."""
+import inspect
 from types import SimpleNamespace
 
 import pytest
@@ -39,8 +40,9 @@ def make_engine(entities=()):
 
 
 class FakePlayer:
-    def __init__(self, sid=1, name="A"):
+    def __init__(self, sid=1, name="A", pid=None):
         self.steam_id = sid
+        self.id = sid if pid is None else pid
         self.name = name
         self.weapons = tuple(f in ("g", "mg") for f in W)
         self.weapon = W.index("mg") + 1
@@ -76,7 +78,7 @@ def make_plugin(monkeypatch, engine=None, cvars=None, state="in_progress"):
     plugin = bare_instance(
         gg.gungame,
         _states={}, _ladder=gg.parse_ladder(gg.DEFAULT_LADDER), _ladder_raw=gg.DEFAULT_LADDER,
-        _leader=None, _saved_fraglimit=None,
+        _leader=None, _saved_fraglimit=None, _won=False,
         get_cvar=get_cvar, set_cvar=set_cvar,
         msg=broadcast["msg"].append, center_print=broadcast["center"].append,
         game=SimpleNamespace(state=state),
@@ -160,19 +162,19 @@ def test_invalid_ladder_keeps_previous(monkeypatch):
 def test_game_start_zeroes_fraglimit_and_game_end_restores(monkeypatch):
     plugin = make_plugin(monkeypatch)
     plugin._states["1"] = (3, 0)
-    plugin.handle_game_start({})
+    plugin.handle_game_start()
     assert plugin.settings["fraglimit"] == "0"
     assert plugin._states == {}
     plugin.handle_new_game()  # a restart right around the start must not undo it
     assert plugin.settings["fraglimit"] == "0"
-    plugin.handle_game_end({})
+    plugin.handle_game_end(False)
     assert plugin.settings["fraglimit"] == "50"
     assert plugin._saved_fraglimit is None
 
 
 def test_map_change_restores_fraglimit(monkeypatch):
     plugin = make_plugin(monkeypatch)
-    plugin.handle_game_start({})
+    plugin.handle_game_start()
     plugin.handle_map("campgrounds", "ffa")
     assert plugin.settings["fraglimit"] == "50"
 
@@ -344,3 +346,75 @@ def test_mid_match_joiner_starts_at_step_one(monkeypatch):
     plugin.handle_player_spawn(player)
     assert plugin._states["7"] == (0, 0)
     assert held(player) == ["g", "rl"] and player.score == 1
+
+
+# --- review fixes ---------------------------------------------------------
+
+# Arguments each fork dispatcher passes (_events.py); add_hook binds the
+# handler to this many arguments and refuses to load the plugin otherwise.
+DISPATCH_ARITY = {
+    "handle_map": 2, "handle_new_game": 0, "handle_game_start": 0, "handle_game_end": 1,
+    "handle_player_spawn": 1, "handle_kill": 3, "handle_death": 3, "handle_item_touch": 2,
+    "handle_unload": 1,
+}
+
+
+@pytest.mark.parametrize("name,arity", sorted(DISPATCH_ARITY.items()))
+def test_handlers_match_fork_dispatch_arity(monkeypatch, name, arity):
+    plugin = make_plugin(monkeypatch)
+    inspect.signature(getattr(plugin, name)).bind(*[None] * arity)
+
+
+def test_bots_have_separate_states(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    bot1, bot2, bot3 = FakePlayer(0, "Bot1", pid=3), FakePlayer(0, "Bot2", pid=4), FakePlayer(0, "Bot3", pid=5)
+    plugin.handle_kill(bot2, bot1, "ROCKET")
+    plugin.handle_kill(bot2, bot1, "ROCKET")
+    assert bot1.score == 2
+    plugin.handle_player_spawn(bot3)
+    assert held(bot3) == ["g", "rl"] and bot3.score == 1
+
+
+def test_bot_killing_bot_is_not_a_suicide(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    bot1, bot2 = FakePlayer(0, "Bot1", pid=3), FakePlayer(0, "Bot2", pid=4)
+    plugin.handle_player_spawn(bot2)
+    plugin.handle_kill(bot2, bot1, "LIGHTNING")
+    plugin.handle_kill(bot2, bot1, "LIGHTNING")
+    plugin.handle_death(bot2, bot1, "LIGHTNING")
+    assert bot2.tells == [] and bot2.score == 1
+
+
+def test_win_saves_fraglimit_when_enabled_mid_match(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin._states["1"] = (2, 0)
+    plugin.handle_kill(b, a, "GAUNTLET")
+    assert plugin.settings["fraglimit"] == "4"
+    plugin.handle_game_end(False)
+    assert plugin.settings["fraglimit"] == "50"
+
+
+def test_nothing_counts_after_a_win(monkeypatch):
+    plugin = ladder3(monkeypatch)
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin._states.update({"1": (2, 0), "2": (2, 0)})
+    plugin.handle_kill(b, a, "GAUNTLET")
+    plugin.handle_kill(a, b, "GAUNTLET")
+    plugin.handle_death(a, None, "LAVA")
+    assert b.score == 0 and a.score == 4
+    assert plugin.broadcast["msg"].count("^3B^7 wins Gun Game!") == 0
+    plugin.handle_game_start()
+    plugin.handle_kill(b, a, "ROCKET")
+    assert plugin._states["1"] == (0, 1)
+
+
+def test_map_items_are_removed_when_the_engine_can(monkeypatch):
+    rl, mega = make_entity(10, "weapon_rocketlauncher"), make_entity(12, "item_health_mega")
+    engine = make_engine([rl, mega])
+    removed = []
+    engine.remove_entity = removed.append
+    plugin = make_plugin(monkeypatch, engine)
+    plugin.handle_new_game()
+    assert removed == [10]
+    assert engine.linked == []

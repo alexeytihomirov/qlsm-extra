@@ -149,6 +149,7 @@ class gungame(minqlx.Plugin):
         self._ladder_raw = DEFAULT_LADDER
         self._leader = None      # steam_id (str) of the announced leader
         self._saved_fraglimit = None
+        self._won = False        # the match is decided; nothing counts until the next one
 
         for name, value in CVAR_DEFAULTS:
             self.set_cvar_once(name, value)
@@ -193,8 +194,14 @@ class gungame(minqlx.Plugin):
             return
         self._ladder_raw = raw  # warn once per bad value
 
+    @staticmethod
+    def _key(player):
+        """steam_id, or the client slot for bots (their steam_id is 0)."""
+        sid = int(player.steam_id)
+        return str(sid) if sid else "bot{}".format(int(player.id))
+
     def _state(self, player):
-        return self._states.setdefault(str(player.steam_id), (0, 0))
+        return self._states.setdefault(self._key(player), (0, 0))
 
     def _notify(self, target, text, cvar):
         channels = parse_channels(self.get_cvar(cvar))
@@ -239,7 +246,10 @@ class gungame(minqlx.Plugin):
 
     @minqlx.next_frame
     def _hide_map_items(self):
-        """Same writes as match_restore's stock hide: no draw, no client, no touch."""
+        """Free the items where the engine can (a hidden powerup would come back
+        visible on its first respawn); else match_restore's stock hide: no draw,
+        no client, no touch. A restart spawns them again and new_game repeats this."""
+        remove = getattr(minqlx, "remove_entity", None)
         try:
             ents = list(minqlx.entities(inuse=True, etype=ET_ITEM))
         except Exception as exc:
@@ -250,6 +260,10 @@ class gungame(minqlx.Plugin):
             try:
                 if not is_blocked_item(str(ent.classname or "")):
                     continue
+                if remove is not None:
+                    remove(int(ent.s.number))
+                    hidden += 1
+                    continue
                 ent.s.e_flags = int(ent.s.e_flags) | EF_NODRAW
                 ent.r.sv_flags = int(ent.r.sv_flags) | SVF_NOCLIENT
                 ent.r.contents = 0
@@ -257,7 +271,7 @@ class gungame(minqlx.Plugin):
                 hidden += 1
             except Exception:
                 continue
-        self.logger.info("gungame: hid %d weapons and powerups", hidden)
+        self.logger.info("gungame: took %d weapons and powerups off the map", hidden)
 
     def handle_item_touch(self, player, entity):
         if not self._active():
@@ -272,15 +286,15 @@ class gungame(minqlx.Plugin):
     # --- frags ---
 
     def _counts(self):
-        return self._active() and self._in_progress()
+        return not self._won and self._active() and self._in_progress()
 
     def handle_kill(self, victim, killer, mod):
         if killer is None or not self._counts():
             return
-        sid = str(killer.steam_id)
         state, outcome = advance(self._state(killer), self._ladder, "frag")
-        self._states[sid] = state
+        self._states[self._key(killer)] = state
         if outcome == "win":
+            self._won = True
             self._finish(killer)
             return
         if outcome == "up":
@@ -296,7 +310,7 @@ class gungame(minqlx.Plugin):
             self._announce_leader(killer, state)
 
     def handle_death(self, victim, killer, mod):
-        if killer is not None and str(killer.steam_id) != str(victim.steam_id):
+        if killer is not None and int(killer.id) != int(victim.id):
             return  # a frag: handle_kill has it
         if str(mod) == "SWITCH_TEAMS" or not self._counts():
             return
@@ -305,7 +319,7 @@ class gungame(minqlx.Plugin):
 
     def _demote(self, player):
         state, outcome = advance(self._state(player), self._ladder, "demote")
-        self._states[str(player.steam_id)] = state
+        self._states[self._key(player)] = state
         if outcome == "down":
             self._notify(player, demote_text(self._ladder, state), "qlx_gunGameStepNotify")
         self._write_score(player)
@@ -315,7 +329,7 @@ class gungame(minqlx.Plugin):
         leader = pick_leader(self._states, self._leader)
         if leader is not None and leader != self._leader:
             self._leader = leader
-            if leader == str(player.steam_id):
+            if leader == self._key(player):
                 self._notify(None, leader_text(player.name, state[0] + 1, total), "qlx_gunGameLeaderNotify")
         if state[0] == total - 1:
             self._notify(None, last_step_text(player.name, self._ladder[-1][0]), "qlx_gunGameLeaderNotify")
@@ -323,6 +337,8 @@ class gungame(minqlx.Plugin):
     @minqlx.next_frame
     def _finish(self, winner):
         limit = len(self._ladder) + 1
+        if self._saved_fraglimit is None:  # enabled mid-match: game_start saved nothing
+            self._saved_fraglimit = self.get_cvar("fraglimit") or "0"
         try:
             winner.score = limit
             name = winner.name
@@ -340,6 +356,7 @@ class gungame(minqlx.Plugin):
     def _reset(self):
         self._states = {}
         self._leader = None
+        self._won = False
         self._reload_ladder()
 
     def _restore_fraglimit(self):
@@ -354,7 +371,7 @@ class gungame(minqlx.Plugin):
         if self._active():
             self._hide_map_items()
 
-    def handle_game_start(self, data):
+    def handle_game_start(self):
         self._reset()
         if not self._active():
             return
@@ -362,7 +379,7 @@ class gungame(minqlx.Plugin):
             self._saved_fraglimit = self.get_cvar("fraglimit") or "0"
         self.set_cvar("fraglimit", "0")
 
-    def handle_game_end(self, data):
+    def handle_game_end(self, aborted):
         self._restore_fraglimit()
 
     def handle_unload(self, plugin):

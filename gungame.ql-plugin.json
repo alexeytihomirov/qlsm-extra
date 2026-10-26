@@ -2,7 +2,7 @@
   "label": "Gun Game",
   "description": "FFA Gun Game: every frag moves the killer one weapon down a configurable ladder, a frag on the last step wins the match. Map weapons and powerups are removed, the instance needs g_infiniteAmmo 1.",
   "cvars": [
-    { "cvar": "qlx_gunGameEnabled", "label": "Enabled", "description": "Turns Gun Game on. Works in FFA only; takes effect from the next map load or match.", "type": "bool", "default": false },
+    { "cvar": "qlx_gunGameEnabled", "label": "Enabled", "description": "Turns Gun Game on. FFA only. Frags count at once; map weapons and powerups go at the next map load or match start.", "type": "bool", "default": false },
     { "cvar": "qlx_gunGameLadder", "label": "Ladder", "description": "Space-separated weapon:frags steps, first to last. Weapons: g mg sg gl rl lg rg pg bfg gh ng pl cg hmg. Read at match start; an invalid ladder is ignored.", "type": "string", "default": "rl:2 rg:2 lg:2 pg:2 sg:2 gl:2 mg:2 g:1" },
     { "cvar": "qlx_gunGameGauntletDemote", "label": "Gauntlet demotes", "description": "A death by gauntlet takes the victim one step down.", "type": "bool", "default": true },
     { "cvar": "qlx_gunGameSuicideDemote", "label": "Suicide demotes", "description": "Suicides and world deaths (own splash, lava, falling, /kill) take the player one step down.", "type": "bool", "default": true },
