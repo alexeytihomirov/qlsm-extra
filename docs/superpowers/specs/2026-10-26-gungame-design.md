@@ -88,7 +88,7 @@ Active only when `qlx_gunGameEnabled` is 1 and `g_gametype` is 0 (FFA); otherwis
 
 **Match end.** At match start the plugin saves `fraglimit` and sets it to 0, so the instance's own limit cannot end a match while scores are step numbers. On `win` it sets the winner's score to ladder length + 1 (one above anyone else on the last step, so there is no tie) and `fraglimit` to the same number, so the engine ends the match through its own exit rules. To be confirmed on the test server; fallback: `timelimit` to the elapsed minute. The saved `fraglimit` is restored on `new_game` and plugin unload.
 
-**Notifications.** Texts (colour codes as QL): step to the player "Step 3/8: ^3LG^7 (0/2)", demote "Down to step 2/8: ^3RG^7", leader "^3X^7 leads: step 5/8", last step "^3X^7 is on the last step (^3GAUNTLET^7)!", win "^3X^7 wins Gun Game!". Channels from the two notify cvars.
+**Notifications.** Texts (colour codes as QL): step to the player "Step 3/8: ^3LG^7 (0/2)", demote "Down to step 2/8: ^3RG^7", leader "^3X^7 leads: step 5/8", last step "^3X^7: last step!" (short: a centre print does not wrap), win "^3X^7 wins Gun Game!". Channels from the two notify cvars.
 
 **Game-thread rules** (`skills/minqlx-plugin-review/SKILL.md`): no I/O, no redis, no threads; handlers are dict lookups and a few setters. `item_touch` is gated and hot: one classname check, return.
 

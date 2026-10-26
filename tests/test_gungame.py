@@ -100,5 +100,5 @@ def test_texts():
     assert gg.step_text(L3, (1, 0)) == "Step 2/3: ^3LG^7 (0/1)"
     assert gg.demote_text(L3, (0, 0)) == "Down to step 1/3: ^3RL^7"
     assert gg.leader_text("Bob", 2, 3) == "^3Bob^7 leads: step 2/3"
-    assert gg.last_step_text("Bob", "g") == "^3Bob^7 is on the last step (^3GAUNTLET^7)!"
+    assert gg.last_step_text("Bob") == "^3Bob^7: last step!"
     assert gg.win_text("Bob") == "^3Bob^7 wins Gun Game!"

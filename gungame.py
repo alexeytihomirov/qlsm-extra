@@ -158,8 +158,9 @@ def leader_text(name, step, total):
     return "^3{}^7 leads: step {}/{}".format(name, step, total)
 
 
-def last_step_text(name, key):
-    return "^3{}^7 is on the last step (^3{}^7)!".format(name, WEAPON_LABELS[key])
+def last_step_text(name):
+    # Short: a centre print doesn't wrap, and long nicknames are common.
+    return "^3{}^7: last step!".format(name)
 
 
 def win_text(name):
@@ -424,7 +425,7 @@ class gungame(minqlx.Plugin):
         total = len(self._ladder)
         self._update_leader(player)
         if state[0] == total - 1:
-            self._notify(None, last_step_text(player.name, self._ladder[-1][0]), "qlx_gunGameLeaderNotify")
+            self._notify(None, last_step_text(player.name), "qlx_gunGameLeaderNotify")
 
     @minqlx.next_frame
     def _finish(self, winner):

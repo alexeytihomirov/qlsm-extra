@@ -319,7 +319,7 @@ def test_last_step_announced(monkeypatch):
     plugin._states["1"] = (1, 0)
     plugin._leader = "1"
     plugin.handle_kill(b, a, "LIGHTNING")
-    assert plugin.broadcast["msg"] == ["^3A^7 is on the last step (^3GAUNTLET^7)!"]
+    assert plugin.broadcast["msg"] == ["^3A^7: last step!"]
 
 
 def test_win_sets_score_and_fraglimit_above_ladder(monkeypatch):
