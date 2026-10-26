@@ -53,6 +53,8 @@ Design (mirrors the velocity path, which already survives the pause):
 
 - 2026-10-26 - operator: pitch needed too. qlmatch-packer parser (vendored `addons/qlmatch-packer/assets/vendor/qldemo/`) now writes `pitch` next to `yaw` in every positions row (own POV from playerState.viewangles[0], others from entity apos.trBase[0]); generator_version 13, addon 1.3.4. Real data: new parser run on germany over `20261025T214209Z_duel_q4sun_Input.Frontier-a3.qlmatch` (output to /tmp, installed packer untouched): pitch in 48686 of 48686 rows, range -82.8..87.9, same 24343 positions events, file +7%. node tests demo-to-replay + match-to-replay 18/18. Old sidecars have no pitch: restore looks level until the pack is rebuilt
 
+- 2026-10-26 - deployed to germany: plugin (restore/qlmatch.py with yaw + pitch) 21:42:41 CET; the q4sun pack `20261025T214209Z_q4sun.replay.json.gz` on germany was REPLACED by hand with the generator-13 sidecar built from the pack by the new parser (old one kept as `.v12.bak` beside it) for the live check. Note: raw.githubusercontent caches 5 min, the first two deploys right after a push fetched the previous file; wait or re-run. qlmatch-packer 1.3.4 is NOT rolled out to hosts yet (needs addon install in qlsm + Update Plugins; operator to decide)
+
 ## Результат
 
 - Commit `3d0643d` on `origin/main` of `alexeytihomirov/qlsm-extra` (confirmed with `git ls-remote`). Deployed on germany 27960 (`sD test server`) 2026-10-26 21:14 CET; other hosts get it through Check for Updates. Live check by the operator is pending.
