@@ -81,6 +81,13 @@ filename template differs, or `!restore match` will not find it.
 (`MATCH_REPLAY_GENERATOR_VERSION` in `vendor/qldemo/match-to-replay.js`) so
 stale sidecars can be detected and regenerated after upgrades.
 
+View direction in the sidecar (generator version 13, addon 1.3.4): every
+`positions` player row has `yaw` and `pitch` in degrees (one decimal, pitch
+positive looks down; the recording player's own row from the playerState, the
+others from the entity's `apos`). `!restore match` turns the player to them.
+A sidecar made before version 13 has no `pitch`; restore then looks level
+until the pack is rebuilt.
+
 Effects in the sidecar (generator version 12, addon 1.3.3):
 
 - `impacts` with `kind: "explosion"` (RL, GL): one per explosion. The exploded

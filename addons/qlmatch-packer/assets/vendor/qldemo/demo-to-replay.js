@@ -127,6 +127,19 @@ function yawFromEntity(ent) {
   return round1(y);
 }
 
+/** viewangles[0] / apos.trBase[0] are pitch degrees (positive looks down). */
+function pitchFromViewangles(viewangles) {
+  const p = Number(viewangles?.[0]);
+  if (!Number.isFinite(p)) return null;
+  return round1(p);
+}
+
+function pitchFromEntity(ent) {
+  const p = Number(ent?.apos?.trBase?.[0]);
+  if (!Number.isFinite(p)) return null;
+  return round1(p);
+}
+
 // LG has no dedicated network beam (unlike rail's EV_RAIL_TRAIL): the beam is
 // drawn along the shooter's aim direction. What the server does send is one
 // temp entity per LG hit (every 50 ms refire), and neither kind names the
@@ -309,6 +322,7 @@ function applyPovDeathFreeze(row, clientNum, ps, poseState) {
       row.y = prev.y;
       row.z = prev.z;
       row.yaw = prev.yaw ?? row.yaw;
+      row.pitch = prev.pitch ?? row.pitch;
     }
     row.alive = false;
     poseState.set(clientNum, { ...prev, alive: false });
@@ -319,6 +333,7 @@ function applyPovDeathFreeze(row, clientNum, ps, poseState) {
   prev.y = row.y;
   prev.z = row.z;
   prev.yaw = row.yaw;
+  prev.pitch = row.pitch;
   prev.alive = true;
   row.alive = true;
   poseState.set(clientNum, prev);
@@ -890,6 +905,7 @@ function playerRowFromEntity(ent, serverTime, rosterByClient, clientNum) {
     vy,
     vz,
     yaw: yawFromEntity(ent),
+    pitch: pitchFromEntity(ent),
     weapon: ent.weapon || 0,
     health: vitalsPopulated ? saneVital(ent.health) : null,
     armor: vitalsPopulated ? saneVital(ent.armor) : null,
@@ -910,6 +926,7 @@ function playerRowFromPs(ps, rosterByClient, serverTime, clientNum, lastVitals, 
   const es = playerStateToEntityState(ps, clientNum, serverTime, false);
   let row = playerRowFromEntity(es, serverTime, rosterByClient, clientNum);
   row.yaw = yawFromViewangles(ps.viewangles);
+  row.pitch = pitchFromViewangles(ps.viewangles);
   row = withCarriedVitals(row, clientNum, lastVitals, ps);
   if (poseState) row = applyPovDeathFreeze(row, clientNum, ps, poseState);
   // Only ever available for the recording player's own playerState (chase-cam
@@ -1370,6 +1387,7 @@ export function demoToReplay(parser, options = {}) {
           y: round1(p.y),
           z: round1(p.z),
           yaw: p.yaw,
+          pitch: p.pitch,
           health: p.health,
           armor: p.armor,
           weapon: p.weapon,

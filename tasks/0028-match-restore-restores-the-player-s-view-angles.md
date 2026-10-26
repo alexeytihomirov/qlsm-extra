@@ -51,6 +51,8 @@ Design (mirrors the velocity path, which already survives the pause):
 
 - 2026-10-26 - operator confirmed the view turns on `!restore apply` (draft, germany 27960). Asked: `!restore match` must use it too. The .qlmatch sidecar (replay-v2, checked on germany `20261025T214209Z_q4sun.replay.json.gz`, generator_version 12) has `yaw` per player in `positions` but no pitch: `build_player_rows` now sets `ya` = yaw and `pa` = pitch if present else 0 (level). Checked the real positions event through `build_player_rows` + `canonicalize`. Live `!restore match` check pending
 
+- 2026-10-26 - operator: pitch needed too. qlmatch-packer parser (vendored `addons/qlmatch-packer/assets/vendor/qldemo/`) now writes `pitch` next to `yaw` in every positions row (own POV from playerState.viewangles[0], others from entity apos.trBase[0]); generator_version 13, addon 1.3.4. Real data: new parser run on germany over `20261025T214209Z_duel_q4sun_Input.Frontier-a3.qlmatch` (output to /tmp, installed packer untouched): pitch in 48686 of 48686 rows, range -82.8..87.9, same 24343 positions events, file +7%. node tests demo-to-replay + match-to-replay 18/18. Old sidecars have no pitch: restore looks level until the pack is rebuilt
+
 ## Результат
 
 - Commit `3d0643d` on `origin/main` of `alexeytihomirov/qlsm-extra` (confirmed with `git ls-remote`). Deployed on germany 27960 (`sD test server`) 2026-10-26 21:14 CET; other hosts get it through Check for Updates. Live check by the operator is pending.

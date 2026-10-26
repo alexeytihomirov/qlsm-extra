@@ -471,7 +471,7 @@ def _attach_view(row, p):
     one, else 0 (level): replay-v2 positions rows carry yaw only."""
     try:
         yaw = float(p["yaw"])
-        pitch = float(p.get("pitch", 0.0))
+        pitch = float(p.get("pitch") or 0.0)
     except (TypeError, ValueError, KeyError):
         return
     if not (math.isfinite(yaw) and math.isfinite(pitch)):

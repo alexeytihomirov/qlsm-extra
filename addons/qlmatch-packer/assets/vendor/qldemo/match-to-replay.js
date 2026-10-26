@@ -16,7 +16,7 @@ import { itemFamilyKey, loadMapPickupTable, normalizeMapKey } from "./map-item-r
 import { unpackQlMatch } from "./qlmatch-pack.js?v=20260829a";
 
 /** Bump when the merge algorithm changes so a stale sidecar can be detected and regenerated. */
-export const MATCH_REPLAY_GENERATOR_VERSION = 12;
+export const MATCH_REPLAY_GENERATOR_VERSION = 13;
 
 // All POVs of one match sit on the same 25 ms server snapshot grid (sv_fps
 // 40) - see research doc section 4.

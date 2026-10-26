@@ -34,7 +34,7 @@
         "restore/codec.py": "2426f2c059b3abf498edfacccc2f6bfbd80521ea4769ee65bf3c4d9aaeb3bb65",
         "restore/draft.py": "526d789ebcd2cb541bc944ec3375a601aac5657102d77e7a06e7beee9ab98f9d",
         "restore/items.py": "74c275f04c61641200dc853f3b27cfb0cb27d2122e3dfc92f43e87c406fd677d",
-        "restore/qlmatch.py": "d447adf827e37e374694e1f18274cf47dba9dfa9b4ff0ee5c2ace7b04e3359e5"
+        "restore/qlmatch.py": "6245e6d6e39029671acd9ba292f63e7af5683df19774a4b3573f5e0fbc514aa4"
       },
       "sha256": "1cb503a11c9079ee8e51ce3e1e3ef01d45a73b55b10344cd72663fc374b3012e"
     },
@@ -182,8 +182,8 @@
     {
       "id": "qlmatch-packer",
       "zip": "packages/qlmatch-packer.zip",
-      "sha256": "e9fd320a8f6edcf103c80a6891f0d1b610849629dab2a9cccf5634f032b1d276",
-      "version": "1.3.3",
+      "sha256": "2514dec97cccc8625d0065eef6174dc72a1adc840fe87c5aae0bc185200fc084",
+      "version": "1.3.4",
       "label": "Qlmatch Packer",
       "description": "Installs the qlmatch packer and Node.js 22 on every game host at host setup and Update Plugins, and shows and rebuilds .qlmatch packs and replay files on the Demos screen. The qlmatch_packer plugin runs the packer when the engine finishes a match's demos; needs the demo-management addon."
     },

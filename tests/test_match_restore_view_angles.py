@@ -196,3 +196,12 @@ def test_qlmatch_rows_carry_yaw_and_level_pitch():
     assert "ya" not in rows[3]
     cp = codec.canonicalize({"t_ms": 1, "map": "q4sun", "players": rows})
     assert cp["players"][0]["ya"] == -88.4 and cp["players"][0]["pa"] == 0.0
+
+
+def test_qlmatch_null_pitch_is_level_not_dropped():
+    from restore import qlmatch
+
+    rows = qlmatch.build_player_rows(
+        {"players": [{"clientNum": 0, "x": 1, "y": 2, "z": 3, "yaw": 45.0, "pitch": None}]}
+    )
+    assert (rows[0]["ya"], rows[0]["pa"]) == (45.0, 0.0)

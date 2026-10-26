@@ -418,3 +418,16 @@ test("an anonymous missile miss off every LG aim ray keeps its old kind", () => 
   const [beam] = beamsOf(replay);
   assert.equal(Math.round(beam.x1 - beam.x0), 768, "no hit on its ray: full range");
 });
+
+test("positions rows carry the entity's pitch next to yaw", () => {
+  const ent = otherPlayerEntity({ clientNum: 1, x: 100, y: 200, z: 300 });
+  ent.apos.trBase = [20.54, -88.44, 0];
+  const parser = fakeParser([{ serverTime: 1000, entities: [ent] }]);
+
+  const replay = demoToReplay(parser, { povClientNum: 0, mapTable: [] });
+  const positions = replay.events.filter((e) => e.event === "positions");
+  assert.ok(positions.length >= 1);
+  const row = positions[0].players.find((p) => p.clientNum === 1);
+  assert.equal(row.yaw, -88.4);
+  assert.equal(row.pitch, 20.5);
+});
