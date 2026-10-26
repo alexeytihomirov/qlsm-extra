@@ -20,6 +20,8 @@ def _plugin(pending):
     p = bare_instance(
         mr.match_restore,
         _restore_pending_velocities=pending,
+        _restore_pending_views={},
+        _view_apply_queue=[],
         player=lambda cid: SimpleNamespace(id=cid),
         _write_player_velocity=lambda target, vx, vy, vz: writes.append((target.id, vx, vy, vz)),
         _queue_player_velocity=lambda cid, vx, vy, vz, frames=5: None,

@@ -16,7 +16,8 @@
 #
 # pause/unpause text commands drive the match clock only when issued by perm>=5
 # (or console/RCON); real sv_paused transitions are tracked via the frame poll.
-# View angles not required for cfg restore.
+# View angles (pa/ya) are restored on minqlxtended via GameClient.ps.delta_angles;
+# stock minqlx has no GameClient, the rows are then ignored.
 
 import json
 import os
@@ -221,6 +222,8 @@ class match_restore(minqlx.Plugin):
         self._position_apply_queue = []
         self._velocity_apply_queue = []
         self._restore_pending_velocities = {}
+        self._view_apply_queue = []
+        self._restore_pending_views = {}
         self._was_paused = False
         self._pause_frozen_ms = None
         self._restore_hold_until_unpause = False
@@ -288,6 +291,8 @@ class match_restore(minqlx.Plugin):
         self._position_apply_queue.clear()
         self._velocity_apply_queue.clear()
         self._restore_pending_velocities.clear()
+        self._view_apply_queue.clear()
+        self._restore_pending_views.clear()
         self._was_paused = False
         self._pause_frozen_ms = None
         self._restore_hold_until_unpause = False
@@ -806,6 +811,7 @@ class match_restore(minqlx.Plugin):
             self._clock_source,
         )
         self._flush_restore_velocities()
+        self._flush_restore_views()
         self._end_restore_session()
 
     def _set_pickup_lock(self, active):
@@ -829,6 +835,7 @@ class match_restore(minqlx.Plugin):
         self._unfreeze_thaw_token += 1
         self._unfreeze_thaw_at_wall = None
         self._restore_pending_velocities.clear()
+        self._restore_pending_views.clear()
         self._end_restore_session()
         if reason:
             self.logger.warning("match_restore: restore aborted: %s", reason)
@@ -873,6 +880,8 @@ class match_restore(minqlx.Plugin):
         self._restore_apply_used_runtime_eids = set()
         self._restore_pending_velocities.clear()
         self._velocity_apply_queue.clear()
+        self._restore_pending_views.clear()
+        self._view_apply_queue.clear()
         self._set_pickup_lock(True)
         self.logger.info("match_restore: restore session start (pickup lock ON)")
 
@@ -1245,6 +1254,18 @@ class match_restore(minqlx.Plugin):
                 if job["frames"] > 0:
                     vel_remaining.append(job)
             self._velocity_apply_queue = vel_remaining
+        if self._view_apply_queue:
+            view_remaining = []
+            for job in self._view_apply_queue:
+                try:
+                    target = self.player(job["client_id"])
+                    self._write_player_view(target, job["pitch"], job["yaw"])
+                except (AttributeError, TypeError, ValueError, minqlx.NonexistentPlayerError):
+                    pass
+                job["frames"] -= 1
+                if job["frames"] > 0:
+                    view_remaining.append(job)
+            self._view_apply_queue = view_remaining
         return minqlx.Return.NONE
 
     @staticmethod
@@ -2271,6 +2292,9 @@ class match_restore(minqlx.Plugin):
         vel = self._export_velocity(player)
         if vel:
             row.update(vel)
+        view = self._export_view_angles(player)
+        if view:
+            row.update(view)
         ammo = self._export_ammo(player)
         if ammo:
             row["am"] = ammo
@@ -2495,6 +2519,26 @@ class match_restore(minqlx.Plugin):
                 "vz": int(round(float(vel[2]))),
             }
         except (AttributeError, TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _export_view_angles(player):
+        """{"pa": pitch, "ya": yaw} from GameClient.ps.viewangles, None without it.
+
+        Only valid for a CS_ACTIVE client; any engine error means no angles.
+        """
+        gc_cls = getattr(minqlx, "GameClient", None)
+        if gc_cls is None:
+            return None
+        try:
+            va = gc_cls(int(player.id)).ps.viewangles
+            if va is None or len(va) < 2:
+                return None
+            return {
+                "pa": round(float(va[0]), 2),
+                "ya": round(float(va[1]), 2),
+            }
+        except (AttributeError, TypeError, ValueError, IndexError, _ENGINE_ERR):
             return None
 
     @staticmethod
@@ -3914,6 +3958,65 @@ class match_restore(minqlx.Plugin):
             len(pending),
         )
 
+    def _remember_restore_view(self, client_id, pitch, yaw, frames=RESTORE_VEL_FRAMES):
+        cid = int(client_id)
+        self._restore_pending_views[cid] = (float(pitch), float(yaw))
+        self._queue_player_view(cid, pitch, yaw, frames=frames)
+
+    def _flush_restore_views(self, frames=RESTORE_VEL_FRAMES):
+        """On unpause: re-aim from the client's current cmd angles."""
+        pending = dict(self._restore_pending_views or {})
+        if not pending:
+            return
+        self._restore_pending_views.clear()
+        for cid, (pitch, yaw) in pending.items():
+            try:
+                target = self.player(cid)
+                self._write_player_view(target, pitch, yaw)
+                self._queue_player_view(cid, pitch, yaw, frames=frames)
+            except (AttributeError, TypeError, ValueError, minqlx.NonexistentPlayerError):
+                pass
+
+    def _queue_player_view(self, client_id, pitch, yaw, frames=RESTORE_VEL_FRAMES):
+        self._view_apply_queue = [
+            job
+            for job in self._view_apply_queue
+            if int(job.get("client_id", -1)) != int(client_id)
+        ]
+        self._view_apply_queue.append(
+            {
+                "client_id": int(client_id),
+                "pitch": float(pitch),
+                "yaw": float(yaw),
+                "frames": int(frames),
+            }
+        )
+
+    @staticmethod
+    def _write_player_view(target, pitch, yaw):
+        """Turn the client's view: view = usercmd angles + ps.delta_angles.
+
+        minqlxtended only (GameClient); a no-op under stock minqlx.
+        """
+        gc_cls = getattr(minqlx, "GameClient", None)
+        if gc_cls is None:
+            return False
+        try:
+            gc = gc_cls(int(target.id))
+            cmd = list(gc.pers.cmd_angles)
+
+            def short(angle):
+                return int(float(angle) * 65536 / 360) & 65535
+
+            gc.ps.delta_angles = [
+                short(pitch) - cmd[0],
+                short(yaw) - cmd[1],
+                0 - cmd[2],
+            ]
+            return True
+        except (AttributeError, TypeError, ValueError, IndexError, _ENGINE_ERR):
+            return False
+
     def _apply_player_vitals(self, target, payload):
         """Apply hp/armor/loadout/ammo/weapon/score (run before kinematics pause)."""
         want_dead = self._infer_want_dead(payload)
@@ -3991,6 +4094,8 @@ class match_restore(minqlx.Plugin):
         vx = self._num(payload.get("vx"))
         vy = self._num(payload.get("vy"))
         vz = self._num(payload.get("vz"))
+        pitch = self._num(payload.get("pa"))
+        yaw = self._num(payload.get("ya"))
         health = self._int(payload.get("h", payload.get("health")))
         armor = self._int(payload.get("a", payload.get("armor")))
         weapon = payload.get("w", payload.get("weapon", payload.get("active_weapon")))
@@ -4016,6 +4121,8 @@ class match_restore(minqlx.Plugin):
             planned.append("vel")
         elif payload.get("vel_reset"):
             planned.append("vel_reset")
+        if pitch is not None and yaw is not None:
+            planned.append("view")
         if health is not None:
             planned.append("hp")
         if armor is not None:
@@ -4062,9 +4169,9 @@ class match_restore(minqlx.Plugin):
 
         if kinematics_only:
             if velocity_only:
-                planned = [p for p in planned if p in ("vel", "vel_reset")]
+                planned = [p for p in planned if p in ("vel", "vel_reset", "view")]
             else:
-                planned = [p for p in planned if p in ("pos", "vel", "vel_reset")]
+                planned = [p for p in planned if p in ("pos", "vel", "vel_reset", "view")]
             if not planned:
                 return True, "kinematics skip"
             client_id = int(target.id)
@@ -4087,6 +4194,9 @@ class match_restore(minqlx.Plugin):
                 # it was a silent no-op. Zeroing here is deliberate, not accidental.
                 self._write_player_velocity(target, 0, 0, 0)
                 self._restore_pending_velocities.pop(int(client_id), None)
+            if pitch is not None and yaw is not None:
+                self._write_player_view(target, pitch, yaw)
+                self._remember_restore_view(client_id, pitch, yaw)
             return True, ", ".join(planned)
 
         client_id = int(target.id)

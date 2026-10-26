@@ -315,6 +315,9 @@ def canonicalize(doc):
         for axis in ("vx", "vy", "vz"):
             if row.get(axis) is not None:
                 p[axis] = int(round(float(row[axis])))
+        if row.get("pa") is not None and row.get("ya") is not None:
+            p["pa"] = round(float(row["pa"]), 2)
+            p["ya"] = round(float(row["ya"]), 2)
         am = row.get("am", row.get("ammo"))
         if isinstance(am, dict) and am:
             p["am"] = {k: int(am[k]) for k in AMMO_KEYS if k in am}

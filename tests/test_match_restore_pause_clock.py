@@ -49,6 +49,7 @@ def _plugin(paused=True, **attrs):
         _game_state_label=lambda: "in_progress",
         get_cvar=lambda name, *a: None,
         _flush_restore_velocities=lambda: None,
+        _flush_restore_views=lambda: None,
         _end_restore_session=lambda: None,
         logger=logging.getLogger("test"),
     )

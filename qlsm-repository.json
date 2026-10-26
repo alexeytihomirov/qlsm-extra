@@ -25,18 +25,18 @@
       "filename": "match_restore.py",
       "runtime": "minqlxtended",
       "label": "Match Restore",
-      "description": "Saves the state of a running match (players, items, timers and the match clock) and puts it back later, or restores a moment from a recorded .qlmatch pack, with the admin command !restore. Needs the minqlxtended runtime and the restore/ folder, which downloads with it.",
+      "description": "Saves the state of a running match (players with their position, velocity and view direction, items, timers and the match clock) and puts it back later, or restores a moment from a recorded .qlmatch pack, with the admin command !restore. Needs the minqlxtended runtime and the restore/ folder, which downloads with it.",
       "depends_on": [
         "match_restore_util.py"
       ],
       "package_files": {
         "restore/__init__.py": "8e5773897c645d70d5c0382f0381ddd8827249197fdd7a21a5f96579f80cb89d",
-        "restore/codec.py": "bc4496b6ea0be9d048bc4fd5d2618d0586dfd655ffd1f3a48689f6967bf42ce2",
+        "restore/codec.py": "2426f2c059b3abf498edfacccc2f6bfbd80521ea4769ee65bf3c4d9aaeb3bb65",
         "restore/draft.py": "526d789ebcd2cb541bc944ec3375a601aac5657102d77e7a06e7beee9ab98f9d",
         "restore/items.py": "74c275f04c61641200dc853f3b27cfb0cb27d2122e3dfc92f43e87c406fd677d",
         "restore/qlmatch.py": "8e721f8c82df00d787aa2ad91864c39092ab78240a1944e7efbab8c990049f8e"
       },
-      "sha256": "eff128b2c6630c886dc06e69318de3435a9eb180fe63655e00110df94a0613a4"
+      "sha256": "4bb2adf2df1db660cca2934b838f5aac68b77863f2880ac1ce6ec09ed37bfdf4"
     },
     {
       "filename": "match_restore_util.py",
