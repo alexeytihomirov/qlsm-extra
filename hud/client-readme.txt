@@ -38,22 +38,6 @@ Binds, for example:
 bind F7 "seta mod_hud_pos off"
 bind F8 "seta mod_hud_pos top"
 
-SERVER CHAT COMMANDS (admins of the server)
--------------------------------------------
-!hud <1-3> <text>   set line 1, 2 or 3 of the panel for everyone
-!hud clear          clear the panel
-!hudicons           list every icon token with its icon (in chat)
-
-Colours: ^1 red, ^2 green, ^3 yellow, ^4 blue, ^5 cyan, ^6 pink, ^7 white.
-Icons are written as tokens in braces; {{ gives a plain "{".
-Example: !hud 1 ^3{mh}^7 0:35  ^1{ra}^7 0:12
-
-ICON TOKENS
------------
-@TOKENS@
-
-Frame pieces can be typed as characters: ━ ┃ ┏ ┓ ┗ ┛ ┣ ┫ ╭ ╮ ╯ ╰
-
 
 ПАНЕЛЬ FRONTIER
 ===============
@@ -94,15 +78,3 @@ seta mod_hud_pos off          скрыть плашку
 Бинды, например:
 bind F7 "seta mod_hud_pos off"
 bind F8 "seta mod_hud_pos top"
-
-КОМАНДЫ В ЧАТЕ СЕРВЕРА (для админов сервера)
---------------------------------------------
-!hud <1-3> <текст>  строка 1, 2 или 3 плашки для всех
-!hud clear          очистить плашку
-!hudicons           список всех токенов иконок с самими иконками (в чат)
-
-Цвета: ^1 красный, ^2 зелёный, ^3 жёлтый, ^4 синий, ^5 голубой, ^6 розовый, ^7 белый.
-Иконки пишутся токенами в фигурных скобках; {{ даёт обычную "{".
-Пример: !hud 1 ^3{mh}^7 0:35  ^1{ra}^7 0:12
-
-Список токенов - в разделе ICON TOKENS выше.

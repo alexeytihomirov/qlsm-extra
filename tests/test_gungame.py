@@ -106,13 +106,31 @@ def test_texts():
 
 # --- HUD panel -----------------------------------------------------------
 
+S12 = ""  # small "1/2"
+
+
 def test_hud_line_next_weapon_and_progress():
-    assert gg.hud_line(L3, (0, 1)) == "{lg} 1/2"
-    assert gg.hud_line(L3, (1, 0)) == "{g} 0/1"
+    # Next weapon in yellow, frags towards it in small digits.
+    assert gg.hud_line(L3, (0, 1)) == "^3{lg}^7 " + S12
+    assert gg.hud_line(L3, (1, 0)) == "^3{g}^7 "
     # Last step: no next weapon, progress only.
-    assert gg.hud_line(L3, (2, 0)) == "0/1"
+    assert gg.hud_line(L3, (2, 0)) == ""
+
+
+def test_hud_ladder_line_marks_done_current_and_left():
+    # Icons carry their own side bearings: no spaces, so nine of them fit the right places.
+    assert gg.hud_ladder(L3, 0) == "^7┃^3{rl}^7┃{lg}{g}"
+    assert gg.hud_ladder(L3, 1) == "^2{rl}^7┃^3{lg}^7┃{g}"
+    assert gg.hud_ladder(L3, 2) == "^2{rl}{lg}^7┃^3{g}^7┃"
+    default = gg.parse_ladder(gg.DEFAULT_LADDER)
+    assert len(mu_fields(default)["mod_hud_l2"].encode("utf-8")) < 80
+
+
+def mu_fields(ladder):
+    return gg.hud_fields(ladder, (4, 1))
 
 
 def test_hud_fields_are_the_shared_panel():
-    assert gg.hud_fields(L3, (0, 1)) == {"mod_hud_on": "1", "mod_hud_l1": " 1/2",
-                                         "mod_hud_l2": "", "mod_hud_l3": ""}
+    assert gg.hud_fields(L3, (0, 1)) == {
+        "mod_hud_on": "1", "mod_hud_l1": "^3^7 " + S12,
+        "mod_hud_l2": "^7┃^3^7┃", "mod_hud_l3": ""}

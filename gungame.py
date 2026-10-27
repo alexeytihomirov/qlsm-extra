@@ -179,16 +179,25 @@ def win_text(name):
 # --- HUD panel (line 1 of the shared mod HUD panel, modhud_util.py) ----------
 
 def hud_line(ladder, state):
-    """The next weapon's icon (none on the last step) and the frags towards it."""
+    """The next weapon's icon in yellow (none on the last step) and, in small digits, the frags
+    towards it."""
     step, frags = state
-    progress = "{}/{}".format(frags, ladder[step][1])
+    progress = modhud_util.small("{}/{}".format(frags, ladder[step][1]))
     if step + 1 < len(ladder):
-        return "{%s} %s" % (ladder[step + 1][0], progress)
+        return "^3{%s}^7 %s" % (ladder[step + 1][0], progress)
     return progress
 
 
+def hud_ladder(ladder, step):
+    """The whole ladder as icons: done in green, the current step framed in yellow, the rest white."""
+    done = "".join("{%s}" % weapon for weapon, _ in ladder[:step])
+    left = "".join("{%s}" % weapon for weapon, _ in ladder[step + 1:])
+    current = "^7┃^3{%s}^7┃" % ladder[step][0]
+    return ("^2" + done if done else "") + current + left
+
+
 def hud_fields(ladder, state):
-    return modhud_util.fields([hud_line(ladder, state)])
+    return modhud_util.fields([hud_line(ladder, state), hud_ladder(ladder, state[0])])
 
 
 # --- plugin ------------------------------------------------------------------

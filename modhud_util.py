@@ -42,9 +42,13 @@ TOKENS.update({"on": "▰", "off": "▱"})
 
 _TOKEN = re.compile(r"\{\{|\{(\w+)\}")
 
+# Small digits and slash (70% of the stock digits, our font only): small("1/2").
+SMALL = {char: chr(0xE030 + i) for i, char in enumerate("0123456789/")}
+
 # Centre prints use the stock fonts: our glyphs become labels, heavy and rounded frames light ones.
 _PLAIN = {char: name.upper() for name, char in TOKENS.items() if name not in ("on", "off")}
 _PLAIN.update({"▰": "█", "▱": "░"})
+_PLAIN.update({small_char: char for char, small_char in SMALL.items()})
 _PLAIN.update(zip("━┃┏┓┗┛┣┫╭╮╯╰",
                   "─│┌┐└┘├┤┌┐┘└"))
 
@@ -56,6 +60,11 @@ def expand(text):
             return "{"
         return TOKENS.get(m.group(1), m.group(0))
     return _TOKEN.sub(repl, str(text))
+
+
+def small(text):
+    """Digits and "/" in our small glyphs (e.g. a fraction next to a big icon)."""
+    return "".join(SMALL.get(char, char) for char in str(text))
 
 
 def plain(text):

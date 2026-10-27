@@ -603,6 +603,20 @@ def test_item_touch_hook_only_while_active(monkeypatch):
 
 # --- HUD panel --------------------------------------------------------------
 
+LAD = gg.parse_ladder(L3["qlx_gunGameLadder"])
+
+
+def panel(state, keys=None):
+    """The cs command the panel gets for *state* (all fields, or only *keys*)."""
+    f = gg.hud_fields(LAD, state)
+    return gg.modhud_util.command(1, "\\sv_pure\\1", {k: f[k] for k in (keys or gg.modhud_util.FIELDS)})
+
+
+def centre(state):
+    f = gg.hud_fields(LAD, state)
+    return 'cp "%s"' % gg.modhud_util.plain("\n".join([f["mod_hud_l1"], f["mod_hud_l2"]]))
+
+
 @pytest.fixture(autouse=True)
 def clean_hud_clients():
     gg.modhud_util.CLIENT.clear()
@@ -628,8 +642,8 @@ def test_player_without_the_panel_gets_the_line_in_the_centre(monkeypatch):
     plugin.handle_player_spawn(a)
     plugin.handle_player_spawn(b)
     plugin._hud_flush()
-    centre = [cmd for c, cmd in plugin.engine.commands if cmd.startswith("cp ")]
-    assert centre == ['cp "LG 0/2"']
+    printed = [cmd for c, cmd in plugin.engine.commands if cmd.startswith("cp ")]
+    assert printed == [centre((0, 0))]
     assert [c for c, cmd in plugin.engine.commands if cmd.startswith("cp ")] == [1]
 
 
@@ -643,7 +657,7 @@ def test_panel_goes_again_after_join_match(monkeypatch):
     plugin._hud_flush()
     plugin.handle_player_spawn(a)
     plugin._hud_flush()
-    full = '"\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\ 0/2\\mod_hud_l2\\\\mod_hud_l3\\"'
+    full = panel((0, 0))[5:]
     assert len(hud_cmds(plugin, 1)) == 2 and all(c.endswith(full) for c in hud_cmds(plugin, 1))
 
 
@@ -659,7 +673,7 @@ def test_map_change_resends_the_panel(monkeypatch):
     plugin._hud_flush()
     plugin.handle_player_loaded(a)
     plugin._hud_flush()
-    full = '"\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\ 0/2\\mod_hud_l2\\\\mod_hud_l3\\"'
+    full = panel((0, 0))[5:]
     # Spawn, new_game after the map reset, player_loaded (client unknown again): all full.
     assert len(hud_cmds(plugin, 1)) == 3 and all(c.endswith(full) for c in hud_cmds(plugin, 1))
 
@@ -691,12 +705,12 @@ def test_kill_sends_one_command_per_player_with_changed_fields(monkeypatch):
     plugin._hud_flush()
     assert len(hud_cmds(plugin)) == 2
     # First show carries every field: lines left by another server or plugin go.
-    assert hud_cmds(plugin, 1)[0].endswith('\\mod_hud_on\\1\\mod_hud_l1\\ 1/2\\mod_hud_l2\\\\mod_hud_l3\\"')
-    assert hud_cmds(plugin, 2)[0].endswith('\\mod_hud_on\\1\\mod_hud_l1\\ 0/2\\mod_hud_l2\\\\mod_hud_l3\\"')
+    assert hud_cmds(plugin, 1)[0] == panel((0, 1))
+    assert hud_cmds(plugin, 2)[0] == panel((0, 0))
     plugin._hud_flush()
     plugin.handle_kill(b, a, "ROCKET")  # A steps up
     plugin._hud_flush()
-    assert hud_cmds(plugin, 1)[1].endswith('"\\sv_pure\\1\\mod_hud_l1\\ 0/1"')
+    assert hud_cmds(plugin, 1)[1] == panel((1, 0), ("mod_hud_l1", "mod_hud_l2"))
     assert len(hud_cmds(plugin, 2)) == 1  # nothing changed for B
 
 
@@ -755,7 +769,7 @@ def test_spectator_back_to_free_gets_full_panel(monkeypatch):
     plugin.handle_player_spawn(a)
     plugin._hud_flush()
     # The blank emptied the lines, so turning the panel back on needs only the flag and line 1.
-    assert hud_cmds(plugin, 1)[-1] == 'cs 1 "\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\ 0/2"'
+    assert hud_cmds(plugin, 1)[-1] == panel((0, 0), ("mod_hud_on", "mod_hud_l1", "mod_hud_l2"))
 
 
 def test_never_shown_player_gets_no_clear(monkeypatch):
@@ -815,7 +829,7 @@ def test_send_to_a_loading_client_is_retried_in_full_when_loaded(monkeypatch):
     plugin.handle_player_loaded(a)
     plugin._hud_flush()
     assert hud_cmds(plugin, 1)[-1].endswith(
-        '"\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\ 0/2\\mod_hud_l2\\\\mod_hud_l3\\"')
+        panel((0, 0))[5:])
 
 
 def test_blank_to_a_loading_client_is_retried(monkeypatch):

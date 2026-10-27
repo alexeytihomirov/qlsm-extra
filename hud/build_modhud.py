@@ -167,17 +167,22 @@ def trace(rgba):
     return out
 
 
+ICON_UNITS = 250    # icon image height on a 256 em: a quarter bigger than the text around it
+ICON_BOTTOM = -30
+SMALL_SCALE = 0.7   # small digits (modhud_util.SMALL) against the source font's digits
+
+
 def _icon_shape(rgba, k):
-    """Traced icon on the line: 64 px -> 200 units, bottom at -10, 10 units of side bearing."""
+    """Traced icon on the line: 64 px -> ICON_UNITS, bottom at ICON_BOTTOM, 10 units of side bearing."""
     traced = trace(rgba) if rgba is not None else []
     if not traced:
         return [], round(100 * k)
     xs = [x for points, _ in traced for x, _ in points]
     size = rgba.size[1]
-    s = 200 * k / size
+    s = ICON_UNITS * k / size
     contours = []
     for points, hole in traced:
-        mapped = [((x - min(xs)) * s + 10 * k, (size - 1 - y) * s - 10 * k) for x, y in points]
+        mapped = [((x - min(xs)) * s + 10 * k, (size - 1 - y) * s + ICON_BOTTOM * k) for x, y in points]
         contours.append(_wind(mapped, clockwise=not hole))
     return contours, round((max(xs) - min(xs)) * s + 20 * k)
 
@@ -246,8 +251,27 @@ def _glyph(contours):
     return pen.glyph()
 
 
-def add_glyphs(font_bytes, icons):
-    """The font with a glyph for every token (icons: token -> RGBA image) and every frame piece."""
+def _small_glyphs(digits_bytes, target_em):
+    """Char -> (glyph, advance): the source font's digits and "/" at SMALL_SCALE."""
+    from fontTools.pens.transformPen import TransformPen
+    from fontTools.pens.ttGlyphPen import TTGlyphPen
+    from fontTools.ttLib import TTFont
+
+    src = TTFont(io.BytesIO(digits_bytes))
+    glyphs, cmap = src.getGlyphSet(), src.getBestCmap()
+    s = SMALL_SCALE * target_em / src["head"].unitsPerEm
+    out = {}
+    for char, small_char in modhud_util.SMALL.items():
+        source = glyphs[cmap[ord(char)]]
+        pen = TTGlyphPen(None)
+        source.draw(TransformPen(pen, (s, 0, 0, s, 0, 0)))
+        out[small_char] = (pen.glyph(), round(source.width * s))
+    return out
+
+
+def add_glyphs(font_bytes, icons, digits_bytes=None):
+    """The font with a glyph for every token (icons: token -> RGBA image), every frame piece and,
+    from *digits_bytes* (a TrueType font), the small digits."""
     from fontTools.ttLib import TTFont
 
     font = TTFont(io.BytesIO(font_bytes))
@@ -259,9 +283,10 @@ def add_glyphs(font_bytes, icons):
     shapes.update(_frame_shapes(k, asc, desc))
     order = list(font.getGlyphOrder())
     glyf, hmtx = font["glyf"], font["hmtx"]
-    for char, (contours, advance) in shapes.items():
+    ready = _small_glyphs(digits_bytes, font["head"].unitsPerEm) if digits_bytes else {}
+    for char, (contours, advance) in list(shapes.items()) + [(c, (None, a)) for c, (_, a) in ready.items()]:
         name = "modhud_{:04X}".format(ord(char))
-        glyph = _glyph(contours)
+        glyph = ready[char][0] if char in ready else _glyph(contours)
         lsb = 0
         if glyph.numberOfContours:
             glyph.recalcBounds(glyf)
@@ -321,7 +346,9 @@ def main(argv):
     with zipfile.ZipFile(argv[0]) as pak:
         stock = pak.read("ui/intro.menu").decode("latin-1")
         icons = _read_icons(pak)
-        font = add_glyphs(pak.read(FONT), icons)
+        noto = "fonts/notosans-regular.ttf"
+        digits = pak.read(noto) if noto in pak.namelist() else None
+        font = add_glyphs(pak.read(FONT), icons, digits)
     menu = build_menu(stock, (HERE / "modhud.menu").read_text(encoding="utf-8"))
     out.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(out / PK3, "w", zipfile.ZIP_DEFLATED) as z:

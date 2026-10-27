@@ -69,7 +69,7 @@ def test_every_token_and_frame_gets_a_glyph():
     rl = glyph_for(font, 0xE004)
     rl.recalcBounds(font["glyf"])
     assert rl.numberOfContours == 2
-    assert rl.yMin >= -20 and rl.yMax <= 210
+    assert rl.yMin >= -40 and rl.yMax <= 230 and rl.yMax > 175  # was 162 at the old 200-unit size
     missing = glyph_for(font, 0xE000)  # no icon given for {g}
     assert missing.numberOfContours == 0 and font["hmtx"][cmap[0xE000]][0] > 0
 
@@ -92,13 +92,45 @@ def test_stock_glyph_untouched_and_scaled_em():
     assert a.getCoordinates(font["glyf"])[0].array.tolist() == [10 * 8, 0, 10 * 8, 1440, 1120, 1440, 1120, 0]
     rl = glyph_for(font, 0xE004)
     rl.recalcBounds(font["glyf"])
-    assert -20 * 8 <= rl.yMin and rl.yMax <= 210 * 8 and rl.yMax > 150 * 8
+    assert -40 * 8 <= rl.yMin and rl.yMax <= 230 * 8 and rl.yMax > 175 * 8
 
 
 def test_flag_is_drawn_without_an_icon():
     font = TTFont(io.BytesIO(bm.add_glyphs(base_font(), {})))
     assert glyph_for(font, 0xE01B).numberOfContours == 2
     assert "flag" not in bm.ICON_SOURCES
+
+
+def digit_font():
+    """2048 em, every digit and "/" a 1000-high box."""
+    fb = FontBuilder(2048, isTTF=True)
+    names = [".notdef"] + ["d%d" % i for i in range(11)]
+    fb.setupGlyphOrder(names)
+    fb.setupCharacterMap({ord(c): "d%d" % i for i, c in enumerate("0123456789/")})
+    glyphs = {".notdef": TTGlyphPen(None).glyph()}
+    for name in names[1:]:
+        pen = TTGlyphPen(None)
+        for x, y in [(100, 0), (100, 1000), (900, 1000), (900, 0)]:
+            (pen.lineTo if pen.points else pen.moveTo)((x, y))
+        pen.closePath()
+        glyphs[name] = pen.glyph()
+    fb.setupGlyf(glyphs)
+    fb.setupHorizontalMetrics({n: (1000, 100) for n in names})
+    fb.setupHorizontalHeader(ascent=2100, descent=-500)
+    fb.setupOS2()
+    fb.setupPost()
+    out = io.BytesIO()
+    fb.save(out)
+    return out.getvalue()
+
+
+def test_small_digits_are_70_percent_of_the_source():
+    font = TTFont(io.BytesIO(bm.add_glyphs(base_font(), {}, digit_font())))
+    for char in mu.SMALL.values():
+        g = glyph_for(font, ord(char))
+        g.recalcBounds(font["glyf"])
+        assert (g.yMin, g.yMax) == (0, 88)  # 1000 * 0.7 * 256 / 2048, rounded
+        assert font["hmtx"][font.getBestCmap()[ord(char)]][0] == 88
 
 
 def test_frames_span_the_line_height():
@@ -130,5 +162,8 @@ def test_sheet_and_pk3(tmp_path):
         names = sorted(z.namelist())
         assert names == sorted(["baseq3/ui/intro.menu", "baseq3/" + bm.FONT, bm.CLIENT_README])
         readme = z.read(bm.CLIENT_README).decode("utf-8")
-    for needle in ("mod_hud_pos", "topright", "!hud", "!hudicons", "{rl}", "{mh}", "{flag}", "@"):
-        assert (needle in readme) == (needle != "@")
+    # Players' part only: install, positions, binds; no admin commands, no token list.
+    for needle in ("mod_hud_pos", "topright", "bind F7", "UNINSTALL"):
+        assert needle in readme
+    for needle in ("!hud", "{rl}", "@"):
+        assert needle not in readme

@@ -21,6 +21,12 @@ def cps(engine):
     return [cmd for _, cmd in engine.commands if cmd.startswith("cp ")]
 
 
+def test_small_digits_and_back():
+    assert mu.small("1/2 x") == " x"
+    assert mu.small("09") == ""
+    assert mu.plain(mu.small("10/2")) == "10/2"
+
+
 def test_plain_turns_glyphs_into_labels():
     assert mu.plain(mu.expand("^3{mh}^7 0:35 {ra} {on}{off} ━╭")) == "^3MH^7 0:35 RA █░ ─┌"
     assert mu.plain(mu.expand("{rl} 1/2")) == "RL 1/2"

@@ -10,7 +10,7 @@ Three text lines on the player's screen that any plugin fills from the server (`
 
 (needs fontTools, Pillow, numpy, opencv-python). It also writes `glyphs.png`; the copy in this folder is the token table.
 
-The builder also writes `modhud-client.zip`, the package for players: `baseq3/ui/intro.menu`, `baseq3/fonts/droidsansfallbackfull.ttf` and `FRONTIER-HUD-README.txt` (install, positions, binds, chat commands, icon tokens; English and Russian, from `hud/client-readme.txt` with the token list filled in). Players unpack it into `<QL>/<steamid>/`.
+The builder also writes `modhud-client.zip`, the package for players: `baseq3/ui/intro.menu`, `baseq3/fonts/droidsansfallbackfull.ttf` and `FRONTIER-HUD-README.txt` (players' part only: install, uninstall, positions, binds; English and Russian, from `hud/client-readme.txt`). Players unpack it into `<QL>/<steamid>/`.
 
 **How players install it (verified 2026-10-27):** the two files of the pk3 as loose files in the player's profile, `<QL>/<steamid>/baseq3/ui/intro.menu` and `<QL>/<steamid>/baseq3/fonts/droidsansfallbackfull.ttf`, then restart the game. Loose files there win over pak00 and work on `sv_pure 1` servers, ours and anyone else's. Neither of the two ways below works for players:
 
@@ -36,6 +36,8 @@ Our `ui/intro.menu` tells the server it is there: Join Match's `onOpen` runs `cm
 Colours with `^1`..`^7`; icons as tokens, `{{` for a literal `{`:
 
 ![glyphs](glyphs.png)
+
+Icons are drawn a quarter taller than the text. `modhud_util.small("1/2")` writes digits and `/` in our small glyphs (70% of Noto Sans digits), e.g. a fraction next to an icon. Gun Game uses line 1 = next weapon in yellow + frags in small digits, line 2 = the whole ladder (done in green, current framed in yellow, the rest white).
 
 Weapon tokens equal Gun Game's ladder keys. `{ra}`, `{ya}` and `{ga}` share one shape; colour them (`^1{ra}`, `^3{ya}`, `^2{ga}`). Frame pieces are typed as characters: `━ ┃ ┏ ┓ ┗ ┛ ┣ ┫ ╭ ╮ ╯ ╰`; the stock font already has `─ │ ┌ ┐ └ ┘ ═ ║ ╔ ╗` and blocks `█ ░ ▒ ▓`. The text is proportional, so frames suit headers and separators, not boxes around text.
 
