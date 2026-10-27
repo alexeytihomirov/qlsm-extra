@@ -17,6 +17,7 @@ import re
 
 FIELDS = ("mod_hud_on", "mod_hud_l1", "mod_hud_l2", "mod_hud_l3")
 MAX_LINE_BYTES = 120
+MAX_CENTRE_BYTES = 400  # a centre print is one cp of its own, no systeminfo around it
 # SV_SendServerCommand drops a command of 1023 bytes or more without a word (minqlxtended
 # fork, src/features/reliable.c), and systeminfo length differs per host.
 MAX_COMMAND_BYTES = 1022
@@ -86,7 +87,8 @@ def fit(text, limit=MAX_LINE_BYTES):
     data = text.encode("utf-8")
     if len(data) <= limit:
         return text
-    return data[:limit].decode("utf-8", errors="ignore")
+    cut = data[:limit].decode("utf-8", errors="ignore")
+    return cut[:-1] if cut.endswith("^") else cut  # never half a colour code (live, #27)
 
 
 def clean(value):
@@ -100,7 +102,7 @@ def fields(lines, centre=None):
     lines += [""] * (3 - len(lines))
     out = dict(zip(FIELDS, ["1"] + lines))
     if centre is not None:
-        out["centre"] = fit(clean(expand(centre)))
+        out["centre"] = fit(clean(expand(centre)), MAX_CENTRE_BYTES)
     return out
 
 

@@ -159,6 +159,16 @@ def test_fit_cuts_on_char_boundary():
     assert mu.fit("short") == "short"
 
 
+def test_fit_never_leaves_half_a_colour_code():
+    assert mu.fit("a" * 119 + "^2b") == "a" * 119
+    assert mu.fit("a" * 118 + "^2b") == "a" * 118 + "^2"
+
+
+def test_centre_text_is_not_cut_at_the_line_limit():
+    long = "x" * 300
+    assert mu.fields(["a"], centre=long)["centre"] == long
+
+
 def test_fields_expand_clean_fit_and_pad():
     assert mu.fields(["a"]) == {"mod_hud_on": "1", "mod_hud_l1": "a", "mod_hud_l2": "", "mod_hud_l3": ""}
     out = mu.fields(['{rl} a"b;c\\d', "2", "3", "4"])

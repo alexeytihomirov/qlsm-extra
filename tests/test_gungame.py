@@ -136,10 +136,22 @@ def test_centre_text_for_players_without_the_panel():
     # two spaces instead of dots; done ones green; the gauntlet is just "G" in the ladder.
     assert gg.hud_centre(L3, (0, 1)) == "To ^3LG^7 1/2 frags\n^3►RL◄^7  LG · G"
     assert gg.hud_centre(L3, (1, 0)) == "To ^3GAUNTLET^7 0/1 frags\n^2RL^7  ^3►LG◄^7  G"
-    assert gg.hud_centre(L3, (2, 0)) == "To win: 0/1 frags\n^2RL^7 · ^2LG^7  ^3►G◄^7"
+    assert gg.hud_centre(L3, (2, 0)) == "To win: 0/1 frags\n^2RL · LG^7  ^3►G◄^7"
+
+
+def test_centre_ladder_is_a_window_of_seven_around_the_current_step():
+    # Live (#27): nine names did not fit and were cut mid colour code ("^" at the end).
     nine = gg.parse_ladder("rl:2 rg:2 lg:2 pg:2 hmg:2 sg:2 gl:2 mg:2 g:1")
-    assert gg.hud_centre(nine, (4, 1)).split("\n")[1] == (
-        "^2RL^7 · ^2RG^7 · ^2LG^7 · ^2PG^7  ^3►HMG◄^7  SG · GL · MG · G")
+    D = " · "
+    assert gg.hud_centre(nine, (0, 0)).split("\n")[1] == (
+        "^3►RL◄^7  RG" + D + "LG" + D + "PG" + D + "HMG" + D + "SG" + D + "GL …")
+    assert gg.hud_centre(nine, (5, 0)).split("\n")[1] == (
+        "… ^2LG" + D + "PG" + D + "HMG^7  ^3►SG◄^7  GL" + D + "MG" + D + "G")
+    assert gg.hud_centre(nine, (8, 0)).split("\n")[1] == (
+        "… ^2LG" + D + "PG" + D + "HMG" + D + "SG" + D + "GL" + D + "MG^7  ^3►G◄^7")
+    for step in range(9):
+        text = gg.hud_fields(nine, (step, 0))["centre"]
+        assert not text.endswith("^") and len(text.encode("utf-8")) < 200
     assert gg.hud_fields(L3, (0, 1))["centre"] == gg.hud_centre(L3, (0, 1))
 
 

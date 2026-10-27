@@ -53,6 +53,7 @@ ITEM_RESCAN_S = 0.5
 # A frag's obituary shows the client's own "You fragged X" in the centre, replacing a centre
 # print sent in the same frame; ours goes out after it.
 CENTER_DELAY_S = 0.2
+CENTRE_WINDOW = 7  # ladder names in the centre text for players without the panel
 
 DEFAULT_LADDER = "rl:2 rg:2 lg:2 pg:2 sg:2 gl:2 mg:2 g:1"
 CVAR_DEFAULTS = (
@@ -204,16 +205,21 @@ def hud_centre(ladder, state):
         head = "To ^3{}^7 {}/{} frags".format(WEAPON_LABELS[ladder[step + 1][0]], frags, need)
     else:
         head = "To win: {}/{} frags".format(frags, need)
-    # The ladder: dots between names, the current one yellow between arrows and set off by two
-    # spaces, done ones green; the gauntlet is just "G" here.
-    ladder_text = ""
-    for i, (weapon, _) in enumerate(ladder):
-        label = "G" if weapon == "g" else WEAPON_LABELS[weapon]
-        if i:
-            ladder_text += "  " if step in (i - 1, i) else " · "
-        ladder_text += ("^2%s^7" % label if i < step
-                        else "^3►%s◄^7" % label if i == step else label)
-    return head + "\n" + ladder_text
+    # The ladder: a window of CENTRE_WINDOW names around the current step ("…" where cut; nine
+    # did not fit live), dots between names, done ones green, the current one yellow between
+    # arrows and set off by two spaces; the gauntlet is just "G" here.
+    labels = ["G" if weapon == "g" else WEAPON_LABELS[weapon] for weapon, _ in ladder]
+    start = max(0, min(step - 3, len(labels) - CENTRE_WINDOW))
+    end = min(len(labels), start + CENTRE_WINDOW)
+    done, left = labels[start:step], labels[step + 1:end]
+    parts = ["… " if start else ""]
+    if done:
+        parts.append("^2" + " · ".join(done) + "^7  ")
+    parts.append("^3►%s◄^7" % labels[step])
+    if left:
+        parts.append("  " + " · ".join(left))
+    parts.append(" …" if end < len(labels) else "")
+    return head + "\n" + "".join(parts)
 
 
 def hud_fields(ladder, state):
