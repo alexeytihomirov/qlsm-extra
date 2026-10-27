@@ -1,10 +1,10 @@
 ---
 id: qlsm-extra-0030
 title: Remove lobby and tournament_access plugins, rename Telemetry (Unified) to Live Telemetry
-status: done-unverified
+status: done
 created: 2026-10-27
 updated: 2026-10-27
-verified:
+verified: 2026-10-27
 depends_on: []
 related: []
 ---
