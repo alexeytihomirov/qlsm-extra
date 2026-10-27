@@ -167,24 +167,30 @@ def trace(rgba):
     return out
 
 
-ICON_UNITS = 250    # icon image height on a 256 em: a quarter bigger than the text around it
-ICON_BOTTOM = -30
+ICON_UNITS = 205    # height of every icon's drawing on a 256 em (taller than the text around it)
+ICON_BOTTOM = -15
+ICON_MAX_WIDTH = 1.6  # wide drawings (railgun) are limited to this many heights, then centred
 SMALL_SCALE = 0.7   # small digits (modhud_util.SMALL) against the source font's digits
 
 
 def _icon_shape(rgba, k):
-    """Traced icon on the line: 64 px -> ICON_UNITS, bottom at ICON_BOTTOM, 10 units of side bearing."""
+    """Traced icon on the line, scaled by its own drawing (not the 64 px image, which the stock
+    icons fill differently: live, #27, they jumped in size) to ICON_UNITS high, bottom at
+    ICON_BOTTOM, 10 units of side bearing."""
     traced = trace(rgba) if rgba is not None else []
     if not traced:
         return [], round(100 * k)
     xs = [x for points, _ in traced for x, _ in points]
-    size = rgba.size[1]
-    s = ICON_UNITS * k / size
+    ys = [y for points, _ in traced for _, y in points]
+    w, h = max(max(xs) - min(xs), 1), max(max(ys) - min(ys), 1)
+    height = ICON_UNITS * k
+    s = min(height / h, ICON_MAX_WIDTH * height / w)
+    lift = ICON_BOTTOM * k + (height - h * s) / 2  # a width-limited drawing sits in the middle
     contours = []
     for points, hole in traced:
-        mapped = [((x - min(xs)) * s + 10 * k, (size - 1 - y) * s + ICON_BOTTOM * k) for x, y in points]
+        mapped = [((x - min(xs)) * s + 10 * k, (max(ys) - y) * s + lift) for x, y in points]
         contours.append(_wind(mapped, clockwise=not hole))
-    return contours, round((max(xs) - min(xs)) * s + 20 * k)
+    return contours, round(w * s + 20 * k)
 
 
 def _rect(x0, y0, x1, y1):

@@ -54,6 +54,22 @@ def test_centre_copy_for_a_joined_client_without_the_panel():
     assert len(cps(engine)) == 1  # a blank prints nothing
 
 
+def test_client_without_the_panel_gets_only_centre_prints():
+    # Live (#27): a cs right after the cp seemed to wipe the centre print; the panel is of no
+    # use to a client without our files, so it gets centre prints only.
+    engine, sent = Engine(), {}
+    mu.loaded(3)
+    mu.joined(3)
+    mu.send(engine, sent, 3, mu.fields(["a"]), "")
+    mu.send(engine, sent, 3, mu.fields(["b"]), "")
+    assert engine.commands == [(3, 'cp "a"'), (3, 'cp "b"')]
+    # A late hello: the next send carries the whole panel, no centre print.
+    mu.client_command(3, "modhud 1")
+    mu.send(engine, sent, 3, mu.fields(["c"]), "")
+    assert engine.commands[-1] == (3, 'cs 1 "\\mod_hud_on\\1\\mod_hud_l1\\c\\mod_hud_l2\\\\mod_hud_l3\\"')
+    assert len(engine.commands) == 3
+
+
 def test_no_centre_copy_with_the_panel():
     engine, sent = Engine(), {}
     mu.loaded(3)

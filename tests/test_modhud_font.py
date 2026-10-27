@@ -69,7 +69,7 @@ def test_every_token_and_frame_gets_a_glyph():
     rl = glyph_for(font, 0xE004)
     rl.recalcBounds(font["glyf"])
     assert rl.numberOfContours == 2
-    assert rl.yMin >= -40 and rl.yMax <= 230 and rl.yMax > 175  # was 162 at the old 200-unit size
+    assert rl.yMin >= -40 and rl.yMax <= 230 and rl.yMax > 175
     missing = glyph_for(font, 0xE000)  # no icon given for {g}
     assert missing.numberOfContours == 0 and font["hmtx"][cmap[0xE000]][0] > 0
 
@@ -93,6 +93,26 @@ def test_stock_glyph_untouched_and_scaled_em():
     rl = glyph_for(font, 0xE004)
     rl.recalcBounds(font["glyf"])
     assert -40 * 8 <= rl.yMin and rl.yMax <= 230 * 8 and rl.yMax > 175 * 8
+
+
+def small_square():
+    im = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    for x in range(26, 38):
+        for y in range(28, 36):
+            im.putpixel((x, y), (200, 0, 0, 255))
+    return im
+
+
+def test_icons_get_one_height_whatever_their_size_in_the_image():
+    # Live (#27): icons "jumped" in size, the stock images fill their 64 px differently.
+    font = TTFont(io.BytesIO(bm.add_glyphs(base_font(), {"rl": square_with_hole(), "rg": small_square()})))
+    heights = []
+    for cp in (0xE004, 0xE006):
+        g = glyph_for(font, cp)
+        g.recalcBounds(font["glyf"])
+        heights.append((g.yMin, g.yMax))
+    assert heights[0][1] - heights[0][0] == pytest.approx(heights[1][1] - heights[1][0], abs=40)
+    assert heights[0][0] == pytest.approx(bm.ICON_BOTTOM, abs=2)
 
 
 def test_flag_is_drawn_without_an_icon():

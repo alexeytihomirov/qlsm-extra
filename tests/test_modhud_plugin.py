@@ -30,7 +30,7 @@ def clean_clients():
 
 def test_hello_and_centre_copy(monkeypatch):
     a, b = FakePlayer(11, 1), FakePlayer(12, 2)
-    plugin = make_plugin(monkeypatch, a, b)
+    plugin = make_plugin(monkeypatch, a, b, hello=False)
     assert plugin.handle_client_command(b, "modhud 1") == STOP_EVENT
     assert plugin.handle_client_command(b, "kill") is None
     plugin.handle_player_spawn(a)
@@ -43,6 +43,7 @@ def test_lines_go_again_after_join_match(monkeypatch):
     a, b = FakePlayer(11, 1), FakePlayer(12, 2)
     plugin = make_plugin(monkeypatch, a)
     plugin.cmd_hud(a, ["!hud", "1", "x"], None)
+    mh.modhud_util.client_command(2, "modhud 1")
     plugin.handle_player_loaded(b)
     plugin.handle_player_spawn(b)
     plugin.handle_team_switch(b, "spectator", "free")
@@ -59,7 +60,7 @@ class FakePlayer:
         self.tells.append(msg)
 
 
-def make_plugin(monkeypatch, *players):
+def make_plugin(monkeypatch, *players, hello=True):
     commands = []
     engine = SimpleNamespace(
         CS_SYSTEMINFO=1,
@@ -70,6 +71,9 @@ def make_plugin(monkeypatch, *players):
     monkeypatch.setattr(mh, "minqlx", engine)
     plugin = bare_instance(mh.modhud, _lines=["", "", ""], _sent={}, players=lambda: list(players))
     plugin.commands = commands
+    if hello:  # players with our files unless hello=False
+        for player in players:
+            mh.modhud_util.client_command(int(player.id), "modhud 1")
     return plugin
 
 

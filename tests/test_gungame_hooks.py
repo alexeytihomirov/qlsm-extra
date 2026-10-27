@@ -634,7 +634,7 @@ def clean_hud_clients():
 
 def test_player_without_the_panel_gets_the_line_in_the_centre(monkeypatch):
     a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
-    plugin = hud_players(monkeypatch, a, b)
+    plugin = hud_players(monkeypatch, a, b, hello=False)
     plugin.handle_player_loaded(a)
     plugin.handle_player_loaded(b)
     assert plugin.handle_client_command(b, "modhud 1") == STOP_EVENT  # B has our files
@@ -692,9 +692,13 @@ def hud_cmds(plugin, cid=None):
             if (cid is None or c == cid) and cmd.startswith("cs ")]
 
 
-def hud_players(monkeypatch, *players, **cvars):
+def hud_players(monkeypatch, *players, hello=True, **cvars):
+    """Players with our files (they said hello) unless hello=False."""
     plugin = ladder3(monkeypatch, **cvars)
     plugin.player_list.extend(players)
+    if hello:
+        for player in players:
+            gg.modhud_util.client_command(int(player.id), "modhud 1")
     return plugin
 
 

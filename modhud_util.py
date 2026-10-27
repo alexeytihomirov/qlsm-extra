@@ -158,7 +158,9 @@ def client_command(cid, cmd):
     words = str(cmd).split()
     if not words or words[0].lower() != HELLO:
         return False
-    HAS_PANEL.add(cid)
+    if cid not in HAS_PANEL:
+        HAS_PANEL.add(cid)
+        CLIENT[cid] = dict.fromkeys(FIELDS)  # it got no panel while we thought it had none
     return True
 
 
@@ -216,6 +218,14 @@ def send(engine, sent, cid, new, systeminfo):
     whether a blank is ours to send. What the client really shows is CLIENT, shared by every
     plugin, because the panel is one per client: the last write wins."""
     _centre(engine, cid, new)
+    if cid in INGAME and cid not in HAS_PANEL:
+        # No panel on that client: the centre print is all it gets (a cs right after the cp
+        # seemed to wipe it live, #27). Keep the plugin's own record for blanks.
+        if new.get("mod_hud_on") == "1":
+            sent[cid] = dict(new)
+        else:
+            sent.pop(cid, None)
+        return
     changed = _changes(sent, cid, new)
     if changed:
         cmd, changed = fitted_command(engine.CS_SYSTEMINFO, systeminfo, changed)
