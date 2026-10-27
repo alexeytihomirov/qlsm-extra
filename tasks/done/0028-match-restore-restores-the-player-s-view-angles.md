@@ -1,10 +1,10 @@
 ---
 id: qlsm-extra-0028
 title: match_restore restores the player's view angles
-status: in-progress
+status: done
 created: 2026-10-26
-updated: 2026-10-26
-verified:
+updated: 2026-10-27
+verified: 2026-10-27
 depends_on: []
 related: [root-0036, skills/ql-live/reference/server-driven-hud-and-view.md]
 ---
@@ -68,3 +68,4 @@ Germany 27960 (`sD test server`), operator in the game. `export` only writes JSO
 3. Turn away about 180 degrees and move.
 4. `!restore apply`. Expected: back at the position, looking at the same landmark; also after `!unpause`, even if the mouse was moved during the pause.
 - 2026-10-27 - operator: yaw ok, pitch 0 on `!restore match 1` (bloodrun pack 20261027T002842Z, sidecar built by the old generator 12 = no pitch). Rebuilt bloodrun x2 and monsoon sidecars on germany with generator 13 (.v12.bak kept). Also fixed a real bug: pitch was written masked to 0..65535, but PM_UpdateViewAngles clamps cmd+delta for PITCH as a plain int to +-16000, so negative pitch would clamp to 87.9 down; now signed. Deployed, germany restarted 01:35:26 CET.
+- 2026-10-27 - operator confirmed !restore match restores yaw and pitch on germany 27960; closing done. Not rolled out: qlmatch-packer 1.3.4 to other hosts, old sidecars stay without pitch.
