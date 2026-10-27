@@ -32,6 +32,9 @@ HAS_PANEL = set()
 INGAME = set()   # spawned or switched team since the last load: the hello had its chance
 CENTRE = {}      # client id -> text of the last centre print sent
 HELLO = "modhud"
+# A frag shows the client's own "You fragged X" in the centre, replacing a centre print sent in
+# the same frame (live, #27; gungame's CENTER_DELAY_S): the copy waits this long.
+CENTRE_DELAY_S = 0.2
 
 _WEAPONS = ("g", "mg", "sg", "gl", "rl", "lg", "rg", "pg", "bfg", "gh", "ng", "pl", "cg", "hmg")
 _ITEMS = ("mh", "ra", "ya", "ga", "shard", "quad", "bs", "regen", "haste", "invis", "flight", "flag")
@@ -190,11 +193,20 @@ def _centre(engine, cid, new):
         return
     if CENTRE.get(cid) == text:
         return
-    try:
-        engine.send_server_command(cid, 'cp "{}"'.format(text))
-    except Exception:
-        return
     CENTRE[cid] = text
+    command = 'cp "{}"'.format(text)
+    delay = getattr(engine, "delay", None)  # minqlx.delay runs it from the frame tasks
+    if delay is not None:
+        delay(CENTRE_DELAY_S)(_send_centre)(engine, cid, command)
+    else:
+        _send_centre(engine, cid, command)
+
+
+def _send_centre(engine, cid, command):
+    try:
+        engine.send_server_command(cid, command)
+    except Exception:
+        pass  # the player left
 
 
 def _changes(sent, cid, new):

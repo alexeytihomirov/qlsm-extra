@@ -123,7 +123,7 @@
       "runtime": "minqlxtended",
       "label": "Mod HUD helper",
       "description": "Helper of plugins that use the mod HUD panel, downloaded with them. Not a plugin.",
-      "sha256": "52b3884bded937b5a2687bceeafcfad2fb1b35a614a656cf5cca8781e7811066"
+      "sha256": "ba8152929f65880f4cf960fad3940bdb8f2fc12c3b8e15a2357c0a79ad6bc23d"
     },
     {
       "filename": "modhud.py",

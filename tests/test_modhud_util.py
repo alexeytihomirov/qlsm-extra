@@ -70,6 +70,23 @@ def test_client_without_the_panel_gets_only_centre_prints():
     assert len(engine.commands) == 3
 
 
+def test_centre_copy_goes_out_after_the_frag_obituary():
+    # Live (#27): the client's own "You fragged X" centre text replaces a centre print sent in the
+    # same frame (gungame's CENTER_DELAY_S note); the copy waits like Gun Game's prints.
+    engine, later = Engine(), []
+
+    def delay(seconds):
+        return lambda func: (lambda *args: later.append((seconds, func, args)))
+
+    engine.delay = delay
+    mu.loaded(3)
+    mu.joined(3)
+    mu.send(engine, {}, 3, mu.fields(["a"]), "")
+    assert engine.commands == [] and [(s, a[1:]) for s, _, a in later] == [(mu.CENTRE_DELAY_S, (3, 'cp "a"'))]
+    later[0][1](*later[0][2])
+    assert engine.commands == [(3, 'cp "a"')]
+
+
 def test_no_centre_copy_with_the_panel():
     engine, sent = Engine(), {}
     mu.loaded(3)
