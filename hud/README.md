@@ -10,7 +10,12 @@ Three text lines on the player's screen that any plugin fills from the server (`
 
 (needs fontTools, Pillow, numpy, opencv-python). It also writes `glyphs.png`; the copy in this folder is the token table.
 
-Published as the private Workshop item [3828349249](https://steamcommunity.com/sharedfiles/filedetails/?id=3828349249) (item folder `D:/MyWorkshopItems/FrontierModHud/` on the operator's machine, uploaded with `steamcmd +workshop_build_item`, same way as the banners item 3822712209). A server ships it with the id in `workshop.txt` (the server downloads it) and in `qlx_workshopReferences` (the `workshop` plugin makes clients download it), comma-separated next to the banners.
+**How players install it (verified 2026-10-27):** the two files of the pk3 as loose files in the player's profile, `<QL>/<steamid>/baseq3/ui/intro.menu` and `<QL>/<steamid>/baseq3/fonts/droidsansfallbackfull.ttf`, then restart the game. Loose files there win over pak00 and work on `sv_pure 1` servers, ours and anyone else's. Neither of the two ways below works for players:
+
+- Workshop: a Workshop pk3 cannot replace pak00's files, so the panel and the glyphs do not appear (tested on #27).
+- The pk3 itself in `<QL>/baseq3/`: it works, but every pure server without the same pk3 refuses the player ("Unpure client detected").
+
+Was published as the Workshop item [3828349249](https://steamcommunity.com/sharedfiles/filedetails/?id=3828349249) (item folder `D:/MyWorkshopItems/FrontierModHud/` on the operator's machine, uploaded with `steamcmd +workshop_build_item`, same way as the banners item 3822712209). A server ships it with the id in `workshop.txt` (the server downloads it) and in `qlx_workshopReferences` (the `workshop` plugin makes clients download it), comma-separated next to the banners.
 
 The pk3 must be on the server as well: with `sv_pure 1` a client that reads files from a pk3 the server does not have is refused ("Unpure client detected"). The real delivery is a Workshop item in the servers' `workshop.txt` (separate, later step). For a test by hand: the same file in the server's `baseq3/` (restart) and in the player's `<QL>/baseq3/` (the install dir; a pk3 in `<QL>/<steamid>/baseq3/` is not loaded), no loose `<QL>/<steamid>/baseq3/ui/intro.menu` (it would win over the pk3), restart the game.
 
