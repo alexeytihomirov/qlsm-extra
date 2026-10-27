@@ -34,9 +34,10 @@ FRAMES = ["━", "┃", "┏", "┓", "┗", "┛", "┣", "┫",
           "╭", "╮", "╯", "╰"]
 
 # mod_hud_pos value -> (anchor x, top y, block placement, widescreen) on the 640x480 virtual
-# screen. The block starts at x (left), is centred on x, or ends at x (right); the text always
-# starts at the block's left edge: a cvar text item with textalign CENTER or RIGHT is not drawn
-# at all in QL (live, #26, 2026-10-27), and `align` is ignored.
+# screen. The text always starts at the block's left edge: a cvar text item with textalign
+# CENTER or RIGHT is not drawn at all in QL (live, #26, 2026-10-27) and `align` is ignored. So
+# the block starts at x (left), CENTER_LEAD left of x (middle) or RIGHT_ROOM left of x (right),
+# which places short lines where the player expects them.
 POSITIONS = {
     "top": (320, 8, "center", "CENTER"),
     "center": (320, 150, "center", "CENTER"),
@@ -50,6 +51,8 @@ POSITIONS = {
 }
 LINE_STEP = 14
 ITEM_WIDTH = 300
+RIGHT_ROOM = 120   # right places: the text starts this far from the anchor (about 25 characters)
+CENTER_LEAD = 50   # middle places: the text starts this far left of the centre
 JOIN_MENU = 'name "joingame_menu"'
 ON_OPEN = '\n\t\tonOpen { setcvar mod_hud_on 0 }'
 
@@ -86,8 +89,9 @@ def pos_tests(pos):
 
 def expand(template, pos):
     x, y, align, wide = POSITIONS[pos]
-    left = {"left": x, "center": x - ITEM_WIDTH // 2, "right": x - ITEM_WIDTH}[align]
-    lines = "".join(LINE_ITEM.format(n=n, y=(n - 1) * LINE_STEP, w=ITEM_WIDTH, h=LINE_STEP,
+    left, width = {"left": (x, ITEM_WIDTH), "center": (x - CENTER_LEAD, ITEM_WIDTH),
+                   "right": (x - RIGHT_ROOM, RIGHT_ROOM)}[align]
+    lines = "".join(LINE_ITEM.format(n=n, y=(n - 1) * LINE_STEP, w=width, h=LINE_STEP,
                                      tests=pos_tests(pos))
                     for n in (1, 2, 3))
     return (template
@@ -96,7 +100,7 @@ def expand(template, pos):
             .replace("@WIDE@", "WIDESCREEN_" + wide)
             .replace("@X@", str(left))
             .replace("@Y@", str(y))
-            .replace("@W@", str(ITEM_WIDTH))
+            .replace("@W@", str(width))
             .replace("@H@", str(3 * LINE_STEP)))
 
 

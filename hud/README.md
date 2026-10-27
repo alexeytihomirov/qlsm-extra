@@ -14,7 +14,7 @@ The pk3 must be on the server as well: with `sv_pure 1` a client that reads file
 
 ## Position
 
-Each player in their own console: `seta mod_hud_pos top` (default when unset), `center`, `bottom`, `left`, `topleft`, `bottomleft`, `right`, `topright`, `bottomright` or `off`. The block sits at the left edge, in the middle or at the right edge; inside it the text always starts at the block's left edge (QL does not draw a cvar text item aligned to the centre or right), so a short line in a right place does not touch the screen edge. Free x/y is not possible: a menu rect is fixed in the file. An unset or unknown value means top.
+Each player in their own console: `seta mod_hud_pos top` (default when unset), `center`, `bottom`, `left`, `topleft`, `bottomleft`, `right`, `topright`, `bottomright` or `off`. The block sits at the left edge, in the middle or at the right edge; inside it the text always starts at the block's left edge (QL does not draw a cvar text item aligned to the centre or right). Right places start the text 120 units (of 640) before the edge, room for about 25 characters; middle places start it 50 units left of the centre, so short lines look centred. Longer lines run past. Free x/y is not possible: a menu rect is fixed in the file. An unset or unknown value means top.
 
 The panel hides itself on the next connect or map load on any server (`onOpen` of the Join Match menu), so a panel left by our server never sticks on someone else's.
 

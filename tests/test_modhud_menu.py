@@ -88,10 +88,14 @@ def test_alignment_and_anchors():
     for pos, (x, y, align, wide) in bm.POSITIONS.items():
         block = blocks["modhud_" + pos]
         mx, my, mw, mh = menu_rect(block)
-        assert my == y and mw == bm.ITEM_WIDTH and mh == 3 * bm.LINE_STEP
+        assert my == y and mh == 3 * bm.LINE_STEP
         assert "widescreen WIDESCREEN_" + wide in block
-        want = {"left": x, "center": x - bm.ITEM_WIDTH // 2, "right": x - bm.ITEM_WIDTH}[align]
-        assert mx == want
+        # Text starts at the block's left edge, so the block starts where short lines look placed:
+        # right places leave RIGHT_ROOM to the edge, middle places start CENTER_LEAD left of centre.
+        want = {"left": (x, bm.ITEM_WIDTH), "center": (x - bm.CENTER_LEAD, bm.ITEM_WIDTH),
+                "right": (x - bm.RIGHT_ROOM, bm.RIGHT_ROOM)}[align]
+        assert (mx, mw) == want
+        assert block.count("rect 0 0 %d %d" % (mw, bm.LINE_STEP)) == 1
         # Live (#26, 2026-10-27): a cvar text item with textalign CENTER or RIGHT is not drawn
         # at all; `align` is ignored. Text always starts at the block's left edge.
         assert "textalign " not in block and "align ITEM" not in block
@@ -107,4 +111,4 @@ def test_spec_anchor_table():
         "right": (632, 200, "right", "RIGHT"), "topright": (632, 8, "right", "RIGHT"),
         "bottomright": (632, 300, "right", "RIGHT"),
     }
-    assert (bm.LINE_STEP, bm.ITEM_WIDTH) == (14, 300)
+    assert (bm.LINE_STEP, bm.ITEM_WIDTH, bm.RIGHT_ROOM, bm.CENTER_LEAD) == (14, 300, 120, 50)
