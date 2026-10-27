@@ -37,6 +37,8 @@ def test_three_position_copies_with_all_icons():
         assert text.count('cvarTest2 "mod_gg_w"') == 14
         assert text.count('cvarTest2 "mod_gg_next"') == 14
         assert text.count('cvar "mod_gg_step"') == 1 and text.count('cvar "mod_gg_lead"') == 1
+        # A filled item tints its background by backcolor (0 0 0 0 by default = invisible).
+        assert text.count("backcolor 1 1 1 1") == 28
 
 
 def test_position_tests():

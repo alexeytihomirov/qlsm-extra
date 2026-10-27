@@ -253,6 +253,7 @@ class gungame(minqlx.Plugin):
         self.add_hook("death", self.handle_death)
         self.add_hook("team_switch", self.handle_team_switch)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
+        self.add_hook("player_loaded", self.handle_player_loaded)
         self.add_hook("unload", self.handle_unload)
 
         self.plugin_version = "1.0"
@@ -430,10 +431,13 @@ class gungame(minqlx.Plugin):
         if not changed:
             return
         try:
-            minqlx.send_server_command(player_id, hud_command(minqlx.CS_SYSTEMINFO, info, changed))
+            delivered = minqlx.send_server_command(player_id, hud_command(minqlx.CS_SYSTEMINFO, info, changed))
         except Exception:
-            pass  # the player left
-        if fields.get("mod_gg_on"):
+            delivered = False  # the player left
+        if delivered is False:
+            # Still loading (not CS_ACTIVE): what the client shows is unknown, resend it all.
+            self._hud_sent[player_id] = dict.fromkeys(HUD_FIELDS)
+        elif fields.get("mod_gg_on"):
             self._hud_sent[player_id] = dict(fields)
         else:
             self._hud_sent.pop(player_id, None)
@@ -450,6 +454,9 @@ class gungame(minqlx.Plugin):
         self._hud_send(player_id, hud_blank(), info)
 
     def handle_team_switch(self, player, old_team, new_team):
+        self._hud_mark(player)
+
+    def handle_player_loaded(self, player):
         self._hud_mark(player)
 
     def handle_player_disconnect(self, player, reason):
@@ -559,6 +566,8 @@ class gungame(minqlx.Plugin):
         """Re-pick the leader after *player*'s step changed; announce a new one."""
         leader = pick_leader(self._states, self._leader)
         if leader == self._leader:
+            if leader is not None and leader == self._key(player):
+                self._hud_mark_all()  # the leader's own step moved: everyone's leader line
             return
         self._leader = leader
         self._leader_name = None

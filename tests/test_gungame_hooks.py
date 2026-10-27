@@ -28,11 +28,20 @@ def make_entity(eid, classname):
 def make_engine(entities=()):
     linked = []
     commands = []
+    active = set()  # client ids still loading: the engine refuses to send to them
+
+    def send_server_command(cid, cmd):
+        if cid in active:
+            return False
+        commands.append((cid, cmd))
+        return True
+
     return SimpleNamespace(
         CS_SYSTEMINFO=1,
         configstring=lambda index, cached=True: "\\sv_pure\\1",
-        send_server_command=lambda cid, cmd: commands.append((cid, cmd)),
+        send_server_command=send_server_command,
         commands=commands,
+        loading=active,
         Weapons=tuple,
         Return=SimpleNamespace(STOP_EVENT=STOP_EVENT),
         Priority=SimpleNamespace(HIGH=1),
@@ -383,6 +392,7 @@ DISPATCH_ARITY = {
     "handle_map": 2, "handle_new_game": 0, "handle_game_start": 0, "handle_game_end": 1,
     "handle_player_spawn": 1, "handle_kill": 3, "handle_death": 3, "handle_item_touch": 2,
     "handle_unload": 1, "handle_team_switch": 3, "handle_player_disconnect": 2,
+    "handle_player_loaded": 1,
 }
 
 
@@ -719,6 +729,48 @@ def test_disconnect_clears_at_once(monkeypatch):
     plugin._hud_flush()
     plugin.handle_player_disconnect(a, "left")
     assert "mod_gg_on\\\\" in hud_cmds(plugin, 1)[-1] and 1 not in plugin._hud_sent
+
+
+def test_send_to_a_loading_client_is_retried_in_full_when_loaded(monkeypatch):
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin = hud_players(monkeypatch, a, b)
+    plugin.handle_kill(b, a, "ROCKET")
+    plugin._hud_flush()
+    plugin.engine.loading.add(1)  # map change: A is loading when new_game flushes
+    plugin.handle_new_game()
+    plugin._hud_flush()
+    assert len(hud_cmds(plugin, 1)) == 1
+    plugin.engine.loading.discard(1)
+    plugin.handle_player_loaded(a)
+    plugin._hud_flush()
+    assert hud_cmds(plugin, 1)[-1].endswith(
+        '\\mod_gg_on\\1\\mod_gg_w\\rl\\mod_gg_next\\lg\\mod_gg_step\\Step 1/3   0/2\\mod_gg_lead\\"')
+
+
+def test_blank_to_a_loading_client_is_retried(monkeypatch):
+    a = FakePlayer(1, "A")
+    plugin = hud_players(monkeypatch, a)
+    plugin.handle_player_spawn(a)
+    plugin._hud_flush()
+    plugin.engine.loading.add(1)
+    plugin.settings["qlx_gunGameEnabled"] = "0"
+    plugin.handle_new_game()
+    plugin._hud_flush()
+    plugin.engine.loading.discard(1)
+    plugin.handle_player_loaded(a)
+    plugin._hud_flush()
+    assert "mod_gg_on\\\\" in hud_cmds(plugin, 1)[-1] and plugin._hud_sent == {}
+
+
+def test_leader_step_up_updates_everyone(monkeypatch):
+    a, b, c = FakePlayer(1, "A"), FakePlayer(2, "B"), FakePlayer(3, "C")
+    plugin = hud_players(monkeypatch, a, b, c, qlx_gunGameLadder="rl:1 lg:1 pg:1 g:1")
+    plugin._reload_ladder()
+    plugin.handle_kill(b, a, "ROCKET")
+    plugin._hud_flush()
+    plugin.handle_kill(b, a, "LIGHTNING")
+    plugin._hud_flush()
+    assert hud_cmds(plugin, 3)[-1].endswith('mod_gg_lead\\Leader: ^3A^7 3/4"')
 
 
 def test_hud_nickname_is_cleaned(monkeypatch):

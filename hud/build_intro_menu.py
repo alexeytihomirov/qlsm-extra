@@ -47,6 +47,7 @@ ICON_ITEM = """
 			name "gg_{slot}_{key}"
 			rect {rect}
 			style WINDOW_STYLE_FILLED
+			backcolor 1 1 1 1
 			background "{image}"
 			visible 1
 			decoration
