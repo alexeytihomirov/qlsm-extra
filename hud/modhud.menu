@@ -1,0 +1,9 @@
+	// Mod HUD panel (qlsm-extra modhud_util.py): three lines from mod_hud_l1..l3, shown while
+	// mod_hud_on is 1. Copy @NAME@, built by hud/build_modhud.py.
+	menuDef {
+		name "@NAME@"
+		widescreen @WIDE@
+		fullScreen MENU_FALSE
+		visible MENU_TRUE
+		rect @X@ @Y@ @W@ @H@
+@LINES@	}
