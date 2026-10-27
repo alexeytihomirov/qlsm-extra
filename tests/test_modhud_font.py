@@ -125,3 +125,10 @@ def test_sheet_and_pk3(tmp_path):
         assert sorted(z.namelist()) == sorted(["ui/intro.menu", bm.FONT])
         assert "modhud_topright" in z.read("ui/intro.menu").decode("utf-8")
     assert (tmp_path / "out" / "glyphs.png").is_file()
+    # The players' archive: unpack into <QL>/<steamid>/ and the files land where QL reads them.
+    with zipfile.ZipFile(tmp_path / "out" / bm.CLIENT_ZIP) as z:
+        names = sorted(z.namelist())
+        assert names == sorted(["baseq3/ui/intro.menu", "baseq3/" + bm.FONT, bm.CLIENT_README])
+        readme = z.read(bm.CLIENT_README).decode("utf-8")
+    for needle in ("mod_hud_pos", "topright", "!hud", "!hudicons", "{rl}", "{mh}", "{flag}", "@"):
+        assert (needle in readme) == (needle != "@")

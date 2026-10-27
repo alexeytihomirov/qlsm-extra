@@ -15,6 +15,20 @@ import modhud_util  # noqa: E402
 
 FONT = "fonts/droidsansfallbackfull.ttf"
 PK3 = "zz_modhud.pk3"
+# What players get: unpack into <QL>/<steamid>/; loose files there win over pak00 and keep the
+# player pure on every server (a pk3 does neither, see README.md).
+CLIENT_ZIP = "modhud-client.zip"
+CLIENT_README = "FRONTIER-HUD-README.txt"
+TOKEN_NAMES = {
+    "g": "Gauntlet", "mg": "Machine Gun", "sg": "Shotgun", "gl": "Grenade Launcher",
+    "rl": "Rocket Launcher", "lg": "Lightning Gun", "rg": "Railgun", "pg": "Plasma Gun",
+    "bfg": "BFG10K", "gh": "Grappling Hook", "ng": "Nailgun", "pl": "Proximity Launcher",
+    "cg": "Chaingun", "hmg": "Heavy Machine Gun", "mh": "Mega Health", "ra": "Red Armor",
+    "ya": "Yellow Armor", "ga": "Green Armor", "shard": "Armor Shard", "quad": "Quad Damage",
+    "bs": "Battle Suit", "regen": "Regeneration", "haste": "Haste", "invis": "Invisibility",
+    "flight": "Flight", "flag": "Flag (colour it with ^1 / ^4)", "on": "bar segment, full",
+    "off": "bar segment, empty",
+}
 
 # Token -> stock icon in pak00 (extension tried: .png, .tga). Silhouettes are traced from alpha.
 ICON_SOURCES = {
@@ -314,6 +328,12 @@ def main(argv):
         z.writestr("ui/intro.menu", menu.encode("latin-1"))
         z.writestr(FONT, font)
     render_sheet(font, out / "glyphs.png")
+    tokens = "\n".join("{%-8s %s" % (name + "}", TOKEN_NAMES[name]) for name in modhud_util.TOKENS)
+    readme = (HERE / "client-readme.txt").read_text(encoding="utf-8").replace("@TOKENS@", tokens)
+    with zipfile.ZipFile(out / CLIENT_ZIP, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("baseq3/ui/intro.menu", menu.encode("latin-1"))
+        z.writestr("baseq3/" + FONT, font)
+        z.writestr(CLIENT_README, readme.replace("\n", "\r\n").encode("utf-8-sig"))
     missing = sorted(set(ICON_SOURCES) - set(icons))
     print("wrote {} ({} icons, missing: {})".format(out / PK3, len(icons), ", ".join(missing) or "none"))
     return 0

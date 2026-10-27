@@ -10,6 +10,8 @@ Three text lines on the player's screen that any plugin fills from the server (`
 
 (needs fontTools, Pillow, numpy, opencv-python). It also writes `glyphs.png`; the copy in this folder is the token table.
 
+The builder also writes `modhud-client.zip`, the package for players: `baseq3/ui/intro.menu`, `baseq3/fonts/droidsansfallbackfull.ttf` and `FRONTIER-HUD-README.txt` (install, positions, binds, chat commands, icon tokens; English and Russian, from `hud/client-readme.txt` with the token list filled in). Players unpack it into `<QL>/<steamid>/`.
+
 **How players install it (verified 2026-10-27):** the two files of the pk3 as loose files in the player's profile, `<QL>/<steamid>/baseq3/ui/intro.menu` and `<QL>/<steamid>/baseq3/fonts/droidsansfallbackfull.ttf`, then restart the game. Loose files there win over pak00 and work on `sv_pure 1` servers, ours and anyone else's. Neither of the two ways below works for players:
 
 - Workshop: a Workshop pk3 cannot replace pak00's files, so the panel and the glyphs do not appear (tested on #27).
