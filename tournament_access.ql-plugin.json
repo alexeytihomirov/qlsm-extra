@@ -1,9 +1,0 @@
-{
-  "label": "Tournament Access",
-  "description": "Closes a tournament server to everyone not on the roster the tournament hub writes into the server's Redis: once the hub enforces it, others are kicked as they load and casters stay in spectator. The server owner and players at the bypass permission level are never checked.",
-  "cvars": [
-    { "cvar": "qlx_tournamentAccessEnabled", "label": "Enabled", "description": "Turns the roster check on. It also needs a Tournament ID, and the hub must mark the roster as enforced.", "type": "bool", "default": false },
-    { "cvar": "qlx_tournamentId", "label": "Tournament ID", "description": "Hub tournament whose roster this server uses. 0 turns the check off.", "type": "number", "default": 0, "min": 0 },
-    { "cvar": "qlx_tournamentAccessBypassPerm", "label": "Bypass Permission", "description": "Players with at least this minqlx permission level skip the roster check.", "type": "number", "default": 3, "min": 0, "max": 5 }
-  ]
-}

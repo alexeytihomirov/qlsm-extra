@@ -1,5 +1,5 @@
 {
-  "label": "Telemetry (Unified)",
+  "label": "Live Telemetry",
   "description": "Sends live match data (positions, stats, item pickups, match events) from this instance to ql-stats-hub through the host's telemetry relay. Switch it on with the instance's Telemetry entry (telemetry-relay addon), which reserves the server ID; each feed is a separate switch below.",
   "cvars": [
     { "cvar": "qlx_statsHubUnifiedEnabled", "label": "Enabled", "description": "Master switch for everything this plugin sends. The Send telemetry switch in the instance's Telemetry menu entry sets it.", "type": "bool", "default": false },

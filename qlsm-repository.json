@@ -1,25 +1,11 @@
 {
   "plugins": [
     {
-      "filename": "tournament_access.py",
-      "runtime": "minqlxtended",
-      "label": "Tournament Access",
-      "description": "Closes a tournament server to everyone not on the roster the tournament hub writes into the server's Redis: once the hub enforces it, others are kicked as they load and casters stay in spectator. The server owner and players at the bypass permission level are never checked.",
-      "sha256": "42ef9d322a9c6446b0a40f6f7cc64726db7ad0b4fddb07770a03aa4689375b90"
-    },
-    {
       "filename": "chat_rcon.py",
       "runtime": "minqlxtended",
       "label": "Chat RCON",
       "description": "Lets referees run the Referee-Allowed Commands and admins anything but the Admin-Denied Commands from chat with !rcon <command>. Takes over the stock !rcon while enabled, and every use is written to the server log.",
       "sha256": "4446cf079ba63d9541d0864b79a8403e56cb400d777e5f9cc5d48917d8821268"
-    },
-    {
-      "filename": "lobby.py",
-      "runtime": "minqlxtended",
-      "label": "Lobby",
-      "description": "For a lobby server: tells each player which game server to join and shows its /connect address after a short countdown, since a server cannot move a player itself. The destination comes from a referee's personal route, a tournament assignment from the hub, or the default destination.",
-      "sha256": "d876a4ccdb30ed7cc5ef978405759bbf8aee2a8f43b255b7cd25003a844e5f63"
     },
     {
       "filename": "match_restore.py",
@@ -48,7 +34,7 @@
     {
       "filename": "stream_telemetry_unified.py",
       "runtime": "minqlxtended",
-      "label": "Telemetry (Unified)",
+      "label": "Live Telemetry",
       "description": "Sends live match data (positions, stats, item pickups, match events) from this instance to ql-stats-hub through the host's telemetry relay. Switch it on with the instance's Telemetry entry (telemetry-relay addon), which reserves the server ID; each feed is a separate switch below.",
       "depends_on": [
         "telemetry_unified_sched.py",

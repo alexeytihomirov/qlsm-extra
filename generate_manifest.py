@@ -35,9 +35,7 @@ PACKAGES_DIR = ROOT / 'packages'
 
 # Plugins qlsm can fetch as a single bare filename (+ optional sidecar).
 DEFAULT_PLUGINS = [
-    'tournament_access.py',
     'chat_rcon.py',
-    'lobby.py',
     'match_restore.py',
     'match_restore_util.py',
     'stream_telemetry_unified.py',

@@ -5,7 +5,7 @@ that do **not** ship in the standard qlsm image / plugin pools.
 
 | Kind | What |
 |------|------|
-| Plugins | QLMatch tournament gameplay (`tournament_access`, `chat_rcon`, `lobby`, `referee_call`, `match_restore`), demo packing and live stream repair (`qlmatch_packer`, `demo_stream_resync_hold`), server frame timing (`frame_timing`), live telemetry for the `minqlxtended` runtime |
+| Plugins | QLMatch tournament gameplay (`chat_rcon`, `referee_call`, `match_restore`), demo packing and live stream repair (`qlmatch_packer`, `demo_stream_resync_hold`), server frame timing (`frame_timing`), live telemetry for the `minqlxtended` runtime |
 | Addons | `telemetry-relay`, `demo-management`, `demo-stream`, `qlmatch-packer`, `file-forwarder`, `runtime-source`, `player-ranks`, `host-metrics`, `server-ping`, `live-settings` |
 
 Merged from the former local `minqlxtended-plugins` and `qlsm-addons` trees.
@@ -65,9 +65,7 @@ python check_manifest_hashes.py
 
 | File | Loadable alone? |
 |------|-----------------|
-| `tournament_access.py` | Yes - the roster comes from the tournament hub through the server's Redis and is checked only once the hub marks it enforced (`qlx_tournamentAccessEnabled` and a `qlx_tournamentId` needed too). On a lobby server everyone stays in spectator. A stream spectator account (name starting with `StreamSpec`, or `qlx_specbot_name_prefix`) must be on the roster or have the bypass level like anyone else; on the roster it is kept in spectator |
 | `chat_rcon.py` | Yes |
-| `lobby.py` | Yes |
 | `frame_timing.py` | Yes - every 10 s writes the last 10 s of server frame stats (frames, late frames, max, p50 and p99 gap) to the Redis key `minqlx:frame_stats:<port>` with a 30 s TTL, for the `host-metrics` addon. A frame is late when it takes longer than 1.5 x 1000 / `sv_fps` ms; the gap across a map change is not counted. The frame hook only reads the clock; the Redis write runs in a worker thread |
 | `referee_call.py` | Yes - `!call` for players; the call travels as chat through `stream_telemetry_unified` (Session Events on) |
 | `tournament_match_notice.py` | Yes - when both players of a `ready` or `live` match of the tournament site are on the server, says so in chat and in the centre of the screen, only in warmup and once per map (a pair complete during a game is announced when the server is back in warmup). Needs `qlx_matchNoticeEnabled 1`, `qlx_matchNoticeUrl` (site base URL) and `qlx_matchNoticeToken` (site service token, scope `game:read`; it asks `GET /api/integrations/game-match`). The hooks only set flags; a worker thread asks the site every 2 s at most and only after the players changed or a new game began (3 s timeout, 60 s cache); only the two output calls and the warmup check run in the game frame. A failed request is logged once a minute and skips the notice |
