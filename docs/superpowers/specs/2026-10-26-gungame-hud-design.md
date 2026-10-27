@@ -1,5 +1,7 @@
 # Gun Game HUD panel - design
 
+> **Superseded 2026-10-27** by `docs/superpowers/specs/2026-10-27-mod-hud-panel-design.md` (task `qlsm-extra-0029`): the Gun Game-only panel (`mod_gg_*`, `hud/gungame.menu`, `hud/build_intro_menu.py`) is removed; Gun Game draws on the shared mod HUD panel. Kept as history.
+
 Date: 2026-10-26. Task `qlsm-extra-0027`. Extends `docs/superpowers/specs/2026-10-26-gungame-design.md`: a Gun Game panel on the player's screen, driven by the server, so the state no longer depends on centre prints.
 
 Decisions taken with the operator:

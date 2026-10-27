@@ -14,7 +14,7 @@ Install by hand for now: copy `zz_modhud.pk3` to `<QL>/baseq3/` (the install dir
 
 ## Position
 
-Each player in their own console: `seta mod_hud_pos top` (default when unset), `center`, `bottom`, `left`, `topleft`, `bottomleft`, `right`, `topright`, `bottomright` or `off`. Left places align text to the left, right places to the right, the middle column centres it. Free x/y is not possible: a menu rect is fixed in the file. Players who used `mod_gg_pos` set `mod_hud_pos` instead. If nothing shows with the cvar unset, set it explicitly (`seta mod_hud_pos top`): whether the menu's empty-value test matches is not verified in QL.
+Each player in their own console: `seta mod_hud_pos top` (default when unset), `center`, `bottom`, `left`, `topleft`, `bottomleft`, `right`, `topright`, `bottomright` or `off`. Left places align text to the left, right places to the right, the middle column centres it. Free x/y is not possible: a menu rect is fixed in the file. If nothing shows with the cvar unset, set it explicitly (`seta mod_hud_pos top`): whether the menu's empty-value test matches is not verified in QL.
 
 The panel hides itself on the next connect or map load on any server (`onOpen` of the Join Match menu), so a panel left by our server never sticks on someone else's.
 
