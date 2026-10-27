@@ -1,0 +1,12 @@
+{
+  "label": "Mod HUD",
+  "description": "Writes the shared mod HUD panel (three lines with icons, players need zz_modhud.pk3) from chat: !hud sets a line for everyone, !hudicons lists the icon tokens. Other plugins (Gun Game) draw on the panel without this one.",
+  "commands": [
+    { "name": "hud", "usage": "<1-3> <text> | clear", "permission": 3, "description": "Line 1-3 of the panel for everyone; icons as tokens such as {rl} {mh} {ra}. clear blanks the panel." },
+    { "name": "hudicons", "usage": "", "permission": 3, "description": "Tells the caller every icon token next to its glyph." }
+  ],
+  "cvars": [
+    { "cvar": "qlx_modHudPerm", "label": "Permission", "description": "Permission level for !hud and !hudicons. Read when the plugin loads.", "type": "number", "default": 3, "min": 0, "max": 5 }
+  ],
+  "depends_on": ["modhud_util.py"]
+}
