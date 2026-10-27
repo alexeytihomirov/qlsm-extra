@@ -26,6 +26,12 @@ MAX_COMMAND_BYTES = 1022
 CLIENT = {}
 # Client ids loaded but not yet in the game: their Join Match screen will hide the panel.
 PENDING = set()
+# Client ids whose ui/intro.menu said hello (`cmd modhud 1` from Join Match's onOpen): they
+# have our files and see the panel. Everyone else in the game gets the lines as a centre print.
+HAS_PANEL = set()
+INGAME = set()   # spawned or switched team since the last load: the hello had its chance
+CENTRE = {}      # client id -> text of the last centre print sent
+HELLO = "modhud"
 
 _WEAPONS = ("g", "mg", "sg", "gl", "rl", "lg", "rg", "pg", "bfg", "gh", "ng", "pl", "cg", "hmg")
 _ITEMS = ("mh", "ra", "ya", "ga", "shard", "quad", "bs", "regen", "haste", "invis", "flight", "flag")
@@ -36,6 +42,12 @@ TOKENS.update({"on": "▰", "off": "▱"})
 
 _TOKEN = re.compile(r"\{\{|\{(\w+)\}")
 
+# Centre prints use the stock fonts: our glyphs become labels, heavy and rounded frames light ones.
+_PLAIN = {char: name.upper() for name, char in TOKENS.items() if name not in ("on", "off")}
+_PLAIN.update({"▰": "█", "▱": "░"})
+_PLAIN.update(zip("━┃┏┓┗┛┣┫╭╮╯╰",
+                  "─│┌┐└┘├┤┌┐┘└"))
+
 
 def expand(text):
     """Tokens to glyphs; an unknown token stays as typed."""
@@ -44,6 +56,11 @@ def expand(text):
             return "{"
         return TOKENS.get(m.group(1), m.group(0))
     return _TOKEN.sub(repl, str(text))
+
+
+def plain(text):
+    """Text for a centre print: glyphs only our font has become labels ({rl} -> RL)."""
+    return "".join(_PLAIN.get(char, char) for char in text)
 
 
 def fit(text, limit=MAX_LINE_BYTES):
@@ -102,6 +119,7 @@ def reset_clients():
     unknown until the next send, which then carries every field. Call from the map hook."""
     for cid in CLIENT:
         CLIENT[cid] = dict.fromkeys(FIELDS)
+    INGAME.clear()
 
 
 def loaded(cid):
@@ -110,11 +128,15 @@ def loaded(cid):
     panel goes again in full on joined()."""
     CLIENT[cid] = dict.fromkeys(FIELDS)
     PENDING.add(cid)
+    INGAME.discard(cid)
+    CENTRE.pop(cid, None)
 
 
 def joined(cid):
-    """First spawn or team switch after player_loaded: Join Match has hidden the panel, what
-    the client shows is unknown again. True once per load; then send the panel again."""
+    """Spawn or team switch: the player is in the game. On the first one after player_loaded
+    Join Match has hidden the panel, so what the client shows is unknown again: True once per
+    load, then send the panel again."""
+    INGAME.add(cid)
     if cid not in PENDING:
         return False
     PENDING.discard(cid)
@@ -122,10 +144,46 @@ def joined(cid):
     return True
 
 
+def client_command(cid, cmd):
+    """Call from the client_command hook; True (stop the event) for our menu's hello."""
+    words = str(cmd).split()
+    if not words or words[0].lower() != HELLO:
+        return False
+    HAS_PANEL.add(cid)
+    return True
+
+
+def has_panel(cid):
+    return cid in HAS_PANEL
+
+
 def forget(cid):
     """The client left; the next player in the slot starts unknown."""
     CLIENT.pop(cid, None)
     PENDING.discard(cid)
+    HAS_PANEL.discard(cid)
+    INGAME.discard(cid)
+    CENTRE.pop(cid, None)
+
+
+def _centre(engine, cid, new):
+    """Players without our files get the lines as a centre print, once per change."""
+    if cid not in INGAME or cid in HAS_PANEL:
+        return
+    lines = [new.get(k, "") for k in FIELDS[1:]] if new.get("mod_hud_on") == "1" else []
+    while lines and not lines[-1]:
+        lines.pop()
+    text = plain("\n".join(lines))
+    if not text:
+        CENTRE.pop(cid, None)
+        return
+    if CENTRE.get(cid) == text:
+        return
+    try:
+        engine.send_server_command(cid, 'cp "{}"'.format(text))
+    except Exception:
+        return
+    CENTRE[cid] = text
 
 
 def _changes(sent, cid, new):
@@ -148,6 +206,7 @@ def send(engine, sent, cid, new, systeminfo):
     *sent* belongs to the calling plugin (client id -> fields it last asked for); it decides
     whether a blank is ours to send. What the client really shows is CLIENT, shared by every
     plugin, because the panel is one per client: the last write wins."""
+    _centre(engine, cid, new)
     changed = _changes(sent, cid, new)
     if changed:
         cmd, changed = fitted_command(engine.CS_SYSTEMINFO, systeminfo, changed)

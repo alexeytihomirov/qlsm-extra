@@ -10,15 +10,33 @@ pytestmark = pytest.mark.standalone
 mh = import_plugin("modhud")
 mu = import_plugin("modhud_util")
 USAGE = "usage"
+STOP_EVENT = "stop_event"
 
 
 @pytest.fixture(autouse=True)
 def clean_clients():
     mh.modhud_util.CLIENT.clear()
     mh.modhud_util.PENDING.clear()
+    mh.modhud_util.HAS_PANEL.clear()
+    mh.modhud_util.INGAME.clear()
+    mh.modhud_util.CENTRE.clear()
     yield
     mh.modhud_util.CLIENT.clear()
     mh.modhud_util.PENDING.clear()
+    mh.modhud_util.HAS_PANEL.clear()
+    mh.modhud_util.INGAME.clear()
+    mh.modhud_util.CENTRE.clear()
+
+
+def test_hello_and_centre_copy(monkeypatch):
+    a, b = FakePlayer(11, 1), FakePlayer(12, 2)
+    plugin = make_plugin(monkeypatch, a, b)
+    assert plugin.handle_client_command(b, "modhud 1") == STOP_EVENT
+    assert plugin.handle_client_command(b, "kill") is None
+    plugin.handle_player_spawn(a)
+    plugin.handle_player_spawn(b)
+    plugin.cmd_hud(a, ["!hud", "1", "{mh} 0:35"], None)
+    assert [(c, cmd) for c, cmd in plugin.commands if cmd.startswith("cp ")] == [(1, 'cp "MH 0:35"')]
 
 
 def test_lines_go_again_after_join_match(monkeypatch):
@@ -47,7 +65,7 @@ def make_plugin(monkeypatch, *players):
         CS_SYSTEMINFO=1,
         configstring=lambda index, cached=True: "\\sv_pure\\1",
         send_server_command=lambda cid, cmd: commands.append((cid, cmd)) or True,
-        Return=SimpleNamespace(USAGE=USAGE),
+        Return=SimpleNamespace(USAGE=USAGE, STOP_EVENT=STOP_EVENT),
     )
     monkeypatch.setattr(mh, "minqlx", engine)
     plugin = bare_instance(mh.modhud, _lines=["", "", ""], _sent={}, players=lambda: list(players))
@@ -56,7 +74,7 @@ def make_plugin(monkeypatch, *players):
 
 
 def cmds(plugin, cid=None):
-    return [cmd for c, cmd in plugin.commands if cid is None or c == cid]
+    return [cmd for c, cmd in plugin.commands if (cid is None or c == cid) and cmd.startswith("cs ")]
 
 
 def test_hud_line_goes_to_every_human(monkeypatch):

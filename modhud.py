@@ -33,6 +33,7 @@ class modhud(minqlx.Plugin):
         self.add_hook("player_spawn", self.handle_player_spawn)
         self.add_hook("team_switch", self.handle_team_switch)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
+        self.add_hook("client_command", self.handle_client_command)
 
     def _fields(self):
         return modhud_util.fields(self._lines) if any(self._lines) else modhud_util.blank()
@@ -79,6 +80,11 @@ class modhud(minqlx.Plugin):
 
     def handle_team_switch(self, player, old_team, new_team):
         self._joined(player)
+
+    def handle_client_command(self, player, cmd):
+        # Our ui/intro.menu says hello: this player sees the panel, no centre copy for them.
+        if modhud_util.client_command(int(player.id), cmd):
+            return minqlx.Return.STOP_EVENT
 
     def handle_player_disconnect(self, player, reason):
         self._sent.pop(int(player.id), None)

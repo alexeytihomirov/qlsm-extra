@@ -10,11 +10,51 @@ mu = import_plugin("modhud_util")
 
 @pytest.fixture(autouse=True)
 def clean_clients():
-    mu.CLIENT.clear()
-    mu.PENDING.clear()
+    for state in (mu.CLIENT, mu.PENDING, mu.HAS_PANEL, mu.CENTRE, mu.INGAME):
+        state.clear()
     yield
-    mu.CLIENT.clear()
-    mu.PENDING.clear()
+    for state in (mu.CLIENT, mu.PENDING, mu.HAS_PANEL, mu.CENTRE, mu.INGAME):
+        state.clear()
+
+
+def cps(engine):
+    return [cmd for _, cmd in engine.commands if cmd.startswith("cp ")]
+
+
+def test_plain_turns_glyphs_into_labels():
+    assert mu.plain(mu.expand("^3{mh}^7 0:35 {ra} {on}{off} ━╭")) == "^3MH^7 0:35 RA █░ ─┌"
+    assert mu.plain(mu.expand("{rl} 1/2")) == "RL 1/2"
+
+
+def test_client_command_marks_the_panel():
+    assert mu.client_command(3, "modhud 1") is True
+    assert mu.has_panel(3)
+    assert mu.client_command(3, "say hi") is False
+    mu.forget(3)
+    assert not mu.has_panel(3)
+
+
+def test_centre_copy_for_a_joined_client_without_the_panel():
+    engine, sent = Engine(), {}
+    mu.loaded(3)
+    mu.send(engine, sent, 3, mu.fields(["{rl} 1/2"]), "")
+    assert cps(engine) == []  # not in the game yet: Join Match is open, the hello may still come
+    mu.joined(3)
+    mu.send(engine, sent, 3, mu.fields(["{rl} 1/2", "x"]), "")
+    assert cps(engine) == ['cp "RL 1/2\nx"']
+    mu.send(engine, sent, 3, mu.fields(["{rl} 1/2", "x"]), "")
+    assert len(cps(engine)) == 1  # unchanged text: no new centre print
+    mu.send(engine, sent, 3, mu.blank(), "")
+    assert len(cps(engine)) == 1  # a blank prints nothing
+
+
+def test_no_centre_copy_with_the_panel():
+    engine, sent = Engine(), {}
+    mu.loaded(3)
+    mu.client_command(3, "modhud 1")
+    mu.joined(3)
+    mu.send(engine, sent, 3, mu.fields(["{rl} 1/2"]), "")
+    assert cps(engine) == [] and engine.commands
 
 
 class Engine:
@@ -173,6 +213,7 @@ def test_loaded_then_joined_resends_in_full_once():
     # panel sent on load, so the first spawn / team join after a load sends it all again.
     engine, sent = Engine(), {}
     mu.loaded(3)
+    mu.client_command(3, "modhud 1")  # has the panel: no centre copy in this test
     mu.send(engine, sent, 3, mu.fields(["a"]), "")
     assert mu.joined(3) is True
     mu.send(engine, sent, 3, mu.fields(["a"]), "")

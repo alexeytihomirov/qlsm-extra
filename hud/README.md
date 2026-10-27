@@ -25,6 +25,10 @@ Each player in their own console: `seta mod_hud_pos top` (default when unset), `
 
 The panel hides itself on the next connect or map load on any server (`onOpen` of the Join Match menu), so a panel left by our server never sticks on someone else's.
 
+## Players without the files
+
+Our `ui/intro.menu` tells the server it is there: Join Match's `onOpen` runs `cmd modhud 1`, the plugins catch it (`client_command` hook, `modhud_util.client_command`). A player in the game who never said hello gets the same lines as a centre print (`cp`, about 3 s, once per change), icons written as labels (`{rl}` -> `RL`); a player with the files gets only the panel. On someone else's server the hello reaches a server that does not know it, which at most prints "unknown command" in the player's console.
+
 ## Text and icons
 
 Colours with `^1`..`^7`; icons as tokens, `{{` for a literal `{`:
@@ -49,6 +53,7 @@ modhud_util.send(minqlx, sent, player.id, modhud_util.blank(), info)  # clear
 - In the `map` hook call `modhud_util.reset_clients()` and send your lines again (clients still loading refuse; send again on `player_loaded`): Join Match hides every panel on each map load.
 - In `player_loaded` call `modhud_util.loaded(player.id)` before sending, and in `player_spawn` / `team_switch` send again when `modhud_util.joined(player.id)` is True: Join Match opens after `player_loaded` and hides what was sent on load.
 - In `player_disconnect` call `modhud_util.forget(player.id)`.
+- Hook `client_command` and return `minqlx.Return.STOP_EVENT` when `modhud_util.client_command(player.id, cmd)` is True (the menu's hello). `send` then skips the centre copy for that player; players without the files get it automatically.
 - Each line is cut at 120 bytes, and a whole command is cut under the engine's 1022-byte limit (the longest line gives way).
 - The panel is one per client and what each client shows is tracked once (`modhud_util.CLIENT`) for every plugin: the last write wins and replaces all three lines. A blank only goes out from a plugin that showed the panel itself, so `!hud clear` does not remove Gun Game's line.
 - Add `"depends_on": ["modhud_util.py"]` to the plugin's `.ql-plugin.json`.

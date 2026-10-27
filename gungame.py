@@ -230,6 +230,7 @@ class gungame(minqlx.Plugin):
         self.add_hook("team_switch", self.handle_team_switch)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("player_loaded", self.handle_player_loaded)
+        self.add_hook("client_command", self.handle_client_command)
         self.add_hook("unload", self.handle_unload)
 
         self.plugin_version = "1.0"
@@ -417,6 +418,11 @@ class gungame(minqlx.Plugin):
     def handle_player_loaded(self, player):
         modhud_util.loaded(int(player.id))  # Join Match will hide it; joined() resends
         self._hud_mark(player)
+
+    def handle_client_command(self, player, cmd):
+        # Our ui/intro.menu says hello: this player sees the panel, no centre copy for them.
+        if modhud_util.client_command(int(player.id), cmd):
+            return minqlx.Return.STOP_EVENT
 
     def handle_player_disconnect(self, player, reason):
         try:

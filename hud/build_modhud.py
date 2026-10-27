@@ -54,7 +54,8 @@ ITEM_WIDTH = 300
 RIGHT_ROOM = 120   # right places: the text starts this far from the anchor (about 25 characters)
 CENTER_LEAD = 50   # middle places: the text starts this far left of the centre
 JOIN_MENU = 'name "joingame_menu"'
-ON_OPEN = '\n\t\tonOpen { setcvar mod_hud_on 0 }'
+# Hide a panel any server left, and tell this server the player has our files (modhud_util.HELLO).
+ON_OPEN = '\n\t\tonOpen { setcvar mod_hud_on 0 ; exec "cmd modhud 1" }'
 
 LINE_ITEM = """
 		itemDef {{

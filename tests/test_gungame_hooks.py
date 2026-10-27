@@ -607,9 +607,30 @@ def test_item_touch_hook_only_while_active(monkeypatch):
 def clean_hud_clients():
     gg.modhud_util.CLIENT.clear()
     gg.modhud_util.PENDING.clear()
+    gg.modhud_util.HAS_PANEL.clear()
+    gg.modhud_util.INGAME.clear()
+    gg.modhud_util.CENTRE.clear()
     yield
     gg.modhud_util.CLIENT.clear()
     gg.modhud_util.PENDING.clear()
+    gg.modhud_util.HAS_PANEL.clear()
+    gg.modhud_util.INGAME.clear()
+    gg.modhud_util.CENTRE.clear()
+
+
+def test_player_without_the_panel_gets_the_line_in_the_centre(monkeypatch):
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin = hud_players(monkeypatch, a, b)
+    plugin.handle_player_loaded(a)
+    plugin.handle_player_loaded(b)
+    assert plugin.handle_client_command(b, "modhud 1") == STOP_EVENT  # B has our files
+    assert plugin.handle_client_command(b, "say hi") is None
+    plugin.handle_player_spawn(a)
+    plugin.handle_player_spawn(b)
+    plugin._hud_flush()
+    centre = [cmd for c, cmd in plugin.engine.commands if cmd.startswith("cp ")]
+    assert centre == ['cp "LG 0/2"']
+    assert [c for c, cmd in plugin.engine.commands if cmd.startswith("cp ")] == [1]
 
 
 def test_panel_goes_again_after_join_match(monkeypatch):
@@ -653,7 +674,8 @@ def test_disconnect_forgets_the_client(monkeypatch):
 
 
 def hud_cmds(plugin, cid=None):
-    return [cmd for c, cmd in plugin.engine.commands if cid is None or c == cid]
+    return [cmd for c, cmd in plugin.engine.commands
+            if (cid is None or c == cid) and cmd.startswith("cs ")]
 
 
 def hud_players(monkeypatch, *players, **cvars):

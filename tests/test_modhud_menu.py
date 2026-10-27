@@ -36,7 +36,8 @@ def test_keeps_stock_prefix_and_closing_brace():
 
 def test_onopen_clear_added_to_join_menu_once():
     out = bm.build_menu(STOCK, TEMPLATE)
-    assert out.count('name "joingame_menu"\n\t\tonOpen { setcvar mod_hud_on 0 }') == 1
+    # Also says hello to the server (`cmd modhud 1`): players without our files get centre prints.
+    assert out.count('name "joingame_menu"\n\t\tonOpen { setcvar mod_hud_on 0 ; exec "cmd modhud 1" }') == 1
     assert out.count("setcvar mod_hud_on 0") == 1
 
 
