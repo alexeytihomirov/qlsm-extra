@@ -14,7 +14,7 @@ Install by hand for now: copy `zz_modhud.pk3` to `<QL>/baseq3/` (the install dir
 
 ## Position
 
-Each player in their own console: `seta mod_hud_pos top` (default when unset), `center`, `bottom`, `left`, `topleft`, `bottomleft`, `right`, `topright`, `bottomright` or `off`. Left places align text to the left, right places to the right, the middle column centres it. Free x/y is not possible: a menu rect is fixed in the file. Players who used `mod_gg_pos` set `mod_hud_pos` instead.
+Each player in their own console: `seta mod_hud_pos top` (default when unset), `center`, `bottom`, `left`, `topleft`, `bottomleft`, `right`, `topright`, `bottomright` or `off`. Left places align text to the left, right places to the right, the middle column centres it. Free x/y is not possible: a menu rect is fixed in the file. Players who used `mod_gg_pos` set `mod_hud_pos` instead. If nothing shows with the cvar unset, set it explicitly (`seta mod_hud_pos top`): whether the menu's empty-value test matches is not verified in QL.
 
 The panel hides itself on the next connect or map load on any server (`onOpen` of the Join Match menu), so a panel left by our server never sticks on someone else's.
 
@@ -32,10 +32,15 @@ In game: `!hud 1 ^3{mh}^7 0:35  ^1{ra}^7 0:12`, `!hud clear`, `!hudicons`.
 
 ```python
 import modhud_util
-sent = {}  # client id -> fields last sent
+sent = {}  # client id -> fields this plugin last asked for
 info = minqlx.configstring(minqlx.CS_SYSTEMINFO, cached=False)
 modhud_util.send(minqlx, sent, player.id, modhud_util.fields(["{rl} 1/2", "second line"]), info)
 modhud_util.send(minqlx, sent, player.id, modhud_util.blank(), info)  # clear
 ```
 
-Game thread only; send on events, a countdown at most once a second. Each line is cut at 120 bytes. Add `"depends_on": ["modhud_util.py"]` to the plugin's `.ql-plugin.json`. The panel is one per client: if two plugins write it, the last write wins.
+- Game thread only; send on events, a countdown at most once a second.
+- In the `map` hook call `modhud_util.reset_clients()` and send your lines again (clients still loading refuse; send again on `player_loaded`): Join Match hides every panel on each map load.
+- In `player_disconnect` call `modhud_util.forget(player.id)`.
+- Each line is cut at 120 bytes, and a whole command is cut under the engine's 1022-byte limit (the longest line gives way).
+- The panel is one per client and what each client shows is tracked once (`modhud_util.CLIENT`) for every plugin: the last write wins and replaces all three lines. A blank only goes out from a plugin that showed the panel itself, so `!hud clear` does not remove Gun Game's line.
+- Add `"depends_on": ["modhud_util.py"]` to the plugin's `.ql-plugin.json`.

@@ -603,6 +603,38 @@ def test_item_touch_hook_only_while_active(monkeypatch):
 
 # --- HUD panel --------------------------------------------------------------
 
+@pytest.fixture(autouse=True)
+def clean_hud_clients():
+    gg.modhud_util.CLIENT.clear()
+    yield
+    gg.modhud_util.CLIENT.clear()
+
+
+def test_map_change_resends_the_panel(monkeypatch):
+    # Join Match hides the panel on every map load (warmup map vote: no game_end, same fields).
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin = hud_players(monkeypatch, a, b)
+    plugin.game.state = "warmup"
+    plugin.handle_player_spawn(a)
+    plugin._hud_flush()
+    plugin.handle_map("campgrounds", "ffa")
+    plugin.handle_new_game()
+    plugin._hud_flush()
+    plugin.handle_player_loaded(a)
+    plugin._hud_flush()
+    full = '"\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\ 0/2\\mod_hud_l2\\\\mod_hud_l3\\"'
+    assert len(hud_cmds(plugin, 1)) == 2 and all(c.endswith(full) for c in hud_cmds(plugin, 1))
+
+
+def test_disconnect_forgets_the_client(monkeypatch):
+    a = FakePlayer(1, "A")
+    plugin = hud_players(monkeypatch, a)
+    plugin.handle_player_spawn(a)
+    plugin._hud_flush()
+    plugin.handle_player_disconnect(a, "left")
+    assert 1 not in gg.modhud_util.CLIENT
+
+
 def hud_cmds(plugin, cid=None):
     return [cmd for c, cmd in plugin.engine.commands if cid is None or c == cid]
 
@@ -619,8 +651,9 @@ def test_kill_sends_one_command_per_player_with_changed_fields(monkeypatch):
     plugin.handle_kill(b, a, "ROCKET")
     plugin._hud_flush()
     assert len(hud_cmds(plugin)) == 2
-    assert hud_cmds(plugin, 1)[0].endswith('\\mod_hud_on\\1\\mod_hud_l1\\ 1/2"')
-    assert hud_cmds(plugin, 2)[0].endswith('\\mod_hud_on\\1\\mod_hud_l1\\ 0/2"')
+    # First show carries every field: lines left by another server or plugin go.
+    assert hud_cmds(plugin, 1)[0].endswith('\\mod_hud_on\\1\\mod_hud_l1\\ 1/2\\mod_hud_l2\\\\mod_hud_l3\\"')
+    assert hud_cmds(plugin, 2)[0].endswith('\\mod_hud_on\\1\\mod_hud_l1\\ 0/2\\mod_hud_l2\\\\mod_hud_l3\\"')
     plugin._hud_flush()
     plugin.handle_kill(b, a, "ROCKET")  # A steps up
     plugin._hud_flush()
@@ -682,7 +715,8 @@ def test_spectator_back_to_free_gets_full_panel(monkeypatch):
     a.team = "free"
     plugin.handle_player_spawn(a)
     plugin._hud_flush()
-    assert hud_cmds(plugin, 1)[-1] == hud_cmds(plugin, 1)[0]
+    # The blank emptied the lines, so turning the panel back on needs only the flag and line 1.
+    assert hud_cmds(plugin, 1)[-1] == 'cs 1 "\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\ 0/2"'
 
 
 def test_never_shown_player_gets_no_clear(monkeypatch):

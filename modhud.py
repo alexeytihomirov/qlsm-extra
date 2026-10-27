@@ -28,6 +28,7 @@ class modhud(minqlx.Plugin):
         perm = self.get_cvar("qlx_modHudPerm", int)
         self.add_command("hud", self.cmd_hud, perm, usage="<1-3> <text> | clear")
         self.add_command("hudicons", self.cmd_hudicons, perm)
+        self.add_hook("map", self.handle_map)
         self.add_hook("player_loaded", self.handle_player_loaded)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
 
@@ -56,9 +57,16 @@ class modhud(minqlx.Plugin):
             player.tell("  ".join("{%s} %s" % (name, modhud_util.TOKENS[name])
                                   for name in names[i:i + ICONS_PER_TELL]))
 
+    def handle_map(self, mapname, factory):
+        # Join Match hid every panel; loading clients refuse now and get it on player_loaded.
+        modhud_util.reset_clients()
+        if any(self._lines):
+            self._send(self.players())
+
     def handle_player_loaded(self, player):
         if any(self._lines):
             self._send([player])
 
     def handle_player_disconnect(self, player, reason):
         self._sent.pop(int(player.id), None)
+        modhud_util.forget(int(player.id))

@@ -113,7 +113,7 @@ On `player_loaded` it sends the lines set by `!hud` (if any). It is not needed b
 
 ### Several writers
 
-The panel is one per client. If two plugins write it, the last write wins. One mode uses the panel on a server; a plugin that turns its HUD off sends `clear`.
+The panel is one per client, so what each client shows is tracked once for all plugins (`modhud_util.CLIENT`); each plugin's own dict only says whether it showed the panel. The last write wins and replaces all three lines; a blank goes out only from a plugin that showed the panel itself. A first show (client state unknown) carries every field, so lines left by another server or plugin go. Every map load opens Join Match, which hides the panel: plugins call `reset_clients()` in the `map` hook and send again (added after the branch review, 2026-10-27).
 
 ### Rate and size
 

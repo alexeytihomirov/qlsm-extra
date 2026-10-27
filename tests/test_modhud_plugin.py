@@ -12,6 +12,13 @@ mu = import_plugin("modhud_util")
 USAGE = "usage"
 
 
+@pytest.fixture(autouse=True)
+def clean_clients():
+    mh.modhud_util.CLIENT.clear()
+    yield
+    mh.modhud_util.CLIENT.clear()
+
+
 class FakePlayer:
     def __init__(self, sid, pid):
         self.steam_id = sid
@@ -45,7 +52,8 @@ def test_hud_line_goes_to_every_human(monkeypatch):
     plugin = make_plugin(monkeypatch, a, b, bot)
     assert plugin.cmd_hud(a, ["!hud", "2", "hello", "{rl}"], None) is None
     assert len(cmds(plugin)) == 2 and cmds(plugin, 3) == []
-    assert cmds(plugin, 1)[0] == 'cs 1 "\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l2\\hello "'
+    assert cmds(plugin, 1)[0] == ('cs 1 "\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\'
+                                  '\\mod_hud_l2\\hello \\mod_hud_l3\\"')
     plugin.cmd_hud(a, ["!hud", "1", "top"], None)
     assert cmds(plugin, 1)[-1] == 'cs 1 "\\sv_pure\\1\\mod_hud_l1\\top"'
 
@@ -72,7 +80,22 @@ def test_player_loaded_gets_the_lines(monkeypatch):
     plugin = make_plugin(monkeypatch, a)
     plugin.cmd_hud(a, ["!hud", "3", "z"], None)
     plugin.handle_player_loaded(b)
-    assert cmds(plugin, 2) == ['cs 1 "\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l3\\z"']
+    assert cmds(plugin, 2) == ['cs 1 "\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\\\mod_hud_l2\\\\mod_hud_l3\\z"']
+
+
+def test_map_change_resends_to_everyone(monkeypatch):
+    a = FakePlayer(11, 1)
+    plugin = make_plugin(monkeypatch, a)
+    plugin.cmd_hud(a, ["!hud", "1", "x"], None)
+    plugin.handle_map("campgrounds", "ffa")
+    assert len(cmds(plugin, 1)) == 2 and cmds(plugin, 1)[1] == cmds(plugin, 1)[0]
+
+
+def test_map_change_without_lines_sends_nothing(monkeypatch):
+    a = FakePlayer(11, 1)
+    plugin = make_plugin(monkeypatch, a)
+    plugin.handle_map("campgrounds", "ffa")
+    assert cmds(plugin) == []
 
 
 def test_player_loaded_without_lines_sends_nothing(monkeypatch):
@@ -87,7 +110,7 @@ def test_disconnect_forgets(monkeypatch):
     plugin = make_plugin(monkeypatch, a)
     plugin.cmd_hud(a, ["!hud", "1", "x"], None)
     plugin.handle_player_disconnect(a, "left")
-    assert plugin._sent == {}
+    assert plugin._sent == {} and 1 not in mh.modhud_util.CLIENT
 
 
 def test_hudicons_lists_every_token(monkeypatch):

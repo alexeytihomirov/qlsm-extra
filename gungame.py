@@ -386,7 +386,7 @@ class gungame(minqlx.Plugin):
             if pid not in dirty:
                 continue
             fields = self._hud_fields(player) if self._hud_on(player) else modhud_util.blank()
-            if modhud_util.diff(self._hud_sent.get(pid, {}), fields):
+            if modhud_util.needs_send(self._hud_sent, pid, fields):
                 updates.append((pid, fields))
         if not updates:
             return
@@ -419,6 +419,7 @@ class gungame(minqlx.Plugin):
     def handle_player_disconnect(self, player, reason):
         try:
             self._hud_clear_now(int(player.id))
+            modhud_util.forget(int(player.id))
         except Exception:
             return
 
@@ -426,6 +427,7 @@ class gungame(minqlx.Plugin):
 
     def handle_map(self, mapname, factory):
         self._restore_fraglimit()
+        modhud_util.reset_clients()  # Join Match hid every panel; new_game resends them
 
     def _scan_items(self):
         """Free the items where the engine can (a hidden powerup would come back

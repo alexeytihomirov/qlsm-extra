@@ -8,6 +8,13 @@ pytestmark = pytest.mark.standalone
 mu = import_plugin("modhud_util")
 
 
+@pytest.fixture(autouse=True)
+def clean_clients():
+    mu.CLIENT.clear()
+    yield
+    mu.CLIENT.clear()
+
+
 class Engine:
     CS_SYSTEMINFO = 1
 
@@ -72,16 +79,63 @@ def test_command_keeps_field_order_and_cleans():
     assert cmd == 'cs 1 "\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\ab"'
 
 
+FULL_A = 'cs 1 "\\mod_hud_on\\1\\mod_hud_l1\\a\\mod_hud_l2\\\\mod_hud_l3\\"'
+
+
 def test_send_records_show_and_drops_on_blank():
     engine, sent = Engine(), {}
-    mu.send(engine, sent, 3, mu.fields(["a"]), "\\sv_pure\\1")
-    assert sent[3] == mu.fields(["a"])
-    assert engine.commands[-1][1].endswith('\\mod_hud_on\\1\\mod_hud_l1\\a"')
-    mu.send(engine, sent, 3, mu.fields(["a"]), "\\sv_pure\\1")
+    mu.send(engine, sent, 3, mu.fields(["a"]), "")
+    assert sent[3] == mu.fields(["a"]) and mu.CLIENT[3] == mu.fields(["a"])
+    mu.send(engine, sent, 3, mu.fields(["a"]), "")
     assert len(engine.commands) == 1  # nothing changed
-    mu.send(engine, sent, 3, mu.blank(), "\\sv_pure\\1")
+    mu.send(engine, sent, 3, mu.fields(["b"]), "")
+    assert engine.commands[-1][1] == 'cs 1 "\\mod_hud_l1\\b"'
+    mu.send(engine, sent, 3, mu.blank(), "")
     assert 3 not in sent
-    assert engine.commands[-1][1].endswith('\\mod_hud_on\\0\\mod_hud_l1\\"')
+    assert engine.commands[-1][1] == 'cs 1 "\\mod_hud_on\\0\\mod_hud_l1\\"'
+
+
+def test_first_show_sends_every_field():
+    # Lines left by another server or plugin must not show next to ours.
+    engine = Engine()
+    mu.send(engine, {}, 3, mu.fields(["a"]), "")
+    assert engine.commands == [(3, FULL_A)]
+
+
+def test_reset_clients_resends_in_full():
+    # Join Match hides the panel on every map load: what the client shows is unknown again.
+    engine, sent = Engine(), {}
+    mu.send(engine, sent, 3, mu.fields(["a"]), "")
+    mu.reset_clients()
+    mu.send(engine, sent, 3, mu.fields(["a"]), "")
+    assert engine.commands == [(3, FULL_A), (3, FULL_A)]
+    assert mu.needs_send(sent, 3, mu.fields(["a"])) is False
+
+
+def test_two_plugins_share_the_client_state():
+    engine, game, admin = Engine(), {}, {}
+    mu.send(engine, game, 3, mu.fields(["x"]), "")
+    mu.send(engine, admin, 3, mu.fields(["", "hello"]), "")
+    assert engine.commands[-1][1] == 'cs 1 "\\mod_hud_l1\\\\mod_hud_l2\\hello"'
+    mu.send(engine, game, 3, mu.fields(["x"]), "")
+    assert engine.commands[-1][1] == 'cs 1 "\\mod_hud_l1\\x\\mod_hud_l2\\"'
+
+
+def test_blank_from_a_plugin_that_never_showed_sends_nothing():
+    engine = Engine()
+    mu.send(engine, {}, 3, mu.fields(["x"]), "")
+    mu.send(engine, {}, 3, mu.blank(), "")
+    assert len(engine.commands) == 1
+
+
+def test_long_command_is_cut_under_the_engine_limit():
+    info = "\\k\\" + "v" * 700
+    engine = Engine()
+    mu.send(engine, {}, 3, mu.fields(["Ж" * 60] * 3), info)
+    cmd = engine.commands[0][1]
+    assert len(cmd.encode("utf-8")) + 1 <= mu.MAX_COMMAND_BYTES
+    assert cmd.startswith('cs 1 "' + info + "\\mod_hud_on\\1\\mod_hud_l1\\")
+    assert mu.CLIENT[3]["mod_hud_l1"] in cmd
 
 
 def test_send_blank_to_never_shown_sends_nothing():
@@ -93,8 +147,26 @@ def test_send_blank_to_never_shown_sends_nothing():
 @pytest.mark.parametrize("engine", [Engine(refuse=True), Engine(raise_=True)])
 def test_send_refused_marks_full_resend(engine):
     sent = {}
-    mu.send(engine, sent, 3, mu.fields(["a"]), "")
-    assert sent[3] == dict.fromkeys(mu.FIELDS)
+    mu.send(Engine(), sent, 3, mu.fields(["a"]), "")
+    mu.send(engine, sent, 3, mu.fields(["b"]), "")
+    assert mu.CLIENT[3] == dict.fromkeys(mu.FIELDS)
+    assert mu.needs_send(sent, 3, mu.fields(["b"])) is True
     ok = Engine()
     mu.send(ok, sent, 3, mu.fields(["a"]), "")
-    assert ok.commands[0][1] == 'cs 1 "\\mod_hud_on\\1\\mod_hud_l1\\a\\mod_hud_l2\\\\mod_hud_l3\\"'
+    assert ok.commands[0][1] == FULL_A
+
+
+def test_refused_blank_is_retried():
+    sent = {}
+    mu.send(Engine(), sent, 3, mu.fields(["a"]), "")
+    mu.send(Engine(refuse=True), sent, 3, mu.blank(), "")
+    ok = Engine()
+    mu.send(ok, sent, 3, mu.blank(), "")
+    assert ok.commands[0][1] == 'cs 1 "\\mod_hud_on\\0\\mod_hud_l1\\\\mod_hud_l2\\\\mod_hud_l3\\"'
+    assert 3 not in sent
+
+
+def test_forget_drops_the_client():
+    mu.send(Engine(), {}, 3, mu.fields(["a"]), "")
+    mu.forget(3)
+    assert 3 not in mu.CLIENT
