@@ -57,17 +57,26 @@ def test_nine_panels_with_three_lines():
         assert len(its) == 3
         for n, item in enumerate(its, 1):
             assert 'cvar "mod_hud_l%d"' % n in item
-            assert 'cvarTest2 "mod_hud_on"' in item and 'showCvar2 { "1" }' in item
+            assert 'cvarTest2 "mod_hud_on"' in item
             assert "textscale .25" in item
 
 
-def test_position_tests_are_show_tests_only():
+def test_position_tests():
+    # Live (#26, 2026-10-27): an empty value never matches a showCvar list, so top (the default
+    # for an unset mod_hud_pos) hides on every other place and on mod_hud_on 0; a hide test next
+    # to a show test breaks the item, so top uses hide tests only and the rest show tests only.
     blocks = menu_blocks(bm.build_menu(STOCK, TEMPLATE))
-    assert not any("hideCvar" in text for text in blocks.values())
+    others = " ; ".join('"%s"' % p for p in POSITIONS if p != "top") + ' ; "off"'
     for pos in POSITIONS:
-        want = 'showCvar { "" ; "top" }' if pos == "top" else 'showCvar { "%s" }' % pos
         text = blocks["modhud_" + pos]
-        assert text.count('cvarTest "mod_hud_pos"') == text.count(want) == 3
+        assert text.count('cvarTest "mod_hud_pos"') == text.count('cvarTest2 "mod_hud_on"') == 3
+        if pos == "top":
+            assert text.count("hideCvar { %s }" % others) == 3
+            assert text.count('hideCvar2 { "0" }') == 3
+            assert "showCvar" not in text
+        else:
+            assert text.count('showCvar { "%s" }' % pos) == text.count('showCvar2 { "1" }') == 3
+            assert "hideCvar" not in text
 
 
 def menu_rect(block):

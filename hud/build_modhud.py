@@ -66,25 +66,29 @@ LINE_ITEM = """
 			forecolor 1 1 1 1
 			visible 1
 			decoration
-			cvarTest "mod_hud_pos"
-			showCvar {{ {values} }}
-			cvarTest2 "mod_hud_on"
-			showCvar2 {{ "1" }}
+			{tests}
 		}}
 """
 
 
-def pos_values(pos):
-    """Unset mod_hud_pos (empty string) means top. Show tests only: hideCvar next to showCvar2
-    broke an item live (Gun Game panel, 2026-10-27)."""
-    return '"" ; "top"' if pos == "top" else '"{}"'.format(pos)
+def pos_tests(pos):
+    """Item tests for one place. Live (#26, 2026-10-27): an empty value never matches a list, so
+    top, the place for an unset mod_hud_pos, hides on every other place (and on "off" or
+    mod_hud_on 0); a hide test next to a show test breaks the item, so top uses hide tests only
+    and every other place show tests only."""
+    if pos == "top":
+        others = " ; ".join('"{}"'.format(p) for p in POSITIONS if p != "top") + ' ; "off"'
+        return ('cvarTest "mod_hud_pos"\n\t\t\thideCvar {{ {} }}\n'
+                '\t\t\tcvarTest2 "mod_hud_on"\n\t\t\thideCvar2 {{ "0" }}').format(others)
+    return ('cvarTest "mod_hud_pos"\n\t\t\tshowCvar {{ "{}" }}\n'
+            '\t\t\tcvarTest2 "mod_hud_on"\n\t\t\tshowCvar2 {{ "1" }}').format(pos)
 
 
 def expand(template, pos):
     x, y, align, wide = POSITIONS[pos]
     left = {"left": x, "center": x - ITEM_WIDTH // 2, "right": x - ITEM_WIDTH}[align]
     lines = "".join(LINE_ITEM.format(n=n, y=(n - 1) * LINE_STEP, w=ITEM_WIDTH, h=LINE_STEP,
-                                     values=pos_values(pos))
+                                     tests=pos_tests(pos))
                     for n in (1, 2, 3))
     return (template
             .replace("@LINES@", lines)
