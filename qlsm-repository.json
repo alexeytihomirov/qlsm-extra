@@ -116,7 +116,7 @@
       "depends_on": [
         "modhud_util.py"
       ],
-      "sha256": "2ec83611aae7f912ed9cbe822790f17ea62da3c7be06eab435e92659111838f0"
+      "sha256": "23312d5a5d830c60902a0dfae467176ecdb5ffdab46862125887efddf5674dc3"
     },
     {
       "filename": "modhud_util.py",

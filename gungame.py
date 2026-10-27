@@ -204,11 +204,16 @@ def hud_centre(ladder, state):
         head = "To ^3{}^7 {}/{} frags".format(WEAPON_LABELS[ladder[step + 1][0]], frags, need)
     else:
         head = "To win: {}/{} frags".format(frags, need)
-    names = []
+    # The ladder: dots between names, the current one yellow between arrows and set off by two
+    # spaces, done ones green; the gauntlet is just "G" here.
+    ladder_text = ""
     for i, (weapon, _) in enumerate(ladder):
-        label = WEAPON_LABELS[weapon]
-        names.append("^2%s^7" % label if i < step else "^3[%s]^7" % label if i == step else label)
-    return head + "\n" + " · ".join(names)
+        label = "G" if weapon == "g" else WEAPON_LABELS[weapon]
+        if i:
+            ladder_text += "  " if step in (i - 1, i) else " · "
+        ladder_text += ("^2%s^7" % label if i < step
+                        else "^3►%s◄^7" % label if i == step else label)
+    return head + "\n" + ladder_text
 
 
 def hud_fields(ladder, state):
