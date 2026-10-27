@@ -113,7 +113,27 @@
       "runtime": "minqlxtended",
       "label": "Gun Game",
       "description": "FFA Gun Game: every frag moves the killer one weapon down a configurable ladder, a frag on the last step wins the match. Map weapons and powerups are removed, the instance needs g_infiniteAmmo 1.",
-      "sha256": "2af5a1928426e1abf3afd0369c470be949ae447b7e70e66594b5de719f877482"
+      "depends_on": [
+        "modhud_util.py"
+      ],
+      "sha256": "94314ead85d4af6543cffdee7b635a20dc52d93da32552b02cdb9418e9b9d434"
+    },
+    {
+      "filename": "modhud_util.py",
+      "runtime": "minqlxtended",
+      "label": "Mod HUD helper",
+      "description": "Helper of plugins that use the mod HUD panel, downloaded with them. Not a plugin.",
+      "sha256": "863780698ec85f99017ae9d959296abe6ac4524fbdad8dc31f8d3bbda3787c7f"
+    },
+    {
+      "filename": "modhud.py",
+      "runtime": "minqlxtended",
+      "label": "Mod HUD",
+      "description": "Writes the shared mod HUD panel (three lines with icons, players need zz_modhud.pk3) from chat: !hud sets a line for everyone, !hudicons lists the icon tokens. Other plugins (Gun Game) draw on the panel without this one.",
+      "depends_on": [
+        "modhud_util.py"
+      ],
+      "sha256": "0c87505c0828568a7dd3a963e9bcf3a127c45ddbfb49025ae266d91dd79a5aaa"
     }
   ],
   "addons": [

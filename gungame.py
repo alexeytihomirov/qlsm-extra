@@ -25,14 +25,19 @@
 #   qlx_gunGameSpawnArmor "100"                  armor on every spawn (0 = leave the engine's)
 #   qlx_gunGameStepNotify "print"                own step news: print, center, print,center, off
 #   qlx_gunGameLeaderNotify "print"              leader news to everyone, same values
-#   qlx_gunGameHud "1"                           panel on the player's screen through client cvars
-#                                                mod_gg_* (needs our ui/intro.menu, see hud/README.md);
+#   qlx_gunGameHud "1"                           line 1 of the shared mod HUD panel (modhud_util.py,
+#                                                needs zz_modhud.pk3, see hud/README.md);
 #                                                while on, a step up is not centre-printed
 
 try:
     import minqlxtended as minqlx
 except ImportError:
     import minqlx
+
+try:
+    import modhud_util
+except ImportError:
+    from . import modhud_util
 
 # Field order of minqlxtended.Weapons, weapon_t minus WP_NONE.
 WEAPON_FIELDS = ("g", "mg", "sg", "gl", "rl", "lg", "rg", "pg", "bfg", "gh", "ng", "pl", "cg", "hmg", "hands")
@@ -171,37 +176,19 @@ def win_text(name):
     return "^3{}^7 wins Gun Game!".format(name)
 
 
-# --- HUD panel (client cvars read by our ui/intro.menu) ----------------------
+# --- HUD panel (line 1 of the shared mod HUD panel, modhud_util.py) ----------
 
-HUD_FIELDS = ("mod_gg_on", "mod_gg_next", "mod_gg_prog")
+def hud_line(ladder, state):
+    """The next weapon's icon (none on the last step) and the frags towards it."""
+    step, frags = state
+    progress = "{}/{}".format(frags, ladder[step][1])
+    if step + 1 < len(ladder):
+        return "{%s} %s" % (ladder[step + 1][0], progress)
+    return progress
 
 
 def hud_fields(ladder, state):
-    """The next weapon (none on the last step) and the frags towards it."""
-    step, frags = state
-    return {
-        "mod_gg_on": "1",
-        "mod_gg_next": ladder[step + 1][0] if step + 1 < len(ladder) else "",
-        "mod_gg_prog": "{}/{}".format(frags, ladder[step][1]),
-    }
-
-
-def hud_blank():
-    return dict.fromkeys(HUD_FIELDS, "")
-
-
-def hud_diff(sent, fields):
-    return {k: v for k, v in fields.items() if sent.get(k, "") != v}
-
-
-def hud_clean(value):
-    return str(value).replace("\\", "").replace('"', "").replace(";", "")
-
-
-def hud_command(cs_index, systeminfo, fields):
-    """One cs command that sets *fields* as client cvars on top of the current systeminfo."""
-    pairs = "".join("\\{}\\{}".format(k, hud_clean(fields[k])) for k in HUD_FIELDS if k in fields)
-    return 'cs {} "{}{}"'.format(cs_index, systeminfo, pairs)
+    return modhud_util.fields([hud_line(ladder, state)])
 
 
 # --- plugin ------------------------------------------------------------------
@@ -398,8 +385,8 @@ class gungame(minqlx.Plugin):
             pid = int(player.id)
             if pid not in dirty:
                 continue
-            fields = self._hud_fields(player) if self._hud_on(player) else hud_blank()
-            if hud_diff(self._hud_sent.get(pid, {}), fields):
+            fields = self._hud_fields(player) if self._hud_on(player) else modhud_util.blank()
+            if modhud_util.diff(self._hud_sent.get(pid, {}), fields):
                 updates.append((pid, fields))
         if not updates:
             return
@@ -410,21 +397,7 @@ class gungame(minqlx.Plugin):
     _hud_flush_soon = minqlx.next_frame(_hud_flush)
 
     def _hud_send(self, player_id, fields, info):
-        sent = self._hud_sent.get(player_id, {})
-        changed = hud_diff(sent, fields)
-        if not changed:
-            return
-        try:
-            delivered = minqlx.send_server_command(player_id, hud_command(minqlx.CS_SYSTEMINFO, info, changed))
-        except Exception:
-            delivered = False  # the player left
-        if delivered is False:
-            # Still loading (not CS_ACTIVE): what the client shows is unknown, resend it all.
-            self._hud_sent[player_id] = dict.fromkeys(HUD_FIELDS)
-        elif fields.get("mod_gg_on"):
-            self._hud_sent[player_id] = dict(fields)
-        else:
-            self._hud_sent.pop(player_id, None)
+        modhud_util.send(minqlx, self._hud_sent, player_id, fields, info)
 
     def _hud_clear_now(self, player_id):
         self._hud_dirty.discard(player_id)
@@ -435,7 +408,7 @@ class gungame(minqlx.Plugin):
         except Exception:
             self._hud_sent.pop(player_id, None)
             return
-        self._hud_send(player_id, hud_blank(), info)
+        self._hud_send(player_id, modhud_util.blank(), info)
 
     def handle_team_switch(self, player, old_team, new_team):
         self._hud_mark(player)

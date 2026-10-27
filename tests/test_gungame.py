@@ -106,19 +106,13 @@ def test_texts():
 
 # --- HUD panel -----------------------------------------------------------
 
-def test_hud_fields_next_weapon_and_progress():
-    assert gg.HUD_FIELDS == ("mod_gg_on", "mod_gg_next", "mod_gg_prog")
-    assert gg.hud_fields(L3, (0, 1)) == {"mod_gg_on": "1", "mod_gg_next": "lg", "mod_gg_prog": "1/2"}
-    assert gg.hud_fields(L3, (1, 0))["mod_gg_next"] == "g"
+def test_hud_line_next_weapon_and_progress():
+    assert gg.hud_line(L3, (0, 1)) == "{lg} 1/2"
+    assert gg.hud_line(L3, (1, 0)) == "{g} 0/1"
     # Last step: no next weapon, progress only.
-    assert gg.hud_fields(L3, (2, 0)) == {"mod_gg_on": "1", "mod_gg_next": "", "mod_gg_prog": "0/1"}
+    assert gg.hud_line(L3, (2, 0)) == "0/1"
 
 
-def test_hud_diff_and_blank():
-    assert gg.hud_diff({}, gg.hud_blank()) == {}
-    assert gg.hud_diff({"mod_gg_on": "1", "mod_gg_next": "rl"}, {"mod_gg_on": "1", "mod_gg_next": "lg"}) == {"mod_gg_next": "lg"}
-
-
-def test_hud_command_cleans_values_and_keeps_order():
-    cmd = gg.hud_command(1, "\\sv_pure\\1", {"mod_gg_prog": 'a"b\\c;d 2/3', "mod_gg_on": "1"})
-    assert cmd == 'cs 1 "\\sv_pure\\1\\mod_gg_on\\1\\mod_gg_prog\\abcd 2/3"'
+def test_hud_fields_are_the_shared_panel():
+    assert gg.hud_fields(L3, (0, 1)) == {"mod_hud_on": "1", "mod_hud_l1": " 1/2",
+                                         "mod_hud_l2": "", "mod_hud_l3": ""}

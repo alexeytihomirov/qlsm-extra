@@ -45,6 +45,8 @@ DEFAULT_PLUGINS = [
     'demo_stream_resync_hold.py',
     'item_roulette.py',
     'gungame.py',
+    'modhud_util.py',
+    'modhud.py',
 ]
 
 # filename -> folder (relative to this script) that must be downloaded

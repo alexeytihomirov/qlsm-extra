@@ -619,12 +619,12 @@ def test_kill_sends_one_command_per_player_with_changed_fields(monkeypatch):
     plugin.handle_kill(b, a, "ROCKET")
     plugin._hud_flush()
     assert len(hud_cmds(plugin)) == 2
-    assert hud_cmds(plugin, 1)[0].endswith('\\mod_gg_on\\1\\mod_gg_next\\lg\\mod_gg_prog\\1/2"')
-    assert hud_cmds(plugin, 2)[0].endswith('\\mod_gg_on\\1\\mod_gg_next\\lg\\mod_gg_prog\\0/2"')
+    assert hud_cmds(plugin, 1)[0].endswith('\\mod_hud_on\\1\\mod_hud_l1\\ 1/2"')
+    assert hud_cmds(plugin, 2)[0].endswith('\\mod_hud_on\\1\\mod_hud_l1\\ 0/2"')
     plugin._hud_flush()
     plugin.handle_kill(b, a, "ROCKET")  # A steps up
     plugin._hud_flush()
-    assert hud_cmds(plugin, 1)[1].endswith('"\\sv_pure\\1\\mod_gg_next\\g\\mod_gg_prog\\0/1"')
+    assert hud_cmds(plugin, 1)[1].endswith('"\\sv_pure\\1\\mod_hud_l1\\ 0/1"')
     assert len(hud_cmds(plugin, 2)) == 1  # nothing changed for B
 
 
@@ -664,10 +664,10 @@ def test_spectator_and_game_end_clear(monkeypatch):
     a.team = "spectator"
     plugin.handle_team_switch(a, "free", "spectator")
     plugin._hud_flush()
-    assert "mod_gg_on\\\\" in hud_cmds(plugin, 1)[-1] and 1 not in plugin._hud_sent
+    assert "mod_hud_on\\0" in hud_cmds(plugin, 1)[-1] and 1 not in plugin._hud_sent
     plugin.handle_game_end(False)
     plugin._hud_flush()
-    assert "mod_gg_on\\\\" in hud_cmds(plugin, 2)[-1] and plugin._hud_sent == {}
+    assert "mod_hud_on\\0" in hud_cmds(plugin, 2)[-1] and plugin._hud_sent == {}
     assert len(hud_cmds(plugin, 1)) == 2  # A was already clear
 
 
@@ -702,7 +702,7 @@ def test_hud_off_mid_match_clears_on_next_event(monkeypatch):
     plugin.settings["qlx_gunGameHud"] = "0"
     plugin.handle_player_spawn(a)
     plugin._hud_flush()
-    assert "mod_gg_on\\\\" in hud_cmds(plugin, 1)[-1]
+    assert "mod_hud_on\\0" in hud_cmds(plugin, 1)[-1]
 
 
 def test_hud_off_keeps_centre_step_print(monkeypatch):
@@ -726,7 +726,7 @@ def test_disconnect_clears_at_once(monkeypatch):
     plugin.handle_kill(b, a, "ROCKET")
     plugin._hud_flush()
     plugin.handle_player_disconnect(a, "left")
-    assert "mod_gg_on\\\\" in hud_cmds(plugin, 1)[-1] and 1 not in plugin._hud_sent
+    assert "mod_hud_on\\0" in hud_cmds(plugin, 1)[-1] and 1 not in plugin._hud_sent
 
 
 def test_send_to_a_loading_client_is_retried_in_full_when_loaded(monkeypatch):
@@ -742,7 +742,7 @@ def test_send_to_a_loading_client_is_retried_in_full_when_loaded(monkeypatch):
     plugin.handle_player_loaded(a)
     plugin._hud_flush()
     assert hud_cmds(plugin, 1)[-1].endswith(
-        '"\\sv_pure\\1\\mod_gg_on\\1\\mod_gg_next\\lg\\mod_gg_prog\\0/2"')
+        '"\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\ 0/2\\mod_hud_l2\\\\mod_hud_l3\\"')
 
 
 def test_blank_to_a_loading_client_is_retried(monkeypatch):
@@ -757,4 +757,4 @@ def test_blank_to_a_loading_client_is_retried(monkeypatch):
     plugin.engine.loading.discard(1)
     plugin.handle_player_loaded(a)
     plugin._hud_flush()
-    assert "mod_gg_on\\\\" in hud_cmds(plugin, 1)[-1] and plugin._hud_sent == {}
+    assert "mod_hud_on\\0" in hud_cmds(plugin, 1)[-1] and plugin._hud_sent == {}
