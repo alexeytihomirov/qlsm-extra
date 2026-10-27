@@ -102,3 +102,30 @@ def test_texts():
     assert gg.leader_text("Bob", 2, 3) == "^3Bob^7 leads: step 2/3"
     assert gg.last_step_text("Bob") == "^3Bob^7: last step!"
     assert gg.win_text("Bob") == "^3Bob^7 wins Gun Game!"
+
+
+# --- HUD panel -----------------------------------------------------------
+
+def test_hud_fields_first_middle_last():
+    assert gg.hud_fields(L3, (0, 1), "You lead") == {
+        "mod_gg_on": "1", "mod_gg_w": "rl", "mod_gg_next": "lg",
+        "mod_gg_step": "Step 1/3   1/2", "mod_gg_lead": "You lead"}
+    assert gg.hud_fields(L3, (1, 0), "")["mod_gg_next"] == "g"
+    last = gg.hud_fields(L3, (2, 0), "")
+    assert last["mod_gg_w"] == "g" and last["mod_gg_next"] == "" and last["mod_gg_step"] == "Step 3/3   0/1"
+
+
+def test_lead_text():
+    assert gg.lead_text("1", None, None, 0, 3) == ""
+    assert gg.lead_text("1", "1", "A", 2, 3) == "You lead"
+    assert gg.lead_text("1", "2", "Bob", 2, 3) == "Leader: ^3Bob^7 2/3"
+
+
+def test_hud_diff_and_blank():
+    assert gg.hud_diff({}, gg.hud_blank()) == {}
+    assert gg.hud_diff({"mod_gg_on": "1", "mod_gg_w": "rl"}, {"mod_gg_on": "1", "mod_gg_w": "lg"}) == {"mod_gg_w": "lg"}
+
+
+def test_hud_command_cleans_values_and_keeps_order():
+    cmd = gg.hud_command(1, "\\sv_pure\\1", {"mod_gg_lead": 'Leader: a"b\\c;d 2/3', "mod_gg_on": "1"})
+    assert cmd == 'cs 1 "\\sv_pure\\1\\mod_gg_on\\1\\mod_gg_lead\\Leader: abcd 2/3"'

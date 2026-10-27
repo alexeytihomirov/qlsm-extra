@@ -167,6 +167,49 @@ def win_text(name):
     return "^3{}^7 wins Gun Game!".format(name)
 
 
+# --- HUD panel (client cvars read by our ui/intro.menu) ----------------------
+
+HUD_FIELDS = ("mod_gg_on", "mod_gg_w", "mod_gg_next", "mod_gg_step", "mod_gg_lead")
+
+
+def hud_fields(ladder, state, lead):
+    step, frags = state
+    key, need = ladder[step]
+    return {
+        "mod_gg_on": "1",
+        "mod_gg_w": key,
+        "mod_gg_next": ladder[step + 1][0] if step + 1 < len(ladder) else "",
+        "mod_gg_step": "Step {}/{}   {}/{}".format(step + 1, len(ladder), frags, need),
+        "mod_gg_lead": lead,
+    }
+
+
+def lead_text(own_key, leader_key, leader_name, leader_step, total):
+    if leader_key is None:
+        return ""
+    if leader_key == own_key:
+        return "You lead"
+    return "Leader: ^3{}^7 {}/{}".format(leader_name, leader_step, total)
+
+
+def hud_blank():
+    return dict.fromkeys(HUD_FIELDS, "")
+
+
+def hud_diff(sent, fields):
+    return {k: v for k, v in fields.items() if sent.get(k, "") != v}
+
+
+def hud_clean(value):
+    return str(value).replace("\\", "").replace('"', "").replace(";", "")
+
+
+def hud_command(cs_index, systeminfo, fields):
+    """One cs command that sets *fields* as client cvars on top of the current systeminfo."""
+    pairs = "".join("\\{}\\{}".format(k, hud_clean(fields[k])) for k in HUD_FIELDS if k in fields)
+    return 'cs {} "{}{}"'.format(cs_index, systeminfo, pairs)
+
+
 # --- plugin ------------------------------------------------------------------
 
 EF_NODRAW = getattr(minqlx, "EF_NODRAW", 0x80)
