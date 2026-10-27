@@ -130,8 +130,16 @@ def mu_fields(ladder):
     return gg.hud_fields(ladder, (4, 1))
 
 
+def test_centre_text_for_players_without_the_panel():
+    assert gg.hud_centre(L3, (0, 1)) == "To ^3LG^7 1/2 frags"
+    assert gg.hud_centre(L3, (1, 0)) == "To ^3GAUNTLET^7 0/1 frags"
+    assert gg.hud_centre(L3, (2, 0)) == "To win: 0/1 frags"
+    assert gg.hud_fields(L3, (0, 1))["centre"] == "To ^3LG^7 1/2 frags"
+
+
 def test_hud_fields_are_the_shared_panel():
     assert gg.hud_fields(L3, (0, 1)) == {
         "mod_hud_on": "1", "mod_hud_l1": "^3^7 " + S12,
         # The shared helper parts touching icons with a hair space (U+200A).
-        "mod_hud_l2": "^7┃ ^3 ^7┃  ", "mod_hud_l3": ""}
+        "mod_hud_l2": "^7┃ ^3 ^7┃  ", "mod_hud_l3": "",
+        "centre": "To ^3LG^7 1/2 frags"}

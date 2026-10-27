@@ -196,8 +196,18 @@ def hud_ladder(ladder, step):
     return ("^2" + done if done else "") + current + left
 
 
+def hud_centre(ladder, state):
+    """What a player without our files reads in the centre instead of the panel."""
+    step, frags = state
+    need = ladder[step][1]
+    if step + 1 < len(ladder):
+        return "To ^3{}^7 {}/{} frags".format(WEAPON_LABELS[ladder[step + 1][0]], frags, need)
+    return "To win: {}/{} frags".format(frags, need)
+
+
 def hud_fields(ladder, state):
-    return modhud_util.fields([hud_line(ladder, state), hud_ladder(ladder, state[0])])
+    return modhud_util.fields([hud_line(ladder, state), hud_ladder(ladder, state[0])],
+                              centre=hud_centre(ladder, state))
 
 
 # --- plugin ------------------------------------------------------------------

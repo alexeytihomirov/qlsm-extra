@@ -116,14 +116,14 @@
       "depends_on": [
         "modhud_util.py"
       ],
-      "sha256": "85a88be030e7d7eaefdeba985c8404f4281fb4ded86d468bb09b465f319da89b"
+      "sha256": "f9d1901fa34f4f7faa6fd0c39590fcaa93312b462a7e199a8820c59975ca8355"
     },
     {
       "filename": "modhud_util.py",
       "runtime": "minqlxtended",
       "label": "Mod HUD helper",
       "description": "Helper of plugins that use the mod HUD panel, downloaded with them. Not a plugin.",
-      "sha256": "9b6556759901b1540065ca55aeb2989dd947568f9cfeb95d1cda4f9b18b89230"
+      "sha256": "c07e3076479f7aa6e2d20571d90b89bb5e7db4573b8c4e5df636c065016b87f8"
     },
     {
       "filename": "modhud.py",

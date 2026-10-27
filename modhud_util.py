@@ -93,11 +93,15 @@ def clean(value):
     return str(value).replace("\\", "").replace('"', "").replace(";", "")
 
 
-def fields(lines):
-    """The panel showing up to three *lines* (tokens expanded); missing lines are empty."""
+def fields(lines, centre=None):
+    """The panel showing up to three *lines* (tokens expanded); missing lines are empty.
+    *centre*: what players without our files get as a centre print instead of the lines."""
     lines = [fit(clean(_TOUCHING.sub(r"\1" + GAP + r"\2", expand(line)))) for line in list(lines)[:3]]
     lines += [""] * (3 - len(lines))
-    return dict(zip(FIELDS, ["1"] + lines))
+    out = dict(zip(FIELDS, ["1"] + lines))
+    if centre is not None:
+        out["centre"] = fit(clean(expand(centre)))
+    return out
 
 
 def blank():
@@ -107,7 +111,7 @@ def blank():
 def diff(sent, new):
     """Fields of *new* that differ from *sent*; a field never sent counts as blank."""
     empty = blank()
-    return {k: v for k, v in new.items() if sent.get(k, empty.get(k)) != v}
+    return {k: new[k] for k in FIELDS if k in new and sent.get(k, empty[k]) != new[k]}
 
 
 def command(cs_index, systeminfo, changed):
@@ -190,10 +194,14 @@ def _centre(engine, cid, new):
     """Players without our files get the lines as a centre print, once per change."""
     if cid not in INGAME or cid in HAS_PANEL:
         return
-    lines = [new.get(k, "") for k in FIELDS[1:]] if new.get("mod_hud_on") == "1" else []
-    while lines and not lines[-1]:
-        lines.pop()
-    text = plain("\n".join(lines))
+    showing = new.get("mod_hud_on") == "1"
+    if showing and "centre" in new:
+        text = plain(new["centre"])
+    else:
+        lines = [new.get(k, "") for k in FIELDS[1:]] if showing else []
+        while lines and not lines[-1]:
+            lines.pop()
+        text = plain("\n".join(lines))
     if not text:
         CENTRE.pop(cid, None)
         return
@@ -221,7 +229,7 @@ def _changes(sent, cid, new):
         return {}  # never shown by this plugin: someone else's panel is not ours to clear
     known = CLIENT.get(cid)
     if known is None:
-        return dict(new) if showing or cid in sent else {}
+        return {k: new[k] for k in FIELDS if k in new} if showing or cid in sent else {}
     return diff(known, new)
 
 

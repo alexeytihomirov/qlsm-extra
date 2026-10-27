@@ -95,6 +95,18 @@ def test_centre_copy_goes_out_after_the_frag_obituary():
     assert engine.commands == [(3, 'cp "a"')]
 
 
+def test_own_centre_text_replaces_the_lines():
+    engine, sent = Engine(), {}
+    mu.loaded(3)
+    mu.joined(3)
+    new = mu.fields(["{rl} 1/2", "ladder"], centre="To ^3RL^7 1/2 frags")
+    mu.send(engine, sent, 3, new, "")
+    assert engine.commands == [(3, 'cp "To ^3RL^7 1/2 frags"')]
+    # The centre text is no client cvar: it never reaches a cs and never makes one differ.
+    assert mu.diff(mu.fields(["a"]), mu.fields(["a"], centre="x")) == {}
+    assert "centre" not in mu.command(1, "", mu.fields(["a"], centre="x"))
+
+
 def test_no_centre_copy_with_the_panel():
     engine, sent = Engine(), {}
     mu.loaded(3)

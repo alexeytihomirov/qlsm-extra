@@ -614,7 +614,7 @@ def panel(state, keys=None):
 
 def centre(state):
     f = gg.hud_fields(LAD, state)
-    return 'cp "%s"' % gg.modhud_util.plain("\n".join([f["mod_hud_l1"], f["mod_hud_l2"]]))
+    return 'cp "%s"' % gg.modhud_util.plain(f["centre"])
 
 
 @pytest.fixture(autouse=True)
