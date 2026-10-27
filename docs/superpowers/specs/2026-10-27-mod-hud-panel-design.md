@@ -95,9 +95,9 @@ Shipped with every plugin that uses it (`"depends_on": ["modhud_util.py"]` in th
 - `clean(value)` - drops `\`, `"`, `;`; `fit(value)` - cuts a line at 120 bytes of UTF-8 on a character boundary.
 - `diff(sent, new)`, `command(cs_index, systeminfo, changed)`.
 
-And one small stateful class used from the game thread only:
+And one sender used from the game thread only, over a dict the calling plugin owns (client id -> fields last sent), so each plugin keeps its own scheduling (Gun Game's dirty set and next-frame flush stay):
 
-- `Panel()` keeps what each client was last sent. `show(cid, lines)`, `clear(cid)`, `forget(cid)` (on disconnect), `resend(cid)` (on `player_loaded`). Sends one `cs` per call with only the changed fields; a client that is not active yet (`send_server_command` returns False) is marked to get everything again, as Gun Game does today.
+- `send(engine, sent, cid, new, systeminfo)` sends one `cs` with only the fields that differ from `sent[cid]` (a missing entry counts as blank, so a never-shown player gets no clear). Delivered show: records it; delivered blank: drops the entry; refused (client not active yet, `send_server_command` False or raising): marks the entry unknown so the next send carries every field, as Gun Game does today.
 
 ### `modhud.py` (plugin)
 
@@ -121,7 +121,7 @@ Send on events; a countdown at most once a second. One command carries the fresh
 
 ## Gun Game on the panel
 
-- `gungame.py` uses `modhud_util.Panel`; line 1 = `{<next weapon>} <frags>/<needed>`, on the last step `<frags>/<needed>`. Lines 2 and 3 stay empty (room for later).
+- `gungame.py` builds its fields with `modhud_util.fields` and sends with `modhud_util.send`; line 1 = `{<next weapon>} <frags>/<needed>`, on the last step `<frags>/<needed>`. Lines 2 and 3 stay empty (room for later).
 - Removed: `mod_gg_on`, `mod_gg_next`, `mod_gg_prog`, `mod_gg_pos`, `hud/gungame.menu`, `hud/build_intro_menu.py`. `qlx_gunGameHud` stays as the switch. `gungame.ql-plugin.json` gets `depends_on`.
 - Players who set `mod_gg_pos` set `mod_hud_pos` instead (README note).
 
