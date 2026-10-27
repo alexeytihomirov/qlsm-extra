@@ -131,10 +131,11 @@ def mu_fields(ladder):
 
 
 def test_centre_text_for_players_without_the_panel():
-    assert gg.hud_centre(L3, (0, 1)) == "To ^3LG^7 1/2 frags"
-    assert gg.hud_centre(L3, (1, 0)) == "To ^3GAUNTLET^7 0/1 frags"
-    assert gg.hud_centre(L3, (2, 0)) == "To win: 0/1 frags"
-    assert gg.hud_fields(L3, (0, 1))["centre"] == "To ^3LG^7 1/2 frags"
+    # Line 2: the ladder as names split by a dot, done in green, the current one yellow in brackets.
+    assert gg.hud_centre(L3, (0, 1)) == "To ^3LG^7 1/2 frags\n^3[RL]^7 · LG · GAUNTLET"
+    assert gg.hud_centre(L3, (1, 0)) == "To ^3GAUNTLET^7 0/1 frags\n^2RL^7 · ^3[LG]^7 · GAUNTLET"
+    assert gg.hud_centre(L3, (2, 0)) == "To win: 0/1 frags\n^2RL^7 · ^2LG^7 · ^3[GAUNTLET]^7"
+    assert gg.hud_fields(L3, (0, 1))["centre"] == gg.hud_centre(L3, (0, 1))
 
 
 def test_hud_fields_are_the_shared_panel():
@@ -142,4 +143,4 @@ def test_hud_fields_are_the_shared_panel():
         "mod_hud_on": "1", "mod_hud_l1": "^3^7 " + S12,
         # The shared helper parts touching icons with a hair space (U+200A).
         "mod_hud_l2": "^7┃ ^3 ^7┃  ", "mod_hud_l3": "",
-        "centre": "To ^3LG^7 1/2 frags"}
+        "centre": "To ^3LG^7 1/2 frags\n^3[RL]^7 · LG · GAUNTLET"}
