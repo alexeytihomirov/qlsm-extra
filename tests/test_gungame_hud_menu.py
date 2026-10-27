@@ -43,7 +43,9 @@ def test_three_position_copies_with_all_icons():
 
 def test_position_tests():
     blocks = menu_blocks(bim.build(STOCK, TEMPLATE))
-    assert 'hideCvar { "left" ; "bottom" ; "off" }' in blocks["gungame_top"]
+    # Live: hideCvar next to showCvar2 broke the top copy; stock never mixes them, so all tests are show tests.
+    assert 'showCvar { "" ; "top" }' in blocks["gungame_top"]
+    assert not any("hideCvar" in text for text in blocks.values())
     assert 'showCvar { "left" }' in blocks["gungame_left"]
     assert 'showCvar { "bottom" }' in blocks["gungame_bottom"]
     for text in blocks.values():

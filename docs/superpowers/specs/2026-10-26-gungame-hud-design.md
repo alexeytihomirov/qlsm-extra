@@ -53,7 +53,7 @@ All `mod_gg_*`. The server writes every one except `mod_gg_pos`.
 
 Per position copy, every item carries two tests:
 
-- position: the top copy `cvarTest mod_gg_pos` + `hideCvar { "left" ; "bottom" ; "off" }`; the others `showCvar { "left" }` / `{ "bottom" }`;
+- position: the top copy `cvarTest mod_gg_pos` + `showCvar { "" ; "top" }` (unset = empty string); the others `showCvar { "left" }` / `{ "bottom" }`. Live 2026-10-27: `hideCvar` on an item that also has `showCvar2` broke the top copy (stock menus never mix hide and show2), so every test is a show test;
 - content: background and text items `cvarTest2 mod_gg_on` + `showCvar2 { "1" }`; each weapon icon `cvarTest2 mod_gg_w` (or `mod_gg_next`) + `showCvar2 { "<key>" }`, one item per ladder key (14 keys, two icon slots).
 
 Text items use `textstyle` shadowed so they read over any map. Rects are in the 640x480 virtual screen; exact sizes are tuned in the live test.

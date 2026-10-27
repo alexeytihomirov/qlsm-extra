@@ -32,12 +32,13 @@ WEAPON_ICONS = {
 POSITIONS = {
     "top": (200, 8, "WIDESCREEN_CENTER"),
     "left": (8, 150, "WIDESCREEN_LEFT"),
-    "bottom": (200, 380, "WIDESCREEN_CENTER"),
+    "bottom": (200, 340, "WIDESCREEN_CENTER"),  # above the stock HUD's ammo box
 }
 
-# Unset mod_gg_pos means top, so the top copy hides on the other values instead.
+# Unset mod_gg_pos (empty string) means top. Show tests only: hideCvar on an item that also
+# has showCvar2 broke the top copy live, and stock menus never mix the two.
 POS_TESTS = {
-    "top": 'cvarTest "mod_gg_pos"\n\t\t\thideCvar { "left" ; "bottom" ; "off" }',
+    "top": 'cvarTest "mod_gg_pos"\n\t\t\tshowCvar { "" ; "top" }',
     "left": 'cvarTest "mod_gg_pos"\n\t\t\tshowCvar { "left" }',
     "bottom": 'cvarTest "mod_gg_pos"\n\t\t\tshowCvar { "bottom" }',
 }
