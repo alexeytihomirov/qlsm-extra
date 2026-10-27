@@ -4019,8 +4019,12 @@ class match_restore(minqlx.Plugin):
             def short(angle):
                 return int(float(angle) * 65536 / 360) & 65535
 
+            # PM_UpdateViewAngles clamps cmd + delta for PITCH as a plain int
+            # to +-16000 before wrapping, so pitch must be the signed value
+            # (a masked negative pitch would clamp to 87.9 degrees down).
+            pitch_units = int(max(-16000, min(16000, round(float(pitch) * 65536 / 360))))
             gc.ps.delta_angles = [
-                short(pitch) - cmd[0],
+                pitch_units - cmd[0],
                 short(yaw) - cmd[1],
                 0 - cmd[2],
             ]

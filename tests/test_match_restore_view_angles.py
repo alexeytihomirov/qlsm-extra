@@ -77,6 +77,17 @@ def test_write_sets_delta_angles_from_cmd_angles(gc):
     assert (65600 + delta[1]) & 65535 == _short(270.0)
 
 
+def test_write_negative_pitch_stays_signed_inside_engine_clamp(gc):
+    # PM_UpdateViewAngles clamps (cmd + delta) as a plain int to +-16000
+    assert mr.match_restore._write_player_view(SimpleNamespace(id=2), -5.5, 10.0)
+    delta = gc.instances[2].ps.delta_angles
+    total = 65776 + delta[0]
+    assert -16000 <= total <= 16000
+    assert total == round(-5.5 * 65536 / 360)
+    assert mr.match_restore._write_player_view(SimpleNamespace(id=2), 89.9, 10.0)
+    assert 65776 + gc.instances[2].ps.delta_angles[0] == 16000
+
+
 def test_write_without_gameclient_is_noop(no_gc):
     assert mr.match_restore._write_player_view(SimpleNamespace(id=2), 30.0, 270.0) is False
 
