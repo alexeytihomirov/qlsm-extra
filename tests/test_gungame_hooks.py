@@ -27,7 +27,12 @@ def make_entity(eid, classname):
 
 def make_engine(entities=()):
     linked = []
+    commands = []
     return SimpleNamespace(
+        CS_SYSTEMINFO=1,
+        configstring=lambda index, cached=True: "\\sv_pure\\1",
+        send_server_command=lambda cid, cmd: commands.append((cid, cmd)),
+        commands=commands,
         Weapons=tuple,
         Return=SimpleNamespace(STOP_EVENT=STOP_EVENT),
         Priority=SimpleNamespace(HIGH=1),
@@ -44,6 +49,7 @@ class FakePlayer:
         self.steam_id = sid
         self.id = sid if pid is None else pid
         self.name = name
+        self.team = "free"
         self.weapons = tuple(f in ("g", "mg") for f in W)
         self.weapon = W.index("mg") + 1
         self.score = 0
@@ -83,6 +89,8 @@ def make_plugin(monkeypatch, engine=None, cvars=None, state="in_progress"):
         gg.gungame,
         _states={}, _ladder=gg.parse_ladder(gg.DEFAULT_LADDER), _ladder_raw=gg.DEFAULT_LADDER,
         _leader=None, _saved_fraglimit=None, _won=False, _item_hooked=True,
+        _hud_sent={}, _hud_dirty=set(), _hud_pending=False, _leader_name=None, _ended=False,
+        _hud_flush_soon=lambda: None,  # tests flush by hand
         add_hook=lambda event, handler, priority=0: hooks.append(("add", event)),
         remove_hook=lambda event, handler, priority=0: hooks.append(("remove", event)),
         players=lambda: list(players),
@@ -374,7 +382,7 @@ def test_mid_match_joiner_starts_at_step_one(monkeypatch):
 DISPATCH_ARITY = {
     "handle_map": 2, "handle_new_game": 0, "handle_game_start": 0, "handle_game_end": 1,
     "handle_player_spawn": 1, "handle_kill": 3, "handle_death": 3, "handle_item_touch": 2,
-    "handle_unload": 1,
+    "handle_unload": 1, "handle_team_switch": 3, "handle_player_disconnect": 2,
 }
 
 
@@ -581,3 +589,142 @@ def test_item_touch_hook_only_while_active(monkeypatch):
     plugin.settings["g_gametype"] = "4"
     plugin.handle_new_game()
     assert plugin.hooks[-1] == ("remove", "item_touch")
+
+
+# --- HUD panel --------------------------------------------------------------
+
+def hud_cmds(plugin, cid=None):
+    return [cmd for c, cmd in plugin.engine.commands if cid is None or c == cid]
+
+
+def hud_players(monkeypatch, *players, **cvars):
+    plugin = ladder3(monkeypatch, **cvars)
+    plugin.player_list.extend(players)
+    return plugin
+
+
+def test_kill_sends_one_command_per_player_with_changed_fields(monkeypatch):
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin = hud_players(monkeypatch, a, b)
+    plugin.handle_kill(b, a, "ROCKET")
+    plugin._hud_flush()
+    assert len(hud_cmds(plugin)) == 2
+    assert "mod_gg_step\\Step 1/3   1/2" in hud_cmds(plugin, 1)[0]
+    assert "mod_gg_on\\1" in hud_cmds(plugin, 2)[0]
+    plugin._hud_flush()
+    plugin.handle_kill(b, a, "ROCKET")  # A steps up and takes the lead
+    plugin._hud_flush()
+    second = hud_cmds(plugin, 1)[1]
+    assert "mod_gg_w\\lg" in second and "mod_gg_on" not in second
+    assert len(hud_cmds(plugin, 2)) == 2  # B only gets the new leader line
+    assert hud_cmds(plugin, 2)[1].endswith('mod_gg_lead\\Leader: ^3A^7 2/3"')
+
+
+def test_flush_without_events_sends_nothing(monkeypatch):
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin = hud_players(monkeypatch, a, b)
+    plugin.handle_kill(b, a, "ROCKET")
+    plugin._hud_flush()
+    plugin._hud_flush()
+    assert len(hud_cmds(plugin)) == 2
+
+
+def test_bots_get_no_panel(monkeypatch):
+    bot, b = FakePlayer(0, "Bot", pid=5), FakePlayer(0, "Bot2", pid=6)
+    plugin = hud_players(monkeypatch, bot, b)
+    plugin.handle_kill(b, bot, "ROCKET")
+    plugin._hud_flush()
+    assert hud_cmds(plugin) == []
+
+
+def test_leader_change_marks_everyone(monkeypatch):
+    a, b, c = FakePlayer(1, "A"), FakePlayer(2, "B"), FakePlayer(3, "C")
+    plugin = hud_players(monkeypatch, a, b, c)
+    plugin._states["1"] = (0, 1)
+    plugin.handle_kill(b, a, "ROCKET")
+    plugin._hud_flush()
+    assert "mod_gg_lead\\You lead" in hud_cmds(plugin, 1)[0]
+    for cid in (2, 3):
+        assert "mod_gg_lead\\Leader: ^3A^7 2/3" in hud_cmds(plugin, cid)[0]
+
+
+def test_spectator_and_game_end_clear(monkeypatch):
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin = hud_players(monkeypatch, a, b)
+    plugin.handle_kill(b, a, "ROCKET")
+    plugin._hud_flush()
+    a.team = "spectator"
+    plugin.handle_team_switch(a, "free", "spectator")
+    plugin._hud_flush()
+    assert "mod_gg_on\\\\" in hud_cmds(plugin, 1)[-1] and 1 not in plugin._hud_sent
+    plugin.handle_game_end(False)
+    plugin._hud_flush()
+    assert "mod_gg_on\\\\" in hud_cmds(plugin, 2)[-1] and plugin._hud_sent == {}
+    assert len(hud_cmds(plugin, 1)) == 2  # A was already clear
+
+
+def test_spectator_back_to_free_gets_full_panel(monkeypatch):
+    a = FakePlayer(1, "A")
+    plugin = hud_players(monkeypatch, a)
+    plugin.handle_player_spawn(a)
+    plugin._hud_flush()
+    a.team = "spectator"
+    plugin.handle_team_switch(a, "free", "spectator")
+    plugin._hud_flush()
+    a.team = "free"
+    plugin.handle_player_spawn(a)
+    plugin._hud_flush()
+    assert hud_cmds(plugin, 1)[-1] == hud_cmds(plugin, 1)[0]
+
+
+def test_never_shown_player_gets_no_clear(monkeypatch):
+    a = FakePlayer(1, "A")
+    plugin = hud_players(monkeypatch, a, qlx_gunGameEnabled="0")
+    plugin.handle_player_spawn(a)
+    plugin.handle_new_game()
+    plugin._hud_flush()
+    assert hud_cmds(plugin) == []
+
+
+def test_hud_off_mid_match_clears_on_next_event(monkeypatch):
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin = hud_players(monkeypatch, a, b)
+    plugin.handle_kill(b, a, "ROCKET")
+    plugin._hud_flush()
+    plugin.settings["qlx_gunGameHud"] = "0"
+    plugin.handle_player_spawn(a)
+    plugin._hud_flush()
+    assert "mod_gg_on\\\\" in hud_cmds(plugin, 1)[-1]
+
+
+def test_hud_off_keeps_centre_step_print(monkeypatch):
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin = hud_players(monkeypatch, a, b, qlx_gunGameHud="0", qlx_gunGameStepNotify="center",
+                         qlx_gunGameLeaderNotify="off")
+    plugin._states["1"] = (0, 1)
+    plugin.handle_kill(b, a, "ROCKET")
+    plugin._hud_flush()
+    run_delays(plugin)
+    assert a.centers == ["Step 2/3: ^3LG^7 (0/1)"] and hud_cmds(plugin) == []
+    plugin.settings["qlx_gunGameHud"] = "1"
+    plugin.handle_kill(b, a, "LIGHTNING")  # last step: the leader channel is off
+    run_delays(plugin)
+    assert a.centers == ["Step 2/3: ^3LG^7 (0/1)"]
+
+
+def test_disconnect_clears_at_once(monkeypatch):
+    a, b = FakePlayer(1, "A"), FakePlayer(2, "B")
+    plugin = hud_players(monkeypatch, a, b)
+    plugin.handle_kill(b, a, "ROCKET")
+    plugin._hud_flush()
+    plugin.handle_player_disconnect(a, "left")
+    assert "mod_gg_on\\\\" in hud_cmds(plugin, 1)[-1] and 1 not in plugin._hud_sent
+
+
+def test_hud_nickname_is_cleaned(monkeypatch):
+    a, b = FakePlayer(1, 'A"x;y\\z'), FakePlayer(2, "B")
+    plugin = hud_players(monkeypatch, a, b)
+    plugin._states["1"] = (0, 1)
+    plugin.handle_kill(b, a, "ROCKET")
+    plugin._hud_flush()
+    assert hud_cmds(plugin, 2)[0].endswith('mod_gg_lead\\Leader: ^3Axyz^7 2/3"')

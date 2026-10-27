@@ -127,7 +127,7 @@
       "runtime": "minqlxtended",
       "label": "Gun Game",
       "description": "FFA Gun Game: every frag moves the killer one weapon down a configurable ladder, a frag on the last step wins the match. Map weapons and powerups are removed, the instance needs g_infiniteAmmo 1.",
-      "sha256": "f2d337c6b02fc81558ca5342c7dd1d02e9708bdf3428b1d02ace351059dca4d2"
+      "sha256": "20bbb6a67e77c2a52e800a96b343a13ee7d862dc2f1ef5d42879902cd642f5e9"
     }
   ],
   "addons": [

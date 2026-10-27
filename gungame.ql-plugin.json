@@ -10,6 +10,7 @@
     {"cvar": "qlx_gunGameWeaponDelay", "label": "Weapon delay (ms)", "description": "Milliseconds between losing the old weapon (gauntlet only) and getting the new one; 0 = at once. Applies immediately.", "type": "number", "default": 0, "min": 0, "max": 10000},
     {"cvar": "qlx_gunGameSpawnArmor", "label": "Spawn armor", "description": "Armor every player gets on spawn; 0 leaves the engine's.", "type": "number", "default": 100, "min": 0, "max": 200},
     {"cvar": "qlx_gunGameStepNotify", "label": "Step notify", "description": "Where a player hears about their own step: print (console line), center, print,center or off.", "type": "string", "default": "print"},
-    {"cvar": "qlx_gunGameLeaderNotify", "label": "Leader notify", "description": "Where everyone hears about the leader, the last step and the win: print, center, print,center or off.", "type": "string", "default": "print"}
+    {"cvar": "qlx_gunGameLeaderNotify", "label": "Leader notify", "description": "Where everyone hears about the leader, the last step and the win: print, center, print,center or off.", "type": "string", "default": "print"},
+    {"cvar": "qlx_gunGameHud", "label": "HUD panel", "description": "Server-driven HUD panel (needs our ui/intro.menu on the client); while on, a step up is not centre-printed.", "type": "bool", "default": true}
   ]
 }

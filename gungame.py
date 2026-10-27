@@ -25,6 +25,9 @@
 #   qlx_gunGameSpawnArmor "100"                  armor on every spawn (0 = leave the engine's)
 #   qlx_gunGameStepNotify "print"                own step news: print, center, print,center, off
 #   qlx_gunGameLeaderNotify "print"              leader news to everyone, same values
+#   qlx_gunGameHud "1"                           panel on the player's screen through client cvars
+#                                                mod_gg_* (needs our ui/intro.menu, see hud/README.md);
+#                                                while on, a step up is not centre-printed
 
 try:
     import minqlxtended as minqlx
@@ -57,6 +60,7 @@ CVAR_DEFAULTS = (
     ("qlx_gunGameSpawnArmor", "100"),
     ("qlx_gunGameStepNotify", "print"),
     ("qlx_gunGameLeaderNotify", "print"),
+    ("qlx_gunGameHud", "1"),
 )
 
 
@@ -226,6 +230,11 @@ class gungame(minqlx.Plugin):
         self._saved_fraglimit = None
         self._won = False        # the match is decided; nothing counts until the next one
         self._item_hooked = False
+        self._leader_name = None
+        self._ended = False      # game_end seen; panels stay cleared until the next new_game
+        self._hud_sent = {}      # client id -> panel fields last sent
+        self._hud_dirty = set()  # client ids to refresh on the next frame
+        self._hud_pending = False
 
         for name, value in CVAR_DEFAULTS:
             self.set_cvar_once(name, value)
@@ -242,6 +251,8 @@ class gungame(minqlx.Plugin):
         self.add_hook("player_spawn", self.handle_player_spawn)
         self.add_hook("kill", self.handle_kill)
         self.add_hook("death", self.handle_death)
+        self.add_hook("team_switch", self.handle_team_switch)
+        self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("unload", self.handle_unload)
 
         self.plugin_version = "1.0"
@@ -291,8 +302,10 @@ class gungame(minqlx.Plugin):
             self.remove_hook("item_touch", self.handle_item_touch, priority=minqlx.Priority.HIGH)
         self._item_hooked = active
 
-    def _notify(self, target, text, cvar):
+    def _notify(self, target, text, cvar, center=True):
         channels = parse_channels(self.get_cvar(cvar))
+        if not center:
+            channels -= {"center"}
         try:
             if target is None:
                 if "print" in channels:
@@ -357,6 +370,94 @@ class gungame(minqlx.Plugin):
         except Exception:
             return
 
+    # --- HUD panel ---
+
+    def _hud_on(self, player):
+        try:
+            return (self._active() and self.get_cvar("qlx_gunGameHud", bool) and not self._ended
+                    and player.team == "free" and int(player.steam_id) != 0)
+        except Exception:
+            return False
+
+    def _hud_fields(self, player):
+        key = self._key(player)
+        step, frags = self._states.get(key, (0, 0))
+        total = len(self._ladder)
+        leader = self._leader if self._leader in self._states else None
+        leader_step = self._states[leader][0] + 1 if leader else 0
+        lead = lead_text(key, leader, self._leader_name or "?", leader_step, total)
+        return hud_fields(self._ladder, (min(step, total - 1), frags), lead)
+
+    def _hud_mark(self, player):
+        """Refresh *player*'s panel on the next frame; bots have none."""
+        try:
+            if int(player.steam_id) == 0:
+                return
+            self._hud_dirty.add(int(player.id))
+        except Exception:
+            return
+        if not self._hud_pending:
+            self._hud_pending = True
+            self._hud_flush_soon()
+
+    def _hud_mark_all(self):
+        for player in self.players():
+            self._hud_mark(player)
+
+    def _hud_flush(self):
+        """One command per marked player with only the fields that changed since the last send."""
+        self._hud_pending = False
+        dirty, self._hud_dirty = self._hud_dirty, set()
+        updates = []
+        for player in self.players():
+            pid = int(player.id)
+            if pid not in dirty:
+                continue
+            fields = self._hud_fields(player) if self._hud_on(player) else hud_blank()
+            if hud_diff(self._hud_sent.get(pid, {}), fields):
+                updates.append((pid, fields))
+        if not updates:
+            return
+        info = minqlx.configstring(minqlx.CS_SYSTEMINFO, cached=False)
+        for pid, fields in updates:
+            self._hud_send(pid, fields, info)
+
+    _hud_flush_soon = minqlx.next_frame(_hud_flush)
+
+    def _hud_send(self, player_id, fields, info):
+        sent = self._hud_sent.get(player_id, {})
+        changed = hud_diff(sent, fields)
+        if not changed:
+            return
+        try:
+            minqlx.send_server_command(player_id, hud_command(minqlx.CS_SYSTEMINFO, info, changed))
+        except Exception:
+            pass  # the player left
+        if fields.get("mod_gg_on"):
+            self._hud_sent[player_id] = dict(fields)
+        else:
+            self._hud_sent.pop(player_id, None)
+
+    def _hud_clear_now(self, player_id):
+        self._hud_dirty.discard(player_id)
+        if player_id not in self._hud_sent:
+            return
+        try:
+            info = minqlx.configstring(minqlx.CS_SYSTEMINFO, cached=False)
+        except Exception:
+            self._hud_sent.pop(player_id, None)
+            return
+        self._hud_send(player_id, hud_blank(), info)
+
+    def handle_team_switch(self, player, old_team, new_team):
+        self._hud_mark(player)
+
+    def handle_player_disconnect(self, player, reason):
+        try:
+            self._hud_clear_now(int(player.id))
+        except Exception:
+            return
+
     # --- map items ---
 
     def handle_map(self, mapname, factory):
@@ -415,13 +516,17 @@ class gungame(minqlx.Plugin):
         event = "skip" if gauntlet and self.get_cvar("qlx_gunGameGauntletSkip", bool) else "frag"
         state, outcome = advance(self._state(killer), self._ladder, event)
         self._states[self._key(killer)] = state
+        self._hud_mark(killer)
+        self._hud_mark(victim)
         if outcome == "win":
             self._won = True
             self._finish(killer)
             return
         if outcome == "up":
             self._step_up_loadout(killer)
-            self._notify(killer, step_text(self._ladder, state), "qlx_gunGameStepNotify")
+            # The panel shows the step; the centre keeps the rare news.
+            self._notify(killer, step_text(self._ladder, state), "qlx_gunGameStepNotify",
+                         center=not self.get_cvar("qlx_gunGameHud", bool))
         else:
             self._write_score(killer)
 
@@ -442,6 +547,7 @@ class gungame(minqlx.Plugin):
     def _demote(self, player, event="demote"):
         state, outcome = advance(self._state(player), self._ladder, event)
         self._states[self._key(player)] = state
+        self._hud_mark(player)
         if outcome == "down":
             self._notify(player, demote_text(self._ladder, state), "qlx_gunGameStepNotify")
             self._update_leader(player)
@@ -455,12 +561,15 @@ class gungame(minqlx.Plugin):
         if leader == self._leader:
             return
         self._leader = leader
+        self._leader_name = None
+        self._hud_mark_all()
         if leader is None:
             return
         if leader != self._key(player):
             player = next((p for p in self.players() if self._key(p) == leader), None)
             if player is None:
                 return
+        self._leader_name = player.name
         text = leader_text(player.name, self._states[leader][0] + 1, len(self._ladder))
         self._notify(None, text, "qlx_gunGameLeaderNotify")
 
@@ -488,12 +597,16 @@ class gungame(minqlx.Plugin):
     def handle_player_spawn(self, player):
         if self._active():
             self._give_loadout(player, armor=True)
+        self._hud_mark(player)
 
     def _reset(self):
         self._states = {}
         self._leader = None
+        self._leader_name = None
         self._won = False
+        self._ended = False
         self._reload_ladder()
+        self._hud_mark_all()
 
     def _restore_fraglimit(self):
         if self._saved_fraglimit is not None:
@@ -519,7 +632,11 @@ class gungame(minqlx.Plugin):
 
     def handle_game_end(self, aborted):
         self._restore_fraglimit()
+        self._ended = True
+        self._hud_mark_all()
 
     def handle_unload(self, plugin):
         if plugin == self.__class__.__name__:
             self._restore_fraglimit()
+            for player_id in list(self._hud_sent):
+                self._hud_clear_now(player_id)
