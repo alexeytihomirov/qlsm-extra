@@ -28,20 +28,31 @@ WEAPON_ICONS = {
     "hmg": "icons/weap_hmg.tga",
 }
 
-# pos -> (x, y, widescreen) of the 240x44 panel on the 640x480 screen.
+PANEL_SIZE = (84, 40)
+
+# mod_gg_pos value -> (x, y, widescreen) of the panel on the 640x480 screen. Columns: left edge,
+# centre, right edge; rows: top, middle (centre sits above the crosshair), above the ammo box.
+_L, _C, _R = 8, (640 - PANEL_SIZE[0]) // 2, 640 - 8 - PANEL_SIZE[0]
+_T, _M, _B = 8, 220, 340
 POSITIONS = {
-    "top": (200, 8, "WIDESCREEN_CENTER"),
-    "left": (8, 150, "WIDESCREEN_LEFT"),
-    "bottom": (200, 340, "WIDESCREEN_CENTER"),  # above the stock HUD's ammo box
+    "top": (_C, _T, "WIDESCREEN_CENTER"),
+    "bottom": (_C, _B, "WIDESCREEN_CENTER"),
+    "left": (_L, _M, "WIDESCREEN_LEFT"),
+    "right": (_R, _M, "WIDESCREEN_RIGHT"),
+    "center": (_C, 160, "WIDESCREEN_CENTER"),
+    "topleft": (_L, _T, "WIDESCREEN_LEFT"),
+    "topright": (_R, _T, "WIDESCREEN_RIGHT"),
+    "bottomleft": (_L, _B, "WIDESCREEN_LEFT"),
+    "bottomright": (_R, _B, "WIDESCREEN_RIGHT"),
 }
 
-# Unset mod_gg_pos (empty string) means top. Show tests only: hideCvar on an item that also
-# has showCvar2 broke the top copy live, and stock menus never mix the two.
-POS_TESTS = {
-    "top": 'cvarTest "mod_gg_pos"\n\t\t\tshowCvar { "" ; "top" }',
-    "left": 'cvarTest "mod_gg_pos"\n\t\t\tshowCvar { "left" }',
-    "bottom": 'cvarTest "mod_gg_pos"\n\t\t\tshowCvar { "bottom" }',
-}
+
+def pos_test(pos):
+    """Unset mod_gg_pos (empty string) means top. Show tests only: hideCvar on an item that
+    also has showCvar2 broke the top copy live, and stock menus never mix the two."""
+    values = '"" ; "top"' if pos == "top" else '"{}"'.format(pos)
+    return 'cvarTest "mod_gg_pos"\n\t\t\tshowCvar {{ {} }}'.format(values)
+
 
 ICON_ITEM = """
 		itemDef {{
@@ -67,11 +78,10 @@ def icon_items(slot, cvar, rect, pos_test):
 
 def expand(template, pos):
     x, y, wide = POSITIONS[pos]
-    pos_test = POS_TESTS[pos]
+    test = pos_test(pos)
     return (template
-            .replace("@ICONS_CUR@", icon_items("cur", "mod_gg_w", "4 6 32 32", pos_test))
-            .replace("@ICONS_NEXT@", icon_items("next", "mod_gg_next", "216 4 20 20", pos_test))
-            .replace("@POS_TEST@", pos_test)
+            .replace("@ICONS_NEXT@", icon_items("next", "mod_gg_next", "6 4 32 32", test))
+            .replace("@POS_TEST@", test)
             .replace("@NAME@", "gungame_" + pos)
             .replace("@WIDE@", wide)
             .replace("@X@", str(x))
@@ -79,7 +89,7 @@ def expand(template, pos):
 
 
 def build(stock_text, template):
-    """Stock text with our three menuDefs before its closing brace."""
+    """Stock text with our menuDefs (one per position) before its closing brace."""
     cut = stock_text.rindex("}")
     ours = "".join(expand(template, pos) for pos in POSITIONS)
     return stock_text[:cut] + "\n" + ours + stock_text[cut:]

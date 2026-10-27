@@ -98,7 +98,7 @@ def make_plugin(monkeypatch, engine=None, cvars=None, state="in_progress"):
         gg.gungame,
         _states={}, _ladder=gg.parse_ladder(gg.DEFAULT_LADDER), _ladder_raw=gg.DEFAULT_LADDER,
         _leader=None, _saved_fraglimit=None, _won=False, _item_hooked=True,
-        _hud_sent={}, _hud_dirty=set(), _hud_pending=False, _leader_name=None, _ended=False,
+        _hud_sent={}, _hud_dirty=set(), _hud_pending=False, _ended=False,
         _hud_flush_soon=lambda: None,  # tests flush by hand
         add_hook=lambda event, handler, priority=0: hooks.append(("add", event)),
         remove_hook=lambda event, handler, priority=0: hooks.append(("remove", event)),
@@ -619,15 +619,13 @@ def test_kill_sends_one_command_per_player_with_changed_fields(monkeypatch):
     plugin.handle_kill(b, a, "ROCKET")
     plugin._hud_flush()
     assert len(hud_cmds(plugin)) == 2
-    assert "mod_gg_step\\Step 1/3   1/2" in hud_cmds(plugin, 1)[0]
-    assert "mod_gg_on\\1" in hud_cmds(plugin, 2)[0]
+    assert hud_cmds(plugin, 1)[0].endswith('\\mod_gg_on\\1\\mod_gg_next\\lg\\mod_gg_prog\\1/2"')
+    assert hud_cmds(plugin, 2)[0].endswith('\\mod_gg_on\\1\\mod_gg_next\\lg\\mod_gg_prog\\0/2"')
     plugin._hud_flush()
-    plugin.handle_kill(b, a, "ROCKET")  # A steps up and takes the lead
+    plugin.handle_kill(b, a, "ROCKET")  # A steps up
     plugin._hud_flush()
-    second = hud_cmds(plugin, 1)[1]
-    assert "mod_gg_w\\lg" in second and "mod_gg_on" not in second
-    assert len(hud_cmds(plugin, 2)) == 2  # B only gets the new leader line
-    assert hud_cmds(plugin, 2)[1].endswith('mod_gg_lead\\Leader: ^3A^7 2/3"')
+    assert hud_cmds(plugin, 1)[1].endswith('"\\sv_pure\\1\\mod_gg_next\\g\\mod_gg_prog\\0/1"')
+    assert len(hud_cmds(plugin, 2)) == 1  # nothing changed for B
 
 
 def test_flush_without_events_sends_nothing(monkeypatch):
@@ -647,15 +645,15 @@ def test_bots_get_no_panel(monkeypatch):
     assert hud_cmds(plugin) == []
 
 
-def test_leader_change_marks_everyone(monkeypatch):
+def test_other_players_steps_send_nothing_to_a_bystander(monkeypatch):
     a, b, c = FakePlayer(1, "A"), FakePlayer(2, "B"), FakePlayer(3, "C")
     plugin = hud_players(monkeypatch, a, b, c)
-    plugin._states["1"] = (0, 1)
-    plugin.handle_kill(b, a, "ROCKET")
+    plugin.handle_player_spawn(c)
     plugin._hud_flush()
-    assert "mod_gg_lead\\You lead" in hud_cmds(plugin, 1)[0]
-    for cid in (2, 3):
-        assert "mod_gg_lead\\Leader: ^3A^7 2/3" in hud_cmds(plugin, cid)[0]
+    plugin._states["1"] = (0, 1)
+    plugin.handle_kill(b, a, "ROCKET")  # A steps up and takes the lead
+    plugin._hud_flush()
+    assert len(hud_cmds(plugin, 3)) == 1
 
 
 def test_spectator_and_game_end_clear(monkeypatch):
@@ -744,7 +742,7 @@ def test_send_to_a_loading_client_is_retried_in_full_when_loaded(monkeypatch):
     plugin.handle_player_loaded(a)
     plugin._hud_flush()
     assert hud_cmds(plugin, 1)[-1].endswith(
-        '\\mod_gg_on\\1\\mod_gg_w\\rl\\mod_gg_next\\lg\\mod_gg_step\\Step 1/3   0/2\\mod_gg_lead\\"')
+        '"\\sv_pure\\1\\mod_gg_on\\1\\mod_gg_next\\lg\\mod_gg_prog\\0/2"')
 
 
 def test_blank_to_a_loading_client_is_retried(monkeypatch):
@@ -760,23 +758,3 @@ def test_blank_to_a_loading_client_is_retried(monkeypatch):
     plugin.handle_player_loaded(a)
     plugin._hud_flush()
     assert "mod_gg_on\\\\" in hud_cmds(plugin, 1)[-1] and plugin._hud_sent == {}
-
-
-def test_leader_step_up_updates_everyone(monkeypatch):
-    a, b, c = FakePlayer(1, "A"), FakePlayer(2, "B"), FakePlayer(3, "C")
-    plugin = hud_players(monkeypatch, a, b, c, qlx_gunGameLadder="rl:1 lg:1 pg:1 g:1")
-    plugin._reload_ladder()
-    plugin.handle_kill(b, a, "ROCKET")
-    plugin._hud_flush()
-    plugin.handle_kill(b, a, "LIGHTNING")
-    plugin._hud_flush()
-    assert hud_cmds(plugin, 3)[-1].endswith('mod_gg_lead\\Leader: ^3A^7 3/4"')
-
-
-def test_hud_nickname_is_cleaned(monkeypatch):
-    a, b = FakePlayer(1, 'A"x;y\\z'), FakePlayer(2, "B")
-    plugin = hud_players(monkeypatch, a, b)
-    plugin._states["1"] = (0, 1)
-    plugin.handle_kill(b, a, "ROCKET")
-    plugin._hud_flush()
-    assert hud_cmds(plugin, 2)[0].endswith('mod_gg_lead\\Leader: ^3Axyz^7 2/3"')

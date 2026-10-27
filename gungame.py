@@ -173,27 +173,17 @@ def win_text(name):
 
 # --- HUD panel (client cvars read by our ui/intro.menu) ----------------------
 
-HUD_FIELDS = ("mod_gg_on", "mod_gg_w", "mod_gg_next", "mod_gg_step", "mod_gg_lead")
+HUD_FIELDS = ("mod_gg_on", "mod_gg_next", "mod_gg_prog")
 
 
-def hud_fields(ladder, state, lead):
+def hud_fields(ladder, state):
+    """The next weapon (none on the last step) and the frags towards it."""
     step, frags = state
-    key, need = ladder[step]
     return {
         "mod_gg_on": "1",
-        "mod_gg_w": key,
         "mod_gg_next": ladder[step + 1][0] if step + 1 < len(ladder) else "",
-        "mod_gg_step": "Step {}/{}   {}/{}".format(step + 1, len(ladder), frags, need),
-        "mod_gg_lead": lead,
+        "mod_gg_prog": "{}/{}".format(frags, ladder[step][1]),
     }
-
-
-def lead_text(own_key, leader_key, leader_name, leader_step, total):
-    if leader_key is None:
-        return ""
-    if leader_key == own_key:
-        return "You lead"
-    return "Leader: ^3{}^7 {}/{}".format(leader_name, leader_step, total)
 
 
 def hud_blank():
@@ -230,7 +220,6 @@ class gungame(minqlx.Plugin):
         self._saved_fraglimit = None
         self._won = False        # the match is decided; nothing counts until the next one
         self._item_hooked = False
-        self._leader_name = None
         self._ended = False      # game_end seen; panels stay cleared until the next new_game
         self._hud_sent = {}      # client id -> panel fields last sent
         self._hud_dirty = set()  # client ids to refresh on the next frame
@@ -381,13 +370,8 @@ class gungame(minqlx.Plugin):
             return False
 
     def _hud_fields(self, player):
-        key = self._key(player)
-        step, frags = self._states.get(key, (0, 0))
-        total = len(self._ladder)
-        leader = self._leader if self._leader in self._states else None
-        leader_step = self._states[leader][0] + 1 if leader else 0
-        lead = lead_text(key, leader, self._leader_name or "?", leader_step, total)
-        return hud_fields(self._ladder, (min(step, total - 1), frags), lead)
+        step, frags = self._states.get(self._key(player), (0, 0))
+        return hud_fields(self._ladder, (min(step, len(self._ladder) - 1), frags))
 
     def _hud_mark(self, player):
         """Refresh *player*'s panel on the next frame; bots have none."""
@@ -566,19 +550,14 @@ class gungame(minqlx.Plugin):
         """Re-pick the leader after *player*'s step changed; announce a new one."""
         leader = pick_leader(self._states, self._leader)
         if leader == self._leader:
-            if leader is not None and leader == self._key(player):
-                self._hud_mark_all()  # the leader's own step moved: everyone's leader line
             return
         self._leader = leader
-        self._leader_name = None
-        self._hud_mark_all()
         if leader is None:
             return
         if leader != self._key(player):
             player = next((p for p in self.players() if self._key(p) == leader), None)
             if player is None:
                 return
-        self._leader_name = player.name
         text = leader_text(player.name, self._states[leader][0] + 1, len(self._ladder))
         self._notify(None, text, "qlx_gunGameLeaderNotify")
 
@@ -611,7 +590,6 @@ class gungame(minqlx.Plugin):
     def _reset(self):
         self._states = {}
         self._leader = None
-        self._leader_name = None
         self._won = False
         self._ended = False
         self._reload_ladder()

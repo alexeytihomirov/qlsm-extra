@@ -1,14 +1,15 @@
-	// Gun Game panel (qlsm-extra gungame.py), position @NAME@. Built by hud/build_intro_menu.py.
+	// Gun Game panel (qlsm-extra gungame.py): next weapon and frags towards it. Copy @NAME@,
+	// built by hud/build_intro_menu.py.
 	menuDef {
 		name "@NAME@"
 		widescreen @WIDE@
 		fullScreen MENU_FALSE
 		visible MENU_TRUE
-		rect @X@ @Y@ 240 44
+		rect @X@ @Y@ 84 40
 
 		itemDef {
 			name "gg_back"
-			rect 0 0 240 44
+			rect 0 0 84 40
 			style WINDOW_STYLE_FILLED
 			backcolor 0 0 0 0.35
 			visible 1
@@ -17,33 +18,16 @@
 			cvarTest2 "mod_gg_on"
 			showCvar2 { "1" }
 		}
-@ICONS_CUR@
-		itemDef {
-			name "gg_step"
-			type ITEM_TYPE_TEXT
-			rect 42 2 170 20
-			cvar "mod_gg_step"
-			textstyle ITEM_TEXTSTYLE_SHADOWED
-			textscale .24
-			textalignx 0
-			textaligny 16
-			forecolor 1 1 1 1
-			visible 1
-			decoration
-			@POS_TEST@
-			cvarTest2 "mod_gg_on"
-			showCvar2 { "1" }
-		}
 @ICONS_NEXT@
 		itemDef {
-			name "gg_lead"
+			name "gg_prog"
 			type ITEM_TYPE_TEXT
-			rect 42 24 194 18
-			cvar "mod_gg_lead"
+			rect 42 4 40 32
+			cvar "mod_gg_prog"
 			textstyle ITEM_TEXTSTYLE_SHADOWED
-			textscale .20
+			textscale .30
 			textalignx 0
-			textaligny 13
+			textaligny 24
 			forecolor 1 1 1 1
 			visible 1
 			decoration

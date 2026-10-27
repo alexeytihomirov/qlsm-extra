@@ -30,27 +30,35 @@ def test_build_keeps_stock_prefix_and_closing_brace():
     assert out.rstrip().endswith("}")
 
 
-def test_three_position_copies_with_all_icons():
+POSITIONS = ["top", "bottom", "left", "right", "center", "topleft", "topright", "bottomleft", "bottomright"]
+
+
+def test_nine_position_copies_with_next_icon_and_progress():
     blocks = menu_blocks(bim.build(STOCK, TEMPLATE))
-    assert sorted(blocks) == ["gungame_bottom", "gungame_left", "gungame_top"]
+    assert sorted(blocks) == sorted("gungame_" + p for p in POSITIONS)
     for text in blocks.values():
-        assert text.count('cvarTest2 "mod_gg_w"') == 14
         assert text.count('cvarTest2 "mod_gg_next"') == 14
-        assert text.count('cvar "mod_gg_step"') == 1 and text.count('cvar "mod_gg_lead"') == 1
+        assert text.count('cvar "mod_gg_prog"') == 1
+        for gone in ("mod_gg_w", "mod_gg_step", "mod_gg_lead"):
+            assert gone not in text
         # A filled item tints its background by backcolor (0 0 0 0 by default = invisible).
-        assert text.count("backcolor 1 1 1 1") == 28
+        assert text.count("backcolor 1 1 1 1") == 14
 
 
 def test_position_tests():
     blocks = menu_blocks(bim.build(STOCK, TEMPLATE))
     # Live: hideCvar next to showCvar2 broke the top copy; stock never mixes them, so all tests are show tests.
-    assert 'showCvar { "" ; "top" }' in blocks["gungame_top"]
     assert not any("hideCvar" in text for text in blocks.values())
-    assert 'showCvar { "left" }' in blocks["gungame_left"]
-    assert 'showCvar { "bottom" }' in blocks["gungame_bottom"]
-    for text in blocks.values():
-        items = text.count("itemDef {")
-        assert text.count('cvarTest "mod_gg_pos"') == items
+    for pos in POSITIONS:
+        want = 'showCvar { "" ; "top" }' if pos == "top" else 'showCvar { "%s" }' % pos
+        text = blocks["gungame_" + pos]
+        assert text.count('cvarTest "mod_gg_pos"') == text.count("itemDef {") == text.count(want)
+
+
+def test_panels_stay_on_the_virtual_screen():
+    w, h = bim.PANEL_SIZE
+    for x, y, _ in bim.POSITIONS.values():
+        assert 0 <= x and x + w <= 640 and 0 <= y and y + h <= 480
 
 
 def test_no_placeholders_left():
