@@ -10,11 +10,11 @@ Three text lines on the player's screen that any plugin fills from the server (`
 
 (needs fontTools, Pillow, numpy, opencv-python). It also writes `glyphs.png`; the copy in this folder is the token table.
 
-Install by hand for now: copy `zz_modhud.pk3` to `<QL>/baseq3/` (the install dir; a pk3 in `<QL>/<steamid>/baseq3/` is not loaded) and remove an old loose `<QL>/<steamid>/baseq3/ui/intro.menu` (the earlier Gun Game panel), which would win over the pk3. Restart the game. Workshop delivery is a separate, later step.
+The pk3 must be on the server as well: with `sv_pure 1` a client that reads files from a pk3 the server does not have is refused ("Unpure client detected"). The real delivery is a Workshop item in the servers' `workshop.txt` (separate, later step). For a test by hand: the same file in the server's `baseq3/` (restart) and in the player's `<QL>/baseq3/` (the install dir; a pk3 in `<QL>/<steamid>/baseq3/` is not loaded), no loose `<QL>/<steamid>/baseq3/ui/intro.menu` (it would win over the pk3), restart the game.
 
 ## Position
 
-Each player in their own console: `seta mod_hud_pos top` (default when unset), `center`, `bottom`, `left`, `topleft`, `bottomleft`, `right`, `topright`, `bottomright` or `off`. Left places align text to the left, right places to the right, the middle column centres it. Free x/y is not possible: a menu rect is fixed in the file. If nothing shows with the cvar unset, set it explicitly (`seta mod_hud_pos top`): whether the menu's empty-value test matches is not verified in QL.
+Each player in their own console: `seta mod_hud_pos top` (default when unset), `center`, `bottom`, `left`, `topleft`, `bottomleft`, `right`, `topright`, `bottomright` or `off`. The block sits at the left edge, in the middle or at the right edge; inside it the text always starts at the block's left edge (QL does not draw a cvar text item aligned to the centre or right), so a short line in a right place does not touch the screen edge. Free x/y is not possible: a menu rect is fixed in the file. If nothing shows with the cvar unset, set it explicitly (`seta mod_hud_pos top`): whether the menu's empty-value test matches is not verified in QL.
 
 The panel hides itself on the next connect or map load on any server (`onOpen` of the Join Match menu), so a panel left by our server never sticks on someone else's.
 
@@ -40,6 +40,7 @@ modhud_util.send(minqlx, sent, player.id, modhud_util.blank(), info)  # clear
 
 - Game thread only; send on events, a countdown at most once a second.
 - In the `map` hook call `modhud_util.reset_clients()` and send your lines again (clients still loading refuse; send again on `player_loaded`): Join Match hides every panel on each map load.
+- In `player_loaded` call `modhud_util.loaded(player.id)` before sending, and in `player_spawn` / `team_switch` send again when `modhud_util.joined(player.id)` is True: Join Match opens after `player_loaded` and hides what was sent on load.
 - In `player_disconnect` call `modhud_util.forget(player.id)`.
 - Each line is cut at 120 bytes, and a whole command is cut under the engine's 1022-byte limit (the longest line gives way).
 - The panel is one per client and what each client shows is tracked once (`modhud_util.CLIENT`) for every plugin: the last write wins and replaces all three lines. A blank only goes out from a plugin that showed the panel itself, so `!hud clear` does not remove Gun Game's line.

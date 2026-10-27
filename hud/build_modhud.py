@@ -33,8 +33,10 @@ ICON_SOURCES = {
 FRAMES = ["━", "┃", "┏", "┓", "┗", "┛", "┣", "┫",
           "╭", "╮", "╯", "╰"]
 
-# mod_hud_pos value -> (anchor x, top y, text align, widescreen) on the 640x480 virtual screen.
-# Left column: text starts at x; right column: text ends at x; centre: text centred on x.
+# mod_hud_pos value -> (anchor x, top y, block placement, widescreen) on the 640x480 virtual
+# screen. The block starts at x (left), is centred on x, or ends at x (right); the text always
+# starts at the block's left edge: a cvar text item with textalign CENTER or RIGHT is not drawn
+# at all in QL (live, #26, 2026-10-27), and `align` is ignored.
 POSITIONS = {
     "top": (320, 8, "center", "CENTER"),
     "center": (320, 150, "center", "CENTER"),
@@ -59,8 +61,7 @@ LINE_ITEM = """
 			cvar "mod_hud_l{n}"
 			textstyle ITEM_TEXTSTYLE_SHADOWED
 			textscale .25
-			textalign ITEM_ALIGN_{align}
-			textalignx {ax}
+			textalignx 0
 			textaligny 12
 			forecolor 1 1 1 1
 			visible 1
@@ -81,10 +82,9 @@ def pos_values(pos):
 
 def expand(template, pos):
     x, y, align, wide = POSITIONS[pos]
-    left, ax = {"left": (x, 0), "center": (x - ITEM_WIDTH // 2, ITEM_WIDTH // 2),
-                "right": (x - ITEM_WIDTH, ITEM_WIDTH)}[align]
+    left = {"left": x, "center": x - ITEM_WIDTH // 2, "right": x - ITEM_WIDTH}[align]
     lines = "".join(LINE_ITEM.format(n=n, y=(n - 1) * LINE_STEP, w=ITEM_WIDTH, h=LINE_STEP,
-                                     align=align.upper(), ax=ax, values=pos_values(pos))
+                                     values=pos_values(pos))
                     for n in (1, 2, 3))
     return (template
             .replace("@LINES@", lines)

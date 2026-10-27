@@ -81,12 +81,12 @@ def test_alignment_and_anchors():
         mx, my, mw, mh = menu_rect(block)
         assert my == y and mw == bm.ITEM_WIDTH and mh == 3 * bm.LINE_STEP
         assert "widescreen WIDESCREEN_" + wide in block
-        want = {"left": (x, "ITEM_ALIGN_LEFT", 0),
-                "center": (x - bm.ITEM_WIDTH // 2, "ITEM_ALIGN_CENTER", bm.ITEM_WIDTH // 2),
-                "right": (x - bm.ITEM_WIDTH, "ITEM_ALIGN_RIGHT", bm.ITEM_WIDTH)}[align]
-        assert mx == want[0]
-        assert block.count("textalign " + want[1]) == 3
-        assert block.count("textalignx %d\n" % want[2]) == 3
+        want = {"left": x, "center": x - bm.ITEM_WIDTH // 2, "right": x - bm.ITEM_WIDTH}[align]
+        assert mx == want
+        # Live (#26, 2026-10-27): a cvar text item with textalign CENTER or RIGHT is not drawn
+        # at all; `align` is ignored. Text always starts at the block's left edge.
+        assert "textalign " not in block and "align ITEM" not in block
+        assert block.count("textalignx 0\n") == 3
         assert 0 <= mx and mx + mw <= 640 and 0 <= my and my + mh <= 480
 
 

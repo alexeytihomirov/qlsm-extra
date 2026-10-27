@@ -11,8 +11,10 @@ mu = import_plugin("modhud_util")
 @pytest.fixture(autouse=True)
 def clean_clients():
     mu.CLIENT.clear()
+    mu.PENDING.clear()
     yield
     mu.CLIENT.clear()
+    mu.PENDING.clear()
 
 
 class Engine:
@@ -166,7 +168,22 @@ def test_refused_blank_is_retried():
     assert 3 not in sent
 
 
+def test_loaded_then_joined_resends_in_full_once():
+    # Live (#26, 2026-10-27): Join Match opens after player_loaded and its onOpen hides the
+    # panel sent on load, so the first spawn / team join after a load sends it all again.
+    engine, sent = Engine(), {}
+    mu.loaded(3)
+    mu.send(engine, sent, 3, mu.fields(["a"]), "")
+    assert mu.joined(3) is True
+    mu.send(engine, sent, 3, mu.fields(["a"]), "")
+    assert engine.commands == [(3, FULL_A), (3, FULL_A)]
+    assert mu.joined(3) is False
+    mu.send(engine, sent, 3, mu.fields(["a"]), "")
+    assert len(engine.commands) == 2
+
+
 def test_forget_drops_the_client():
     mu.send(Engine(), {}, 3, mu.fields(["a"]), "")
+    mu.loaded(3)
     mu.forget(3)
-    assert 3 not in mu.CLIENT
+    assert 3 not in mu.CLIENT and 3 not in mu.PENDING

@@ -606,8 +606,24 @@ def test_item_touch_hook_only_while_active(monkeypatch):
 @pytest.fixture(autouse=True)
 def clean_hud_clients():
     gg.modhud_util.CLIENT.clear()
+    gg.modhud_util.PENDING.clear()
     yield
     gg.modhud_util.CLIENT.clear()
+    gg.modhud_util.PENDING.clear()
+
+
+def test_panel_goes_again_after_join_match(monkeypatch):
+    # Live (#26): Join Match opens after player_loaded and hides the panel sent on load.
+    a = FakePlayer(1, "A")
+    plugin = hud_players(monkeypatch, a)
+    plugin.handle_player_loaded(a)
+    plugin._hud_flush()
+    plugin.handle_player_spawn(a)
+    plugin._hud_flush()
+    plugin.handle_player_spawn(a)
+    plugin._hud_flush()
+    full = '"\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\ 0/2\\mod_hud_l2\\\\mod_hud_l3\\"'
+    assert len(hud_cmds(plugin, 1)) == 2 and all(c.endswith(full) for c in hud_cmds(plugin, 1))
 
 
 def test_map_change_resends_the_panel(monkeypatch):
@@ -623,7 +639,8 @@ def test_map_change_resends_the_panel(monkeypatch):
     plugin.handle_player_loaded(a)
     plugin._hud_flush()
     full = '"\\sv_pure\\1\\mod_hud_on\\1\\mod_hud_l1\\ 0/2\\mod_hud_l2\\\\mod_hud_l3\\"'
-    assert len(hud_cmds(plugin, 1)) == 2 and all(c.endswith(full) for c in hud_cmds(plugin, 1))
+    # Spawn, new_game after the map reset, player_loaded (client unknown again): all full.
+    assert len(hud_cmds(plugin, 1)) == 3 and all(c.endswith(full) for c in hud_cmds(plugin, 1))
 
 
 def test_disconnect_forgets_the_client(monkeypatch):

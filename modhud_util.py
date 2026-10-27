@@ -24,6 +24,8 @@ MAX_COMMAND_BYTES = 1022
 # Client id -> fields that client shows (None = unknown), shared by every plugin that draws
 # on the panel: the module is imported once per server, plugin reloads keep it.
 CLIENT = {}
+# Client ids loaded but not yet in the game: their Join Match screen will hide the panel.
+PENDING = set()
 
 _WEAPONS = ("g", "mg", "sg", "gl", "rl", "lg", "rg", "pg", "bfg", "gh", "ng", "pl", "cg", "hmg")
 _ITEMS = ("mh", "ra", "ya", "ga", "shard", "quad", "bs", "regen", "haste", "invis", "flight", "flag")
@@ -102,9 +104,28 @@ def reset_clients():
         CLIENT[cid] = dict.fromkeys(FIELDS)
 
 
+def loaded(cid):
+    """player_loaded: the client starts unknown (also after a /reconnect, which fires no
+    disconnect). Join Match opens after this and hides the panel (seen live, #26), so the
+    panel goes again in full on joined()."""
+    CLIENT[cid] = dict.fromkeys(FIELDS)
+    PENDING.add(cid)
+
+
+def joined(cid):
+    """First spawn or team switch after player_loaded: Join Match has hidden the panel, what
+    the client shows is unknown again. True once per load; then send the panel again."""
+    if cid not in PENDING:
+        return False
+    PENDING.discard(cid)
+    CLIENT[cid] = dict.fromkeys(FIELDS)
+    return True
+
+
 def forget(cid):
     """The client left; the next player in the slot starts unknown."""
     CLIENT.pop(cid, None)
+    PENDING.discard(cid)
 
 
 def _changes(sent, cid, new):

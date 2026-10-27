@@ -30,6 +30,8 @@ class modhud(minqlx.Plugin):
         self.add_command("hudicons", self.cmd_hudicons, perm)
         self.add_hook("map", self.handle_map)
         self.add_hook("player_loaded", self.handle_player_loaded)
+        self.add_hook("player_spawn", self.handle_player_spawn)
+        self.add_hook("team_switch", self.handle_team_switch)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
 
     def _fields(self):
@@ -64,8 +66,19 @@ class modhud(minqlx.Plugin):
             self._send(self.players())
 
     def handle_player_loaded(self, player):
+        modhud_util.loaded(int(player.id))  # Join Match will hide it; joined() resends
         if any(self._lines):
             self._send([player])
+
+    def _joined(self, player):
+        if modhud_util.joined(int(player.id)) and any(self._lines):
+            self._send([player])
+
+    def handle_player_spawn(self, player):
+        self._joined(player)
+
+    def handle_team_switch(self, player, old_team, new_team):
+        self._joined(player)
 
     def handle_player_disconnect(self, player, reason):
         self._sent.pop(int(player.id), None)

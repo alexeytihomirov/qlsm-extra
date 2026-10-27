@@ -411,9 +411,11 @@ class gungame(minqlx.Plugin):
         self._hud_send(player_id, modhud_util.blank(), info)
 
     def handle_team_switch(self, player, old_team, new_team):
+        modhud_util.joined(int(player.id))
         self._hud_mark(player)
 
     def handle_player_loaded(self, player):
+        modhud_util.loaded(int(player.id))  # Join Match will hide it; joined() resends
         self._hud_mark(player)
 
     def handle_player_disconnect(self, player, reason):
@@ -560,6 +562,7 @@ class gungame(minqlx.Plugin):
     def handle_player_spawn(self, player):
         if self._active():
             self._give_loadout(player, armor=True)
+        modhud_util.joined(int(player.id))
         self._hud_mark(player)
 
     def _reset(self):

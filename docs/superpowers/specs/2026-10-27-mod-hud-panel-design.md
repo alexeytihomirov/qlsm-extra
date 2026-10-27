@@ -69,6 +69,8 @@ One `menuDef` per position (`modhud_<pos>`), each with three text items, line `n
   Items are 300 px wide; left: rect starts at x; right: rect ends at x (`ITEM_ALIGN_RIGHT`); centre: rect centred on x (`ITEM_ALIGN_CENTER`).
 - Auto-clear: `joingame_menu` gets `onOpen { setcvar mod_hud_on 0 }`, so a panel left by any server goes away on the next connect or map load anywhere. The lines keep their text but are hidden.
 
+**Live corrections (2026-10-27, #26):** QL does not draw a cvar text item with `textalign` CENTER or RIGHT, so every place left-aligns the text inside its block (the block itself still sits left, centred or right). Join Match opens after `player_loaded`, so plugins send the panel again on the player's first spawn or team switch (`modhud_util.loaded` / `joined`). With `sv_pure 1` the pk3 must be on the server too: the delivery is a Workshop item.
+
 ## Glyphs
 
 Added to the fallback font. Icons are traced from the alpha channel of the stock icons in pak00 (threshold, contour tracing, simplification, scaled to the font's em, baseline-aligned, advance = width + small gap). Frames and bars are drawn as box-drawing pieces filling the line height so neighbours join.

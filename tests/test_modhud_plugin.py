@@ -15,8 +15,20 @@ USAGE = "usage"
 @pytest.fixture(autouse=True)
 def clean_clients():
     mh.modhud_util.CLIENT.clear()
+    mh.modhud_util.PENDING.clear()
     yield
     mh.modhud_util.CLIENT.clear()
+    mh.modhud_util.PENDING.clear()
+
+
+def test_lines_go_again_after_join_match(monkeypatch):
+    a, b = FakePlayer(11, 1), FakePlayer(12, 2)
+    plugin = make_plugin(monkeypatch, a)
+    plugin.cmd_hud(a, ["!hud", "1", "x"], None)
+    plugin.handle_player_loaded(b)
+    plugin.handle_player_spawn(b)
+    plugin.handle_team_switch(b, "spectator", "free")
+    assert len(cmds(plugin, 2)) == 2 and cmds(plugin, 2)[1] == cmds(plugin, 2)[0]
 
 
 class FakePlayer:
