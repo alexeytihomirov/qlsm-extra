@@ -10,6 +10,8 @@ Three text lines on the player's screen that any plugin fills from the server (`
 
 (needs fontTools, Pillow, numpy, opencv-python). It also writes `glyphs.png`; the copy in this folder is the token table.
 
+Published as the private Workshop item [3828349249](https://steamcommunity.com/sharedfiles/filedetails/?id=3828349249) (item folder `D:/MyWorkshopItems/FrontierModHud/` on the operator's machine, uploaded with `steamcmd +workshop_build_item`, same way as the banners item 3822712209). A server ships it with the id in `workshop.txt` (the server downloads it) and in `qlx_workshopReferences` (the `workshop` plugin makes clients download it), comma-separated next to the banners.
+
 The pk3 must be on the server as well: with `sv_pure 1` a client that reads files from a pk3 the server does not have is refused ("Unpure client detected"). The real delivery is a Workshop item in the servers' `workshop.txt` (separate, later step). For a test by hand: the same file in the server's `baseq3/` (restart) and in the player's `<QL>/baseq3/` (the install dir; a pk3 in `<QL>/<steamid>/baseq3/` is not loaded), no loose `<QL>/<steamid>/baseq3/ui/intro.menu` (it would win over the pk3), restart the game.
 
 ## Position

@@ -105,7 +105,7 @@ def test_alignment_and_anchors():
 
 def test_spec_anchor_table():
     assert bm.POSITIONS == {
-        "top": (320, 8, "center", "CENTER"), "center": (320, 150, "center", "CENTER"),
+        "top": (320, 8, "center", "CENTER"), "center": (320, 190, "center", "CENTER"),
         "bottom": (320, 300, "center", "CENTER"), "left": (8, 200, "left", "LEFT"),
         "topleft": (8, 8, "left", "LEFT"), "bottomleft": (8, 300, "left", "LEFT"),
         "right": (632, 200, "right", "RIGHT"), "topright": (632, 8, "right", "RIGHT"),

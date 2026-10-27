@@ -40,7 +40,7 @@ FRAMES = ["━", "┃", "┏", "┓", "┗", "┛", "┣", "┫",
 # which places short lines where the player expects them.
 POSITIONS = {
     "top": (320, 8, "center", "CENTER"),
-    "center": (320, 150, "center", "CENTER"),
+    "center": (320, 190, "center", "CENTER"),  # three lines end just above the crosshair (y 240)
     "bottom": (320, 300, "center", "CENTER"),
     "left": (8, 200, "left", "LEFT"),
     "topleft": (8, 8, "left", "LEFT"),

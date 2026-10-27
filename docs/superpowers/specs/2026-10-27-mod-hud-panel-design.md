@@ -57,7 +57,7 @@ One `menuDef` per position (`modhud_<pos>`), each with three text items, line `n
 | Position | Anchor x | Top y | Align | widescreen |
 |----------|----------|-------|-------|------------|
 | top | 320 | 8 | centre | CENTER |
-| center | 320 | 150 | centre | CENTER |
+| center | 320 | 190 | centre | CENTER |
 | bottom | 320 | 300 | centre | CENTER |
 | left | 8 | 200 | left | LEFT |
 | topleft | 8 | 8 | left | LEFT |
