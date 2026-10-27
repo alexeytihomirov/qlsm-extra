@@ -133,4 +133,5 @@ def mu_fields(ladder):
 def test_hud_fields_are_the_shared_panel():
     assert gg.hud_fields(L3, (0, 1)) == {
         "mod_hud_on": "1", "mod_hud_l1": "^3^7 " + S12,
-        "mod_hud_l2": "^7┃^3^7┃", "mod_hud_l3": ""}
+        # The shared helper parts touching icons with a hair space (U+200A).
+        "mod_hud_l2": "^7┃ ^3 ^7┃  ", "mod_hud_l3": ""}

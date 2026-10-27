@@ -21,6 +21,14 @@ def cps(engine):
     return [cmd for _, cmd in engine.commands if cmd.startswith("cp ")]
 
 
+def test_neighbouring_icons_get_a_hair_space():
+    # Live (#27): QL packs glyphs without our side bearings; U+200A (stock, 0.05-0.1 em) parts them.
+    H = " "
+    assert mu.fields(["{rl}{rg} x {mh}"])["mod_hud_l1"] == "" + H + " x "
+    line = mu.fields(["^2{rl}{rg}^7┃^3{lg}^7┃{pg}"])["mod_hud_l1"]
+    assert line == ("^2" + H + "" + H + "^7┃" + H + "^3" + H + "^7┃" + H + "")
+
+
 def test_small_digits_and_back():
     assert mu.small("1/2 x") == " x"
     assert mu.small("09") == ""

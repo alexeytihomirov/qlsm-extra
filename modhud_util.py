@@ -45,6 +45,12 @@ TOKENS.update({"on": "▰", "off": "▱"})
 
 _TOKEN = re.compile(r"\{\{|\{(\w+)\}")
 
+# QL packs glyphs without our side bearings (live, #27): neighbouring icons and frame bars get a
+# stock hair space (U+200A, 0.05-0.1 em) between them, colour codes in between allowed.
+_PIECE = "[-━-╿]"
+_TOUCHING = re.compile("(%s)((?:\\^[0-9])*)(?=%s)" % (_PIECE, _PIECE))
+GAP = " "
+
 # Small digits and slash (70% of the stock digits, our font only): small("1/2").
 SMALL = {char: chr(0xE030 + i) for i, char in enumerate("0123456789/")}
 
@@ -89,7 +95,7 @@ def clean(value):
 
 def fields(lines):
     """The panel showing up to three *lines* (tokens expanded); missing lines are empty."""
-    lines = [fit(clean(expand(line))) for line in list(lines)[:3]]
+    lines = [fit(clean(_TOUCHING.sub(r"\1" + GAP + r"\2", expand(line)))) for line in list(lines)[:3]]
     lines += [""] * (3 - len(lines))
     return dict(zip(FIELDS, ["1"] + lines))
 
