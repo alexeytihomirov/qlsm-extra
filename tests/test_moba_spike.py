@@ -84,13 +84,43 @@ def test_nudge_past_last_point_stops():
 
 def test_claim_bot_by_flag_not_steam_id():
     # Live on #26: a QL bot reports steam_id 90071996842377216, not 0.
-    plugin = bare_instance(ms.moba_spike, _roles={}, _pending=ms.collections.deque([{"role": "tower"}]),
+    plugin = bare_instance(ms.moba_spike, _roles={}, _pending=ms.collections.deque([{"role": "tower", "team": "red"}]),
                            _sync_item_hook=lambda: None)
     human = SimpleNamespace(id=3, steam_id=76561198000000000, is_bot=False)
-    bot = SimpleNamespace(id=4, steam_id=90071996842377216, is_bot=True)
+    bot = SimpleNamespace(id=4, steam_id=90071996842377216, is_bot=True, team="red")
     assert plugin._claim(human) is None
-    assert plugin._claim(bot) == {"role": "tower"}
-    assert plugin._roles == {4: {"role": "tower"}}
+    assert plugin._claim(bot) == {"role": "tower", "team": "red"}
+    assert plugin._roles == {4: {"role": "tower", "team": "red"}}
+
+
+def test_claim_requires_matching_team():
+    plugin = bare_instance(ms.moba_spike, _roles={},
+                           _pending=ms.collections.deque([{"role": "tower", "team": "blue"}]),
+                           _sync_item_hook=lambda: None)
+    stray_red = SimpleNamespace(id=5, steam_id=1, is_bot=True, team="red")
+    blue = SimpleNamespace(id=6, steam_id=1, is_bot=True, team="blue")
+    assert plugin._claim(stray_red) is None
+    assert plugin._claim(blue) == {"role": "tower", "team": "blue"}
+
+
+class Channel:
+    def __init__(self):
+        self.lines = []
+
+    def reply(self, text):
+        self.lines.append(text)
+
+
+def test_creeps_without_spawn_marker_replies():
+    added = []
+    plugin = bare_instance(ms.moba_spike, _markers={"moba_core_red": [(0.0, 0.0, 0.0)]},
+                           _addbot=lambda team, role: added.append(role))
+    ch = Channel()
+    plugin.cmd_moba_spike(None, ["!moba_spike", "creeps", "red", "3"], ch)
+    plugin.cmd_moba_spike(None, ["!moba_spike", "tower", "blue"], ch)
+    assert added == []
+    assert any("moba_creepspawn_red_top" in l for l in ch.lines)
+    assert any("moba_tower_blue_top_1" in l for l in ch.lines)
 
 
 @pytest.mark.parametrize("raw,clean", [("sarge", "sarge"), ("sa rge;quit", "sargequit"), ("", "sarge")])

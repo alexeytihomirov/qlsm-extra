@@ -147,11 +147,14 @@ class moba_spike(minqlx.Plugin):
         minqlx.console_command("addbot {} {} {}".format(name, skill, team))
 
     def _claim(self, player):
-        """First spawn of an unclaimed bot takes the oldest pending role."""
+        """First spawn of an unclaimed bot takes the oldest pending role of its own team."""
         # Not steam_id == 0: a QL bot reports 90071996842377216 (seen live on #26).
         if player.id in self._roles or not getattr(player, "is_bot", False) or not self._pending:
             return self._roles.get(player.id)
-        role = self._pending.popleft()
+        role = next((r for r in self._pending if r.get("team") == player.team), None)
+        if role is None:
+            return None
+        self._pending.remove(role)
         self._roles[player.id] = role
         self._sync_item_hook()
         return role
@@ -271,11 +274,19 @@ class moba_spike(minqlx.Plugin):
             return
         if sub == "tower":
             team = args[1]
-            anchor = self._marker("moba_tower_{}_top_1".format(team))
+            name = "moba_tower_{}_top_1".format(team)
+            anchor = self._marker(name)
+            if anchor is None:
+                channel.reply("moba_spike: no marker {}".format(name))
+                return
             self._addbot(team, dict(role="tower", team=team, anchor=anchor, idx=0, dead=False))
         elif sub == "creeps":
             team, n = args[1], int(args[2]) if len(args) > 2 else 3
-            anchor = self._marker("moba_creepspawn_{}_top".format(team))
+            name = "moba_creepspawn_{}_top".format(team)
+            anchor = self._marker(name)
+            if anchor is None:
+                channel.reply("moba_spike: no marker {}".format(name))
+                return
             for i in range(n):
                 # bots placed on one point stick inside each other: spread them across the lane
                 spot = (anchor[0], anchor[1] + 40 * (i - (n - 1) / 2), anchor[2])
