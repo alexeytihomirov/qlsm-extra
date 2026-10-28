@@ -276,8 +276,10 @@ class moba_spike(minqlx.Plugin):
         elif sub == "creeps":
             team, n = args[1], int(args[2]) if len(args) > 2 else 3
             anchor = self._marker("moba_creepspawn_{}_top".format(team))
-            for _ in range(n):
-                self._addbot(team, dict(role="creep", team=team, anchor=anchor, idx=0, dead=False))
+            for i in range(n):
+                # bots placed on one point stick inside each other: spread them across the lane
+                spot = (anchor[0], anchor[1] + 40 * (i - (n - 1) / 2), anchor[2])
+                self._addbot(team, dict(role="creep", team=team, anchor=spot, idx=0, dead=False))
         elif sub == "load":
             n = int(args[1]) if len(args) > 1 else 10
             for i in range(n):
