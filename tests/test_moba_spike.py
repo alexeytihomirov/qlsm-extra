@@ -82,6 +82,17 @@ def test_nudge_past_last_point_stops():
     assert vel == (0.0, 0.0, 0.0)
 
 
+def test_claim_bot_by_flag_not_steam_id():
+    # Live on #26: a QL bot reports steam_id 90071996842377216, not 0.
+    plugin = bare_instance(ms.moba_spike, _roles={}, _pending=ms.collections.deque([{"role": "tower"}]),
+                           _sync_item_hook=lambda: None)
+    human = SimpleNamespace(id=3, steam_id=76561198000000000, is_bot=False)
+    bot = SimpleNamespace(id=4, steam_id=90071996842377216, is_bot=True)
+    assert plugin._claim(human) is None
+    assert plugin._claim(bot) == {"role": "tower"}
+    assert plugin._roles == {4: {"role": "tower"}}
+
+
 @pytest.mark.parametrize("raw,clean", [("sarge", "sarge"), ("sa rge;quit", "sargequit"), ("", "sarge")])
 def test_bot_name_sanitized(raw, clean):
     assert ms.safe_bot_name(raw) == clean

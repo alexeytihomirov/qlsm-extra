@@ -148,7 +148,8 @@ class moba_spike(minqlx.Plugin):
 
     def _claim(self, player):
         """First spawn of an unclaimed bot takes the oldest pending role."""
-        if player.id in self._roles or int(player.steam_id) != 0 or not self._pending:
+        # Not steam_id == 0: a QL bot reports 90071996842377216 (seen live on #26).
+        if player.id in self._roles or not getattr(player, "is_bot", False) or not self._pending:
             return self._roles.get(player.id)
         role = self._pending.popleft()
         self._roles[player.id] = role
