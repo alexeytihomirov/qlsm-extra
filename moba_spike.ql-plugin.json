@@ -1,0 +1,10 @@
+{
+  "label": "MOBA spike (throwaway)",
+  "description": "Phase 0 probe for the MOBA-lite mode (root-0034): owner-only 'qlx !moba_spike tower|creeps|load|clear|status' spawns tower, creep and load bots on a map with moba_* markers. Test instances only.",
+  "commands": ["moba_spike"],
+  "cvars": [
+    {"cvar": "qlx_mobaSpikeBotName", "label": "Bot name", "description": "Bot character passed to addbot.", "type": "string", "default": "sarge"},
+    {"cvar": "qlx_mobaSpikeSkill", "label": "Bot skill", "description": "Bot skill passed to addbot.", "type": "number", "default": 1, "min": 1, "max": 5},
+    {"cvar": "qlx_mobaSpikeTowerHealth", "label": "Tower health", "description": "Health of a tower bot after spawn.", "type": "number", "default": 1000, "min": 1, "max": 9999}
+  ]
+}
