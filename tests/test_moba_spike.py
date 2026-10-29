@@ -123,6 +123,22 @@ def test_creeps_without_spawn_marker_replies():
     assert any("moba_tower_blue_top_1" in l for l in ch.lines)
 
 
+def test_tower_hp_only_drops_on_damage():
+    # Live on #26: QL decays health above 100 by 1/s, so a 1000 HP tower left alone for
+    # 15 minutes was down to 100 and the creeps finished it. The plugin keeps its own HP.
+    role = {"role": "tower", "team": "blue", "anchor": (0.0, 0.0, 24.0), "idx": 0, "dead": False, "hp": 1000}
+    tower = SimpleNamespace(id=1, is_alive=True, position=(0.0, 0.0, 24.0), velocity=(0, 0, 0),
+                            health=1000, team="blue")
+    plugin = bare_instance(ms.moba_spike, _roles={1: role}, _markers={}, _last_tick=0.0, _nudges=0,
+                           _damage_seen=99, _frame_cost=ms.collections.deque(), logger=Log(),
+                           players=lambda: [tower])
+    plugin.handle_damage(tower, None, 30, 0, 0)
+    assert role["hp"] == 970
+    tower.health = 940  # decay since the last tick
+    plugin.handle_frame()
+    assert tower.health == 970
+
+
 @pytest.mark.parametrize("raw,clean", [("sarge", "sarge"), ("sa rge;quit", "sargequit"), ("", "sarge")])
 def test_bot_name_sanitized(raw, clean):
     assert ms.safe_bot_name(raw) == clean

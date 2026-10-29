@@ -176,7 +176,8 @@ class moba_spike(minqlx.Plugin):
                     return
                 player.position = role["anchor"]
                 player.velocity = (0, 0, 0)
-                player.health = int(self.get_cvar("qlx_mobaSpikeTowerHealth") or "1000")
+                role["hp"] = int(self.get_cvar("qlx_mobaSpikeTowerHealth") or "1000")
+                player.health = role["hp"]
                 player.weapons = minqlx.Weapons(weapons_only("rg"))
                 player.weapon = WEAPON_FIELDS.index("rg") + 1
                 player.speed = 0
@@ -193,10 +194,13 @@ class moba_spike(minqlx.Plugin):
         role = self._roles.get(victim.id)
         if role is not None and role["role"] == "tower":
             role["dead"] = True
-            self.msg("moba_spike: tower {} destroyed".format(role["team"]))
+            self.msg("moba_spike: tower {} destroyed by {}".format(role["team"], getattr(killer, "name", killer)))
 
     def handle_damage(self, target, attacker, damage, dflags, mod):
-        if target is not None and getattr(target, "id", None) in self._roles:
+        role = self._roles.get(getattr(target, "id", None)) if target is not None else None
+        if role is not None:
+            if "hp" in role:
+                role["hp"] -= damage
             self._damage_seen += 1
             if self._damage_seen <= 5:
                 self.logger.info("moba_spike: damage %s -> bot %s (%s)", damage, target.id, mod)
@@ -238,6 +242,8 @@ class moba_spike(minqlx.Plugin):
             try:
                 pos = tuple(player.position)
                 if role["role"] == "tower":
+                    if "hp" in role and role["hp"] > 0:
+                        player.health = role["hp"]  # QL decays health above 100 by 1/s
                     if dist2d(pos, role["anchor"]) > TOWER_DRIFT:
                         player.position = role["anchor"]
                         player.velocity = (0, 0, 0)
@@ -317,8 +323,8 @@ class moba_spike(minqlx.Plugin):
         for cid, role in sorted(self._roles.items()):
             p = self.player(cid)
             pos = tuple(int(c) for c in p.position) if p is not None else None
-            channel.reply("  {} {} {} idx {} dead {} pos {}".format(
-                cid, role["role"], role["team"], role["idx"], role["dead"], pos))
+            channel.reply("  {} {} {} idx {} dead {} hp {} pos {}".format(
+                cid, role["role"], role["team"], role["idx"], role["dead"], role.get("hp"), pos))
 
     def handle_unload(self, plugin):
         if plugin == self.__class__.__name__ and self._item_hooked:
