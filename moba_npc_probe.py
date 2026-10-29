@@ -150,6 +150,11 @@ class moba_npc_probe(minqlx.Plugin):
                 e.s.pos_delta = (speed, 0.0, 0.0)
                 e.s.pos_type = minqlx.TrajectoryType.LINEAR
                 channel.reply("npc {}: patrol {}..{} at {}".format(num, x0, x1, speed))
+            elif sub == "arm" and len(args) == 2:
+                p = self.player(int(args[1]))
+                p.weapons = minqlx.Weapons([True] * 15)
+                p.ammo = minqlx.Weapons([200] * 15)
+                channel.reply("npc: armed {}".format(p.name))
             elif sub == "setmodel" and len(args) == 3:
                 minqlx.set_configstring(minqlx.CS_MODELS + int(args[1]), args[2])
                 channel.reply("model {} := {}".format(args[1], args[2]))
