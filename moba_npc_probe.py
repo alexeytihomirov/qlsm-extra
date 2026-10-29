@@ -46,6 +46,8 @@ class moba_npc_probe(minqlx.Plugin):
     @staticmethod
     def _now_pos(e):
         s = e.s
+        if s.e_type == minqlx.EntityType.ITEM:
+            return tuple(e.r.current_origin)  # G_RunItem moves it, with a trace
         if s.pos_type == minqlx.TrajectoryType.LINEAR:
             dt = (minqlx.level.time - s.pos_time) / 1000.0
             return tuple(s.pos_base[i] + s.pos_delta[i] * dt for i in range(3))
@@ -71,6 +73,8 @@ class moba_npc_probe(minqlx.Plugin):
         e.r.mins = (-16.0, -16.0, -24.0)
         e.r.maxs = (16.0, 16.0, 32.0)
         e.r.contents = CONTENTS_BODY
+        e.clipmask = 1  # CONTENTS_SOLID: G_RunItem's trace stops on walls, not on players
+        e.r.owner_num = 1023  # ENTITYNUM_NONE
         e.takedamage = True
         e.health = BASE_HP
         minqlx.link_entity(e.s.number)
@@ -88,19 +92,29 @@ class moba_npc_probe(minqlx.Plugin):
                 if not e.inuse:
                     self._npcs.pop(num)
                     continue
-                if e.s.pos_type == minqlx.TrajectoryType.LINEAR:
+                patrol = st.get("patrol")
+                moving = e.s.pos_type == minqlx.TrajectoryType.LINEAR and e.s.pos_delta[0] != 0.0
+                if patrol or moving:
                     # collision and hit traces read r.current_origin, clients read s.pos
                     pos = self._now_pos(e)
-                    patrol = st.get("patrol")
-                    if patrol and not patrol[0] <= pos[0] <= patrol[1]:
+                    if patrol and (not moving or not patrol[0] <= pos[0] <= patrol[1]):
+                        # out of bounds, or G_RunItem stopped it on a wall/floor: head inward
+                        if not moving:
+                            st["stops"] = st.get("stops", 0) + 1
+                            st["dir"] = -st.get("dir", 1)
                         x = min(max(pos[0], patrol[0]), patrol[1])
                         pos = (x, pos[1], pos[2])
+                        if pos[0] >= patrol[1]:
+                            st["dir"] = -1
+                        elif pos[0] <= patrol[0]:
+                            st["dir"] = 1
                         e.s.pos_base = pos
                         e.s.pos_time = minqlx.level.time
-                        dx = e.s.pos_delta[0]
-                        e.s.pos_delta = (-dx, 0.0, 0.0)
-                    e.r.current_origin = pos
-                    minqlx.link_entity(num)
+                        e.s.pos_delta = (st["speed"] * st.get("dir", 1), 0.0, 0.0)
+                        e.s.pos_type = minqlx.TrajectoryType.LINEAR
+                    if e.s.e_type != minqlx.EntityType.ITEM:
+                        e.r.current_origin = pos
+                        minqlx.link_entity(num)
                 hp = e.health
                 if hp != st["last_hp"]:
                     st["hits"] += 1
@@ -129,6 +143,8 @@ class moba_npc_probe(minqlx.Plugin):
                 e = minqlx.Entity(num)
                 pos = self._now_pos(e)
                 self._npcs[num]["patrol"] = (x0, x1)
+                self._npcs[num]["speed"] = abs(speed)
+                self._npcs[num]["dir"] = 1 if speed > 0 else -1
                 e.s.pos_base = pos
                 e.s.pos_time = minqlx.level.time
                 e.s.pos_delta = (speed, 0.0, 0.0)
@@ -160,8 +176,8 @@ class moba_npc_probe(minqlx.Plugin):
             elif sub == "status":
                 for num, st in sorted(self._npcs.items()):
                     e = minqlx.Entity(num)
-                    channel.reply("npc {}: lost {} hits {} pos {} cur {} type {} contents {} takedamage {}".format(
-                        num, BASE_HP - e.health, st["hits"], tuple(int(c) for c in self._now_pos(e)),
+                    channel.reply("npc {}: stops {} lost {} hits {} pos {} cur {} type {} contents {} takedamage {}".format(
+                        num, st.get("stops", 0), BASE_HP - e.health, st["hits"], tuple(int(c) for c in self._now_pos(e)),
                         tuple(int(c) for c in e.r.current_origin), e.s.e_type, e.r.contents, e.takedamage))
                 channel.reply("npc: {} alive".format(len(self._npcs)))
             elif sub == "clear":
