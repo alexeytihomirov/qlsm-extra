@@ -23,6 +23,10 @@ BASE_HP = 100000
 LIFE_HP = 1000
 CONTENTS_BODY = 0x2000000
 TICK_S = 0.05
+EV_FIRE_WEAPON = 0x14
+# bg_itemlist index = give ID (skills/ql-live/reference/items.md). cgame loads a weapon's
+# missile model, trail, sounds and explosion only when CS_ITEMS marks its item present.
+PRELOAD_ITEMS = {"rl": 13, "pg": 16}
 
 
 class moba_npc_probe(minqlx.Plugin):
@@ -115,6 +119,9 @@ class moba_npc_probe(minqlx.Plugin):
         m.splash_method_of_death = smod
         m.nextthink = 0  # no think: a NULL think with a nextthink is G_Error
         minqlx.link_entity(m.s.number)
+        # muzzle sound: cgame plays EV_FIRE_WEAPON with the shooter's s.weapon
+        minqlx.Entity(num).s.weapon = wp
+        minqlx.add_event(num, EV_FIRE_WEAPON)
         return "missile {} weapon {} from {} to {}".format(
             m.s.number, int(wp), tuple(int(c) for c in start), tuple(int(c) for c in target))
 
@@ -222,6 +229,14 @@ class moba_npc_probe(minqlx.Plugin):
             elif sub == "setmodel" and len(args) == 3:
                 minqlx.set_configstring(minqlx.CS_MODELS + int(args[1]), args[2])
                 channel.reply("model {} := {}".format(args[1], args[2]))
+            elif sub == "preload":
+                # as the fork's replace_items does: mark the item present so cgame loads it
+                cs = list(minqlx.configstring(minqlx.CS_ITEMS, cached=False))
+                for idx in PRELOAD_ITEMS.values():
+                    cs += ["0"] * (idx + 1 - len(cs))
+                    cs[idx] = "1"
+                minqlx.set_configstring(minqlx.CS_ITEMS, "".join(cs))
+                channel.reply("npc: CS_ITEMS {}".format("".join(cs)))
             elif sub == "models":
                 for i in range(1, 64):
                     name = minqlx.configstring(minqlx.CS_MODELS + i, cached=False)
