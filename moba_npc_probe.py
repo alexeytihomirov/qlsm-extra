@@ -81,6 +81,43 @@ class moba_npc_probe(minqlx.Plugin):
         self._npcs[e.s.number] = dict(last_hp=BASE_HP, hits=0)
         return e.s.number, "model {} ({})".format(model, cls)
 
+    def _fire(self, num, cid, weapon):
+        """A real missile entity from NPC num at player cid; the engine runs, hits, explodes it."""
+        src = self._now_pos(minqlx.Entity(num))
+        start = (src[0], src[1], src[2] + 16)
+        target = tuple(self.player(cid).position)
+        aim = (target[0] - start[0], target[1] - start[1], target[2] - start[2])
+        dist = max(sum(c * c for c in aim) ** 0.5, 1.0)
+        if weapon == "pg":
+            wp, speed, dmg, splash, radius = minqlx.Weapon.PLASMAGUN, 2000, 20, 15, 20
+            mod, smod = minqlx.Mod.PLASMA, minqlx.Mod.PLASMA_SPLASH
+        else:
+            wp, speed, dmg, splash, radius = minqlx.Weapon.ROCKET_LAUNCHER, 900, 100, 100, 120
+            mod, smod = minqlx.Mod.ROCKET, minqlx.Mod.ROCKET_SPLASH
+        m = minqlx.spawn_entity("info_notnull", {"origin": start})
+        if m is None:
+            return "spawn_entity returned None"
+        m.s.e_type = minqlx.EntityType.MISSILE
+        m.s.weapon = wp
+        m.s.pos_type = minqlx.TrajectoryType.LINEAR
+        m.s.pos_time = minqlx.level.time - 50  # MISSILE_PRESTEP_TIME
+        m.s.pos_base = start
+        m.s.pos_delta = tuple(c / dist * speed for c in aim)
+        m.r.current_origin = start
+        m.r.owner_num = num
+        m.r.sv_flags = 0x80  # SVF_USE_CURRENT_ORIGIN
+        m.parent = minqlx.Entity(num)
+        m.clipmask = 0x1 | 0x2000000 | 0x4000000  # MASK_SHOT
+        m.damage = dmg
+        m.splash_damage = splash
+        m.splash_radius = radius
+        m.method_of_death = mod
+        m.splash_method_of_death = smod
+        m.nextthink = 0  # no think: a NULL think with a nextthink is G_Error
+        minqlx.link_entity(m.s.number)
+        return "missile {} weapon {} from {} to {}".format(
+            m.s.number, int(wp), tuple(int(c) for c in start), tuple(int(c) for c in target))
+
     def handle_frame(self):
         now = time.monotonic()
         if not self._npcs or now - self._last_tick < TICK_S:
@@ -115,6 +152,15 @@ class moba_npc_probe(minqlx.Plugin):
                     if e.s.e_type != minqlx.EntityType.ITEM:
                         e.r.current_origin = pos
                         minqlx.link_entity(num)
+                turret = st.get("turret")
+                if turret and now - st.get("last_shot", 0.0) >= turret[1]:
+                    src = self._now_pos(e)
+                    near = [p for p in self.players() if p.team in ("red", "blue") and p.is_alive
+                            and sum((a - b) ** 2 for a, b in zip(p.position, src)) <= 1200 ** 2]
+                    if near:
+                        target = min(near, key=lambda p: sum((a - b) ** 2 for a, b in zip(p.position, src)))
+                        self._fire(num, target.id, turret[0])
+                        st["last_shot"] = now
                 hp = e.health
                 if hp != st["last_hp"]:
                     st["hits"] += 1
@@ -150,6 +196,24 @@ class moba_npc_probe(minqlx.Plugin):
                 e.s.pos_delta = (speed, 0.0, 0.0)
                 e.s.pos_type = minqlx.TrajectoryType.LINEAR
                 channel.reply("npc {}: patrol {}..{} at {}".format(num, x0, x1, speed))
+            elif sub == "hit" and len(args) == 3:
+                # direct damage: health only (armor ignored), death through G_Damage
+                p = self.player(int(args[1]))
+                dmg = int(args[2])
+                if p.health > dmg:
+                    p.health = p.health - dmg
+                    minqlx.add_event(p.id, minqlx.EntityEvent.PAIN, p.health)
+                else:
+                    minqlx.slay_with_mod(p.id, minqlx.Mod.MACHINEGUN)
+                channel.reply("npc: hit {} for {}, health {}".format(p.name, dmg, p.health))
+            elif sub == "fire" and len(args) in (3, 4):
+                num, cid = int(args[1]), int(args[2])
+                weapon = args[3] if len(args) == 4 else "rl"
+                channel.reply("npc fire: {}".format(self._fire(num, cid, weapon)))
+            elif sub == "turret" and len(args) == 4:
+                num = int(args[1])
+                self._npcs[num]["turret"] = (args[2], float(args[3]))
+                channel.reply("npc {}: turret {} every {} s, range 1200".format(num, args[2], args[3]))
             elif sub == "arm" and len(args) == 2:
                 p = self.player(int(args[1]))
                 p.weapons = minqlx.Weapons([True] * 15)
