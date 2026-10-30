@@ -32,6 +32,8 @@ TICK_S = 0.05
 SLOW_S = 0.25
 ERROR_LOG_S = 10.0
 PAD_RANGE = 96.0
+PLUM_S = 0.25  # damage numbers per creep are summed over this
+MAX_PLUMS = 16  # entities per round of numbers; what does not fit waits for the next round
 MARKER_TO_HULL = 2.0  # markers stand 24 u above the floor, a hull origin 26 u
 TURRET_MUZZLE = 34.0  # above the hull-level origin: inside the turret head
 AIM_ABOVE = 22.0  # at a creep's body, floor + 48
@@ -100,6 +102,8 @@ class tower_defence(minqlx.Plugin):
         self._scene = []
         self._red_count = 0
         self._targets = []
+        self._client_ids = []
+        self._last_plum = 0.0
         self._last_tick = 0.0
         self._last_slow = 0.0
         self._last_error = -ERROR_LOG_S
@@ -252,11 +256,29 @@ class tower_defence(minqlx.Plugin):
         if game.phase in ("pause", "wave"):
             self._fire_turrets(now)
             self._fire_creeps(now)
+        if now - self._last_plum >= PLUM_S:
+            self._last_plum = now
+            self._show_damage(now)
         npc_core.tick_missiles(self._creeps, now)
+
+    def _show_damage(self, now=0.0):
+        """Who hit a hull is unknown: everyone sees the numbers, whoever did the damage."""
+        room = MAX_PLUMS
+        for npc in self._creeps:
+            if room <= 0:
+                return
+            taken = npc_core.damage_taken(npc)
+            if taken <= npc.shown:
+                continue
+            for client in self._client_ids:
+                npc_core.damage_plum((npc.pos[0], npc.pos[1], npc.pos[2] + AIM_ABOVE), taken - npc.shown, client, now)
+            room -= len(self._client_ids)
+            npc.shown = taken
 
     def _slow_players(self):
         reds = [p for p in self.players() if _plays(p)]
         self._red_count = len(reds)
+        self._client_ids = [p.id for p in reds]
         for p in reds:
             if p.team == "blue" and p.id not in self._put_tried:
                 self._put_tried.add(p.id)  # once: a refused put would respawn them again and again
@@ -300,6 +322,7 @@ class tower_defence(minqlx.Plugin):
         npc = npc_core.spawn_pair(_hull_level(self._markers["spawn"]), kind.parts, hp, now,
                                   hull_size=kind.hull, frames=kind.frames, fps=kind.fps)
         npc.creep = name
+        npc.shown = 0
         npc_core.start_path(npc, [_hull_level(p) for p in self._markers["path"]], kind.speed, now)
         self._creeps.append(npc)
 

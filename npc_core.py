@@ -29,6 +29,8 @@ ENTITYNUM_NONE = 1023
 SVF_NOCLIENT = 0x1
 SVF_USE_CURRENT_ORIGIN = 0x80
 EV_FIRE_WEAPON = 0x14
+EV_DAMAGEPLUM = 96
+PLUM_WEAPON = 5  # rl: the number shows under cg_damagePlum, a filter by weapon
 MISSILE_PRESTEP_MS = 50
 FLOOR_TO_HULL = 26.0  # hull origin above the floor: mins -24 and 2 u clear; md3 origin is at the feet
 HULL_MIN_Z = -24.0
@@ -384,6 +386,25 @@ def tick_missiles(npcs, now):
                 if flight["radius"]:
                     area_damage(npcs, where, flight["radius"], flight["damage"], skip=npc)
                 break
+
+
+def damage_plum(pos, amount, client, now):
+    """The number a client sees over what it hit. Hulls get none from the engine: it sends one
+    only between clients. One entity per client, s.client_num says whose number this is."""
+    e = minqlx.spawn_entity("info_notnull", {"origin": pos})
+    if e is None:
+        raise RuntimeError("spawn_entity returned None")
+    e.s.e_type = minqlx.EntityType.GENERAL
+    e.s.pos_type = minqlx.TrajectoryType.STATIONARY
+    e.s.pos_base = pos
+    e.r.current_origin = pos
+    e.s.client_num = client
+    e.s.time = int(amount)
+    e.s.generic1 = PLUM_WEAPON
+    minqlx.link_entity(e.s.number)
+    minqlx.add_event(e.s.number, EV_DAMAGEPLUM)
+    _flying[e.s.number] = dict(damage=None, radius=0, last=pos, gone=now + EXPLOSION_S)
+    return e.s.number
 
 
 def clear_missiles():

@@ -301,3 +301,16 @@ def test_aim_visual_turns_a_part(engine):
     npc_core.aim_visual(npc, 1, (0.0, 100.0, 0.0))
     assert engine.ents[npc.visuals[1]].s.apos_base == pytest.approx((0.0, 90.0, 0.0))
     assert engine.ents[npc.visuals[0]].s.apos_base is None
+
+
+def test_damage_plum_event_and_cleanup(engine):
+    num = npc_core.damage_plum((1.0, 2.0, 3.0), 45, 3, 1.0)
+    e = engine.ents[num]
+    assert (e.s.client_num, e.s.time, e.s.generic1) == (3, 45, npc_core.PLUM_WEAPON)
+    assert e.s.pos_base == (1.0, 2.0, 3.0) and e.s.e_type == "general"
+    assert (num, npc_core.EV_DAMAGEPLUM, 0) in engine.events
+    assert npc_core.missiles_in_flight() == 0
+    npc_core.tick_missiles([], 1.2)
+    assert num not in engine.removed
+    npc_core.tick_missiles([], 1.6)
+    assert num in engine.removed

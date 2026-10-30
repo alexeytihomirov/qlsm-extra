@@ -38,6 +38,8 @@ class FakeCore:
         self.cleared = 0
         self.ticks = []
         self.missile_ticks = 0
+        self.taken = {}
+        self.plums = []
 
     def spawn_pair(self, origin, parts, hp_limit, now, solid=True, hull_size=(16, 32), frames=None, fps=0):
         npc = SimpleNamespace(hull=len(self.spawned) if solid else None, visuals=[1000 + len(self.spawned), 2000],
@@ -89,6 +91,12 @@ class FakeCore:
 
     def reset_cache(self):
         pass
+
+    def damage_taken(self, npc):
+        return self.taken.get(id(npc), 0)
+
+    def damage_plum(self, pos, amount, client, now):
+        self.plums.append((amount, client))
 
     def model_index(self, path):
         return 1
@@ -468,3 +476,33 @@ def test_last_red_leaving_with_blue_left_keeps_the_game(core):
     p._game.start(0.0)
     p.handle_player_disconnect(red, "quit")
     assert p._game.phase == "pause"
+
+
+def test_plums_show_new_damage_to_every_player(core):
+    p = make_plugin([player(1), player(2)])
+    p._slow_players()
+    p._game.start(0.0)
+    creep = add_creep(p, core)
+    core.taken[id(creep)] = 30
+    p._show_damage()
+    assert core.plums == [(30, 1), (30, 2)]
+    p._show_damage()
+    assert len(core.plums) == 2  # nothing new
+    core.taken[id(creep)] = 50
+    p._show_damage()
+    assert core.plums[-2:] == [(20, 1), (20, 2)]
+
+
+def test_plums_hold_at_the_cap_and_lose_no_damage(core):
+    p = make_plugin([player(i) for i in range(td.MAX_PLUMS + 1)])
+    p._slow_players()
+    p._game.start(0.0)
+    a, b = add_creep(p, core), add_creep(p, core)
+    core.taken[id(a)] = 10
+    core.taken[id(b)] = 7
+    p._show_damage()
+    assert not any(amount == 7 for amount, _ in core.plums)
+    core.taken[id(a)] = 10
+    core.plums.clear()
+    p._show_damage()
+    assert any(amount == 7 for amount, _ in core.plums)
