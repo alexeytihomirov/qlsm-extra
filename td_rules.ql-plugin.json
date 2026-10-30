@@ -1,0 +1,4 @@
+{
+  "label": "Tower defence rules",
+  "description": "Helper of tower_defence: tables, waves, money and pads, no engine calls. Not a plugin of its own."
+}
