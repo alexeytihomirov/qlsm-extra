@@ -31,6 +31,7 @@ PRELOAD_ITEMS = {"rl": 13, "pg": 16}
 BOTH_DEATH1, TORSO_STAND, LEGS_WALK, LEGS_RUN, LEGS_IDLE = 0, 11, 14, 15, 22
 ANIM_TOGGLEBIT = 128
 EF_DEAD = 0x1
+SVF_NOCLIENT = 0x1  # Q3 value: the entity is not sent to clients
 
 
 class moba_npc_probe(minqlx.Plugin):
@@ -97,7 +98,38 @@ class moba_npc_probe(minqlx.Plugin):
         if e.s.torso_anim & ~ANIM_TOGGLEBIT != torso:
             e.s.torso_anim = ((e.s.torso_anim & ANIM_TOGGLEBIT) ^ ANIM_TOGGLEBIT) | torso
 
-    def _dummy(self, origin, slot, model):
+    def _pair(self, origin, path, frames):
+        """Invisible ET_ITEM hull (hits, hit sound, G_RunItem) + ET_GENERAL visual with any md3."""
+        index = next(i for i in range(1, 256)
+                     if minqlx.configstring(minqlx.CS_MODELS + i, cached=False) in ("", path))
+        minqlx.set_configstring(minqlx.CS_MODELS + index, path)
+        num, _info = self._spawn(origin)
+        hull = minqlx.Entity(num)
+        hull.r.sv_flags = hull.r.sv_flags | SVF_NOCLIENT
+        v = minqlx.spawn_entity("info_notnull", {"origin": origin})
+        v.s.e_type = minqlx.EntityType.GENERAL
+        v.s.modelindex = index
+        v.s.pos_type = minqlx.TrajectoryType.STATIONARY
+        v.s.pos_base = origin
+        v.r.current_origin = origin
+        minqlx.link_entity(v.s.number)
+        self._npcs[num].update(visual=v.s.number, frames=frames)
+        return num, "visual {} model {} ({})".format(v.s.number, index, path)
+
+    def _sync_visual(self, st, hull):
+        v = minqlx.Entity(st["visual"])
+        v.s.pos_type = hull.s.pos_type
+        v.s.pos_time = hull.s.pos_time
+        v.s.pos_base = hull.s.pos_base
+        v.s.pos_delta = hull.s.pos_delta
+        v.r.current_origin = hull.r.current_origin
+        if hull.s.pos_delta[0]:
+            v.s.apos_base = (0.0, 0.0 if hull.s.pos_delta[0] > 0 else 180.0, 0.0)
+        if st["frames"]:
+            v.s.frame = (v.s.frame + 1) % st["frames"]
+        minqlx.link_entity(v.s.number)
+
+    def _dummy(self, origin, slot, model, team="2"):
         """ET_PLAYER drawn from a made-up clientinfo in a free client slot: cgame animates it."""
         template = ""
         for i in range(64):
@@ -106,7 +138,7 @@ class moba_npc_probe(minqlx.Plugin):
                 break
         parts = template.split("\\")
         info = dict(zip(parts[0::2], parts[1::2]))
-        info.update({"n": "Creep{}".format(slot), "model": model, "hmodel": model, "t": "2"})
+        info.update({"n": "Creep{}".format(slot), "model": model, "hmodel": model, "t": team})
         minqlx.set_configstring(minqlx.CS_PLAYERS + slot, "\\".join(k + "\\" + v for k, v in info.items()))
         num, _info = self._spawn(origin, 0)
         e = minqlx.Entity(num)
@@ -199,6 +231,8 @@ class moba_npc_probe(minqlx.Plugin):
                     if e.s.e_type != minqlx.EntityType.ITEM:
                         e.r.current_origin = pos
                         minqlx.link_entity(num)
+                if st.get("visual"):
+                    self._sync_visual(st, e)
                 turret = st.get("turret")
                 if turret and now - st.get("last_shot", 0.0) >= turret[1]:
                     src = self._now_pos(e)
@@ -227,6 +261,8 @@ class moba_npc_probe(minqlx.Plugin):
                         minqlx.link_entity(num)
                         st["dying"] = now + 2.0
                     else:
+                        if st.get("visual"):
+                            minqlx.remove_entity(st["visual"])
                         minqlx.remove_entity(num)
                         self._npcs.pop(num)
                     self.msg("npc {} destroyed after {} damage".format(num, BASE_HP - hp))
@@ -285,9 +321,14 @@ class moba_npc_probe(minqlx.Plugin):
             elif sub == "setmodel" and len(args) == 3:
                 minqlx.set_configstring(minqlx.CS_MODELS + int(args[1]), args[2])
                 channel.reply("model {} := {}".format(args[1], args[2]))
-            elif sub == "dummy" and len(args) in (5, 6):
-                model = args[5] if len(args) == 6 else "sarge"
-                num, info = self._dummy(tuple(float(a) for a in args[1:4]), int(args[4]), model)
+            elif sub == "pair" and len(args) in (5, 6):
+                frames = int(args[5]) if len(args) == 6 else 0
+                num, info = self._pair(tuple(float(a) for a in args[1:4]), args[4], frames)
+                channel.reply("npc pair: {} {}".format(num, info))
+            elif sub == "dummy" and len(args) in (5, 6, 7):
+                model = args[5] if len(args) >= 6 else "sarge"
+                team = args[6] if len(args) == 7 else "2"
+                num, info = self._dummy(tuple(float(a) for a in args[1:4]), int(args[4]), model, team)
                 channel.reply("npc dummy: {} {}".format(num, info))
             elif sub == "anim" and len(args) == 4:
                 e = minqlx.Entity(int(args[1]))
@@ -334,7 +375,9 @@ class moba_npc_probe(minqlx.Plugin):
                         tuple(int(c) for c in e.r.current_origin), e.s.e_type, e.r.contents, e.takedamage))
                 channel.reply("npc: {} alive".format(len(self._npcs)))
             elif sub == "clear":
-                for num in list(self._npcs):
+                for num, st in list(self._npcs.items()):
+                    if st.get("visual"):
+                        minqlx.remove_entity(st["visual"])
                     minqlx.remove_entity(num)
                 self._npcs.clear()
                 channel.reply("npc: cleared")
