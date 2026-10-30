@@ -174,15 +174,18 @@ def test_game_starts_once_the_match_runs(plugin, core):
     assert not any(n.solid for n in core.spawned)
 
 
-def test_warmup_calls_allready_once_per_wait(plugin, monkeypatch):
+def test_game_starts_in_warmup_without_readying_up(plugin, monkeypatch):
     calls = []
     monkeypatch.setattr(td.minqlx, "console_command", calls.append)
     plugin._game_state = lambda: "warmup"
     plugin._slow(100.0)
-    plugin._slow(101.0)
-    assert calls == ["allready"]
-    plugin._slow(100.0 + td.READY_RETRY_S)
-    assert calls == ["allready", "allready"]
+    assert plugin._game.phase == "pause" and calls == []
+
+
+def test_countdown_does_not_start_the_game(plugin):
+    plugin._game_state = lambda: "countdown"
+    plugin._slow(100.0)
+    assert plugin._game.phase == "idle"
 
 
 def test_no_player_no_start(core):

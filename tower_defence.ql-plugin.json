@@ -1,6 +1,6 @@
 {
   "label": "Tower defence",
-  "description": "Cooperative tower defence on a map with td_* markers: 15 waves of entity creeps, turrets on pads for team money, 20 base lives. Other maps are untouched. The instance needs g_teamSizeMin 0, g_teamForceBalance 0, g_friendlyFire 0, g_infiniteAmmo 1, and a map pool with only this map.",
+  "description": "Cooperative tower defence on a map with td_* markers: 15 waves of entity creeps, turrets on pads for team money, 20 base lives. Other maps are untouched. The game runs in warmup. The instance needs g_teamForceBalance 0, g_friendlyFire 0, g_infiniteAmmo 1 and g_teamSizeMin 1.",
   "commands": [
     { "name": "build", "usage": "rl|pg", "permission": 0, "description": "Builds a turret on the pad you stand on, for team money." },
     { "name": "upgrade", "usage": "", "permission": 0, "description": "Upgrades the turret on the pad you stand on." },

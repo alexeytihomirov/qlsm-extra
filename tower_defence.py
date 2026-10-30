@@ -6,9 +6,9 @@
 #   !td                             wave, lives, money
 #   !tdwave <n>                     jump to wave n, permission 5
 #
-# The match has to run with blue empty: g_teamSizeMin 0, and the plugin calls allready itself.
-# A match start wipes every entity, so new_game drops the state and the game starts once the
-# match is in progress. An empty team ends the match, so the map pool must hold only this map.
+# The game runs in warmup: a real match with blue empty is forfeited within seconds and the map
+# rotates, and g_allowForfeit 0 does not stop it. Keep g_teamSizeMin 1, so warmup never ends.
+# Should a match start anyway, it wipes every entity: new_game drops the state and the game restarts.
 import math
 import re
 import time
@@ -30,7 +30,6 @@ except ImportError:
 
 TICK_S = 0.05
 SLOW_S = 0.25
-READY_RETRY_S = 15.0
 ERROR_LOG_S = 10.0
 PAD_RANGE = 96.0
 MARKER_TO_HULL = 2.0  # markers stand 24 u above the floor, a hull origin 26 u
@@ -98,7 +97,6 @@ class tower_defence(minqlx.Plugin):
         self._targets = []
         self._last_tick = 0.0
         self._last_slow = 0.0
-        self._last_ready = -READY_RETRY_S
         self._last_error = -ERROR_LOG_S
         self._seen = ("idle", 0)
 
@@ -259,12 +257,8 @@ class tower_defence(minqlx.Plugin):
             return
         if not self._red_count:
             return
-        state = self._game_state()
-        if state == "in_progress":
+        if self._game_state() in ("warmup", "in_progress"):
             self._begin(now)
-        elif state == "warmup" and now - self._last_ready >= READY_RETRY_S:
-            self._last_ready = now
-            minqlx.console_command("allready")
 
     def _announce(self):
         game = self._game
