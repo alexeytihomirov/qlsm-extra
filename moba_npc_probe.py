@@ -293,6 +293,9 @@ class moba_npc_probe(minqlx.Plugin):
                 e = minqlx.Entity(int(args[1]))
                 self._anim(e, int(args[2]), int(args[3]))
                 channel.reply("npc {}: legs {} torso {}".format(args[1], e.s.legs_anim, e.s.torso_anim))
+            elif sub == "csclear" and len(args) == 2:
+                minqlx.set_configstring(int(args[1]), "")
+                channel.reply("cs {} cleared".format(args[1]))
             elif sub == "cs" and len(args) == 2:
                 channel.reply("cs {}: {}".format(args[1], minqlx.configstring(int(args[1]), cached=False)))
             elif sub == "preload":
