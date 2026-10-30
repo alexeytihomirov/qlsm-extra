@@ -1,0 +1,12 @@
+{
+  "label": "Tower defence",
+  "description": "Cooperative tower defence on a map with td_* markers: 15 waves of entity creeps, turrets on pads for team money, 20 base lives. Other maps are untouched. The instance needs g_teamSizeMin 0, g_teamForceBalance 0, g_friendlyFire 0, g_infiniteAmmo 1, and a map pool with only this map.",
+  "commands": [
+    { "name": "build", "usage": "rl|pg", "permission": 0, "description": "Builds a turret on the pad you stand on, for team money." },
+    { "name": "upgrade", "usage": "", "permission": 0, "description": "Upgrades the turret on the pad you stand on." },
+    { "name": "sell", "usage": "", "permission": 0, "description": "Sells the turret on the pad you stand on for 70% of what it cost." },
+    { "name": "td", "usage": "", "permission": 0, "description": "Shows wave, lives and money." },
+    { "name": "tdwave", "usage": "<1-15>", "permission": 5, "description": "Jumps to a wave, for tests." }
+  ],
+  "depends_on": ["npc_core.py", "td_rules.py"]
+}

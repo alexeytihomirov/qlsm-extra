@@ -96,6 +96,10 @@ def lead(muzzle, target, vel, speed):
     return tuple(target[i] + vel[i] * t for i in range(3))
 
 
+def speed_of(weapon):
+    return _WEAPONS[weapon][1]
+
+
 def closest_on_segment(a, b, point):
     ab = tuple(b[i] - a[i] for i in range(3))
     length = sum(c * c for c in ab)

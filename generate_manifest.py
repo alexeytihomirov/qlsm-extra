@@ -47,6 +47,9 @@ DEFAULT_PLUGINS = [
     'gungame.py',
     'modhud_util.py',
     'modhud.py',
+    'tower_defence.py',
+    'npc_core.py',
+    'td_rules.py',
 ]
 
 # filename -> folder (relative to this script) that must be downloaded

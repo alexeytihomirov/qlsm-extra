@@ -6,6 +6,7 @@ from collections import namedtuple
 CreepType = namedtuple("CreepType", "name hp speed reward lives attack parts frames fps hull")
 TurretType = namedtuple("TurretType", "kind prices damage interval range parts")
 PadTurret = namedtuple("PadTurret", "kind level spent")
+CreepAttack = namedtuple("CreepAttack", "damage splash radius interval range muzzle")
 
 START_MONEY = 300
 START_LIVES = 20
@@ -14,6 +15,8 @@ SPAWN_INTERVAL_S = 1.0
 MAX_CREEPS = 60
 REFUND = 0.7
 OVER_S = 15
+MAX_MISSILES = 40
+ROCKET_RADIUS = 120
 
 
 def _md3(*names):
@@ -32,6 +35,12 @@ CREEPS = {
 TURRETS = {
     "pg": TurretType("pg", (100, 100, 200), (20, 30, 45), 0.3, 900, _md3("turret_base", "turret_pg")),
     "rl": TurretType("rl", (200, 200, 400), (100, 150, 220), 2.0, 1200, _md3("turret_base", "turret_rl")),
+}
+
+# muzzle: above the hull origin. A creep's splash also hurts other creeps, so it stays small.
+CREEP_ATTACKS = {
+    "pg": CreepAttack(15, 0, 0, 0.6, 800, 20),
+    "rl": CreepAttack(60, 40, 100, 2.5, 800, 40),
 }
 
 WAVES = [
