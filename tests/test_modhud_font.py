@@ -177,10 +177,12 @@ def test_sheet_and_pk3(tmp_path):
         assert sorted(z.namelist()) == sorted(["ui/intro.menu", bm.FONT])
         assert "modhud_topright" in z.read("ui/intro.menu").decode("utf-8")
     assert (tmp_path / "out" / "glyphs.png").is_file()
-    # The players' archive: unpack into <QL>/<steamid>/ and the files land where QL reads them.
+    # The players' archive: unpack into <QL>/ and the pk3 lands in the install baseq3, byte for byte
+    # the Workshop copy (a different pk3 there is refused by pure servers).
     with zipfile.ZipFile(tmp_path / "out" / bm.CLIENT_ZIP) as z:
         names = sorted(z.namelist())
-        assert names == sorted(["baseq3/ui/intro.menu", "baseq3/" + bm.FONT, bm.CLIENT_README])
+        assert names == sorted(["baseq3/" + bm.PK3, bm.CLIENT_README])
+        assert z.read("baseq3/" + bm.PK3) == (tmp_path / "out" / bm.PK3).read_bytes()
         readme = z.read(bm.CLIENT_README).decode("utf-8")
     # Players' part only: install, positions, binds; no admin commands, no token list.
     for needle in ("mod_hud_pos", "topright", "bind F7", "UNINSTALL"):

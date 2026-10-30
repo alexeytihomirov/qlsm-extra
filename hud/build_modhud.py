@@ -15,8 +15,9 @@ import modhud_util  # noqa: E402
 
 FONT = "fonts/droidsansfallbackfull.ttf"
 PK3 = "zz_modhud.pk3"
-# What players get: unpack into <QL>/<steamid>/; loose files there win over pak00 and keep the
-# player pure on every server (a pk3 does neither, see README.md).
+# What players get: unpack into <QL>/, the pk3 lands in <QL>/baseq3/ and wins over pak00. QL takes
+# the font only from a pk3 (a loose one in <steamid>/baseq3/ is ignored); pure servers let the
+# player in because the same pk3 is our Workshop item 3828349249 (see README.md).
 CLIENT_ZIP = "modhud-client.zip"
 CLIENT_README = "FRONTIER-HUD-README.txt"
 TOKEN_NAMES = {
@@ -364,8 +365,7 @@ def main(argv):
     tokens = "\n".join("{%-8s %s" % (name + "}", TOKEN_NAMES[name]) for name in modhud_util.TOKENS)
     readme = (HERE / "client-readme.txt").read_text(encoding="utf-8").replace("@TOKENS@", tokens)
     with zipfile.ZipFile(out / CLIENT_ZIP, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("baseq3/ui/intro.menu", menu.encode("latin-1"))
-        z.writestr("baseq3/" + FONT, font)
+        z.writestr("baseq3/" + PK3, (out / PK3).read_bytes())
         z.writestr(CLIENT_README, readme.replace("\n", "\r\n").encode("utf-8-sig"))
     missing = sorted(set(ICON_SOURCES) - set(icons))
     print("wrote {} ({} icons, missing: {})".format(out / PK3, len(icons), ", ".join(missing) or "none"))

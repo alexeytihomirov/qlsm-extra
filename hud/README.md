@@ -10,16 +10,24 @@ Three text lines on the player's screen that any plugin fills from the server (`
 
 (needs fontTools, Pillow, numpy, opencv-python). It also writes `glyphs.png`; the copy in this folder is the token table.
 
-The builder also writes `modhud-client.zip`, the package for players: `baseq3/ui/intro.menu`, `baseq3/fonts/droidsansfallbackfull.ttf` and `FRONTIER-HUD-README.txt` (players' part only: install, uninstall, positions, binds; English and Russian, from `hud/client-readme.txt`). Players unpack it into `<QL>/<steamid>/`.
+The builder also writes `modhud-client.zip`, the package for players: `baseq3/zz_modhud.pk3` (byte for byte the pk3 it just built) and `FRONTIER-HUD-README.txt` (players' part only: install, updates, uninstall, positions, binds; English and Russian, from `hud/client-readme.txt`). Players unpack it into `<QL>/` (the install dir).
 
-**How players install it (verified 2026-10-27):** the two files of the pk3 as loose files in the player's profile, `<QL>/<steamid>/baseq3/ui/intro.menu` and `<QL>/<steamid>/baseq3/fonts/droidsansfallbackfull.ttf`, then restart the game. Loose files there win over pak00 and work on `sv_pure 1` servers, ours and anyone else's. Neither of the two ways below works for players:
+**How it reaches players (verified 2026-10-30, operator on #27, `sv_pure 1`):**
 
-- Workshop: a Workshop pk3 cannot replace pak00's files, so the panel and the glyphs do not appear (tested on #27).
-- The pk3 itself in `<QL>/baseq3/`: it works, but every pure server without the same pk3 refuses the player ("Unpure client detected").
+- The player puts `zz_modhud.pk3` into the install dir `<QL>/baseq3/`: there it wins over pak00, so its menu and font are used.
+- The same pk3 is the Workshop item [3828349249](https://steamcommunity.com/sharedfiles/filedetails/?id=3828349249) on every server that runs the panel: id in `workshop.txt` (the server downloads it) and in `qlx_workshopReferences` (the `workshop` plugin makes clients download it), comma-separated next to the banners. The server then lists the pk3's checksum as pure, so the player's install copy passes.
+- The Workshop copy alone does nothing on the client (Workshop dirs sit below pak00), so players without the install copy keep the stock menu, never say hello and get centre prints.
 
-Was published as the Workshop item [3828349249](https://steamcommunity.com/sharedfiles/filedetails/?id=3828349249) (item folder `D:/MyWorkshopItems/FrontierModHud/` on the operator's machine, uploaded with `steamcmd +workshop_build_item`, same way as the banners item 3822712209). A server ships it with the id in `workshop.txt` (the server downloads it) and in `qlx_workshopReferences` (the `workshop` plugin makes clients download it), comma-separated next to the banners.
+What does not work:
 
-The pk3 must be on the server as well: with `sv_pure 1` a client that reads files from a pk3 the server does not have is refused ("Unpure client detected"). The real delivery is a Workshop item in the servers' `workshop.txt` (separate, later step). For a test by hand: the same file in the server's `baseq3/` (restart) and in the player's `<QL>/baseq3/` (the install dir; a pk3 in `<QL>/<steamid>/baseq3/` is not loaded), no loose `<QL>/<steamid>/baseq3/ui/intro.menu` (it would win over the pk3), restart the game.
+- Loose files in the profile: `<QL>/<steamid>/baseq3/ui/intro.menu` works, but QL never takes a loose `fonts/droidsansfallbackfull.ttf` from there (icons stay boxes, offline too). The test on 2026-10-27 that seemed to prove it ran with the pk3 also in `<QL>/baseq3/` and on the Workshop list.
+- The install pk3 on a pure server that does not list the same pk3: "Unpure client detected".
+
+**Updating the pk3** breaks every player's copy at once (another checksum, refused by our servers), so rebuild rarely and batch icon changes. Every build is a new pk3 even with no changes (fontTools stamps the font's save time), so the players' archive must carry the very file uploaded to Workshop. Steps:
+
+1. Build, copy `zz_modhud.pk3` to `D:/MyWorkshopItems/FrontierModHud/content/`, upload with `steamcmd +login <user> +workshop_build_item D:\MyWorkshopItems\FrontierModHud\frontiermodhud.vdf +quit` (same way as the banners item 3822712209).
+2. The server does not fetch a new version of an item it already has (its log says `Workshop item 3828349249: in cache.`). On each game host, as user `ql`: `/usr/games/steamcmd +force_install_dir /home/ql/qlds-<port> +login anonymous +workshop_download_item 282440 3828349249 +quit`, then restart the instance; its log shows the new checksum (`3828349249//zz_modhud.pk3 (0x...)`).
+3. Publish the new `modhud-client.zip` to players.
 
 ## Position
 

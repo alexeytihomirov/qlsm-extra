@@ -3,7 +3,7 @@ id: qlsm-extra-0029
 title: Shared mod HUD panel (3 lines, own glyph font), Gun Game on it
 status: in-progress
 created: 2026-10-27
-updated: 2026-10-27
+updated: 2026-10-30
 verified:
 depends_on: []
 related: [root-0036, qlsm-extra-0027, docs/superpowers/specs/2026-10-27-mod-hud-panel-design.md]
@@ -71,6 +71,7 @@ related: [root-0036, qlsm-extra-0027, docs/superpowers/specs/2026-10-27-mod-hud-
 - 2026-10-27 - Operator's layout: "To ^3SG^7 1/2 frags" / "RL · RG · LG · PG  ►HMG◄  SG · GL · MG · G" (current ^3 between ►◄ set off by two spaces, done ^2, gauntlet "G"). Pushed 99d57c7 (gungame 23312d5a). Deploy trap: raw.githubusercontent.com caches 300 s, so a qlsm repo sync right after a push downloads the previous file (two attempts staged 2ec83611; the CDN node qlsm hits updated later than the one this machine hits). Third attempt got 23312d5a; #26 restarted 22:03:43 MSK on it, #27 needed one more restart (20:05:10 CET, 23312d5a). Rule for next time: after a push, wait until qlsm-web-1 itself fetches the new manifest hash before deploying.
 
 - 2026-10-27 - Operator: the centre ladder is cut after HMG (screenshot), once a stray "^" at the end. Cause: the centre text was fitted to the 120-byte cvar line limit, and each done name carried its own colour codes. Fix: centre text limit MAX_CENTRE_BYTES 400 (own cp), fit() never leaves a lone "^", done names share one ^2, the ladder is a window of CENTRE_WINDOW 7 names around the current step with "…" at cut ends (operator's idea). 157 tests. Pushed 1ab184c; deployed only after qlsm-web-1 itself fetched the new hashes: #27 20:14:27 CET, #26 22:14:56 MSK, gungame 918cec81 and modhud_util 407ab0e0 on both.
+- 2026-10-30 - Operator restored the loose files: icons and small digits were boxes. A/B: the same boxes offline (`devmap`, `exec modhudtest.cfg`) and with the 10-27 17:32 font build, so QL never uses a loose font in `<steamid>/baseq3/fonts/`. The 10-27 "VERIFIED" ran with the hand-copied `zz_modhud.pk3` still in `Quake Live/baseq3/` and on #27's Workshop list. With `zz_modhud.pk3` (18:57 build) in the install dir and no loose files the panel is right. Operator chose Workshop + file: item 3828349249 re-uploaded with that pk3, added back to #26 and #27 (`workshop.txt`, `qlx_workshopReferences "3822712209,3828349249"`; backups /tmp/*.modhud in qlsm-web-1). Servers kept the old version ("in cache"), fetched with `steamcmd +workshop_download_item` as user ql on both hosts; after restart both list `zz_modhud.pk3 (0xe2373b12)` (08:57 CET / 10:57 MSK). VERIFIED (operator, #27): no unpure, panel with icons, no centre print. Players' archive now `baseq3/zz_modhud.pk3` (the Workshop file) + readme with install, updates, uninstall; builder, `hud/README.md`, spec and the ql-live reference corrected.
 
 ## Результат
 
