@@ -1,0 +1,4 @@
+{
+  "label": "NPC core",
+  "description": "Helper of tower_defence: server entities as creeps and turrets, missiles, CS_MODELS and CS_ITEMS registration. Not a plugin of its own."
+}
