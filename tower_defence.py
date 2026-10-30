@@ -66,6 +66,11 @@ def parse_markers(entities):
                 spawn=found["td_creepspawn"], base=found["td_base"])
 
 
+def _plays(player):
+    # SetTeam may pick blue itself in warmup, whatever was asked: blue plays the same game
+    return player.team in ("red", "blue")
+
+
 def _hull_level(marker):
     return (marker[0], marker[1], marker[2] + MARKER_TO_HULL)
 
@@ -99,6 +104,8 @@ class tower_defence(minqlx.Plugin):
         self._last_slow = 0.0
         self._last_error = -ERROR_LOG_S
         self._seen = ("idle", 0)
+        self._put_tried = set()
+        self._unloaded_game = False
 
     # markers
 
@@ -108,8 +115,11 @@ class tower_defence(minqlx.Plugin):
         minqlx.next_frame(self._apply_markers)(mapname, entities)
 
     def _apply_markers(self, mapname, entities):
+        if self._unloaded_game or mapname != self.get_cvar("mapname"):
+            return  # the worker outlived its map or the plugin
         self._markers = parse_markers(entities)
         if self._markers is None:
+            self._game = None
             self.logger.info("tower_defence: no td_* markers on %s, off", mapname)
             return
         self._game = td_rules.Game(len(self._markers["pads"]))
@@ -156,6 +166,7 @@ class tower_defence(minqlx.Plugin):
         self._scene = []
         self._game = None
         self._markers = None
+        self._unloaded_game = True
 
     def _clear_fight(self):
         for npc in self._creeps:
@@ -198,7 +209,7 @@ class tower_defence(minqlx.Plugin):
     def handle_player_disconnect(self, player, reason):
         if self._game is None or self._game.phase == "idle":
             return
-        if not any(p.team == "red" and p.id != player.id for p in self.players()):
+        if not any(_plays(p) and p.id != player.id for p in self.players()):
             self._stop()
 
     def handle_team_switch_attempt(self, player, old_team, new_team, target):
@@ -244,8 +255,12 @@ class tower_defence(minqlx.Plugin):
         npc_core.tick_missiles(self._creeps, now)
 
     def _slow_players(self):
-        reds = [p for p in self.players() if p.team == "red"]
+        reds = [p for p in self.players() if _plays(p)]
         self._red_count = len(reds)
+        for p in reds:
+            if p.team == "blue" and p.id not in self._put_tried:
+                self._put_tried.add(p.id)  # once: a refused put would respawn them again and again
+                p.put("red")
         # plain tuples: a Player object goes stale when its client leaves
         self._targets = [tuple(p.position) for p in reds if p.is_alive]
 
@@ -368,7 +383,7 @@ class tower_defence(minqlx.Plugin):
         if self._game.phase not in ("pause", "wave"):
             player.tell("No game is running")
             return None
-        if player.team != "red" or not player.is_alive:
+        if not _plays(player) or not player.is_alive:
             player.tell("Only a live player can do that")
             return None
         where = player.position

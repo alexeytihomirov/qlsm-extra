@@ -121,7 +121,8 @@ def plugin(core):
 def make_plugin(players, markers=True):
     sent = []
     p = bare_instance(td.tower_defence, logger=logging.getLogger("td-test"), msg=sent.append,
-                      center_print=sent.append, players=lambda: players, sent=sent)
+                      center_print=sent.append, players=lambda: players, sent=sent,
+                      get_cvar=lambda name: "td_spike")
     p._init_state()
     if markers:
         p._apply_markers("td_spike", full_entities())
@@ -424,3 +425,46 @@ def test_wave_jump_rejects_a_bad_number(plugin):
     plugin._game.start(0.0)
     assert plugin.cmd_tdwave(player(), ["!tdwave", "16"], channel()) == td.minqlx.Return.USAGE
     assert plugin.cmd_tdwave(player(), ["!tdwave", "x"], channel()) == td.minqlx.Return.USAGE
+
+
+def test_late_markers_of_another_map_are_ignored(core):
+    p = make_plugin([player()], markers=False)
+    p._apply_markers("campgrounds", full_entities())
+    assert p._markers is None and p._game is None
+
+
+def test_markers_missing_on_this_map_turn_the_mode_off(plugin):
+    plugin._apply_markers("td_spike", [])
+    assert plugin._markers is None and plugin._game is None
+
+
+def test_markers_after_unload_are_ignored(plugin, core):
+    plugin.handle_unload("tower_defence")
+    plugin._apply_markers("td_spike", full_entities())
+    assert plugin._game is None
+
+
+def test_player_on_blue_counts_and_is_put_on_red_once(core):
+    other = player(2, team="blue", pos=(1.0, 2.0, 3.0))
+    p = make_plugin([other])
+    p._game.start(0.0)
+    p._slow(1.0)
+    p._slow(2.0)
+    assert other.puts == ["red"]
+    assert p._game.phase == "pause"  # blue alone does not end the game
+    assert p._targets == [(1.0, 2.0, 3.0)]
+
+
+def test_blue_player_can_build(plugin):
+    plugin._game.start(0.0)
+    near = player(team="blue", pos=(0.0, 480.0, 24.0))
+    plugin.cmd_build(near, ["!build", "pg"], channel())
+    assert plugin._game.money == 200
+
+
+def test_last_red_leaving_with_blue_left_keeps_the_game(core):
+    red, blue = player(1), player(2, team="blue")
+    p = make_plugin([red, blue])
+    p._game.start(0.0)
+    p.handle_player_disconnect(red, "quit")
+    assert p._game.phase == "pause"
