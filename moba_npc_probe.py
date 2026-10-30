@@ -27,6 +27,10 @@ EV_FIRE_WEAPON = 0x14
 # bg_itemlist index = give ID (skills/ql-live/reference/items.md). cgame loads a weapon's
 # missile model, trail, sounds and explosion only when CS_ITEMS marks its item present.
 PRELOAD_ITEMS = {"rl": 13, "pg": 16}
+# Q3 animNumber_t (bg_public.h); QL not verified, `!npc anim` overrides them by number
+BOTH_DEATH1, TORSO_STAND, LEGS_WALK, LEGS_RUN, LEGS_IDLE = 0, 11, 14, 15, 22
+ANIM_TOGGLEBIT = 128
+EF_DEAD = 0x1
 
 
 class moba_npc_probe(minqlx.Plugin):
@@ -85,6 +89,34 @@ class moba_npc_probe(minqlx.Plugin):
         self._npcs[e.s.number] = dict(last_hp=BASE_HP, hits=0)
         return e.s.number, "model {} ({})".format(model, cls)
 
+    @staticmethod
+    def _anim(e, legs, torso):
+        # cgame restarts an animation only when the number or the toggle bit changes
+        if e.s.legs_anim & ~ANIM_TOGGLEBIT != legs:
+            e.s.legs_anim = ((e.s.legs_anim & ANIM_TOGGLEBIT) ^ ANIM_TOGGLEBIT) | legs
+        if e.s.torso_anim & ~ANIM_TOGGLEBIT != torso:
+            e.s.torso_anim = ((e.s.torso_anim & ANIM_TOGGLEBIT) ^ ANIM_TOGGLEBIT) | torso
+
+    def _dummy(self, origin, slot, model):
+        """ET_PLAYER drawn from a made-up clientinfo in a free client slot: cgame animates it."""
+        template = ""
+        for i in range(64):
+            template = minqlx.configstring(minqlx.CS_PLAYERS + i, cached=False)
+            if template:
+                break
+        parts = template.split("\\")
+        info = dict(zip(parts[0::2], parts[1::2]))
+        info.update({"n": "Creep{}".format(slot), "model": model, "hmodel": model, "t": "2"})
+        minqlx.set_configstring(minqlx.CS_PLAYERS + slot, "\\".join(k + "\\" + v for k, v in info.items()))
+        num, _info = self._spawn(origin, 0)
+        e = minqlx.Entity(num)
+        e.s.e_type = minqlx.EntityType.PLAYER
+        e.s.client_num = slot
+        e.s.apos_base = (0.0, 0.0, 0.0)
+        self._anim(e, LEGS_IDLE, TORSO_STAND)
+        minqlx.link_entity(num)
+        return num, "slot {} keys {}".format(slot, sorted(info))
+
     def _fire(self, num, cid, weapon):
         """A real missile entity from NPC num at player cid; the engine runs, hits, explodes it."""
         src = self._now_pos(minqlx.Entity(num))
@@ -136,8 +168,13 @@ class moba_npc_probe(minqlx.Plugin):
                 if not e.inuse:
                     self._npcs.pop(num)
                     continue
+                if st.get("dying"):
+                    if now >= st["dying"]:
+                        minqlx.remove_entity(num)
+                        self._npcs.pop(num)
+                    continue
                 patrol = st.get("patrol")
-                moving = e.s.pos_type == minqlx.TrajectoryType.LINEAR and e.s.pos_delta[0] != 0.0
+                moving =e.s.pos_type == minqlx.TrajectoryType.LINEAR and e.s.pos_delta[0] != 0.0
                 if patrol or moving:
                     # collision and hit traces read r.current_origin, clients read s.pos
                     pos = self._now_pos(e)
@@ -156,6 +193,9 @@ class moba_npc_probe(minqlx.Plugin):
                         e.s.pos_time = minqlx.level.time
                         e.s.pos_delta = (st["speed"] * st.get("dir", 1), 0.0, 0.0)
                         e.s.pos_type = minqlx.TrajectoryType.LINEAR
+                        if e.s.e_type == minqlx.EntityType.PLAYER:
+                            e.s.apos_base = (0.0, 0.0 if st.get("dir", 1) > 0 else 180.0, 0.0)
+                            self._anim(e, LEGS_WALK if st["speed"] < 250 else LEGS_RUN, TORSO_STAND)
                     if e.s.e_type != minqlx.EntityType.ITEM:
                         e.r.current_origin = pos
                         minqlx.link_entity(num)
@@ -174,8 +214,21 @@ class moba_npc_probe(minqlx.Plugin):
                     self.logger.info("npc %s: health %s -> %s", num, st["last_hp"], hp)
                     st["last_hp"] = hp
                 if BASE_HP - hp >= LIFE_HP:
-                    minqlx.remove_entity(num)
-                    self._npcs.pop(num)
+                    if e.s.e_type == minqlx.EntityType.PLAYER:
+                        # play the death animation, then remove
+                        pos = self._now_pos(e)
+                        e.s.pos_base = pos
+                        e.s.pos_type = minqlx.TrajectoryType.STATIONARY
+                        e.r.current_origin = pos
+                        e.r.contents = 0
+                        e.takedamage = False
+                        e.s.e_flags = e.s.e_flags | EF_DEAD
+                        self._anim(e, BOTH_DEATH1, BOTH_DEATH1)
+                        minqlx.link_entity(num)
+                        st["dying"] = now + 2.0
+                    else:
+                        minqlx.remove_entity(num)
+                        self._npcs.pop(num)
                     self.msg("npc {} destroyed after {} damage".format(num, BASE_HP - hp))
             except Exception as ex:
                 self.logger.warning("npc %s: tick failed: %s", num, ex)
@@ -202,6 +255,9 @@ class moba_npc_probe(minqlx.Plugin):
                 e.s.pos_time = minqlx.level.time
                 e.s.pos_delta = (speed, 0.0, 0.0)
                 e.s.pos_type = minqlx.TrajectoryType.LINEAR
+                if e.s.e_type == minqlx.EntityType.PLAYER:
+                    e.s.apos_base = (0.0, 0.0 if speed > 0 else 180.0, 0.0)
+                    self._anim(e, LEGS_WALK if abs(speed) < 250 else LEGS_RUN, TORSO_STAND)
                 channel.reply("npc {}: patrol {}..{} at {}".format(num, x0, x1, speed))
             elif sub == "hit" and len(args) == 3:
                 # direct damage: health only (armor ignored), death through G_Damage
@@ -229,6 +285,16 @@ class moba_npc_probe(minqlx.Plugin):
             elif sub == "setmodel" and len(args) == 3:
                 minqlx.set_configstring(minqlx.CS_MODELS + int(args[1]), args[2])
                 channel.reply("model {} := {}".format(args[1], args[2]))
+            elif sub == "dummy" and len(args) in (5, 6):
+                model = args[5] if len(args) == 6 else "sarge"
+                num, info = self._dummy(tuple(float(a) for a in args[1:4]), int(args[4]), model)
+                channel.reply("npc dummy: {} {}".format(num, info))
+            elif sub == "anim" and len(args) == 4:
+                e = minqlx.Entity(int(args[1]))
+                self._anim(e, int(args[2]), int(args[3]))
+                channel.reply("npc {}: legs {} torso {}".format(args[1], e.s.legs_anim, e.s.torso_anim))
+            elif sub == "cs" and len(args) == 2:
+                channel.reply("cs {}: {}".format(args[1], minqlx.configstring(int(args[1]), cached=False)))
             elif sub == "preload":
                 # as the fork's replace_items does: mark the item present so cgame loads it
                 cs = list(minqlx.configstring(minqlx.CS_ITEMS, cached=False))
