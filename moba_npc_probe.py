@@ -31,6 +31,7 @@ PRELOAD_ITEMS = {"rl": 13, "pg": 16}
 BOTH_DEATH1, TORSO_STAND, LEGS_WALK, LEGS_RUN, LEGS_IDLE = 0, 11, 14, 15, 22
 ANIM_TOGGLEBIT = 128
 EF_DEAD = 0x1
+CORPSE_HULLS = True  # task 1 of the TD plan: players walk through, missiles pick their side
 SVF_NOCLIENT = 0x1  # Q3 value: the entity is not sent to clients
 
 
@@ -151,9 +152,11 @@ class moba_npc_probe(minqlx.Plugin):
 
     def _fire(self, num, cid, weapon):
         """A real missile entity from NPC num at player cid; the engine runs, hits, explodes it."""
+        return self._fire_at(num, tuple(self.player(cid).position), weapon)
+
+    def _fire_at(self, num, target, weapon, clipmask=0x1 | 0x2000000 | 0x4000000, test_damage=False):
         src = self._now_pos(minqlx.Entity(num))
         start = (src[0], src[1], src[2] + 16)
-        target = tuple(self.player(cid).position)
         aim = (target[0] - start[0], target[1] - start[1], target[2] - start[2])
         dist = max(sum(c * c for c in aim) ** 0.5, 1.0)
         if weapon == "pg":
@@ -162,6 +165,8 @@ class moba_npc_probe(minqlx.Plugin):
         else:
             wp, speed, dmg, splash, radius = minqlx.Weapon.ROCKET_LAUNCHER, 900, 100, 100, 120
             mod, smod = minqlx.Mod.ROCKET, minqlx.Mod.ROCKET_SPLASH
+        if test_damage:
+            dmg, splash = (5, 0) if weapon == "pg" else (20, 30)
         m = minqlx.spawn_entity("info_notnull", {"origin": start})
         if m is None:
             return "spawn_entity returned None"
@@ -175,7 +180,7 @@ class moba_npc_probe(minqlx.Plugin):
         m.r.owner_num = num
         m.r.sv_flags = 0x80  # SVF_USE_CURRENT_ORIGIN
         m.parent = minqlx.Entity(num)
-        m.clipmask = 0x1 | 0x2000000 | 0x4000000  # MASK_SHOT
+        m.clipmask = clipmask
         m.damage = dmg
         m.splash_damage = splash
         m.splash_radius = radius
@@ -184,8 +189,9 @@ class moba_npc_probe(minqlx.Plugin):
         m.nextthink = 0  # no think: a NULL think with a nextthink is G_Error
         minqlx.link_entity(m.s.number)
         # muzzle sound: cgame plays EV_FIRE_WEAPON with the shooter's s.weapon
-        minqlx.Entity(num).s.weapon = wp
-        minqlx.add_event(num, EV_FIRE_WEAPON)
+        shooter = self._npcs.get(num, {}).get("visual", num)
+        minqlx.Entity(shooter).s.weapon = wp
+        minqlx.add_event(shooter, EV_FIRE_WEAPON)
         return "missile {} weapon {} from {} to {}".format(
             m.s.number, int(wp), tuple(int(c) for c in start), tuple(int(c) for c in target))
 
@@ -233,6 +239,16 @@ class moba_npc_probe(minqlx.Plugin):
                         minqlx.link_entity(num)
                 if st.get("visual"):
                     self._sync_visual(st, e)
+                aim = st.get("aim")
+                if aim and now - st.get("last_shot", 0.0) >= aim["interval"]:
+                    if aim["target"] == "p":
+                        near = [p for p in self.players() if p.team in ("red", "blue") and p.is_alive]
+                        goal = tuple(near[0].position) if near else None
+                    else:
+                        goal = self._now_pos(minqlx.Entity(aim["target"]))
+                    if goal:
+                        self._fire_at(num, goal, aim["weapon"], aim["mask"], True)
+                        st["last_shot"] = now
                 turret = st.get("turret")
                 if turret and now - st.get("last_shot", 0.0) >= turret[1]:
                     src = self._now_pos(e)
@@ -321,9 +337,18 @@ class moba_npc_probe(minqlx.Plugin):
             elif sub == "setmodel" and len(args) == 3:
                 minqlx.set_configstring(minqlx.CS_MODELS + int(args[1]), args[2])
                 channel.reply("model {} := {}".format(args[1], args[2]))
+            elif sub == "aim" and len(args) == 6:
+                # aim <n> <p|npc> <rl|pg> <interval> <clipmask hex>
+                target = args[2] if args[2] == "p" else int(args[2])
+                self._npcs[int(args[1])]["aim"] = dict(target=target, weapon=args[3],
+                                                       interval=float(args[4]), mask=int(args[5], 16))
+                channel.reply("npc {}: aim {}".format(args[1], args[2:]))
             elif sub == "pair" and len(args) in (5, 6):
                 frames = int(args[5]) if len(args) == 6 else 0
                 num, info = self._pair(tuple(float(a) for a in args[1:4]), args[4], frames)
+                if CORPSE_HULLS:
+                    minqlx.Entity(num).r.contents = 0x4000000  # CONTENTS_CORPSE
+                    minqlx.link_entity(num)
                 channel.reply("npc pair: {} {}".format(num, info))
             elif sub == "dummy" and len(args) in (5, 6, 7):
                 model = args[5] if len(args) >= 6 else "sarge"
