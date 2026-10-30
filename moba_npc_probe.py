@@ -37,6 +37,7 @@ SVF_NOCLIENT = 0x1  # Q3 value: the entity is not sent to clients
 
 class moba_npc_probe(minqlx.Plugin):
     def __init__(self):
+        self._sims = {}
         self._npcs = {}  # entity number -> dict(last_hp, walking)
         self._last_tick = 0.0
         self.add_hook("frame", self.handle_frame)
@@ -45,6 +46,7 @@ class moba_npc_probe(minqlx.Plugin):
 
     def handle_map(self, mapname, factory):
         self._npcs.clear()
+        self._sims.clear()
 
     @staticmethod
     def _item_model():
@@ -156,7 +158,7 @@ class moba_npc_probe(minqlx.Plugin):
 
     def _fire_at(self, num, target, weapon, clipmask=0x1 | 0x2000000 | 0x4000000, test_damage=False):
         src = self._now_pos(minqlx.Entity(num))
-        start = (src[0], src[1], src[2] + 16)
+        start = (src[0], src[1], src[2] + (70 if test_damage else 16))
         aim = (target[0] - start[0], target[1] - start[1], target[2] - start[2])
         dist = max(sum(c * c for c in aim) ** 0.5, 1.0)
         if weapon == "pg":
@@ -181,6 +183,8 @@ class moba_npc_probe(minqlx.Plugin):
         m.r.sv_flags = 0x80  # SVF_USE_CURRENT_ORIGIN
         m.parent = minqlx.Entity(num)
         m.clipmask = clipmask
+        if test_damage:
+            m.r.owner_num = 1023  # ENTITYNUM_NONE: maybe the trace skips hulls sharing the pass owner
         m.damage = dmg
         m.splash_damage = splash
         m.splash_radius = radius
@@ -195,11 +199,39 @@ class moba_npc_probe(minqlx.Plugin):
         return "missile {} weapon {} from {} to {}".format(
             m.s.number, int(wp), tuple(int(c) for c in start), tuple(int(c) for c in target))
 
+    def _tick_sims(self, now):
+        """Plugin-side hit test: the missile only clips walls, explodes by event at the target."""
+        for mid, sim in list(self._sims.items()):
+            m = minqlx.Entity(mid)
+            if sim.get("gone"):
+                if now >= sim["gone"]:
+                    minqlx.remove_entity(mid)
+                    self._sims.pop(mid)
+                continue
+            if not m.inuse or m.s.e_type != minqlx.EntityType.MISSILE:
+                self._sims.pop(mid)  # the engine exploded it on a wall
+                continue
+            dt = (minqlx.level.time - m.s.pos_time) / 1000.0
+            pos = tuple(m.s.pos_base[i] + m.s.pos_delta[i] * dt for i in range(3))
+            target = minqlx.Entity(sim["target"])
+            if sum((a - b) ** 2 for a, b in zip(pos, target.r.current_origin)) <= 64 ** 2:
+                m.clipmask = 0
+                m.s.pos_base = pos
+                m.s.pos_type = minqlx.TrajectoryType.STATIONARY
+                m.s.e_type = minqlx.EntityType.GENERAL
+                m.s.modelindex = 0
+                m.r.current_origin = pos
+                minqlx.link_entity(mid)
+                minqlx.add_event(mid, minqlx.EntityEvent.MISSILE_MISS, 5)
+                target.health = target.health - 20
+                sim["gone"] = now + 0.5
+
     def handle_frame(self):
         now = time.monotonic()
         if not self._npcs or now - self._last_tick < TICK_S:
             return
         self._last_tick = now
+        self._tick_sims(now)
         for num, st in list(self._npcs.items()):
             try:
                 e = minqlx.Entity(num)
@@ -247,7 +279,9 @@ class moba_npc_probe(minqlx.Plugin):
                     else:
                         goal = self._now_pos(minqlx.Entity(aim["target"]))
                     if goal:
-                        self._fire_at(num, goal, aim["weapon"], aim["mask"], True)
+                        res = self._fire_at(num, goal, aim["weapon"], aim["mask"], True)
+                        if aim["mask"] == 1 and aim["target"] != "p":
+                            self._sims[int(res.split()[1])] = dict(target=aim["target"], weapon=aim["weapon"])
                         st["last_shot"] = now
                 turret = st.get("turret")
                 if turret and now - st.get("last_shot", 0.0) >= turret[1]:
@@ -337,6 +371,12 @@ class moba_npc_probe(minqlx.Plugin):
             elif sub == "setmodel" and len(args) == 3:
                 minqlx.set_configstring(minqlx.CS_MODELS + int(args[1]), args[2])
                 channel.reply("model {} := {}".format(args[1], args[2]))
+            elif sub == "hullset" and len(args) == 5:
+                # hullset <n> <contents hex> <sv_flags hex> <owner>
+                e = minqlx.Entity(int(args[1]))
+                e.r.contents, e.r.sv_flags, e.r.owner_num = int(args[2], 16), int(args[3], 16), int(args[4])
+                minqlx.link_entity(e.s.number)
+                channel.reply("npc {}: hullset {}".format(args[1], args[2:]))
             elif sub == "aim" and len(args) == 6:
                 # aim <n> <p|npc> <rl|pg> <interval> <clipmask hex>
                 target = args[2] if args[2] == "p" else int(args[2])
