@@ -134,6 +134,31 @@
         "modhud_util.py"
       ],
       "sha256": "3cdce8c630bbd7833efc839e6c1bb0d109b290e6685a3f81cdf7d098d339975d"
+    },
+    {
+      "filename": "npc_core.py",
+      "runtime": "minqlxtended",
+      "label": "NPC core",
+      "description": "Helper of tower_defence: server entities as creeps and turrets, missiles, CS_MODELS and CS_ITEMS registration. Not a plugin of its own.",
+      "sha256": "6e4ecd7c3c9364a1e6a454fd72bf47f380e17914676e6b6281deebb916da4202"
+    },
+    {
+      "filename": "td_rules.py",
+      "runtime": "minqlxtended",
+      "label": "Tower defence rules",
+      "description": "Helper of tower_defence: tables, waves, money and pads, no engine calls. Not a plugin of its own.",
+      "sha256": "838a5ffc6554bf76dba147a3f457addc30005ef43cd12ab85abae115f5dae853"
+    },
+    {
+      "filename": "tower_defence.py",
+      "runtime": "minqlxtended",
+      "label": "Tower defence",
+      "description": "Cooperative tower defence on a map with td_* markers: 15 waves of entity creeps, turrets on pads for team money, 20 base lives. Other maps are untouched. The instance needs g_teamSizeMin 0, g_teamForceBalance 0, g_friendlyFire 0, g_infiniteAmmo 1, and a map pool with only this map.",
+      "depends_on": [
+        "npc_core.py",
+        "td_rules.py"
+      ],
+      "sha256": "7fe780a370b87b07a8e39b994bb89828df70e9e83ebf84b63487bee8f52ba1ab"
     }
   ],
   "addons": [
