@@ -109,6 +109,13 @@
       "sha256": "7acce6a7b00cd3be3bd082c40e346fba8dab75c3a9047724a4523fdf4ab0ab50"
     },
     {
+      "filename": "item_presets.py",
+      "runtime": "minqlxtended",
+      "label": "Item Presets",
+      "description": "Edit item spawns from inside the game (in warmup) and keep layouts per map as presets for balance tests. A preset is a diff against the vanilla map, stored in the host's Redis; with no active preset a restart gives the map's own layout.",
+      "sha256": "d6894befc3a40d15bd4a15b1bd9173e73e93493d4de0f9c28ff7792c146cbc7f"
+    },
+    {
       "filename": "gungame.py",
       "runtime": "minqlxtended",
       "label": "Gun Game",
