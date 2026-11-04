@@ -2,7 +2,7 @@
   "label": "Item Presets",
   "description": "Edit item spawns from inside the game (in warmup) and keep layouts per map as presets for balance tests. A preset is a diff against the vanilla map, stored in the host's Redis; with no active preset a restart gives the map's own layout.",
   "commands": [
-    { "name": "item", "usage": "add <type> | remove | replace <type> | move | list", "permission": 3, "description": "Edits the items of this map where the caller stands: add spawns one, remove/replace take the nearest one, move picks it on the first call and places it on the second. Types: rl lg rg pg sg gl mg cg ng pl hmg bfg, ra ya ga shard, mh 50hp 25hp 5hp, quad bs haste invis regen or a classname." },
+    { "name": "item", "usage": "add <type> | remove | replace <type> | move | list", "permission": 3, "description": "Edits the items of this map where the caller stands: add spawns one, remove/replace take the nearest one, move picks it on the first call and places it on the second. Types: rl lg rg pg sg gl mg cg ng pl hmg bfg, ra ya ga shard, mh 50hp 25hp 5hp, quad bs haste invis regen, ammo bullets shells grenades rockets lightning slugs cells bfgammo nails mines belt, or a classname." },
     { "name": "preset", "usage": "save <name> | load <name> | off | list | delete <name>", "permission": 3, "description": "Presets of the current map. save stores the current edits and makes them active, load activates one and restarts, off restarts with the vanilla layout." }
   ],
   "cvars": [

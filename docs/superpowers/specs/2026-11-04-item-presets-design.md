@@ -36,7 +36,8 @@ no preset active means the map's own layout.
 
 `<type>`: short names from `skills/ql-items/SKILL.md` (`rl lg rg pg sg gl mg cg
 ng pl hmg bfg gh`, `ra ya ga shard`, `mh 5hp 25hp 50hp`, `quad bs haste invis
-regen`) or any item classname the engine knows (`minqlx.items()`), for example
+regen`, ammo `bullets shells grenades rockets lightning slugs cells bfgammo
+nails mines belt`) or any item classname the engine knows (`minqlx.items()`), for example
 `ammo_rockets`.
 
 The current edits are a draft in memory: they survive a restart, not a map

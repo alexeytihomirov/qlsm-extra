@@ -147,6 +147,18 @@ def test_resolve_type_short_names_classnames_and_aliases():
     assert ip.resolve_type("nope", known) is None
 
 
+def test_resolve_type_ammo_short_names():
+    pairs = {
+        "bullets": "ammo_bullets", "shells": "ammo_shells", "grenades": "ammo_grenades",
+        "rockets": "ammo_rockets", "lightning": "ammo_lightning", "slugs": "ammo_slugs",
+        "cells": "ammo_cells", "bfgammo": "ammo_bfg", "nails": "ammo_nails",
+        "mines": "ammo_mines", "belt": "ammo_belt",
+    }
+    known = set(pairs.values())
+    for short, classname in pairs.items():
+        assert ip.resolve_type(short, known) == classname
+
+
 def test_nearest_respects_radius():
     items = map_items()
     assert ip.nearest(items, (10, 0, 16), 64).s.number == 10

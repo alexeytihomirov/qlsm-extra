@@ -55,8 +55,13 @@ ALIASES = {
     "mh": "item_health_mega", "mega": "item_health_mega",
     "quad": "item_quad", "bs": "item_enviro", "haste": "item_haste",
     "invis": ("item_invis", "item_invisibility"), "regen": "item_regen",
+    "bullets": "ammo_bullets", "shells": "ammo_shells", "grenades": "ammo_grenades",
+    "rockets": "ammo_rockets", "lightning": "ammo_lightning", "slugs": "ammo_slugs",
+    "cells": "ammo_cells", "bfgammo": "ammo_bfg", "nails": "ammo_nails",
+    "mines": "ammo_mines", "belt": "ammo_belt",
 }
-SHORT_NAMES = "rl lg rg pg sg gl mg cg ng pl hmg bfg | ra ya ga shard | mh 50hp 25hp 5hp | quad bs haste invis regen"
+SHORT_NAMES = ("rl lg rg pg sg gl mg cg ng pl hmg bfg | ra ya ga shard | mh 50hp 25hp 5hp | quad bs haste invis regen"
+               " | bullets shells grenades rockets lightning slugs cells bfgammo nails mines belt")
 
 
 # --- pure helpers ---
