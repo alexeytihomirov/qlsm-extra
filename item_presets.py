@@ -66,6 +66,16 @@ SHORT_NAMES = ("rl lg rg pg sg gl mg cg ng pl hmg bfg | ra ya ga shard | mh 50hp
 
 # --- pure helpers ---
 
+def with_bits(bits, indexes):
+    """CS_ITEMS string with the given bg_itemlist indexes set to '1'."""
+    out = list(bits or "")
+    for index in indexes:
+        if index > 0:
+            out += ["0"] * (index + 1 - len(out))
+            out[index] = "1"
+    return "".join(out)
+
+
 def resolve_type(text, known):
     """Short name or classname -> classname the engine knows, else None."""
     key = str(text or "").strip().lower()
@@ -289,6 +299,7 @@ class item_presets(minqlx.Plugin):
             return None
         self._ours[int(ent.s.number)] = entry
         self._draft["added"].append(entry)
+        self.delay(RESCAN_S, self._apply)  # registers the item once it has finished spawning
         return entry
 
     def _apply(self):
@@ -322,6 +333,33 @@ class item_presets(minqlx.Plugin):
                 spawned += 1
         if removed or spawned:
             self.logger.info("item_presets: %s: removed %d, spawned %d", self._map, removed, spawned)
+        self._register(alive)
+
+    def _register(self, numbers):
+        """Set the CS_ITEMS bits of our items. A client loads an item's model
+        and icon only for bits set when it connects (CG_RegisterGraphics); the
+        map sets them for its own items only, and G_InitGame rewrites the
+        string on every restart. The bg index is s.modelindex, set by
+        FinishSpawningItem, so freshly spawned items count on the next rescan.
+        Clients that are already in the game need a reconnect."""
+        index = getattr(minqlx, "CS_ITEMS", None)
+        if index is None:
+            return
+        wanted = []
+        for number in numbers:
+            ent = self._entity(number)
+            try:
+                wanted.append(int(ent.s.modelindex) if ent is not None else 0)
+            except (AttributeError, TypeError, ValueError):
+                pass
+        try:
+            reader = getattr(minqlx, "configstring", None)
+            bits = reader(index, cached=False) if reader else minqlx.get_configstring(index)
+            new = with_bits(bits, wanted)
+            if new != (bits or ""):
+                minqlx.set_configstring(index, new)
+        except Exception as exc:
+            self.logger.warning("item_presets: CS_ITEMS update failed: %s", exc)
 
     _apply_soon = minqlx.next_frame(_apply)
 

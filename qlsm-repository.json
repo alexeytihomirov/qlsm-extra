@@ -113,7 +113,7 @@
       "runtime": "minqlxtended",
       "label": "Item Presets",
       "description": "Edit item spawns from inside the game (in warmup) and keep layouts per map as presets for balance tests. A preset is a diff against the vanilla map, stored in the host's Redis; with no active preset a restart gives the map's own layout.",
-      "sha256": "e4068e3264632905a40508016c3e7d003a57ac9e507ed5e127f93ef223f8af94"
+      "sha256": "e385b478dcef58fe23f78e77f1714a84f644f41a2242f5d484690ca988a5c2ff"
     },
     {
       "filename": "gungame.py",

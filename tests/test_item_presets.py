@@ -12,13 +12,22 @@ ip = import_plugin("item_presets")
 USAGE = "usage"
 
 
-def ent(number, classname, origin, wait=0, spawnflags=0):
+ITEM_LIST = (None, "item_armor_body", "item_armor_combat", "item_health_mega",
+             "weapon_rocketlauncher", "weapon_lightning", "item_invis", "ammo_rockets")
+
+
+def ent(number, classname, origin, wait=0, spawnflags=0, modelindex=None):
+    if modelindex is None:
+        modelindex = ITEM_LIST.index(classname) if classname in ITEM_LIST else 0
     return SimpleNamespace(classname=classname, wait=wait, spawnflags=spawnflags,
-                           s=SimpleNamespace(number=number, origin=tuple(origin)))
+                           s=SimpleNamespace(number=number, origin=tuple(origin), modelindex=modelindex))
 
 
 class Engine:
-    """Live item entities; spawn_entity drops the item 20 units to the floor."""
+    """Live item entities; spawn_entity drops the item 20 units to the floor.
+    CS_ITEMS holds the map's own items, like SaveRegisteredItems leaves it."""
+
+    CS_ITEMS = 27
 
     def __init__(self, items=()):
         self.items_live = {e.s.number: e for e in items}
@@ -27,6 +36,20 @@ class Engine:
         self.refuse = set()
         self.pending = set()
         self.Return = SimpleNamespace(USAGE=USAGE)
+        self.cs = {self.CS_ITEMS: self.map_bits(items)}
+
+    @staticmethod
+    def map_bits(items):
+        bits = ["0"] * len(ITEM_LIST)
+        for e in items:
+            bits[e.s.modelindex] = "1"
+        return "".join(bits)
+
+    def configstring(self, index, cached=True):
+        return self.cs.get(index, "")
+
+    def set_configstring(self, index, value):
+        self.cs[index] = value
 
     def entities(self, inuse=True, etype=None, start=0, stop=1024):
         """Fresh spawns stay out of an etype filter until finish_spawning()."""
@@ -34,18 +57,22 @@ class Engine:
                 if start <= n < stop and (etype is None or n not in self.pending)]
 
     def finish_spawning(self):
+        """FinishSpawningItem: the item gets its bg_itemlist index."""
+        for n in self.pending:
+            e = self.items_live.get(n)
+            if e is not None:
+                e.s.modelindex = ITEM_LIST.index(e.classname) if e.classname in ITEM_LIST else 0
         self.pending.clear()
 
     def items(self):
-        return [SimpleNamespace(classname=c) for c in (
-            None, "item_armor_body", "item_armor_combat", "item_health_mega",
-            "weapon_rocketlauncher", "weapon_lightning", "item_invis", "ammo_rockets")]
+        return [SimpleNamespace(classname=c) for c in ITEM_LIST]
 
     def spawn_entity(self, classname, keys):
         if classname in self.refuse:
             return None
         x, y, z = keys["origin"]
-        e = ent(self.next_number, classname, (x, y, z - 20), keys.get("wait", 0), keys.get("spawnflags", 0))
+        e = ent(self.next_number, classname, (x, y, z - 20), keys.get("wait", 0), keys.get("spawnflags", 0),
+                modelindex=0)
         e.keys = dict(keys)
         self.items_live[e.s.number] = e
         self.pending.add(e.s.number)
@@ -62,6 +89,7 @@ class Engine:
         """map_restart: every entity freed, the map's items back, numbers reused."""
         self.items_live = {e.s.number: e for e in map_items}
         self.next_number = max([200] + [n + 1 for n in self.items_live])
+        self.cs[self.CS_ITEMS] = self.map_bits(map_items)
 
 
 class FakeRedis:
@@ -296,6 +324,7 @@ def test_apply_after_restart_is_idempotent(monkeypatch):
     expected = live(p)
 
     p.engine.restart(map_items())
+    p.delays.clear()
     p.handle_new_game()      # next_frame is immediate in the stub
     assert live(p) == expected
     assert [s for s, _ in p.delays] == [ip.RESCAN_S]
@@ -319,6 +348,38 @@ def test_two_applies_before_the_item_finishes_spawning_do_not_duplicate(monkeypa
     p._apply()   # new_game pass
     p._apply()   # active-preset fetch lands a frame later, item not ET_ITEM yet
     assert [e.classname for e in p.engine.items_live.values()].count("item_quad") == 1
+
+
+def cs_bit(p, classname):
+    bits = p.engine.cs[p.engine.CS_ITEMS]
+    i = ITEM_LIST.index(classname)
+    return bits[i] if i < len(bits) else "0"
+
+
+def test_added_item_type_is_registered_for_clients(monkeypatch):
+    # Clients load an item's model only if its CS_ITEMS bit is set; the map
+    # sets bits for its own items only (axis model / grey icon otherwise).
+    p = make(monkeypatch)
+    assert cs_bit(p, "ammo_rockets") == "0"
+    p.cmd_item(FakePlayer((300, 300, 40)), ["!item", "add", "ammo_rockets"], None)
+    assert [s for s, _ in p.delays] == [ip.RESCAN_S]
+    p.engine.finish_spawning()
+    p.delays[0][1]()
+    assert cs_bit(p, "ammo_rockets") == "1"
+    assert cs_bit(p, "item_health_mega") == "1"   # the map's own bits stay
+    assert cs_bit(p, "item_armor_body") == "0"
+
+
+def test_registration_comes_back_after_a_restart(monkeypatch):
+    p = make(monkeypatch)
+    p.cmd_item(FakePlayer((500, 0, 24)), ["!item", "replace", "ra"], None)
+    p.engine.restart(map_items())    # G_InitGame rewrites CS_ITEMS from the map
+    assert cs_bit(p, "item_armor_body") == "0"
+    p.delays.clear()
+    p.handle_new_game()
+    p.engine.finish_spawning()
+    p.delays[0][1]()
+    assert cs_bit(p, "item_armor_body") == "1"
 
 
 def test_disabled_does_not_apply(monkeypatch):
