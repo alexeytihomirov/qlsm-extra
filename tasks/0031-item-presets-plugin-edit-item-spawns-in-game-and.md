@@ -37,6 +37,8 @@ related: [qlsm-extra/docs/superpowers/specs/2026-11-04-item-presets-design.md, q
 - 2026-11-04 - tests/test_item_presets.py 31 passed; tests/test_descriptions.py: item_presets passes, 7 pre-existing failures of other manifests on origin/main
 - 2026-11-04 - pushed to origin/main 70d1497 (ls-remote checked)
 - 2026-11-04 - installed on germany instance 1 (sD test server :27960) via qlsm in qlsm-web-1 (script in session scratchpad `ip_deploy.py`): repo sync, download_plugin to the pool (sha d6894bef = manifest), file + sidecar into configs/GermanyHetzner/1/scripts, `set qlx_itemPresetsEnabled "1"` appended to server.cfg, `item_presets` appended to instance.qlx_plugins, apply_instance_config with restart (job f1b579f8). qlds@27960 active since 02:04:31 CET, `Loading plugin 'item_presets'` without errors, host file sha d6894bef, rcon: qlx_itemPresetsEnabled 1, qlx_itemEditPerm 3, map f7tortured. Server was empty (warmup, 0 players). Waiting for the operator's live round
+- 2026-11-04 - 175954f: short names for ammo (bullets shells grenades rockets lightning slugs cells bfgammo nails mines belt)
+- 2026-11-04 - live bug from the operator: ammo_cells placed by replace shows as the axis model on another client even after reconnect, grey square with simple items on the operator's client until reconnect. Cause: a client loads item visuals only for CS_ITEMS bits set when it connects; the map sets bits for its own items only. a6a7dd7: plugin sets the bits of its items (s.modelindex) on the rescan after a command and after every restart. Clients already connected still need a reconnect. Not deployed yet: 2 players on :27960
 
 ## Результат
 
