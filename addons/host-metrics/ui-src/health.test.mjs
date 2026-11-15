@@ -59,10 +59,18 @@ test('hostHealth: not installed and no data yet are No data', () => {
   assert.match(b.reason, /not written any data yet/);
 });
 
-test('hostHealth: no data yet (verdict unknown) is No data', () => {
-  const h = hostHealth(row({ verdict: { status: 'unknown', slots: null, reason: 'no data yet', ref_load: null, ref_source: null } }), [CPU_OK]);
+test('hostHealth: verdict unknown with a working collector is Collecting, with the reason why', () => {
+  const unknown = { status: 'unknown', slots: null, reason: 'no data yet', ref_load: null, ref_source: null };
+  const h = hostHealth(row({ verdict: unknown }), [CPU_OK]);
   assert.equal(h.status, 'nodata');
-  assert.match(h.reason, /No data yet/);
+  assert.equal(h.label, 'Collecting');
+  assert.ok(h.reason.startsWith('Collecting - '));
+  const at = (insts_last) => hostHealth(row({ verdict: unknown, snapshot: { ...row().snapshot, insts_last } }), [CPU_OK]).reason;
+  assert.equal(at([]), 'Collecting - no instance running, room unknown.');
+  assert.equal(at([{ port: 27960, players: null, state: null }]),
+    'Collecting - no live status from serverchecker in Redis, room unknown.');
+  assert.equal(at([{ port: 27960, players: 16, state: 'warmup' }, { port: 27961, players: null, state: null }]),
+    'Collecting - no match with 2+ players seen yet, room unknown.');
 });
 
 test('hostHealth: stale data under 5 min is Watch, since the last sample, with the data finding as reason', () => {

@@ -4450,6 +4450,18 @@ function playersNow(snapshot) {
   const vals = rows.map((r) => r.players).filter(isNum$2);
   return vals.length ? vals.reduce((a, v) => a + v, 0) : null;
 }
+function feedGaps(snapshot) {
+  const rows = (Array.isArray(snapshot == null ? void 0 : snapshot.insts_last) ? snapshot.insts_last : []).filter((r) => Number.isInteger(r == null ? void 0 : r.port)).sort((a, b) => a.port - b.port);
+  const frames24 = /* @__PURE__ */ new Map();
+  for (const i of Array.isArray(snapshot == null ? void 0 : snapshot.insts) ? snapshot.insts : []) {
+    if (Number.isInteger(i == null ? void 0 : i.port) && isNum$2(i.frames_24h)) frames24.set(i.port, i.frames_24h);
+  }
+  const running = rows.map((r) => r.port);
+  const noStatus = rows.filter((r) => !isNum$2(r.players) && !r.state).map((r) => r.port);
+  const noFrames = rows.filter((r) => !isNum$2(r.frames) && !((frames24.get(r.port) || 0) > 0)).map((r) => r.port);
+  const states = rows.filter((r) => isNum$2(r.players) || r.state).map((r) => ({ port: r.port, state: r.state || null, players: isNum$2(r.players) ? r.players : null }));
+  return { running, noStatus, noFrames, states };
+}
 function diskUsedPct(host) {
   if (!host || !isNum$2(host.disk_used) || !isNum$2(host.disk_total) || host.disk_total <= 0) return null;
   return host.disk_used / host.disk_total * 100;
@@ -4509,8 +4521,16 @@ function recentEventsText(snapshot) {
   const n = kinds.reduce((a, k) => a + map[k], 0);
   return `${plural$1(n, "event", "events")} in the last 24 hours (${kinds.map((k) => `${kindLabel(k)} ${map[k]}`).join(", ")}).`;
 }
-function health(status, reason, items) {
-  return { status, label: HEALTH_LABEL[status], reason, items };
+function health(status, reason, items, label) {
+  return { status, label: label || HEALTH_LABEL[status], reason, items };
+}
+function collectingReason(snapshot) {
+  const gaps2 = feedGaps(snapshot);
+  if (!gaps2.running.length) return "Collecting - no instance running, room unknown.";
+  if (gaps2.noStatus.length === gaps2.running.length) {
+    return "Collecting - no live status from serverchecker in Redis, room unknown.";
+  }
+  return "Collecting - no match with 2+ players seen yet, room unknown.";
 }
 function hostHealth(row, list) {
   var _a;
@@ -4581,7 +4601,7 @@ function hostHealth(row, list) {
   if (problems.length) return health("problem", problems[0].what, items);
   if (watch.length) return health("watch", watch[0].what, items);
   if (!verdict || verdict.status === "unknown") {
-    return health("nodata", "No data yet", []);
+    return health("nodata", collectingReason(snapshot), [], "Collecting");
   }
   const room = found.find((f) => (f == null ? void 0 : f.area) === "room");
   return health("ok", (room == null ? void 0 : room.text) || ((_a = found[0]) == null ? void 0 : _a.text) || "All checks passed.", []);
@@ -5176,6 +5196,23 @@ function cpuFindings({ snapshot, series, events, settings, range }) {
   }
   return out;
 }
+const ports = (list) => list.map((p) => `:${p}`).join(", ");
+function statesText(states) {
+  return states.map((s) => {
+    const parts = [s.state || "state unknown"];
+    if (s.players !== null) parts.push(plural(s.players, "player", "players"));
+    return `:${s.port} ${parts.join(", ")}`;
+  }).join("; ");
+}
+function feedFindings({ snapshot }) {
+  const gaps2 = feedGaps(snapshot);
+  if (!gaps2.noStatus.length) return [];
+  return [{
+    level: "info",
+    area: "feeds",
+    text: `No live status in Redis for ${ports(gaps2.noStatus)}: the serverchecker key minqlx:server_status:<port> is missing, or the collector cannot read /var/run/redis/redis.sock. Without it the collector sees no players and no matches, so room cannot be estimated.`
+  }];
+}
 function roomFindings({ snapshot, verdict }) {
   if (!verdict) return [];
   const slots = verdict.slots;
@@ -5183,14 +5220,18 @@ function roomFindings({ snapshot, verdict }) {
   if (verdict.ref_source === null || verdict.ref_source === void 0 || !isNum(ref)) {
     const anyBusy = ((snapshot == null ? void 0 : snapshot.insts) || []).some((i) => isNum(i == null ? void 0 : i.busy_p95));
     if (anyBusy) return [];
-    return [{
-      level: "info",
-      area: "room",
-      text: "No match played on this host yet and no other host has data, so room cannot be estimated."
-    }];
+    const gaps2 = feedGaps(snapshot);
+    if (gaps2.running.length && gaps2.noStatus.length === gaps2.running.length) return [];
+    let text2 = "No match with 2+ players seen on this host in the last 7 days and no other host has data, so room cannot be estimated.";
+    if (!gaps2.running.length) {
+      text2 = "No instance is running and no other host has data, so room cannot be estimated.";
+    } else if (gaps2.states.length) {
+      text2 += ` Now: ${statesText(gaps2.states)}.`;
+    }
+    return [{ level: "info", area: "room", text: text2 }];
   }
   const refText = `reference: one instance uses ${pct0$1(ref)} % of a core in a match`;
-  const prefix = verdict.ref_source === "fleet" ? "No match played on this host yet, so room is estimated from other hosts. " : "";
+  const prefix = verdict.ref_source === "fleet" ? "No match with 2+ players seen on this host yet, so room is estimated from other hosts. " : "";
   if (!isNum(slots)) return [];
   if (slots > 0) {
     return [{
@@ -5245,6 +5286,14 @@ function frameFindings({ snapshot, series, events, settings, range }) {
   const { fromSeries, list } = frameStats(snapshot, series);
   const withFrames = list.filter((s) => s.frames > 0);
   if (!withFrames.length) {
+    const gaps2 = feedGaps(snapshot);
+    if (gaps2.noFrames.length) {
+      return [{
+        level: "info",
+        area: "frames",
+        text: `No frame statistics: frame_timing is not reporting on ${ports(gaps2.noFrames)} (Redis key minqlx:frame_stats:<port> is empty). Add the frame_timing plugin from qlsm-extra to these instances to see late frames.`
+      }];
+    }
     return [{ level: "info", area: "frames", text: "No frame statistics yet (no instance is running or reporting)." }];
   }
   const span = fromSeries ? RANGE_TEXT[range] || "the selected range" : "the last 24 hours";
@@ -5348,6 +5397,7 @@ function findings({ snapshot, series, events, settings, range, verdict } = {}) {
   const ctx = { snapshot, series, events, settings, range, verdict };
   return [
     ...cpuFindings(ctx),
+    ...feedFindings(ctx),
     ...roomFindings(ctx),
     ...frameFindings(ctx),
     ...stealFindings(ctx),
@@ -5457,10 +5507,10 @@ function buildCharts(series, res) {
     };
   });
   const insts = (series == null ? void 0 : series.insts) || {};
-  const ports = sortedPorts(insts);
-  const instXs = mergeTimes(...ports.map((p) => insts[String(p)]));
-  const perPort = (...keys) => ports.map((p) => column(insts[String(p)], instXs, (r) => pick(r, ...keys)));
-  const portSeries = (step, hint) => ports.map((p, i) => ({
+  const ports2 = sortedPorts(insts);
+  const instXs = mergeTimes(...ports2.map((p) => insts[String(p)]));
+  const perPort = (...keys) => ports2.map((p) => column(insts[String(p)], instXs, (r) => pick(r, ...keys)));
+  const portSeries = (step, hint) => ports2.map((p, i) => ({
     label: `Port ${p}`,
     slot: slotOf(i),
     step,
@@ -5473,7 +5523,7 @@ function buildCharts(series, res) {
     steal: all ? { xs: all.xs, column: all.columns[2] } : null,
     hostXs,
     instXs,
-    ports,
+    ports: ports2,
     portSeries,
     cpu: perPort("cpu", "cpu_avg"),
     players: perPort("players", "players_max"),

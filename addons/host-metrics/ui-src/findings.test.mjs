@@ -135,16 +135,53 @@ test('room: slots, no room, fleet reference, nothing at all', () => {
 
   const fleet = findings({ snapshot: snap({ insts: [] }), verdict: { status: 'ok', slots: 3, ref_load: 25, ref_source: 'fleet' } });
   assert.equal(by(fleet, 'room')[0].text,
-    'No match played on this host yet, so room is estimated from other hosts. Room for 3 more instances (reference: one instance uses 25 % of a core in a match).');
+    'No match with 2+ players seen on this host yet, so room is estimated from other hosts. Room for 3 more instances (reference: one instance uses 25 % of a core in a match).');
   assert.equal(by(fleet, 'room')[0].level, 'ok');
 });
 
 test('a host with no match yet and no fleet data says room cannot be estimated', () => {
   const s = snap({ insts: [{ port: 27960, core: 0, busy_p95: null, late_24h: 0, frames_24h: 100 }] });
-  const out = findings({ snapshot: s, verdict: { status: 'unknown', slots: null, ref_load: null, ref_source: null } });
+  const unknown = { status: 'unknown', slots: null, ref_load: null, ref_source: null };
+  const out = findings({ snapshot: s, verdict: unknown });
   assert.equal(by(out, 'room')[0].level, 'info');
-  assert.match(by(out, 'room')[0].text, /No match played on this host yet/);
+  assert.equal(by(out, 'room')[0].text, 'No instance is running and no other host has data, so room cannot be estimated.');
   assert.deepEqual(by(findings({ snapshot: s }), 'room'), []); // no verdict, no statement
+
+  const live = snap({
+    insts: [{ port: 27960, core: 0, busy_p95: null, late_24h: 0, frames_24h: 100 }],
+    insts_last: [{ port: 27960, players: 16, state: 'warmup', frames: 100 }, { port: 27961, players: 1, state: 'in_progress', frames: 100 }],
+  });
+  assert.equal(by(findings({ snapshot: live, verdict: unknown }), 'room')[0].text,
+    'No match with 2+ players seen on this host in the last 7 days and no other host has data, so room cannot be estimated.'
+    + ' Now: :27960 warmup, 16 players; :27961 in_progress, 1 player.');
+});
+
+test('feeds: running instances without live status are named, the room line then stays out', () => {
+  const s = snap({
+    insts: [{ port: 27960, busy_p95: null, late_24h: 0, frames_24h: 0 }, { port: 27961, busy_p95: null, late_24h: 0, frames_24h: 0 }],
+    insts_last: [{ port: 27960, players: null, state: null }, { port: 27961, players: null, state: null }],
+  });
+  const out = findings({ snapshot: s, verdict: { status: 'unknown', slots: null, ref_load: null, ref_source: null } });
+  const feeds = by(out, 'feeds');
+  assert.equal(feeds.length, 1);
+  assert.equal(feeds[0].level, 'info');
+  assert.match(feeds[0].text, /^No live status in Redis for :27960, :27961: the serverchecker key minqlx:server_status:<port> is missing/);
+  assert.deepEqual(by(out, 'room'), []);
+  assert.deepEqual(by(findings({ snapshot: snap() }), 'feeds'), []); // no running instance rows, nothing to say
+  const ok = snap({ insts_last: [{ port: 27960, players: 0, state: 'warmup' }] });
+  assert.deepEqual(by(findings({ snapshot: ok }), 'feeds'), []);
+});
+
+test('frames: running instances without any frame sample name frame_timing', () => {
+  const s = snap({
+    insts: [{ port: 27960, late_24h: 0, frames_24h: 0 }, { port: 27961, late_24h: 0, frames_24h: 0 }],
+    insts_last: [{ port: 27960, players: 2, state: 'warmup', frames: null }, { port: 27961, players: 0, state: 'warmup', frames: 500 }],
+  });
+  const out = by(findings({ snapshot: s }), 'frames');
+  assert.equal(out.length, 1);
+  assert.equal(out[0].level, 'info');
+  assert.equal(out[0].text,
+    'No frame statistics: frame_timing is not reporting on :27960 (Redis key minqlx:frame_stats:<port> is empty). Add the frame_timing plugin from qlsm-extra to these instances to see late frames.');
 });
 
 test('frames: none late', () => {

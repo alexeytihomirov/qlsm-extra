@@ -3,12 +3,12 @@
 //   findings({ snapshot, series, events, settings, range, verdict })
 //     -> [{ level: 'ok'|'info'|'warning'|'problem', area, text }]
 //
-// `area` is cpu | room | frames | steal | memory | disk | data. The board passes the snapshot
+// `area` is cpu | feeds | room | frames | steal | memory | disk | data. The board passes the snapshot
 // (and the verdict of the host row); the modal also passes the `series` and `events` of the
 // chosen `range`. Without a series the CPU, steal and frame statements use the snapshot fields
 // (24 h per-core p95, 7 d steal p95, 24 h late frames) and say so. Every number in a sentence
 // comes from the data or the settings; a missing value drops the clause, never becomes 0.
-import { diskUsedPct, sortedPorts } from './data.js';
+import { diskUsedPct, feedGaps, sortedPorts } from './data.js';
 import { fmtDuration } from './format.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -192,6 +192,28 @@ function cpuFindings({ snapshot, series, events, settings, range }) {
   return out;
 }
 
+const ports = (list) => list.map((p) => `:${p}`).join(', ');
+
+/** "27960 warmup, 16 players" for the ports that report live status. */
+function statesText(states) {
+  return states.map((s) => {
+    const parts = [s.state || 'state unknown'];
+    if (s.players !== null) parts.push(plural(s.players, 'player', 'players'));
+    return `:${s.port} ${parts.join(', ')}`;
+  }).join('; ');
+}
+
+/** Live data the collector should get from each running instance through Redis, and does not. */
+function feedFindings({ snapshot }) {
+  const gaps = feedGaps(snapshot);
+  if (!gaps.noStatus.length) return [];
+  return [{
+    level: 'info',
+    area: 'feeds',
+    text: `No live status in Redis for ${ports(gaps.noStatus)}: the serverchecker key minqlx:server_status:<port> is missing, or the collector cannot read /var/run/redis/redis.sock. Without it the collector sees no players and no matches, so room cannot be estimated.`,
+  }];
+}
+
 function roomFindings({ snapshot, verdict }) {
   if (!verdict) return [];
   const slots = verdict.slots;
@@ -199,15 +221,19 @@ function roomFindings({ snapshot, verdict }) {
   if (verdict.ref_source === null || verdict.ref_source === undefined || !isNum(ref)) {
     const anyBusy = (snapshot?.insts || []).some((i) => isNum(i?.busy_p95));
     if (anyBusy) return [];
-    return [{
-      level: 'info',
-      area: 'room',
-      text: 'No match played on this host yet and no other host has data, so room cannot be estimated.',
-    }];
+    const gaps = feedGaps(snapshot);
+    if (gaps.running.length && gaps.noStatus.length === gaps.running.length) return []; // the feeds line says why
+    let text = 'No match with 2+ players seen on this host in the last 7 days and no other host has data, so room cannot be estimated.';
+    if (!gaps.running.length) {
+      text = 'No instance is running and no other host has data, so room cannot be estimated.';
+    } else if (gaps.states.length) {
+      text += ` Now: ${statesText(gaps.states)}.`;
+    }
+    return [{ level: 'info', area: 'room', text }];
   }
   const refText = `reference: one instance uses ${pct0(ref)} % of a core in a match`;
   const prefix = verdict.ref_source === 'fleet'
-    ? 'No match played on this host yet, so room is estimated from other hosts. '
+    ? 'No match with 2+ players seen on this host yet, so room is estimated from other hosts. '
     : '';
   if (!isNum(slots)) return [];
   if (slots > 0) {
@@ -267,6 +293,14 @@ function frameFindings({ snapshot, series, events, settings, range }) {
   const { fromSeries, list } = frameStats(snapshot, series);
   const withFrames = list.filter((s) => s.frames > 0);
   if (!withFrames.length) {
+    const gaps = feedGaps(snapshot);
+    if (gaps.noFrames.length) {
+      return [{
+        level: 'info',
+        area: 'frames',
+        text: `No frame statistics: frame_timing is not reporting on ${ports(gaps.noFrames)} (Redis key minqlx:frame_stats:<port> is empty). Add the frame_timing plugin from qlsm-extra to these instances to see late frames.`,
+      }];
+    }
     return [{ level: 'info', area: 'frames', text: 'No frame statistics yet (no instance is running or reporting).' }];
   }
   const span = fromSeries ? (RANGE_TEXT[range] || 'the selected range') : 'the last 24 hours';
@@ -369,7 +403,7 @@ function diskFindings({ snapshot, events, settings }) {
 }
 
 /**
- * Findings of one host, in the order data, cpu, room, frames, steal, memory, disk. A stale
+ * Findings of one host, in the order data, cpu, feeds, room, frames, steal, memory, disk. A stale
  * host (collector data older than 2 min) gets only the data finding: the rest would describe
  * a past state as if it were current. Never throws on missing or partial input.
  */
@@ -382,6 +416,7 @@ export function findings({ snapshot, series, events, settings, range, verdict } 
   const ctx = { snapshot, series, events, settings, range, verdict };
   return [
     ...cpuFindings(ctx),
+    ...feedFindings(ctx),
     ...roomFindings(ctx),
     ...frameFindings(ctx),
     ...stealFindings(ctx),

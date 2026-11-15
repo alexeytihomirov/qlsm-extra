@@ -100,6 +100,35 @@ export function playersNow(snapshot) {
   return vals.length ? vals.reduce((a, v) => a + v, 0) : null;
 }
 
+/**
+ * What the collector does not get from the game instances running now, from the latest raw
+ * row per port (`insts_last`) and the 24 h frame count (`insts`):
+ *   running   - ports with a recent raw row;
+ *   noStatus  - ports without live status (no players and no state): the serverchecker key
+ *               `minqlx:server_status:<port>` is missing, or Redis is not readable;
+ *   noFrames  - ports without a single frame sample in 24 h: frame_timing is not reporting;
+ *   states    - [{ port, state, players }] of the ports with status, for the "no match yet" text.
+ * Ports are sorted numbers. Never throws.
+ */
+export function feedGaps(snapshot) {
+  const rows = (Array.isArray(snapshot?.insts_last) ? snapshot.insts_last : [])
+    .filter((r) => Number.isInteger(r?.port))
+    .sort((a, b) => a.port - b.port);
+  const frames24 = new Map();
+  for (const i of Array.isArray(snapshot?.insts) ? snapshot.insts : []) {
+    if (Number.isInteger(i?.port) && isNum(i.frames_24h)) frames24.set(i.port, i.frames_24h);
+  }
+  const running = rows.map((r) => r.port);
+  const noStatus = rows.filter((r) => !isNum(r.players) && !r.state).map((r) => r.port);
+  const noFrames = rows
+    .filter((r) => !isNum(r.frames) && !((frames24.get(r.port) || 0) > 0))
+    .map((r) => r.port);
+  const states = rows
+    .filter((r) => isNum(r.players) || r.state)
+    .map((r) => ({ port: r.port, state: r.state || null, players: isNum(r.players) ? r.players : null }));
+  return { running, noStatus, noFrames, states };
+}
+
 /** Share of disk used, 0-100, or null. */
 export function diskUsedPct(host) {
   if (!host || !isNum(host.disk_used) || !isNum(host.disk_total) || host.disk_total <= 0) return null;
@@ -193,8 +222,18 @@ function recentEventsText(snapshot) {
   return `${plural(n, 'event', 'events')} in the last 24 hours (${kinds.map((k) => `${kindLabel(k)} ${map[k]}`).join(', ')}).`;
 }
 
-function health(status, reason, items) {
-  return { status, label: HEALTH_LABEL[status], reason, items };
+function health(status, reason, items, label) {
+  return { status, label: label || HEALTH_LABEL[status], reason, items };
+}
+
+/** Card reason of a host whose collector works but whose room is unknown yet. */
+function collectingReason(snapshot) {
+  const gaps = feedGaps(snapshot);
+  if (!gaps.running.length) return 'Collecting - no instance running, room unknown.';
+  if (gaps.noStatus.length === gaps.running.length) {
+    return 'Collecting - no live status from serverchecker in Redis, room unknown.';
+  }
+  return 'Collecting - no match with 2+ players seen yet, room unknown.';
 }
 
 /**
@@ -204,7 +243,8 @@ function health(status, reason, items) {
  *   watch   - stale data (up to 5 min; older is a problem), verdict tight, an open warning event, a warning finding (noisy
  *             neighbour, CPU above the planning limit, ...), warnings in the last 24 h, an
  *             outdated collector;
- *   nodata  - not installed, no data yet (verdict unknown);
+ *   nodata  - not installed, no data yet; labelled Collecting when the collector works but the
+ *             verdict is unknown (no match seen yet, or no live status), with the reason why;
  *   ok      - everything else.
  * Returns `{ status, label, reason, items }`: `reason` is one sentence for the card, `items`
  * the things to look at (`{ level: problem|watch, what, since }`, problems first, `since` a
@@ -288,7 +328,7 @@ export function hostHealth(row, list) {
   if (problems.length) return health('problem', problems[0].what, items);
   if (watch.length) return health('watch', watch[0].what, items);
   if (!verdict || verdict.status === 'unknown') {
-    return health('nodata', 'No data yet', []);
+    return health('nodata', collectingReason(snapshot), [], 'Collecting');
   }
   const room = found.find((f) => f?.area === 'room');
   return health('ok', room?.text || found[0]?.text || 'All checks passed.', []);
