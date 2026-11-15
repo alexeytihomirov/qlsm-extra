@@ -1,7 +1,7 @@
 ---
 id: qlsm-extra-0032
 title: host-metrics: honest No data card and Summary diagnostics for missing serverchecker/frame_timing data
-status: in-progress
+status: done-unverified
 created: 2026-11-15
 updated: 2026-11-15
 verified:
@@ -27,7 +27,7 @@ related: []
 - [x] hostHealth: verdict unknown -> label Collecting, причина по feedGaps
 - [x] findings: строка `feeds` про отсутствие serverchecker-статуса; room с текущим состоянием портов; frames называет frame_timing и порты
 - [x] тесты findings/health/data, сборка UI, версия 1.1.4, пакет и манифест
-- [ ] merge в main, push
+- [x] merge в main, push
 - [ ] оператор обновил аддон и посмотрел карточки
 
 ## Журнал
@@ -36,8 +36,11 @@ related: []
 - 2026-11-15 - решено не трогать коллектор: insts_last уже несёт players/state/frames последнего тика, frames_24h есть в insts; бамп сборщика заставил бы всех делать Apply ради одних текстов (бамп версии аддона всё равно помечает коллектор outdated, как и в прошлых UI-фиксах)
 - 2026-11-15 - уровень новых строк info, а не warning: одна пустая строка при рестарте инстанса не должна переводить хост в Watch
 - 2026-11-15 - node --test findings/health/data: 64 pass; tests/test_addon_host_metrics.py: 78 skipped (нет qlsm checkout рядом), backend не менялся; check_manifest_hashes ok. Tailwind в сборке 4.3.3 -> 4.3.5 (npm install), в CSS две строки дрейфа
+- 2026-11-15 - запушено в origin/main (8faeec9), ждёт проверки оператором
 
 ## Результат
+
+Коммит 8faeec9 в qlsm-extra main (запушен, ls-remote подтвердил). Host Metrics 1.1.4: `addons/host-metrics/ui-src/data.js` (feedGaps, Collecting), `addons/host-metrics/ui-src/findings.js` (feeds, room, frames), пересобранный UI, `packages/host-metrics.zip`, `qlsm-repository.json`. В живом qlsm не проверено.
 
 ## Как проверить
 
