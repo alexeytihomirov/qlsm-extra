@@ -1,5 +1,10 @@
 #!/usr/bin/env node
-// CLI: qlmatch-to-replay.mjs <file.qlmatch> [-o out.replay.json.gz]
+// CLI: qlmatch-to-replay.mjs <file.qlmatch | file.dm_91> [-o out.replay.json.gz]
+//
+// A .dm_91 input (a published multi-POV match, see pack.mjs) is read as a
+// one-demo pack: the file plus its "index/<stem>.snaps.json" next to it,
+// wrapped in memory exactly as pack.mjs used to zip it, so the sidecar is the
+// same one a 1-POV .qlmatch of that file gives.
 //
 // Game-host copy of what was ql-stream-tools/scripts/qlmatch-to-replay.mjs
 // (archived 2026-10-14; this file is now the maintained one), importing
@@ -26,6 +31,7 @@ function libImport(name) {
 
 const { matchBufferToReplaySequential } = await libImport("match-to-replay.js");
 const { loadMapPickupTableFromDisk } = await libImport("map-item-resolve.node.js");
+const { zipSync } = await import(pathToFileURL(join(__dirname, "zip-store.mjs")).href);
 
 function parseArgs(argv) {
   let input = null;
@@ -41,20 +47,44 @@ function parseArgs(argv) {
   return { input, output };
 }
 
+// One .dm_91 (+ its index when present) as the bytes of a one-demo pack.
+function packBytesForDemo(demoPath) {
+  const base = basename(demoPath);
+  const stem = base.replace(/\.dm_91$/i, "");
+  const indexPath = join(dirname(demoPath), "index", stem + ".snaps.json");
+  let index = null;
+  try {
+    index = readFileSync(indexPath);
+  } catch {
+    index = null;
+  }
+  const manifest = {
+    format: "ql-match",
+    version: 2,
+    demos: [{ file: `demos/${base}`, pov_index: 0, index: index ? `index/${stem}.snaps.json` : null }],
+  };
+  const members = [
+    { name: "manifest.json", data: Buffer.from(JSON.stringify(manifest)) },
+    { name: `demos/${base}`, data: readFileSync(demoPath) },
+  ];
+  if (index) members.push({ name: `index/${stem}.snaps.json`, data: index });
+  return zipSync(members);
+}
+
 function defaultOutputPath(inputPath) {
   const dir = dirname(inputPath);
-  const base = basename(inputPath).replace(/\.qlmatch$/i, "");
+  const base = basename(inputPath).replace(/\.(qlmatch|dm_91)$/i, "");
   return join(dir, base + ".replay.json.gz");
 }
 
 async function main() {
   const { input, output } = parseArgs(process.argv.slice(2));
   if (!input) {
-    console.error("usage: qlmatch-to-replay.mjs <file.qlmatch> [-o out.replay.json.gz]");
+    console.error("usage: qlmatch-to-replay.mjs <file.qlmatch | file.dm_91> [-o out.replay.json.gz]");
     process.exit(1);
   }
 
-  const bytes = readFileSync(input);
+  const bytes = /\.dm_91$/i.test(input) ? packBytesForDemo(input) : readFileSync(input);
   // Sequential (one POV parsed at a time): an 8-POV pack parsed all at once
   // exceeds Node's default heap - see matchBufferToReplaySequential. The
   // pickup table is loaded lazily once the first POV reveals the map name;

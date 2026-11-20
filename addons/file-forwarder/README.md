@@ -41,7 +41,8 @@ Pinned in the addon, not settings: SFTP user `qldemos-in`, rclone remote name
 `/home/ql/.forwarder-state/`, the delivery grace (24 hours,
 `DELIVERED_GRACE_HOURS`) and the remote raw budget (5000 MB,
 `MAX_RAW_REMOTE_MB`: a run that finds `raw/` on the VPS that full sends no raw
-demo; the `.qlmatch` files still go).
+demo; the `.qlmatch` files still go) and the remote dir of published
+multi-POV matches (`PACK_DIR`, `qlmatch`).
 
 ## The VPS address and its host keys
 
@@ -60,6 +61,23 @@ set. Upgrading from 1.1: a forwarder already installed on a host keeps running
 with the `known_hosts` it has; Apply refuses until the settings are saved once.
 An install that never saved the address (it relied on the old built-in
 default) sees the address field empty and types it once.
+
+## Published multi-POV matches (1.3.0)
+
+With the engine's `sv_demoMultiPov 1` and qlmatch-packer 1.4.0 a match is one
+`<name>.dm_91` plus `<name>.meta.json` (`"format": "qlsm-demo-meta"`,
+`"version": 2`, `"pack": "<name>.dm_91"`), no `.qlmatch`. A `*.meta.json`
+whose `pack` value is its own stem plus `.dm_91` marks that pair; both files
+go to `qlmatch/` (pinned `PACK_DIR`, an empty value switches this off) and are
+kept like a `keep` row, so such a `.dm_91` never goes to `raw/` and is never
+deleted by the retention. The `.dm_91` is sent first; the meta only once the
+`.dm_91` is in the ledger, so the VPS never holds a meta without its demo.
+"Sync now and delete delivered" deletes the `.dm_91` once the VPS listing
+holds it, and the meta only after that. Every other `.dm_91` (per-client
+captures, `sv_demoMultiPov 0`) still follows its pattern row (`raw/`). The
+`{match_id}.meta.json` the packer also writes for the Demos screen is never
+sent (its `pack` is not its own stem). A `.dm_91` whose meta was deleted on the
+host is a plain `.dm_91` again and follows the `raw/` row.
 
 File names are shared flat across hosts: each remote dir on the VPS is one
 directory for all hosts, so the same file name from two hosts would overwrite

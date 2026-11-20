@@ -21,13 +21,23 @@
 // vendor/qldemo is now this addon's own copy and the canonical one: it has
 // diverged from ql-stream-tools, which is frozen, and nothing syncs it.
 //
+// Multi-POV capture (engine sv_demoMultiPov 1): when the match's capture is a
+// single file recorded by the server's own connection (gamestate clientNum
+// >= sv_maxclients, engine name "{match_id}_{map}_multipov_*"), no .qlmatch
+// is built. That file IS the match: it is renamed to "<name>.dm_91" (<name> =
+// the rendered name template), described by "<name>.meta.json" (format
+// qlsm-demo-meta, version 2) and gets the same replay sidecar. See
+// publishMultiPov().
+//
 // Exit codes:
-//   0 pack written
+//   0 pack written (or the multi-POV match published)
 //   2 window validation failed (empty/short POV overlap) — no zip written
 //   3 no POV files found for the match — nothing to do
 //   5 usage / IO error
 
-import { readFileSync, readdirSync, writeFileSync, renameSync, existsSync, statSync } from "node:fs";
+import {
+  readFileSync, readdirSync, writeFileSync, renameSync, existsSync, statSync, copyFileSync, unlinkSync, mkdirSync,
+} from "node:fs";
 import { join, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -303,38 +313,258 @@ function renderName(template, ctx) {
 // the listing falls back to parsing the engine's own filenames - so it is
 // logged, never fatal to the pack.
 function writeMatchMeta(args, { mapName, gametype, window, roster, entries, packName, identity }) {
-  const startedFrom = Number.isFinite(window?.game_start_server_time) && window.game_start_server_time > 0
-    ? window.game_start_server_time
-    : window?.start_server_time;
-  const duration = Number.isFinite(window?.end_server_time) && Number.isFinite(startedFrom)
-    ? window.end_server_time - startedFrom
-    : null;
   const steamByClient = new Map(identity.players.map((p) => [p.client_num, p.steam_id64]));
-  const meta = {
-    format: "qlsm-demo-meta",
-    version: 1,
-    match_id: args.matchId,
+  writeMetaV1(args, {
     map: mapName,
     gametype,
-    duration_ms: duration > 0 ? duration : null,
-    ...(identity.match_guid ? { match_guid: identity.match_guid } : {}),
+    window,
+    matchGuid: identity.match_guid,
     players: [...roster.entries()].map(([cn, p]) => ({
       name: stripColors(p.name),
       team: String(p.team ?? ""),
       steam_id64: steamByClient.get(cn) ?? null,
     })),
     povs: entries.map((e) => ({ file: e.base, client_num: e.clientNum, name: stripColors(e.name) })),
+    packName,
+  });
+}
+
+function writeMetaV1(args, { map, gametype, window, matchGuid, players, povs, packName }) {
+  const meta = {
+    format: "qlsm-demo-meta",
+    version: 1,
+    match_id: args.matchId,
+    map,
+    gametype,
+    duration_ms: durationMs(window),
+    ...(matchGuid ? { match_guid: matchGuid } : {}),
+    players,
+    povs,
     pack: packName,
     written_at: new Date().toISOString(),
   };
-  const finalPath = join(args.dir, `${args.matchId}.meta.json`);
-  const tmpPath = join(args.dir, `.${args.matchId}.meta.json.part`);
+  if (!writeJsonAtomic(args.dir, `${args.matchId}.meta.json`, meta)) {
+    console.error("packer: the match meta is lost, the pack is intact");
+  }
+}
+
+// Match length from the game start (else the window start) to the window end.
+function durationMs(window) {
+  const startedFrom = Number.isFinite(window?.game_start_server_time) && window.game_start_server_time > 0
+    ? window.game_start_server_time
+    : window?.start_server_time;
+  const duration = Number.isFinite(window?.end_server_time) && Number.isFinite(startedFrom)
+    ? window.end_server_time - startedFrom
+    : null;
+  return duration > 0 ? duration : null;
+}
+
+// JSON to "<dir>/<fileName>" through a hidden ".<fileName>.part" and a rename,
+// so a reader sees the old file or the new one, never half of either.
+// Returns false (and logs why) when it could not be written.
+function writeJsonAtomic(dir, fileName, value) {
+  const finalPath = join(dir, fileName);
+  const tmpPath = join(dir, `.${fileName}.part`);
   try {
-    writeFileSync(tmpPath, JSON.stringify(meta, null, 2) + "\n");
+    writeFileSync(tmpPath, JSON.stringify(value, null, 2) + "\n");
     renameSync(tmpPath, finalPath);
     log(`wrote ${finalPath}`);
+    return true;
   } catch (err) {
-    console.error(`packer: match meta ${finalPath} FAILED (${err.message || err}) — pack is intact`);
+    console.error(`packer: writing ${finalPath} FAILED (${err.message || err})`);
+    return false;
+  }
+}
+
+// ---- multi-POV capture (engine sv_demoMultiPov 1) ---------------------------
+
+// A real Steam account id (individual accounts, 7656119...). Bots carry
+// another number or nothing in the "st" key of their CS_PLAYERS row.
+const STEAM_ID64_RE = /^7656119\d{10}$/;
+
+function steamOf(row) {
+  const s = String(row?.st ?? "").trim();
+  return STEAM_ID64_RE.test(s) ? s : null;
+}
+
+// The capture is one multi-POV recording: exactly one file, recorded by the
+// server's own connection, whose clientNum is sv_maxclients (no player can
+// have it). The engine name "_multipov_" is the fallback for a gamestate
+// without sv_maxclients; a re-run on an already published "<name>.dm_91" is
+// still recognised by its clientNum.
+function multiPovEntry(entries) {
+  if (entries.length !== 1) return null;
+  const e = entries[0];
+  const maxClients = parseInt(e.parser.gamestate.config.serverinfo?.sv_maxclients ?? "", 10);
+  if (Number.isInteger(maxClients) && maxClients > 0 && e.clientNum >= maxClients) return e;
+  return /_multipov_/i.test(e.base) ? e : null;
+}
+
+// Everyone who played in the recording: every CS_PLAYERS row seen in a
+// playing team at any point of the file, not only at its start, so a player
+// who left before the end is still listed. Key is (client_num, steam id): a
+// slot reused by another account during the match gives two rows with the
+// same client_num; a row without a steam id (bot) keeps its slot's last name.
+// Values are the player's last playing row, in order of first appearance.
+// steam_id64 is the "st" key QL puts in every player configstring.
+function multiPovPlayers(bytes) {
+  const parser = new QLDemoParser(bytes);
+  const seen = new Map();
+  const take = () => {
+    for (const [k, row] of Object.entries(parser.gamestate.players || {})) {
+      if (!row || !row.n) continue;
+      const clientNum = parseInt(k, 10);
+      const steam = steamOf(row);
+      seen.set(`${clientNum}|${steam ?? ""}`, {
+        client_num: clientNum,
+        name: stripColors(decodeQlString(row.n)),
+        team: String(row.t ?? ""),
+        steam_id64: steam,
+      });
+    }
+  };
+  try {
+    while (true) {
+      const r = parser.parseOnePacket();
+      if (r.done) break;
+      parser.snapshots.length = 0;
+      take();
+    }
+  } catch (err) {
+    log("warning: multi-POV roster scan stopped early:", String(err.message || err));
+  }
+  take();
+  return [...seen.values()];
+}
+
+// Publishes a multi-POV match: "<name>.dm_91" + "<name>.meta.json" (v2) +
+// the replay sidecar, no .qlmatch. Order matters to the file-forwarder, which
+// sends "<name>.dm_91" to qlmatch/ only while "<name>.meta.json" names it:
+// the meta is written first, then the index and the demo are renamed (a
+// rename keeps the capture's mtime, so the forwarder may pick the file up at
+// once). With --out-dir the demo is copied there instead and the original
+// stays. {match_id}.meta.json (v1, the Demos screen's label file) is still
+// written, unless <name> is the match id itself (the two would share a name).
+function publishMultiPov(args, entry, window) {
+  const gs = entry.parser.gamestate;
+  const mapName = args.map || gs.config.serverinfo?.mapname || "";
+  const players = multiPovPlayers(entry.bytes);
+  const identity = matchIdentity([entry], new Map());
+  for (const w of identity.warnings) log("warning:", w);
+  log(`multi-POV capture ${entry.base}: client_num ${entry.clientNum}, ${players.length} player(s), ` +
+    `${players.filter((p) => p.steam_id64).length} with a steam id`);
+
+  const ctx = nameContext(args, mapName, gs.config.serverinfo?.g_gametype || "", players, players.map((p) => p.name));
+  const template = args.nameTemplate || "{match_id}_{map}";
+  const outDir = args.outDir || args.dir;
+  const inPlace = outDir === args.dir;
+  let stem = renderName(template, ctx);
+  const taken = (s) => existsSync(join(outDir, s + DM91)) && !(inPlace && s + DM91 === entry.base);
+  if (taken(stem) && !stem.includes(args.matchId)) stem = `${stem}_${args.matchId}`;
+  if (taken(stem)) fail(5, `match ${args.matchId}: ${join(outDir, stem + DM91)} already exists, not overwriting it`);
+  const pubName = stem + DM91;
+  const pubPath = join(outDir, pubName);
+  const metaName = `${stem}.meta.json`;
+
+  const meta = {
+    format: "qlsm-demo-meta",
+    version: 2,
+    match_id: args.matchId,
+    map: mapName,
+    gametype: ctx.gametype,
+    match_guid: identity.match_guid,
+    duration_ms: durationMs(window),
+    window,
+    players,
+    pack: pubName,
+    written_at: new Date().toISOString(),
+  };
+  if (!writeJsonAtomic(outDir, metaName, meta)) fail(5, `match ${args.matchId}: cannot write ${metaName}`);
+
+  const srcIndex = indexPathFor(entry.path);
+  const pubIndex = indexPathFor(pubPath);
+  try {
+    if (inPlace) {
+      if (srcIndex !== pubIndex && existsSync(srcIndex)) renameSync(srcIndex, pubIndex);
+      if (entry.path !== pubPath) renameSync(entry.path, pubPath);
+    } else {
+      if (existsSync(srcIndex)) {
+        mkdirSync(dirname(pubIndex), { recursive: true });
+        copyFileSync(srcIndex, pubIndex);
+      }
+      copyFileSync(entry.path, pubPath);
+    }
+  } catch (err) {
+    // Undo, so a re-run finds the capture where the engine left it.
+    try { unlinkSync(join(outDir, metaName)); } catch { /* already gone */ }
+    if (inPlace && srcIndex !== pubIndex && !existsSync(srcIndex) && existsSync(pubIndex)) {
+      try { renameSync(pubIndex, srcIndex); } catch { /* left as is */ }
+    }
+    fail(5, `match ${args.matchId}: publishing ${pubPath} failed (${err.message || err})`);
+  }
+  log(`published ${pubPath} (multi-POV, ${statSync(pubPath).size} bytes, gametype ${ctx.gametype}), no .qlmatch`);
+
+  if (stem !== args.matchId) {
+    const pov = { file: inPlace ? pubName : entry.base, client_num: entry.clientNum, name: stripColors(entry.name) };
+    writeMetaV1(args, {
+      map: mapName,
+      gametype: ctx.gametype,
+      window,
+      matchGuid: identity.match_guid,
+      players: players.map((p) => ({ name: p.name, team: p.team, steam_id64: p.steam_id64 })),
+      povs: [pov],
+      packName: inPlace ? pubName : null,
+    });
+  }
+
+  writeSidecar(pubPath, join(outDir, `${args.matchId}_${mapName}.replay.json.gz`));
+}
+
+// Filename template context. players: [{name, team}]; povNames: the players
+// that have their own POV in the pack.
+function nameContext(args, mapName, gametype, players, povNames) {
+  const red = players.filter((p) => p.team === "1");
+  const blue = players.filter((p) => p.team === "2");
+  const names = (list) => list.map((p) => sanitizeToken(p.name)).filter(Boolean).join("-");
+  const m = /^(\d{4})(\d{2})(\d{2})T(\d{6})Z$/.exec(args.matchId) || [];
+  return {
+    match_id: args.matchId,
+    date: m.length ? `${m[1]}${m[2]}${m[3]}` : args.matchId,
+    time: m.length ? m[4] : "",
+    map: mapName,
+    gametype: GAMETYPE_NAMES[parseInt(gametype, 10)] || (gametype ? `gt${gametype}` : "unknown"),
+    players: names(players),
+    pov_players: povNames.map((n) => sanitizeToken(n)).filter(Boolean).join("-"),
+    total_players: players.length,
+    red_count: red.length,
+    blue_count: blue.length,
+    red_players: names(red),
+    blue_players: names(blue),
+    teams: red.length || blue.length ? `${names(red) || "red"}_vs_${names(blue) || "blue"}` : names(players),
+  };
+}
+
+// Replay sidecar: merge the N POVs into one deduplicated replay-v2 JSON
+// ({match_id}_{map}.replay.json.gz next to the pack, never inside the zip
+// - the .qlmatch contract forbids decoded dumps in the package). This is
+// what !restore match (restore/qlmatch.py sidecar_path_for) and the
+// dashboard's #/demo view read. Child process, not in-process: parsing
+// every POV in full is the memory-heavy part this packer deliberately
+// avoids, and a merge failure must not lose an already-written pack. A
+// failure is logged (it lands in <match_id>.packer.log) but does not
+// change the exit code - the sidecar is re-generatable by hand:
+//   node qlmatch-to-replay.mjs <pack.qlmatch | published.dm_91> -o <sidecar>
+function writeSidecar(inputPath, sidecarPath) {
+  const sidecarScript = fileURLToPath(new URL("./qlmatch-to-replay.mjs", import.meta.url));
+  const sc = spawnSync(process.execPath, [sidecarScript, inputPath, "-o", sidecarPath], {
+    encoding: "utf8",
+    timeout: SIDECAR_TIMEOUT_MS,
+  });
+  if (sc.error || sc.status !== 0) {
+    const why = sc.error ? String(sc.error.message || sc.error) : `exit ${sc.status}: ${(sc.stderr || "").trim().slice(-500)}`;
+    console.error(`packer: replay sidecar FAILED (${why}) — pack is intact, regenerate with qlmatch-to-replay.mjs`);
+  } else {
+    for (const line of (sc.stdout || "").trim().split("\n")) log("sidecar:", line);
   }
 }
 
@@ -380,6 +610,12 @@ function main() {
   if (win.error) fail(2, `match ${args.matchId}:`, win.error, "— raw POV files left in place");
   const window = win.window;
   log(`window [${window.start_server_time},${window.end_server_time}] game_start ${window.game_start_server_time}`);
+
+  const multi = multiPovEntry(entries);
+  if (multi) {
+    publishMultiPov(args, multi, window);
+    process.exit(0);
+  }
 
   // Roster across every POV (a player without their own POV still shows up
   // in the others' gamestates): clientNum -> {name, team}. First POV that
@@ -429,26 +665,7 @@ function main() {
   };
 
   // Filename template context.
-  const players = [...roster.values()];
-  const red = players.filter((p) => p.team === "1");
-  const blue = players.filter((p) => p.team === "2");
-  const names = (list) => list.map((p) => sanitizeToken(p.name)).filter(Boolean).join("-");
-  const m = /^(\d{4})(\d{2})(\d{2})T(\d{6})Z$/.exec(args.matchId) || [];
-  const ctx = {
-    match_id: args.matchId,
-    date: m.length ? `${m[1]}${m[2]}${m[3]}` : args.matchId,
-    time: m.length ? m[4] : "",
-    map: mapName,
-    gametype: GAMETYPE_NAMES[parseInt(gametype, 10)] || (gametype ? `gt${gametype}` : "unknown"),
-    players: names(players),
-    pov_players: entries.map((e) => sanitizeToken(e.name)).filter(Boolean).join("-"),
-    total_players: players.length,
-    red_count: red.length,
-    blue_count: blue.length,
-    red_players: names(red),
-    blue_players: names(blue),
-    teams: red.length || blue.length ? `${names(red) || "red"}_vs_${names(blue) || "blue"}` : names(players),
-  };
+  const ctx = nameContext(args, mapName, gametype, [...roster.values()], entries.map((e) => e.name));
   const template = args.nameTemplate || "{match_id}_{map}";
   let outName = renderName(template, ctx) + ".qlmatch";
   const outDir = args.outDir || args.dir;
@@ -471,28 +688,7 @@ function main() {
   log(`wrote ${outPath} (${entries.length} POV(s), ${size} bytes, gametype ${ctx.gametype})`);
   writeMatchMeta(args, { mapName, gametype: ctx.gametype, window, roster, entries, packName: outDir === args.dir ? outName : null, identity });
 
-  // Replay sidecar: merge the N POVs into one deduplicated replay-v2 JSON
-  // ({match_id}_{map}.replay.json.gz next to the pack, never inside the zip
-  // - the .qlmatch contract forbids decoded dumps in the package). This is
-  // what !restore match (restore/qlmatch.py sidecar_path_for) and the
-  // dashboard's #/demo view read. Child process, not in-process: parsing
-  // every POV in full is the memory-heavy part this packer deliberately
-  // avoids, and a merge failure must not lose an already-written pack. A
-  // failure is logged (it lands in <match_id>.packer.log) but does not
-  // change the exit code - the sidecar is re-generatable by hand:
-  //   node qlmatch-to-replay.mjs <pack.qlmatch> -o <sidecar>
-  const sidecarPath = join(outDir, `${args.matchId}_${mapName}.replay.json.gz`);
-  const sidecarScript = fileURLToPath(new URL("./qlmatch-to-replay.mjs", import.meta.url));
-  const sc = spawnSync(process.execPath, [sidecarScript, outPath, "-o", sidecarPath], {
-    encoding: "utf8",
-    timeout: SIDECAR_TIMEOUT_MS,
-  });
-  if (sc.error || sc.status !== 0) {
-    const why = sc.error ? String(sc.error.message || sc.error) : `exit ${sc.status}: ${(sc.stderr || "").trim().slice(-500)}`;
-    console.error(`packer: replay sidecar FAILED (${why}) — pack is intact, regenerate with qlmatch-to-replay.mjs`);
-  } else {
-    for (const line of (sc.stdout || "").trim().split("\n")) log("sidecar:", line);
-  }
+  writeSidecar(outPath, join(outDir, `${args.matchId}_${mapName}.replay.json.gz`));
 
   process.exit(0);
 }

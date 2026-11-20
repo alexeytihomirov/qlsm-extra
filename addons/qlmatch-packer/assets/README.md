@@ -39,8 +39,53 @@ node pack.mjs --dir <demo_dir> --match-id <stamp> [--map <map>]
               [--min-window-ms 5000] [--out-dir <dir>]
 ```
 
-Exit codes: 0 ok; 2 window validation failed (empty/short POV overlap — no
+Exit codes: 0 ok (pack written or multi-POV match published); 2 window validation failed (empty/short POV overlap — no
 zip written, raw files left in place); 3 no POV files for the match; 5 usage/IO error.
+
+## Multi-POV capture: one `.dm_91` instead of a `.qlmatch` (1.4.0)
+
+With the engine's `sv_demoMultiPov 1` a match is one file recorded by the
+server's own connection: `{match_id}_{map}_multipov_{seed}_{n}.dm_91`, its
+gamestate `clientNum` is `sv_maxclients`. When that file is the match's only
+capture (`clientNum >= sv_maxclients` in its serverinfo, or `_multipov_` in its
+name when the serverinfo has no `sv_maxclients`), no `.qlmatch` is built:
+
+1. `<name>.meta.json` is written (`<name>` = the rendered name template,
+   default `{match_id}_{map}`; `_{match_id}` is appended when a stampless name
+   is taken):
+
+   ```json
+   {"format": "qlsm-demo-meta", "version": 2, "match_id": "20261120T025005Z",
+    "map": "bloodrun", "gametype": "duel",
+    "match_guid": "5fba1c75-35ee-4790-92ac-b09854cd77d9", "duration_ms": 419675,
+    "window": {"start_server_time": 98575, "end_server_time": 528525,
+               "game_start_server_time": 108850},
+    "players": [{"client_num": 0, "name": "Input.Frontier", "team": "0",
+                 "steam_id64": "76561197999064274"}],
+    "pack": "20261120T025005Z_bloodrun.dm_91", "written_at": "2026-11-20T04:42:02.756Z"}
+   ```
+
+   `match_guid` is `null` when unknown. `team` is the configstring value
+   (`0` free, `1` red, `2` blue). `players` is everyone seen in a playing team
+   anywhere in the recording (so a player who left before the end is listed),
+   in order of first appearance, with their last name and team; a slot reused
+   by another account gives two rows with the same `client_num`. `steam_id64`
+   is the `st` key of the player's configstring (`7656119` + 10 digits, else
+   `null`, e.g. bots). The game-server plugin passes nothing for this.
+2. The index and the capture are renamed to `index/<name>.snaps.json` and
+   `<name>.dm_91` (with `--out-dir`: copied there, the original stays). The
+   meta comes first because the file-forwarder sends `<name>.dm_91` to
+   `qlmatch/` only while `<name>.meta.json` names it.
+3. `{match_id}.meta.json` (version 1, the Demos screen labels) is written as
+   for a pack, with `pack` and `povs[0].file` = `<name>.dm_91`, unless
+   `<name>` is the match id itself (the v2 meta then has that name).
+4. The sidecar `{match_id}_{map}.replay.json.gz`, from the published file.
+
+Re-running `pack.mjs` for the match finds the published file again when
+`<name>` starts with `{match_id}_` (default template) and rewrites the metas
+and the sidecar; with another template there is nothing to re-run from.
+Several capture files for one match (a multi-POV file next to per-client
+ones, or two multi-POV segments) still give a `.qlmatch` of all of them.
 
 ## Manifest v2 and match identity
 
@@ -71,8 +116,12 @@ logged to `<match_id>.packer.log` but never fails the pack; regenerate any
 sidecar by hand (idempotent — byte-identical output for the same pack):
 
 ```
-node qlmatch-to-replay.mjs <pack.qlmatch> [-o out.replay.json.gz]
+node qlmatch-to-replay.mjs <pack.qlmatch | published.dm_91> [-o out.replay.json.gz]
 ```
+
+A `.dm_91` input (a published multi-POV match) is read as a one-demo pack with
+its `index/<stem>.snaps.json`, so the sidecar equals the one a 1-POV `.qlmatch`
+of the same file gives (only `meta.povs[].fileName` names the `.dm_91`).
 
 Without `-o` the sidecar lands next to the pack named after the pack's own
 basename; pass `-o` with `{match_id}_{map}.replay.json.gz` when the pack

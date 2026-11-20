@@ -54,6 +54,10 @@ except ImportError:
 
 PACK_EXT = ".qlmatch"
 SIDECAR_EXT = ".replay.json.gz"
+# A published multi-POV match: <stem>.dm_91 + <stem>.meta.json (version 2).
+META_EXT = ".meta.json"
+DEMO_EXT = ".dm_91"
+META_MAX_BYTES = 256 * 1024
 
 _MMSS_RE = re.compile(r"^(\d+):(\d{1,2})(?:\.(\d{1,3}))?$")
 
@@ -235,7 +239,7 @@ _pack_summary_cache = {}
 _sidecar_duration_cache = {}
 
 
-def _pack_summary_cached(path, filename):
+def _pack_summary_cached(path, filename, loader=None):
     try:
         st = os.stat(path)
         key = (st.st_mtime_ns, st.st_size)
@@ -244,11 +248,51 @@ def _pack_summary_cached(path, filename):
     cached = _pack_summary_cache.get(path)
     if cached is not None and cached[0] == key:
         return dict(cached[1])
-    summary = _pack_summary(path, filename)
+    summary = (loader or _pack_summary)(path, filename)
     if summary is None:
         return None
     _pack_summary_cache[path] = (key, dict(summary))
     return dict(summary)
+
+
+def _multipov_summary(meta_path, meta_filename):
+    """A published multi-POV match (qlmatch-packer 1.4.0, engine
+    sv_demoMultiPov 1): "<stem>.meta.json" in format qlsm-demo-meta version
+    2 whose "pack" is "<stem>.dm_91". There is no .qlmatch; the sidecar is
+    the same {match_id}_{map}.replay.json.gz, so the row works like a pack's.
+    Only the small meta is read, never the demo."""
+    stem = meta_filename[: -len(META_EXT)]
+    try:
+        with open(meta_path, "rb") as handle:
+            raw = handle.read(META_MAX_BYTES + 1)
+    except OSError:
+        return None
+    if len(raw) > META_MAX_BYTES:
+        return None
+    try:
+        meta = json.loads(raw.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    if not isinstance(meta, dict) or meta.get("format") != "qlsm-demo-meta" or meta.get("version") != 2:
+        return None
+    pack = stem + DEMO_EXT
+    if meta.get("pack") != pack:
+        return None
+    players = [
+        str(p.get("name") or "").strip()
+        for p in (meta.get("players") or [])
+        if isinstance(p, dict)
+    ]
+    window = meta.get("window") or {}
+    return {
+        "path": os.path.join(os.path.dirname(meta_path), pack),
+        "filename": pack,
+        "match_id": str(meta.get("match_id") or ""),
+        "map": str(meta.get("map") or ""),
+        "players": [p for p in players if p],
+        "window": window,
+        "duration_ms": duration_ms_from_window(window),
+    }
 
 
 def fill_sidecar_durations(rows, demo_dir):
@@ -275,7 +319,9 @@ def fill_sidecar_durations(rows, demo_dir):
 
 def list_packs(demo_dir, filter_substr=None):
     """Numbered (1-based) list of .qlmatch packs in demo_dir, newest match_id
-    first. Reads manifest.json out of each pack's zip (cached by mtime/size).
+    first, together with published multi-POV matches (<stem>.dm_91 described
+    by <stem>.meta.json, see _multipov_summary). Reads manifest.json out of
+    each pack's zip, or the meta file (cached by mtime/size).
     duration_ms may be None when the manifest window cannot yield one — the
     heavy sidecar fallback lives in fill_sidecar_durations(), applied by the
     caller to the rows it displays.
@@ -284,9 +330,13 @@ def list_packs(demo_dir, filter_substr=None):
         return []
     rows = []
     for filename in sorted(os.listdir(demo_dir)):
-        if not filename.endswith(PACK_EXT):
+        if filename.endswith(PACK_EXT):
+            loader = _pack_summary
+        elif filename.endswith(META_EXT) and not filename.startswith("."):
+            loader = _multipov_summary
+        else:
             continue
-        summary = _pack_summary_cached(os.path.join(demo_dir, filename), filename)
+        summary = _pack_summary_cached(os.path.join(demo_dir, filename), filename, loader)
         if summary is None:
             continue
         rows.append(summary)

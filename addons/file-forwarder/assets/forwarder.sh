@@ -35,6 +35,15 @@
 #                       block the uploads. Positive (5000)
 #   STATE_DIR           ledger, last-run, lock                      (/home/ql/.forwarder-state)
 #   RCLONE              rclone binary                               (rclone)
+#   PACK_DIR            remote_dir for published multi-POV matches, empty = off (qlmatch)
+#
+# Published multi-POV matches (qlmatch-packer 1.4.0+): a "<stem>.meta.json" whose "pack" value
+# is "<stem>.dm_91" makes that pair a pack. Both files go to PACK_DIR and are kept like a
+# `keep` row; no PATTERNS row sends or deletes them (so such a .dm_91 never goes to raw/).
+# The meta is sent only once its .dm_91 is delivered, so the remote never holds a meta
+# whose demo is missing. Purge deletes the .dm_91 first and the meta only after it, both
+# only when the PACK_DIR listing holds them. A .dm_91 whose meta is gone is a plain .dm_91
+# again (its PATTERNS row applies).
 #
 # Ledger $STATE_DIR/delivered.tsv: name<TAB>size<TAB>mtime<TAB>delivered_at (ISO UTC,
 # 2026-10-11T10:00:00Z), one line per delivered file. A file counts as delivered only when
@@ -82,6 +91,7 @@ MIN_AGE_MIN=2
 MAX_RAW_MB_PER_RUN=2048
 MAX_RAW_REMOTE_MB=5000
 RCLONE=rclone
+PACK_DIR=qlmatch
 
 uploaded=0
 failed=0
@@ -146,6 +156,10 @@ for row in $PATTERNS; do
         *) config_error "pattern '$row' must end in keep or expire" ;;
     esac
 done
+case "$PACK_DIR" in
+    '') ;;
+    -*|.*|*[!A-Za-z0-9_.-]*) config_error "PACK_DIR '$PACK_DIR' is not a valid remote_dir (use A-Za-z0-9_.- only)" ;;
+esac
 command -v "$RCLONE" >/dev/null 2>&1 || config_error "rclone binary '$RCLONE' not found"
 
 mkdir -p "$STATE_DIR" || config_error "cannot create $STATE_DIR"
@@ -215,6 +229,27 @@ count_unsafe() {
 }
 
 is_ledgered() { grep -Fxq -- "$1" "$KEYS"; }
+
+# Published multi-POV matches, found once per run whatever their age: PACK_STEMS holds
+# "<dir>/<stem>" per pack, PACKS the paths of both of its files (which may not exist yet: the
+# packer writes the meta before it renames the demo into place).
+PACK_STEMS="$TMP/pack-stems"
+PACKS="$TMP/packs"
+: > "$PACK_STEMS"
+: > "$PACKS"
+if [ -n "$PACK_DIR" ] && [ -n "$dirs" ]; then
+    find $dirs -maxdepth 1 -type f -name '*.meta.json' ! -name "*$NL*" ! -name "*$TAB*" \
+        -print 2>/dev/null > "$TMP/metas" || true
+    while IFS= read -r meta; do
+        [ -n "$meta" ] || continue
+        stem="${meta%.meta.json}"
+        named=$(sed -n 's/.*"pack"[[:space:]]*:[[:space:]]*"\([^"\\]*\)".*/\1/p' "$meta" 2>/dev/null | head -n 1)
+        [ "$named" = "${stem##*/}.dm_91" ] || continue
+        printf '%s\n' "$stem" >> "$PACK_STEMS"
+        printf '%s\n%s\n' "$stem.dm_91" "$meta" >> "$PACKS"
+    done < "$TMP/metas"
+fi
+is_pack() { grep -Fxq -- "$1" "$PACKS"; }
 
 # dup_names <glob> <outfile>: names that exist in more than one source directory (any age);
 # the flat remote directory cannot hold both, so none of them is sent or deleted.
@@ -344,6 +379,7 @@ for row in $PATTERNS; do
 
     while IFS="$TAB" read -r mt sz path; do
         [ -n "$path" ] || continue
+        if is_pack "$path"; then continue; fi
         name="${path##*/}"
         mt="${mt%%.*}"
         key="$name$TAB$sz$TAB$mt"
@@ -370,6 +406,42 @@ for row in $PATTERNS; do
         fi
     done < "$list"
 done
+
+# send_pack_file <path>: true when the file is delivered to PACK_DIR, before or by this call.
+# False when it is missing, younger than MIN_AGE_MIN or its upload failed.
+send_pack_file() {
+    find "$1" -maxdepth 0 -type f -mmin "+$MIN_AGE_MIN" -printf '%T@\t%s\t%p\n' 2>/dev/null > "$TMP/one" || true
+    IFS="$TAB" read -r mt sz _ < "$TMP/one" || return 1
+    name="${1##*/}"
+    mt="${mt%%.*}"
+    key="$name$TAB$sz$TAB$mt"
+    if is_ledgered "$key"; then return 0; fi
+    if "$RCLONE" copyto "$1" "$REMOTE:$PACK_DIR/$name" </dev/null; then
+        printf '%s\t%s\t%s\t%s\n' "$name" "$sz" "$mt" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$LEDGER"
+        echo "$key" >> "$KEYS"
+        uploaded=$((uploaded + 1))
+        log "uploaded $name -> $PACK_DIR/"
+        return 0
+    fi
+    failed=$((failed + 1))
+    log "upload of $name failed"
+    return 1
+}
+
+# Upload phase, published multi-POV matches: the demo first, its meta only once the demo is
+# delivered. A stem present in more than one source directory is not sent (flat remote dir).
+if [ -s "$PACK_STEMS" ]; then
+    awk '{ n = $0; sub(/.*\//, "", n); print n }' "$PACK_STEMS" | sort | uniq -d > "$TMP/pack-dups"
+    while IFS= read -r stem; do
+        if grep -Fxq -- "${stem##*/}" "$TMP/pack-dups"; then
+            failed=$((failed + 1))
+            log "name collision: $stem.dm_91 has the same name as a pack in another source directory, not sent"
+            continue
+        fi
+        send_pack_file "$stem.dm_91" || continue
+        send_pack_file "$stem.meta.json" || true
+    done < "$PACK_STEMS"
+fi
 
 # remote_has <remote_dir> <name> <size>: true when the remote listing holds that name with that
 # size. The listing is fetched once per remote dir, after the uploads above. A failed listing
@@ -421,6 +493,7 @@ cleanup_row() {
     dup_names "$1" "$dups"
     while IFS="$TAB" read -r mt sz path; do
         [ -n "$path" ] || continue
+        if is_pack "$path"; then continue; fi
         name="${path##*/}"
         mt="${mt%%.*}"
         key="$name$TAB$sz$TAB$mt"
@@ -466,6 +539,39 @@ for row in $PATTERNS; do
         cleanup_row "$glob" "$rdir" "$kind" "$retention_min"
     fi
 done
+
+# purge_pack_file <path>: delete a ledgered pack file the PACK_DIR listing holds (name and size).
+# True when the file is gone afterwards.
+purge_pack_file() {
+    find "$1" -maxdepth 0 -type f -printf '%T@\t%s\t%p\n' 2>/dev/null > "$TMP/one" || true
+    IFS="$TAB" read -r mt sz _ < "$TMP/one" || return 0
+    name="${1##*/}"
+    mt="${mt%%.*}"
+    if is_ledgered "$name$TAB$sz$TAB$mt" && remote_has "$PACK_DIR" "$name" "$sz"; then
+        if rm -f -- "$1"; then
+            deleted=$((deleted + 1))
+            log "deleted $1"
+            return 0
+        fi
+        return 1
+    fi
+    kept_unconfirmed=$((kept_unconfirmed + 1))
+    log "kept $1: the remote copy is missing or differs"
+    return 1
+}
+
+# Purge, published multi-POV matches: the demo first, the meta only once the demo is gone (a
+# demo left without its meta would be sent again, to raw/).
+if [ "$mode" = purge ] && [ -s "$PACK_STEMS" ]; then
+    while IFS= read -r stem; do
+        if grep -Fxq -- "${stem##*/}" "$TMP/pack-dups"; then
+            log "kept $stem.dm_91: same name exists in another source directory"
+            continue
+        fi
+        purge_pack_file "$stem.dm_91" || continue
+        purge_pack_file "$stem.meta.json" || true
+    done < "$PACK_STEMS"
+fi
 
 code=0
 if [ "$failed" -gt 0 ]; then code=1; fi

@@ -22,6 +22,8 @@ MIN_AGE_MIN = 2
 DELIVERED_GRACE_HOURS = 24
 MAX_RAW_REMOTE_MB = 5000
 RCLONE = 'rclone'
+# Remote dir of published multi-POV matches (<name>.dm_91 + <name>.meta.json).
+PACK_DIR = 'qlmatch'
 MANIFEST_FILE = os.path.join(ADDON_DIR, 'qlsm-addon.json')
 
 # Rows are separated by ";" or a newline: qlsm's declarative form renders a
@@ -148,6 +150,7 @@ def render_conf(settings):
         f"MAX_RAW_REMOTE_MB='{MAX_RAW_REMOTE_MB}'",
         f"STATE_DIR='{STATE_DIR}'",
         f"RCLONE='{RCLONE}'",
+        f"PACK_DIR='{PACK_DIR}'",
     ]
     return '\n'.join(lines) + '\n'
 

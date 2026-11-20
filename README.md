@@ -154,8 +154,8 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | `telemetry-relay` | Per-host relay that forwards `stream_telemetry_unified` data to ql-stats-hub, and the owner of the **Stats Hub** entries for telemetry and the live demo stream together: host menu **Stats Hub** (relay and demo stream tunnel), instance menu **Stats Hub** (**Send telemetry**, **Live demo stream**, the stream delay, one Save with at most one restart), Settings -> **Stats Hub** (hub URL, ingest token, **Switch on new instances**, demo stream relay). The server ID is reserved automatically and shared by both. **Switch on new instances** (or the **Stats Hub** tab of the Add Instance form) sets up telemetry and the live demo stream before the first deploy |
 | `demo-management` | The **Demos** screen: lists and downloads what an instance recorded |
 | `demo-stream` | Live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub. No menu entries of its own since 1.9.0: it is switched on and configured in the **Stats Hub** entries of `telemetry-relay` (1.9.0 or newer); its API routes, tasks and launch args are unchanged. A delay change applies on stats-hub without a restart |
-| `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen. The `qlmatch_packer.py` plugin runs it when the engine finishes a match's demos |
-| `file-forwarder` | Ships demo files (.qlmatch packs, replay sidecars, raw demos) from game hosts to the VPS over SFTP with rclone, keeps a delivery ledger, cleans up delivered raw demos, and offers manual sync from the host menu. The VPS address is a setting; saving it scans the VPS host keys and shows their fingerprints. The host menu entry **File Forwarder** has the host switch, the status and **Apply to host**, **Sync now** and **Sync now and delete delivered** |
+| `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen. The `qlmatch_packer.py` plugin runs it when the engine finishes a match's demos. A multi-POV capture is published as `<name>.dm_91` + `<name>.meta.json` instead of a `.qlmatch` |
+| `file-forwarder` | Ships demo files (.qlmatch packs, published multi-POV matches, replay sidecars, raw demos) from game hosts to the VPS over SFTP with rclone, keeps a delivery ledger, cleans up delivered raw demos, and offers manual sync from the host menu. The VPS address is a setting; saving it scans the VPS host keys and shows their fingerprints. The host menu entry **File Forwarder** has the host switch, the status and **Apply to host**, **Sync now** and **Sync now and delete delivered** |
 | `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enter repository + commit in **Runtime Source**, then **Re-run Host Setup**. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
 | `host-metrics` | Per-host and per-instance resource metrics: a low-priority collector on every game host keeps 30 days of CPU (incl. steal), memory, disk, players and frame timing in SQLite; the Host Metrics page is a health board (status, findings in plain English, hardware, charts) with a capacity verdict per host. Collector changes reach a host with **Apply to host** |
@@ -304,6 +304,17 @@ qlstats and Slipgate are gone; each instance picks its sources on its own
 Ranks tab, and a new instance starts with every source off. On the first load
 after the update an instance that never saved its Ranks tab gets the sources
 it showed before, so nothing visible changes and there is nothing to do.
+
+**qlmatch-packer 1.4.0 + file-forwarder 1.3.0:** a match recorded as one
+multi-POV file (engine `sv_demoMultiPov 1`) is published as `<name>.dm_91` +
+`<name>.meta.json` (format `qlsm-demo-meta` version 2, players with steam ids
+from the recording) + the replay sidecar, with no `.qlmatch`; the forwarder
+sends that pair to `qlmatch/` instead of `raw/`. Per-client captures still
+give a `.qlmatch`. Update both addons, then **Apply to host** (File Forwarder)
+on each host and re-run the host payload sync for the packer (host setup or
+Update Plugins). The `qlmatch_packer` plugin is unchanged; `match_restore`
+(its `restore/qlmatch.py`) lists such a match in `!restore match list` next to
+the `.qlmatch` packs, so update that plugin too.
 
 **file-forwarder 1.2.0:** no VPS address or host key is built in any more.
 The VPS address is a setting; saving a new one scans its SSH host keys from

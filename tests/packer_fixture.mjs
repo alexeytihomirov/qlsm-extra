@@ -1,7 +1,7 @@
 // Test fixture writer for tests/test_packer_identity.py: synthesizes gamestate-only
 // POV .dm_91 files plus index/*.snaps.json that pack.mjs accepts.
 // usage: node packer_fixture.mjs <out_dir> <match_id> <spec.json>
-// spec: {map, guid, povs: [{client_num, roster: {cn: {n, t}}, index: {...extra index keys}}]}
+// spec: {map, guid, maxclients?, povs: [{client_num, stem?, roster: {cn: {n, t, st?}}, index: {...extra index keys}}]}
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -26,13 +26,14 @@ function frame(body) {
 
 mkdirSync(join(outDir, "index"), { recursive: true });
 for (const pov of spec.povs) {
-  const configstrings = { 0: `\\mapname\\${spec.map}\\g_gametype\\1` };
+  const maxclients = spec.maxclients ? `\\sv_maxclients\\${spec.maxclients}` : "";
+  const configstrings = { 0: `\\mapname\\${spec.map}\\g_gametype\\1${maxclients}` };
   if (spec.guid) configstrings[712] = spec.guid;
   for (const [cn, row] of Object.entries(pov.roster)) {
-    configstrings[CS_PLAYERS + Number(cn)] = `\\n\\${row.n}\\t\\${row.t}`;
+    configstrings[CS_PLAYERS + Number(cn)] = `\\n\\${row.n}\\t\\${row.t}` + (row.st ? `\\st\\${row.st}` : "");
   }
   const body = buildGamestateMessage({ configstrings, baselines: [], clientNum: pov.client_num, checksumFeed: 0 });
-  const stem = `${matchId}_${spec.map}_p${pov.client_num}_pov${pov.client_num}_1000_1`;
+  const stem = pov.stem || `${matchId}_${spec.map}_p${pov.client_num}_pov${pov.client_num}_1000_1`;
   writeFileSync(join(outDir, stem + ".dm_91"), frame(body));
   const index = {
     client_num: pov.client_num,

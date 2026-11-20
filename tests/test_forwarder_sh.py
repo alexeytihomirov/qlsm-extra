@@ -510,3 +510,106 @@ def test_two_concurrent_runs_do_not_overlap(host):
     assert first.returncode == 0, out + err
     assert host.remote_names('qlmatch') == ['slow.qlmatch']
     assert not (host.state / 'lock').exists()
+
+
+# ---- published multi-POV matches: <stem>.dm_91 + <stem>.meta.json -> qlmatch/ ----------
+
+def pack_meta(stem, pack=None):
+    """What pack.mjs writes (JSON.stringify(..., null, 2)) for a published multi-POV match."""
+    body = {'format': 'qlsm-demo-meta', 'version': 2, 'match_id': '20261120T025005Z',
+            'players': [{'client_num': 0, 'name': 'a"b', 'team': '0', 'steam_id64': None}],
+            'pack': pack if pack is not None else f'{stem}.dm_91'}
+    return json.dumps(body, indent=2).encode() + b'\n'
+
+
+def put_pack(host, stem, age=OLD, meta_age=None, dirindex=0, demo=b'multipov demo'):
+    dm = host.put(f'{stem}.dm_91', demo, age=age, dirindex=dirindex)
+    meta = host.put(f'{stem}.meta.json', pack_meta(stem), age=age if meta_age is None else meta_age,
+                    dirindex=dirindex)
+    return dm, meta
+
+
+def test_pack_goes_to_qlmatch_and_raw_stays_for_per_client_demos(host):
+    put_pack(host, '20261120T025005Z_bloodrun')
+    host.put('20261120T025005Z_bloodrun_p0_alex_1000_1.dm_91', b'pov')
+    # the Demos screen's label file names the pack but is not one: never sent
+    host.put('20261120T025005Z.meta.json', pack_meta('x', pack='20261120T025005Z_bloodrun.dm_91'))
+    r = host.run()
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert host.remote_names('qlmatch') == ['20261120T025005Z_bloodrun.dm_91', '20261120T025005Z_bloodrun.meta.json']
+    assert host.remote_names('raw') == ['20261120T025005Z_bloodrun_p0_alex_1000_1.dm_91']
+    names = [row[0] for row in host.ledger()]
+    assert names.index('20261120T025005Z_bloodrun.dm_91') < names.index('20261120T025005Z_bloodrun.meta.json')
+    assert host.last_run()['uploaded'] == '3'
+
+
+def test_meta_waits_for_its_demo(host):
+    dm, meta = put_pack(host, 'm', age=10, meta_age=OLD)     # demo younger than MIN_AGE_MIN
+    r = host.run()
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert host.remote_names('qlmatch') == [] and host.remote_names('raw') == []
+    t = time.time() - OLD
+    os.utime(dm, (t, t))
+    assert host.run().returncode == 0
+    assert host.remote_names('qlmatch') == ['m.dm_91', 'm.meta.json']
+
+
+def test_meta_before_its_demo_exists_holds_nothing_back(host):
+    host.put('m.meta.json', pack_meta('m'))
+    assert host.run().returncode == 0
+    assert host.remote_names('qlmatch') == []
+    assert host.last_run()['failed'] == '0'
+
+
+def test_failed_demo_upload_keeps_the_meta_back(host):
+    put_pack(host, 'm')
+    r = host.run(FAKE_RCLONE_FAIL='copyto')
+    assert r.returncode == 1
+    assert host.ledger() == []
+    assert host.last_run()['failed'] == '1'
+
+
+def test_run_never_deletes_an_old_pack_but_purge_does_once_confirmed(host):
+    dm, meta = put_pack(host, 'm', age=VERY_OLD)
+    seed_ledger(host, [dm, meta], remote_dir='qlmatch')
+    r = host.run()
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert dm.exists() and meta.exists()
+    r = host.run('purge')
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert not dm.exists() and not meta.exists()
+    assert host.last_run()['deleted'] == '2'
+
+
+def test_purge_keeps_the_meta_while_its_demo_stays(host):
+    dm, meta = put_pack(host, 'm', age=VERY_OLD)
+    seed_ledger(host, [meta], remote_dir='qlmatch')
+    seed_ledger(host, [dm], remote_dir='qlmatch', remote=False)   # demo not on the remote
+    r = host.run('purge')
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert dm.exists() and meta.exists()
+    assert host.last_run()['kept_unconfirmed'] == '1'
+
+
+def test_demo_without_its_meta_is_a_plain_raw_demo(host):
+    host.put('m.dm_91', b'demo')
+    host.put('m.meta.json', pack_meta('m', pack='m.qlmatch'))
+    assert host.run().returncode == 0
+    assert host.remote_names('raw') == ['m.dm_91']
+    assert host.remote_names('qlmatch') == []
+
+
+def test_empty_pack_dir_turns_packs_off(host):
+    put_pack(host, 'm')
+    host.write_conf(PACK_DIR='')
+    assert host.run().returncode == 0
+    assert host.remote_names('raw') == ['m.dm_91']
+    assert host.remote_names('qlmatch') == []
+
+
+def test_same_pack_name_in_two_source_dirs_is_not_sent(host):
+    put_pack(host, 'm', dirindex=0)
+    put_pack(host, 'm', dirindex=1)
+    r = host.run()
+    assert r.returncode == 1
+    assert host.remote_names('qlmatch') == [] and host.remote_names('raw') == []
