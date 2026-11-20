@@ -1,7 +1,7 @@
 ---
 id: qlsm-extra-0033
 title: Multi-POV match published as one .dm_91 with meta (no .qlmatch)
-status: in-progress
+status: done-unverified
 created: 2026-11-20
 updated: 2026-11-20
 verified:
@@ -57,6 +57,7 @@ Per-client записи (`sv_demoMultiPov 0`) дают `.qlmatch`, как ран
   `.dm_91`; restore/qlmatch.py: такие матчи в `!restore match list`.
 - 2026-11-20 - тесты: packer 30 passed, forwarder.sh 35 passed, file-forwarder addon
   (с QLSM_REPO) - все, кроме 7 давних test_descriptions по чужим аддонам; restore 35 passed.
+- 2026-11-20 - слито в main (`9c7d98b`). Ждёт оператора: в qlsm file-forwarder 1.3.0 + Apply to host, затем qlmatch-packer 1.4.0; проверка на живом матче germany
 
 ## Результат
 
