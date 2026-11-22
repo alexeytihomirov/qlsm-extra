@@ -1,0 +1,4 @@
+{
+  "label": "Roguelike rules",
+  "description": "Helper of roguelike: markers, runs, rooms, teleporter offers and lives, no engine calls. Not a plugin of its own."
+}
