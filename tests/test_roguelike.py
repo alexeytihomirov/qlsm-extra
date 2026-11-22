@@ -426,3 +426,37 @@ def test_cmd_rl_and_rlroom(core):
     off = make_plugin([pl], markers=False)
     off.cmd_rl(pl, ["!rl"], ch)
     assert "off" in replies[-1]
+
+
+def test_unload_sends_players_in_rooms_to_the_hub(core):
+    pl = player()
+    plugin = make_plugin([pl])
+    enter(plugin, pl, "arena1")
+    plugin.handle_unload("roguelike")
+    assert tuple(pl.position) == (384.0, 160.0, 24.0)
+    assert [f for f, on in zip(rl.WEAPON_FIELDS, pl.weapons) if on] == ["g"]
+
+
+def test_one_players_error_does_not_stop_other_rooms(core, monkeypatch):
+    a, b = player(1), player(2)
+    plugin = make_plugin([a, b])
+    enter(plugin, a, "arena1")
+    a.position = Pos(2176.0, 1408.0, 24.0)
+    enter(plugin, b, "dodge1")
+    b.position = Pos(512.0, 1792.0, 24.0)
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("no free entity")
+
+    monkeypatch.setattr(core, "spawn_pair", broken)
+    plugin._tick(5.0)
+    assert [f[0] for f in core.fired] == ["rl", "rl"]  # b's turrets still fired
+    assert plugin._world.run(1) is None and plugin._world.run(2).room == "dodge1"
+
+
+def test_rlroom_refused_for_a_spectator(core):
+    pl = player(team="spectator")
+    plugin = make_plugin([pl])
+    replies = []
+    plugin.cmd_rlroom(pl, ["!rlroom", "arena1"], SimpleNamespace(reply=replies.append))
+    assert plugin._world.run(1) is None and replies

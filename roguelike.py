@@ -169,6 +169,9 @@ class roguelike(minqlx.Plugin):
         if plugin != self.__class__.__name__ or self._unloaded:
             return
         self._unloaded = True
+        if self._world is not None:
+            for cid in self._world.occupied().values():
+                self._send_to_hub(self.player(cid))  # the next instance knows no runs
         for room_id in list(self._rooms):
             self._clear_room(room_id)
         self._rooms = {}
@@ -380,8 +383,11 @@ class roguelike(minqlx.Plugin):
         if world is None:
             return
         if not self._scene:
-            self._scene.append(npc_core.spawn_pair(_lift(world.layout.hub_start, PAD_LIFT), PAD_MODEL, 0, now,
-                                                   solid=False))
+            try:
+                self._scene.append(npc_core.spawn_pair(_lift(world.layout.hub_start, PAD_LIFT), PAD_MODEL, 0, now,
+                                                       solid=False))
+            except Exception as ex:
+                self._log_error("hub pad model: %s", ex, now)  # decoration: the runs go on without it
         # plain tuples: a Player object goes stale when its client leaves
         live = {}
         for p in self.players():
@@ -390,12 +396,21 @@ class roguelike(minqlx.Plugin):
         hub = world.layout.hub_start
         for cid, (pos, _vel) in live.items():
             run = world.run(cid)
-            if run is None:
-                if math.hypot(pos[0] - hub[0], pos[1] - hub[1]) <= rl_rules.PAD_RANGE:
-                    self._apply(cid, world.begin(cid, now), now)
-                continue
-            room = self._rooms.get(run.room)
-            self._apply(cid, world.tick(cid, pos, now, len(room.mobs) if room else 0), now)
+            try:
+                if run is None:
+                    if math.hypot(pos[0] - hub[0], pos[1] - hub[1]) <= rl_rules.PAD_RANGE:
+                        self._apply(cid, world.begin(cid, now), now)
+                    continue
+                room = self._rooms.get(run.room)
+                self._apply(cid, world.tick(cid, pos, now, len(room.mobs) if room else 0), now)
+            except Exception as ex:
+                run = world.run(cid)
+                if run is not None and run.room in self._rooms:
+                    self._fail_room(run.room, self._rooms[run.room], ex, now)
+                else:
+                    world.leave(cid)
+                    self._sync_rooms()
+                    self._log_error("player tick failed: %s", ex, now)
         plums = now - self._last_plum >= PLUM_S
         if plums:
             self._last_plum = now
@@ -479,13 +494,20 @@ class roguelike(minqlx.Plugin):
         self._world.leave(cid)
         self._sync_rooms()
         player = self.player(cid)
-        if player is not None:
-            try:
-                self._teleport(player, self._hub_spawn())
-                self._set_kit(player, "g")
-                player.tell("The room hit an error and was reset. Back in the hub")
-            except Exception as ex2:
-                self._log_error("hub after a failed room: %s", ex2, now)
+        if self._send_to_hub(player):
+            player.tell("The room hit an error and was reset. Back in the hub")
+
+    def _send_to_hub(self, player):
+        """A live player out of a room they no longer own: to a hub spawn, gauntlet only."""
+        if player is None or not player.is_alive or not _plays(player):
+            return False
+        try:
+            self._teleport(player, self._hub_spawn())
+            self._set_kit(player, "g")
+            return True
+        except Exception as ex:
+            self.logger.warning("roguelike: %s not sent to the hub: %s", player.id, ex)
+            return False
 
     # commands
 
@@ -506,6 +528,9 @@ class roguelike(minqlx.Plugin):
             return None
         if len(msg) < 2:
             return minqlx.Return.USAGE
+        if not _plays(player):
+            channel.reply("Join the game first")
+            return None
         events = self._world.force(player.id, msg[1], time.monotonic())
         if not events:
             channel.reply("No such room, or someone is in it")

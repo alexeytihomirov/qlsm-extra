@@ -264,6 +264,9 @@ class World:
             return {self.rng.choice(doors): "hub"}
         taken = self.occupied()
         types = sorted({self.layout.rooms[rid].type for rid in unvisited if rid not in taken})
+        if not types:
+            # every unvisited room is taken: a way out, so two runs can never lock each other in
+            return {self.rng.choice(doors): "hub"}
         if len(types) > len(doors):
             types = sorted(self.rng.sample(types, len(doors)))
         picked = self.rng.sample(doors, len(types))
@@ -271,10 +274,11 @@ class World:
 
     def _exit(self, cid, r, room, pos, now):
         events = []
-        if not r.offers and now - r.offers_built >= OFFER_RETRY_S:
+        if self._waiting(r) and now - r.offers_built >= OFFER_RETRY_S:
             r.offers_built = now
-            r.offers = self._build_offers(r, room)
-            if r.offers:
+            fresh = self._build_offers(r, room)
+            if set(fresh.values()) != {"hub"}:
+                r.offers = fresh
                 events.append(("offers", r.offers))
         if r.blocked is not None and _flat(pos, room.doors[r.blocked]) > PAD_RANGE:
             r.blocked = None
@@ -293,11 +297,16 @@ class World:
             events.append(("hint", best))
         return events
 
+    def _waiting(self, r):
+        """Only the hub is offered while unvisited rooms exist: they are all taken for now."""
+        return set(r.offers.values()) <= {"hub"} and any(rid not in r.visited for rid in self.layout.rooms)
+
     def _step(self, cid, r, room, door, now):
         kind = r.offers[door]
         if kind == "hub":
+            reason = "left" if self._waiting(r) else "done"
             del self._runs[cid]
-            return [("hub", "done", now - r.started)]
+            return [("hub", reason, now - r.started)]
         taken = self.occupied()
         free = [rid for rid in sorted(self.layout.rooms)
                 if self.layout.rooms[rid].type == kind and rid not in taken and rid not in r.visited]

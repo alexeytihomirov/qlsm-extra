@@ -385,7 +385,7 @@ def test_offers_rebuilt_when_room_frees():
     for cid in (1, 2, 3):
         w.begin(cid, 0.0)
     clear_current_room(w, 1)
-    assert w.run(1).offers == {}
+    assert list(w.run(1).offers.values()) == ["hub"]  # a way out while every other room is taken
     room2 = w.run(2).room
     w.leave(2)
     start = room_of(w, 1).start
@@ -419,3 +419,16 @@ def test_doors_far_enough_apart_for_the_ranges():
         for i, a in enumerate(room.doors):
             for b in room.doors[i + 1:]:
                 assert math.hypot(a[0] - b[0], a[1] - b[1]) >= 2 * rl_rules.HINT_RANGE
+
+
+def test_runs_blocking_each_other_can_leave_through_the_hub():
+    w = world(seed=1)
+    for cid in (1, 2, 3):
+        w.begin(cid, 0.0)
+    clear_current_room(w, 1)
+    room = w.run(1).room
+    tick(w, 1, room_of(w, 1).start, dt=rl_rules.OFFER_RETRY_S * 2)
+    assert list(w.run(1).offers.values()) == ["hub"]  # still nothing free: the exit stays put
+    ev = step_on(w, 1, only_door(w, 1))
+    assert [e[:2] for e in ev] == [("hub", "left")]
+    assert w.run(1) is None and room not in w.occupied()
