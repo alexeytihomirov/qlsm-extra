@@ -166,6 +166,24 @@
         "td_rules.py"
       ],
       "sha256": "2acda36a103e081775443351524ff5416bf3ec21e7c667e1190850c0c52fb64b"
+    },
+    {
+      "filename": "rl_rules.py",
+      "runtime": "minqlxtended",
+      "label": "Roguelike rules",
+      "description": "Helper of roguelike: markers, runs, rooms, teleporter offers and lives, no engine calls. Not a plugin of its own.",
+      "sha256": "a63a7fc8d86d1d02fa121931e2072c5554f98f0566351305950822b7884d4223"
+    },
+    {
+      "filename": "roguelike.py",
+      "runtime": "minqlxtended",
+      "label": "Roguelike",
+      "description": "Solo runs through sealed rooms on a map with rl_* markers (stage 1 probe, root-0042): a hub pad starts a run, each cleared room offers teleporters to the next, 3 lives. One player per room, several runs at once. Other maps are untouched. The game runs in warmup. The instance needs g_teamForceBalance 0, g_friendlyFire 0, g_infiniteAmmo 1 and g_teamSizeMin 1.",
+      "depends_on": [
+        "npc_core.py",
+        "rl_rules.py"
+      ],
+      "sha256": "c5d78621df10cfbc170a485eb1832c7a00e87311d6c65f44712688c3f67e0ffc"
     }
   ],
   "addons": [

@@ -50,6 +50,8 @@ DEFAULT_PLUGINS = [
     'tower_defence.py',
     'npc_core.py',
     'td_rules.py',
+    'roguelike.py',
+    'rl_rules.py',
 ]
 
 # filename -> folder (relative to this script) that must be downloaded
