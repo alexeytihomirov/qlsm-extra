@@ -23,7 +23,9 @@ BASE_HP = 100000
 STUCK_S = 3.0
 REACH_U = 16.0
 CHASE_S = 0.05  # a chaser is re-steered at most this often
-CHASE_STOP_U = 40.0  # and stands still this close to its target, in the plane
+CHASE_STOP_U = 40.0  # and stands still this close to its target, in the plane,
+CHASE_RESUME_U = 64.0  # moves again only once the target is this far,
+CHASE_SLOW_U = 120.0  # and slows down in proportion to the distance from here in
 CHASE_MOVE_U = 16.0  # a chaser that bounces off something within this distance has not moved
 HULL_CONTENTS = 0x4000000  # CONTENTS_CORPSE: players walk through, their shots hit
 CLIP_HITS_CREEPS = 0x1  # CONTENTS_SOLID: the plugin does the hit test
@@ -69,6 +71,7 @@ class Npc:
         self.chase_at = None
         self.chase_target = None
         self.heading = None
+        self.stopped = False
 
 
 # pure
@@ -298,7 +301,8 @@ def turn_toward(heading, wanted, max_step):
 def chase(npc, target, speed, now, turn=None):
     """Re-steers the pair toward target (a hull-level point), at most once per CHASE_S.
     turn: degrees per second the heading may change; None turns at once. Within CHASE_STOP_U
-    of the target the pair stands still, turning to face it."""
+    of the target the pair stands still, turning to face it, until the target is past
+    CHASE_RESUME_U; inside CHASE_SLOW_U it slows down, so it never lurches at a player close by."""
     npc.chase_target = target
     if npc.chase_at is not None and now - npc.chase_at < CHASE_S:
         return
@@ -312,13 +316,16 @@ def chase(npc, target, speed, now, turn=None):
     else:
         npc.heading = turn_toward(npc.heading, wanted, turn * (now - last))
     yaw = npc.heading
-    if math.hypot(target[0] - pos[0], target[1] - pos[1]) <= CHASE_STOP_U:
+    dist = math.hypot(target[0] - pos[0], target[1] - pos[1])
+    npc.stopped = dist <= (CHASE_RESUME_U if npc.stopped else CHASE_STOP_U)
+    if npc.stopped:
         npc.vel = (0.0, 0.0, 0.0)
         _move_pair(npc, pos, npc.vel, yaw, False)
         return
     npc.speed = float(speed)
+    pace = npc.speed * min(1.0, (dist - CHASE_STOP_U) / (CHASE_SLOW_U - CHASE_STOP_U))
     rad = math.radians(yaw)
-    npc.vel = (math.cos(rad) * npc.speed, math.sin(rad) * npc.speed, 0.0)
+    npc.vel = (math.cos(rad) * pace, math.sin(rad) * pace, 0.0)
     _move_pair(npc, pos, npc.vel, yaw, True)
 
 
@@ -332,7 +339,7 @@ def tick_chaser(npc, now):
     pos = tuple(hull.r.current_origin)
     npc.pos = pos
     target = npc.chase_target
-    near = target is not None and math.hypot(target[0] - pos[0], target[1] - pos[1]) <= CHASE_STOP_U
+    near = target is not None and math.hypot(target[0] - pos[0], target[1] - pos[1]) <= CHASE_RESUME_U
     if near or math.hypot(pos[0] - npc.last_pos[0], pos[1] - npc.last_pos[1]) > CHASE_MOVE_U:
         npc.last_pos = pos
         npc.last_move = now
