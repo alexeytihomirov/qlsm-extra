@@ -230,14 +230,26 @@ def _write_trajectory(num, pos, vel, level_time, moving):
     return e
 
 
-def _move_pair(npc, pos, vel, yaw, moving):
+def _move_pair(npc, pos, vel, yaw, moving, turn_from=None, turn_ms=0):
+    """turn_from, turn_ms: the visuals turn from that yaw to yaw over turn_ms on the client
+    (TR_LINEAR_STOP angles) instead of snapping."""
     level_time = minqlx.level.time
     _write_trajectory(npc.hull, pos, vel, level_time, moving)
     minqlx.link_entity(npc.hull)
     low = _visual_origin(pos)
     for num in npc.visuals:
         e = _write_trajectory(num, low, vel, level_time, moving)
-        e.s.apos_base = (0.0, yaw, 0.0)
+        if turn_from is None or turn_ms <= 0:
+            e.s.apos_base = (0.0, yaw, 0.0)
+        elif turn_from == yaw:
+            e.s.apos_type = minqlx.TrajectoryType.STATIONARY
+            e.s.apos_base = (0.0, yaw, 0.0)
+        else:
+            e.s.apos_type = minqlx.TrajectoryType.LINEAR_STOP
+            e.s.apos_base = (0.0, turn_from, 0.0)
+            e.s.apos_delta = (0.0, (yaw - turn_from) * 1000.0 / turn_ms, 0.0)
+            e.s.apos_time = level_time
+            e.s.apos_duration = int(turn_ms)
         minqlx.link_entity(num)
 
 
@@ -307,19 +319,22 @@ def chase(npc, target, speed, now, turn=None):
     pos = tuple(minqlx.Entity(npc.hull).r.current_origin)
     npc.pos = pos
     wanted = math.degrees(math.atan2(target[1] - pos[1], target[0] - pos[0]))
-    if turn is None or npc.heading is None or last is None:
+    before = npc.heading
+    if turn is None or before is None or last is None:
         npc.heading = wanted
+        turn_from, turn_ms = None, 0
     else:
-        npc.heading = turn_toward(npc.heading, wanted, turn * (now - last))
+        npc.heading = turn_toward(before, wanted, turn * (now - last))
+        turn_from, turn_ms = before, int((now - last) * 1000)
     yaw = npc.heading
     if math.hypot(target[0] - pos[0], target[1] - pos[1]) <= CHASE_STOP_U:
         npc.vel = (0.0, 0.0, 0.0)
-        _move_pair(npc, pos, npc.vel, yaw, False)
+        _move_pair(npc, pos, npc.vel, yaw, False, turn_from, turn_ms)
         return
     npc.speed = float(speed)
     rad = math.radians(yaw)
     npc.vel = (math.cos(rad) * npc.speed, math.sin(rad) * npc.speed, 0.0)
-    _move_pair(npc, pos, npc.vel, yaw, True)
+    _move_pair(npc, pos, npc.vel, yaw, True, turn_from, turn_ms)
 
 
 def tick_chaser(npc, now):

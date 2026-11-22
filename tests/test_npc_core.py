@@ -9,7 +9,7 @@ from tests._minqlx_stub import import_plugin
 pytestmark = pytest.mark.standalone
 
 npc_core = import_plugin("npc_core")
-LINEAR, STATIONARY = "linear", "stationary"
+LINEAR, STATIONARY, LINEAR_STOP = "linear", "stationary", "linear_stop"
 ORIGIN = (0.0, 0.0, 26.0)
 
 
@@ -18,7 +18,7 @@ class FakeEngine:
     CS_MODELS = 1000
     CS_ITEMS = 2000
     EntityType = SimpleNamespace(GENERAL="general", ITEM="item", MISSILE="missile")
-    TrajectoryType = SimpleNamespace(LINEAR=LINEAR, STATIONARY=STATIONARY)
+    TrajectoryType = SimpleNamespace(LINEAR=LINEAR, STATIONARY=STATIONARY, LINEAR_STOP=LINEAR_STOP)
     EntityEvent = SimpleNamespace(MISSILE_MISS="miss")
     Weapon = SimpleNamespace(ROCKET_LAUNCHER=5, PLASMAGUN=8)
     Mod = SimpleNamespace(ROCKET=1, ROCKET_SPLASH=2, PLASMA=3, PLASMA_SPLASH=4)
@@ -420,7 +420,10 @@ def test_chase_turn_rate_limits_the_heading(engine):
     vx, vy, _ = engine.ents[npc.hull].s.pos_delta
     assert math.degrees(math.atan2(vy, vx)) == pytest.approx(36.0)
     assert math.hypot(vx, vy) == pytest.approx(260)
-    assert engine.ents[npc.visuals[0]].s.apos_base[1] == pytest.approx(36.0)
+    visual = engine.ents[npc.visuals[0]].s
+    assert visual.apos_type == LINEAR_STOP  # the client turns the model over the step, no snap
+    assert visual.apos_base[1] == pytest.approx(0.0) and visual.apos_delta[1] == pytest.approx(360.0)
+    assert visual.apos_time == engine.level.time and visual.apos_duration == 100
     npc_core.chase(npc, (0.0, -300.0, 26.0), 260, 0.2, turn=360)  # the short way back
     vx, vy, _ = engine.ents[npc.hull].s.pos_delta
     assert math.degrees(math.atan2(vy, vx)) == pytest.approx(0.0, abs=1e-6)
