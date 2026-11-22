@@ -314,3 +314,99 @@ def test_damage_plum_event_and_cleanup(engine):
     assert num not in engine.removed
     npc_core.tick_missiles([], 1.6)
     assert num in engine.removed
+
+
+# chasing (roguelike)
+
+
+def chaser(engine, at=(0.0, 0.0, 26.0)):
+    npc = npc_core.spawn_pair(at, ("a.md3", "b.md3"), 100, 0.0, frames=(1, 29), fps=20)
+    return npc
+
+
+def test_chase_steers_toward_target(engine):
+    npc = chaser(engine)
+    npc_core.chase(npc, (300.0, 400.0, 26.0), 260, 0.0)
+    hull = engine.ents[npc.hull]
+    vx, vy, vz = hull.s.pos_delta
+    assert math.hypot(vx, vy) == pytest.approx(260) and vz == 0
+    assert vy / vx == pytest.approx(400 / 300)
+    assert hull.s.pos_type == LINEAR
+    visual = engine.ents[npc.visuals[0]]
+    assert visual.s.pos_delta == hull.s.pos_delta and visual.s.pos_base == (0.0, 0.0, 0.0)
+
+
+def test_chase_rate_limited(engine):
+    npc = chaser(engine)
+    npc_core.chase(npc, (300.0, 0.0, 26.0), 260, 1.0)
+    first = engine.ents[npc.hull].s.pos_delta
+    npc_core.chase(npc, (0.0, 300.0, 26.0), 260, 1.05)
+    assert engine.ents[npc.hull].s.pos_delta == first
+    npc_core.chase(npc, (0.0, 300.0, 26.0), 260, 1.0 + npc_core.CHASE_S)
+    assert engine.ents[npc.hull].s.pos_delta == pytest.approx((0.0, 260.0, 0.0))
+
+
+def test_chase_stops_within_40u(engine):
+    npc = chaser(engine)
+    npc_core.chase(npc, (300.0, 0.0, 26.0), 260, 0.0)
+    engine.ents[npc.hull].r.current_origin = (270.0, 0.0, 26.0)
+    npc_core.chase(npc, (300.0, 0.0, 26.0), 260, 0.2)
+    hull = engine.ents[npc.hull]
+    assert hull.s.pos_type == STATIONARY and hull.s.pos_base == (270.0, 0.0, 26.0)
+    assert all(engine.ents[v].s.pos_type == STATIONARY for v in npc.visuals)
+    assert npc.vel == (0.0, 0.0, 0.0)
+
+
+def test_tick_chaser_not_stuck_next_to_target(engine):
+    npc = chaser(engine)
+    engine.ents[npc.hull].r.current_origin = (270.0, 0.0, 26.0)
+    npc_core.chase(npc, (300.0, 0.0, 26.0), 260, 0.0)
+    assert npc_core.tick_chaser(npc, 0.05) == "alive"
+    assert npc_core.tick_chaser(npc, 3.1) == "alive"
+
+
+def test_tick_chaser_stuck_far_from_target(engine):
+    npc = chaser(engine)
+    npc_core.chase(npc, (300.0, 0.0, 26.0), 260, 0.0)
+    assert npc_core.tick_chaser(npc, 0.05) == "alive"
+    assert npc_core.tick_chaser(npc, 3.1) == "stuck"
+
+
+def test_tick_chaser_dead_and_animated(engine):
+    npc = chaser(engine)
+    npc_core.chase(npc, (300.0, 0.0, 26.0), 260, 0.0)
+    assert npc_core.tick_chaser(npc, 0.5) == "alive"
+    assert engine.ents[npc.visuals[0]].s.frame == 11
+    npc_core.damage(npc, 100)
+    assert npc_core.tick_chaser(npc, 0.55) == "dead"
+    engine.ents[npc.hull].inuse = False
+    assert npc_core.tick_chaser(npc, 0.6) == "stuck"
+
+
+def test_remove_missile_twice_is_safe(engine):
+    num = _turret_shot(engine)
+    npc_core.remove_missile(num)
+    npc_core.remove_missile(num)
+    assert engine.removed.count(num) == 1 and npc_core.missiles_in_flight() == 0
+    npc_core.remove_missile(9999)
+
+
+def test_remove_missile_left_alone_once_the_engine_exploded_it(engine):
+    num = _turret_shot(engine)
+    engine.ents[num].inuse = False  # the engine freed it; the slot may hold something else now
+    npc_core.remove_missile(num)
+    assert num not in engine.removed and npc_core.missiles_in_flight() == 0
+
+
+def test_tick_missiles_only_filters(engine):
+    a = npc_core.spawn_pair((100.0, 0.0, 26.0), ("a.md3",), 100, 0.0)
+    b = npc_core.spawn_pair((100.0, 500.0, 26.0), ("a.md3",), 100, 0.0)
+    owner = npc_core.spawn_pair(ORIGIN, ("a.md3",), 100, 0.0)
+    shot_a = npc_core.fire_at_creeps((0.0, 0.0, 26.0), (2000.0, 0.0, 26.0), "pg", 20, 0, owner.hull)
+    shot_b = npc_core.fire_at_creeps((0.0, 500.0, 26.0), (2000.0, 500.0, 26.0), "pg", 20, 0, owner.hull)
+    engine.ents[shot_a].s.pos_time = engine.ents[shot_b].s.pos_time = 1000
+    engine.level.time = 1100
+    npc_core.tick_missiles([a, b], 1.0, only={shot_a})
+    assert npc_core.damage_taken(a) == 20 and npc_core.damage_taken(b) == 0
+    npc_core.tick_missiles([a, b], 1.05, only={shot_b})
+    assert npc_core.damage_taken(b) == 20

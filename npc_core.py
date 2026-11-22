@@ -22,6 +22,8 @@ except ImportError:
 BASE_HP = 100000
 STUCK_S = 3.0
 REACH_U = 16.0
+CHASE_S = 0.1  # a chaser is re-steered at most this often
+CHASE_STOP_U = 40.0  # and stands still this close to its target, in the plane
 HULL_CONTENTS = 0x4000000  # CONTENTS_CORPSE: players walk through, their shots hit
 CLIP_HITS_CREEPS = 0x1  # CONTENTS_SOLID: the plugin does the hit test
 CLIP_HITS_PLAYERS = 0x2000001  # SOLID + BODY: passes hulls
@@ -63,6 +65,8 @@ class Npc:
         self.last_pos = origin
         self.last_move = now
         self.last_shot = 0.0
+        self.chase_at = None
+        self.chase_target = None
 
 
 # pure
@@ -224,17 +228,20 @@ def _write_trajectory(num, pos, vel, level_time, moving):
     return e
 
 
-def _resteer(npc, pos):
-    npc.vel = steer(pos, npc.path[npc.idx], npc.speed)
+def _move_pair(npc, pos, vel, yaw, moving):
     level_time = minqlx.level.time
-    _write_trajectory(npc.hull, pos, npc.vel, level_time, True)
+    _write_trajectory(npc.hull, pos, vel, level_time, moving)
     minqlx.link_entity(npc.hull)
     low = _visual_origin(pos)
-    yaw = math.degrees(math.atan2(npc.vel[1], npc.vel[0]))
     for num in npc.visuals:
-        e = _write_trajectory(num, low, npc.vel, level_time, True)
+        e = _write_trajectory(num, low, vel, level_time, moving)
         e.s.apos_base = (0.0, yaw, 0.0)
         minqlx.link_entity(num)
+
+
+def _resteer(npc, pos):
+    npc.vel = steer(pos, npc.path[npc.idx], npc.speed)
+    _move_pair(npc, pos, npc.vel, math.degrees(math.atan2(npc.vel[1], npc.vel[0])), True)
 
 
 def start_path(npc, path, speed, now):
@@ -268,11 +275,54 @@ def tick(npc, now):
         return "stuck"
     elif hull.s.pos_type != minqlx.TrajectoryType.LINEAR:
         _resteer(npc, pos)  # G_RunItem stopped it short of the waypoint
+    _animate(npc, now)
+    return "alive"
+
+
+def _animate(npc, now):
     if npc.frames:
         frame = next_frame(npc.frames[0], npc.frames[1], now - npc.born, npc.fps)
         if frame != npc.frame:
             npc.frame = frame
             minqlx.Entity(npc.visuals[0]).s.frame = frame
+
+
+def chase(npc, target, speed, now):
+    """Re-steers the pair toward target (a hull-level point), at most once per CHASE_S.
+    Within CHASE_STOP_U of it the pair stands still, facing it."""
+    npc.chase_target = target
+    if npc.chase_at is not None and now - npc.chase_at < CHASE_S:
+        return
+    npc.chase_at = now
+    pos = tuple(minqlx.Entity(npc.hull).r.current_origin)
+    npc.pos = pos
+    yaw = math.degrees(math.atan2(target[1] - pos[1], target[0] - pos[0]))
+    if math.hypot(target[0] - pos[0], target[1] - pos[1]) <= CHASE_STOP_U:
+        npc.vel = (0.0, 0.0, 0.0)
+        _move_pair(npc, pos, npc.vel, yaw, False)
+        return
+    npc.speed = float(speed)
+    npc.vel = steer(pos, target, npc.speed)
+    _move_pair(npc, pos, npc.vel, yaw, True)
+
+
+def tick_chaser(npc, now):
+    """tick for a chaser: no path. "stuck" after STUCK_S without moving while away from its target."""
+    hull = minqlx.Entity(npc.hull)
+    if not hull.inuse:
+        return "stuck"
+    if BASE_HP - hull.health >= npc.hp_limit:
+        return "dead"
+    pos = tuple(hull.r.current_origin)
+    npc.pos = pos
+    target = npc.chase_target
+    near = target is not None and math.hypot(target[0] - pos[0], target[1] - pos[1]) <= CHASE_STOP_U
+    if near or abs(pos[0] - npc.last_pos[0]) > 1.0 or abs(pos[1] - npc.last_pos[1]) > 1.0:
+        npc.last_pos = pos
+        npc.last_move = now
+    elif now - npc.last_move >= STUCK_S:
+        return "stuck"
+    _animate(npc, now)
     return "alive"
 
 
@@ -359,8 +409,16 @@ def _explode(num, m, pos, now, flight):
     flight["gone"] = now + EXPLOSION_S
 
 
-def tick_missiles(npcs, now):
-    """npcs: the creeps, with npc.pos fresh. Drops spent missiles, explodes those that met a hull."""
+def remove_missile(num):
+    """Removes one tracked missile if it still flies or is still showing its explosion."""
+    flight = _flying.pop(num, None)
+    if flight is not None and (flight["gone"] is not None or not missile_gone(num)):
+        minqlx.remove_entity(num)
+
+
+def tick_missiles(npcs, now, only=None):
+    """npcs: the creeps, with npc.pos fresh. Drops spent missiles, explodes those that met a hull.
+    only: missile numbers to hit-test against npcs (one room's); the others are only cleaned up."""
     level_time = minqlx.level.time
     for num, flight in list(_flying.items()):
         if flight["gone"] is not None:
@@ -372,7 +430,7 @@ def tick_missiles(npcs, now):
         if not m.inuse or m.s.e_type != minqlx.EntityType.MISSILE:
             del _flying[num]  # the engine exploded it on a wall or on a player
             continue
-        if flight["damage"] is None:
+        if flight["damage"] is None or (only is not None and num not in only):
             continue
         dt = (level_time - m.s.pos_time) / 1000.0
         pos = tuple(m.s.pos_base[i] + m.s.pos_delta[i] * dt for i in range(3))
