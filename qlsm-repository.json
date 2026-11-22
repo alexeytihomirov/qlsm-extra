@@ -147,7 +147,7 @@
       "runtime": "minqlxtended",
       "label": "NPC core",
       "description": "Helper of tower_defence and roguelike: server entities as creeps and turrets, missiles, CS_MODELS and CS_ITEMS registration. Not a plugin of its own.",
-      "sha256": "16ce0fc851a785f95a37aee8e77924becbf68d99bb863d9229583cd52f91ac09"
+      "sha256": "dad79650d0e9346fa5f7f57e9e0f0cdb4dfd095238c7e966da9a1b6e49494d82"
     },
     {
       "filename": "td_rules.py",

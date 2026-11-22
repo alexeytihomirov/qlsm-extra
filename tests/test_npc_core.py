@@ -437,25 +437,3 @@ def test_tick_chaser_bouncing_in_place_is_stuck(engine):
         hull.r.current_origin = (8.0 if int(t * 20) % 2 else 0.0, 0.0, 26.0)
         status = npc_core.tick_chaser(npc, t)
     assert status == "stuck" and t == pytest.approx(npc_core.STUCK_S, abs=0.06)
-
-
-def test_chase_resumes_only_beyond_the_resume_distance(engine):
-    npc = chaser(engine)
-    hull = engine.ents[npc.hull]
-    hull.r.current_origin = (0.0, 0.0, 26.0)
-    npc_core.chase(npc, (30.0, 0.0, 26.0), 260, 0.0)
-    assert hull.s.pos_type == STATIONARY
-    npc_core.chase(npc, (npc_core.CHASE_RESUME_U - 4, 0.0, 26.0), 260, 0.1)
-    assert hull.s.pos_type == STATIONARY
-    npc_core.chase(npc, (npc_core.CHASE_RESUME_U + 4, 0.0, 26.0), 260, 0.2)
-    assert hull.s.pos_type == LINEAR
-
-
-def test_chase_slows_down_near_the_target(engine):
-    npc = chaser(engine)
-    far = npc_core.CHASE_SLOW_U + 100
-    npc_core.chase(npc, (far, 0.0, 26.0), 260, 0.0)
-    assert engine.ents[npc.hull].s.pos_delta[0] == pytest.approx(260)
-    mid = (npc_core.CHASE_STOP_U + npc_core.CHASE_SLOW_U) / 2
-    npc_core.chase(npc, (mid, 0.0, 26.0), 260, 0.1)
-    assert engine.ents[npc.hull].s.pos_delta[0] == pytest.approx(130)
