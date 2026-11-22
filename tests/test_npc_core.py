@@ -340,7 +340,7 @@ def test_chase_rate_limited(engine):
     npc = chaser(engine)
     npc_core.chase(npc, (300.0, 0.0, 26.0), 260, 1.0)
     first = engine.ents[npc.hull].s.pos_delta
-    npc_core.chase(npc, (0.0, 300.0, 26.0), 260, 1.05)
+    npc_core.chase(npc, (0.0, 300.0, 26.0), 260, 1.0 + npc_core.CHASE_S / 2)
     assert engine.ents[npc.hull].s.pos_delta == first
     npc_core.chase(npc, (0.0, 300.0, 26.0), 260, 1.0 + npc_core.CHASE_S)
     assert engine.ents[npc.hull].s.pos_delta == pytest.approx((0.0, 260.0, 0.0))
@@ -410,3 +410,30 @@ def test_tick_missiles_only_filters(engine):
     assert npc_core.damage_taken(a) == 20 and npc_core.damage_taken(b) == 0
     npc_core.tick_missiles([a, b], 1.05, only={shot_b})
     assert npc_core.damage_taken(b) == 20
+
+
+def test_chase_turn_rate_limits_the_heading(engine):
+    npc = chaser(engine)
+    npc_core.chase(npc, (300.0, 0.0, 26.0), 260, 0.0, turn=360)
+    assert engine.ents[npc.hull].s.pos_delta == pytest.approx((260.0, 0.0, 0.0))
+    npc_core.chase(npc, (0.0, 300.0, 26.0), 260, 0.1, turn=360)  # wants +90, may turn 36
+    vx, vy, _ = engine.ents[npc.hull].s.pos_delta
+    assert math.degrees(math.atan2(vy, vx)) == pytest.approx(36.0)
+    assert math.hypot(vx, vy) == pytest.approx(260)
+    assert engine.ents[npc.visuals[0]].s.apos_base[1] == pytest.approx(36.0)
+    npc_core.chase(npc, (0.0, -300.0, 26.0), 260, 0.2, turn=360)  # the short way back
+    vx, vy, _ = engine.ents[npc.hull].s.pos_delta
+    assert math.degrees(math.atan2(vy, vx)) == pytest.approx(0.0, abs=1e-6)
+
+
+def test_tick_chaser_bouncing_in_place_is_stuck(engine):
+    npc = chaser(engine)
+    npc_core.chase(npc, (900.0, 0.0, 26.0), 260, 0.0)
+    hull = engine.ents[npc.hull]
+    t = 0.0
+    status = "alive"
+    while t < 3.2 and status == "alive":
+        t += 0.05
+        hull.r.current_origin = (8.0 if int(t * 20) % 2 else 0.0, 0.0, 26.0)
+        status = npc_core.tick_chaser(npc, t)
+    assert status == "stuck" and t == pytest.approx(npc_core.STUCK_S, abs=0.06)
