@@ -31,6 +31,7 @@ class FakeEngine:
         self.set_cs = []
         self.level = SimpleNamespace(time=1000)
         self.fail_spawn_after = None
+        self.strict = False  # like minqlxtended: Entity() of a freed entity raises
 
     def spawn_entity(self, classname, keys):
         if self.fail_spawn_after is not None and len(self.ents) >= self.fail_spawn_after:
@@ -45,7 +46,10 @@ class FakeEngine:
         return e
 
     def Entity(self, num):
-        return self.ents[num]
+        e = self.ents[num]
+        if self.strict and not e.inuse:
+            raise ValueError("entity %d is not in use." % num)
+        return e
 
     def link_entity(self, num):
         return True
@@ -440,3 +444,31 @@ def test_tick_chaser_bouncing_in_place_is_stuck(engine):
         hull.r.current_origin = (8.0 if int(t * 20) % 2 else 0.0, 0.0, 26.0)
         status = npc_core.tick_chaser(npc, t)
     assert status == "stuck" and t == pytest.approx(npc_core.STUCK_S, abs=0.06)
+
+
+# minqlxtended raises on Entity() of a freed entity instead of handing back inuse False
+
+
+def test_engine_freed_missile_is_dropped_when_entity_raises(engine):
+    creep = npc_core.spawn_pair((100.0, 0.0, 26.0), ("a.md3",), 100, 0.0)
+    num = npc_core.fire((0.0, 0.0, 26.0), (200.0, 0.0, 26.0), "pg", 15, 0, 0, creep.hull, npc_core.CLIP_HITS_PLAYERS)
+    engine.strict = True
+    engine.ents[num].inuse = False  # it hit a player
+    assert npc_core.missile_gone(num)
+    npc_core.tick_missiles([creep], 1.0)
+    assert npc_core.missiles_in_flight() == 0
+    npc_core.remove_missile(num)
+    npc_core.clear_missiles()
+    assert num not in engine.removed
+
+
+def test_freed_hull_is_stuck_when_entity_raises(engine):
+    npc = chaser(engine)
+    npc_core.chase(npc, (300.0, 0.0, 26.0), 260, 0.0)
+    walker_npc = walker()
+    engine.strict = True
+    engine.ents[npc.hull].inuse = False
+    engine.ents[walker_npc.hull].inuse = False
+    assert npc_core.tick_chaser(npc, 0.1) == "stuck"
+    assert npc_core.tick(walker_npc, 0.1) == "stuck"
+    npc_core.chase(npc, (0.0, 300.0, 26.0), 260, 1.0)  # no raise either

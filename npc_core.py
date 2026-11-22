@@ -71,6 +71,16 @@ class Npc:
         self.heading = None
 
 
+def _live(num):
+    """The entity, or None once the engine freed it: minqlxtended's Entity() raises
+    "entity N is not in use" for a freed number instead of handing back inuse False."""
+    try:
+        e = minqlx.Entity(num)
+    except Exception:
+        return None
+    return e if e.inuse else None
+
+
 # pure
 
 
@@ -208,7 +218,8 @@ def spawn_pair(origin, parts, hp_limit, now, solid=True, hull_size=(16, 32), fra
 
 def remove(npc):
     for num in npc.visuals + ([npc.hull] if npc.hull is not None else []):
-        minqlx.remove_entity(num)
+        if _live(num) is not None:
+            minqlx.remove_entity(num)
 
 
 def damage_taken(npc):
@@ -270,8 +281,8 @@ def start_path(npc, path, speed, now):
 
 
 def tick(npc, now):
-    hull = minqlx.Entity(npc.hull)
-    if not hull.inuse:
+    hull = _live(npc.hull)
+    if hull is None:
         return "stuck"
     if BASE_HP - hull.health >= npc.hp_limit:
         return "dead"
@@ -314,9 +325,12 @@ def chase(npc, target, speed, now, turn=None):
     npc.chase_target = target
     if npc.chase_at is not None and now - npc.chase_at < CHASE_S:
         return
+    hull = _live(npc.hull)
+    if hull is None:
+        return  # tick_chaser reports it
     last = npc.chase_at
     npc.chase_at = now
-    pos = tuple(minqlx.Entity(npc.hull).r.current_origin)
+    pos = tuple(hull.r.current_origin)
     npc.pos = pos
     wanted = math.degrees(math.atan2(target[1] - pos[1], target[0] - pos[0]))
     before = npc.heading
@@ -339,8 +353,8 @@ def chase(npc, target, speed, now, turn=None):
 
 def tick_chaser(npc, now):
     """tick for a chaser: no path. "stuck" after STUCK_S without moving while away from its target."""
-    hull = minqlx.Entity(npc.hull)
-    if not hull.inuse:
+    hull = _live(npc.hull)
+    if hull is None:
         return "stuck"
     if BASE_HP - hull.health >= npc.hp_limit:
         return "dead"
@@ -415,8 +429,8 @@ def missiles_in_flight():
 
 
 def missile_gone(num):
-    e = minqlx.Entity(num)
-    return not e.inuse or e.s.e_type != minqlx.EntityType.MISSILE
+    e = _live(num)
+    return e is None or e.s.e_type != minqlx.EntityType.MISSILE
 
 
 def area_damage(npcs, pos, radius, amount, skip=None):
@@ -443,7 +457,9 @@ def _explode(num, m, pos, now, flight):
 def remove_missile(num):
     """Removes one tracked missile if it still flies or is still showing its explosion."""
     flight = _flying.pop(num, None)
-    if flight is not None and (flight["gone"] is not None or not missile_gone(num)):
+    if flight is None or _live(num) is None:
+        return
+    if flight["gone"] is not None or not missile_gone(num):
         minqlx.remove_entity(num)
 
 
@@ -454,11 +470,12 @@ def tick_missiles(npcs, now, only=None):
     for num, flight in list(_flying.items()):
         if flight["gone"] is not None:
             if now >= flight["gone"]:
-                minqlx.remove_entity(num)
+                if _live(num) is not None:
+                    minqlx.remove_entity(num)
                 del _flying[num]
             continue
-        m = minqlx.Entity(num)
-        if not m.inuse or m.s.e_type != minqlx.EntityType.MISSILE:
+        m = _live(num)
+        if m is None or m.s.e_type != minqlx.EntityType.MISSILE:
             del _flying[num]  # the engine exploded it on a wall or on a player
             continue
         if flight["damage"] is None or (only is not None and num not in only):
@@ -498,6 +515,6 @@ def damage_plum(pos, amount, client, now):
 
 def clear_missiles():
     for num, flight in _flying.items():
-        if flight["gone"] is not None or not missile_gone(num):
+        if _live(num) is not None and (flight["gone"] is not None or not missile_gone(num)):
             minqlx.remove_entity(num)
     _flying.clear()
