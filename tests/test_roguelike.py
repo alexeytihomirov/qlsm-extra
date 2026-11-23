@@ -460,3 +460,16 @@ def test_rlroom_refused_for_a_spectator(core):
     replies = []
     plugin.cmd_rlroom(pl, ["!rlroom", "arena1"], SimpleNamespace(reply=replies.append))
     assert plugin._world.run(1) is None and replies
+
+
+def test_team_switch_death_is_a_leave_not_a_lost_life(core):
+    pl = player()
+    plugin = make_plugin([pl])
+    enter(plugin, pl, "arena1")
+    plugin.handle_death(pl, None, {})
+    plugin.handle_death(pl, None, {})
+    plugin.handle_death(pl, None, "SWITCH_TEAMS")  # QL kills a player who changes team
+    assert plugin._world.run(1).lives == 1
+    plugin.handle_team_switch(pl, "red", "spectator")
+    assert plugin._world.run(1) is None
+    assert any("left the room" in s for s in plugin.sent) and not any("out of lives" in s for s in plugin.sent)

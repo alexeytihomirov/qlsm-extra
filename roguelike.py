@@ -210,6 +210,8 @@ class roguelike(minqlx.Plugin):
     def handle_death(self, victim, killer, data):
         if self._world is None or victim is None:
             return
+        if str(data) == "SWITCH_TEAMS":
+            return  # QL kills a player who changes team; team_switch ends the run as "left"
         self._apply(victim.id, self._world.died(victim.id, time.monotonic()), time.monotonic(), dead=True)
 
     def handle_player_spawn(self, player):
