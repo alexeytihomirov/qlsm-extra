@@ -172,7 +172,7 @@
       "runtime": "minqlxtended",
       "label": "Roguelike rules",
       "description": "Helper of roguelike: markers, runs, rooms, teleporter offers and lives, no engine calls. Not a plugin of its own.",
-      "sha256": "b764717e30fd92938b2795c7af0589309e666342f95c6f3239edd4ea89c64d30"
+      "sha256": "9e4682dcae635205827bba683123a9b91a4fc27da2475c84a9e2fe9750e7e7ed"
     },
     {
       "filename": "roguelike.py",

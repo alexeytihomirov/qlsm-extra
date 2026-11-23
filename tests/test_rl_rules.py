@@ -432,3 +432,18 @@ def test_runs_blocking_each_other_can_leave_through_the_hub():
     ev = step_on(w, 1, only_door(w, 1))
     assert [e[:2] for e in ev] == [("hub", "left")]
     assert w.run(1) is None and room not in w.occupied()
+
+
+def test_move_clears_on_landing_at_the_edge_of_the_finish_platform():
+    # operator 2026-11-22: landing off the finish point's 48 u kept the pads dark
+    w = world(seed=1)
+    w.force(7, "move1", 0.0)
+    ev = tick(w, 7, (2900, 150, 216))  # 115 u from the finish point, on the platform
+    assert ev[0][:2] == ("cleared", "move1")
+
+
+def test_finish_range_does_not_reach_the_pads():
+    room = rl_rules.parse_markers(FULL).rooms["move1"]
+    for door in room.doors:
+        gap = math.hypot(door[0] - room.finish[0], door[1] - room.finish[1])
+        assert gap > rl_rules.FINISH_RANGE
