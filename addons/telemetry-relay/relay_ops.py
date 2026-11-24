@@ -13,7 +13,7 @@ import os
 
 from ui import db
 from ui.models import Host, HostStatus, QLInstance
-from ui.task_logic.ansible_runner import _run_host_ansible_playbook, run_host_ansible_adhoc
+from ui.task_logic.ansible_runner import _run_host_ansible_playbook
 # The playbook and its template now live next to this module, inside the
 # addon, so the path is resolved here rather than assumed to be under
 # ansible/playbooks/ (see _run_host_ansible_playbook -- it takes an absolute
@@ -182,6 +182,14 @@ def get_relay_status_logic(host_id):
     }
 
     if not enabled:
+        return result
+
+    try:
+        # Lazy: run_host_ansible_adhoc is missing from older qlsm cores; importing it at module level
+        # broke the whole addon (launch_args hook) there. Only the relay health check needs it.
+        from ui.task_logic.ansible_runner import run_host_ansible_adhoc
+    except ImportError:
+        result['error'] = 'Relay health check needs a newer qlsm core (run_host_ansible_adhoc is missing).'
         return result
 
     success, stdout, stderr = run_host_ansible_adhoc(
