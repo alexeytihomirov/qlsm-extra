@@ -138,3 +138,20 @@ def test_template_players_come_from_the_recording(demo_dir):
     _write(demo_dir, {'map': 'bloodrun', 'guid': G, 'maxclients': 8, 'povs': [_multipov()]})
     assert _pack(demo_dir, '--name-template', '{match_id}_{gametype}_{map}_{players}').returncode == 0
     assert (demo_dir / f'{MATCH_ID}_duel_bloodrun_Input.Frontier-T.club-bot.dm_91').exists()
+
+
+def test_published_name_is_the_qlmatch_name_of_the_same_match(tmp_path):
+    # The site lists a multi-POV match and a per-client .qlmatch the same way: <name>.dm_91 and
+    # <name>.qlmatch share <name>, no "_multipov" suffix (ql-tournament-0217, qlsm-extra-0034).
+    template = '{match_id}_{gametype}_{map}_{players}'
+    names = {}
+    for kind, pov in (('multi', _multipov()),
+                      ('per_client', {'client_num': 0, 'roster': ROSTER, 'index': {'match_guid': G}})):
+        d = tmp_path / kind
+        d.mkdir()
+        _write(d, {'map': 'bloodrun', 'guid': G, 'maxclients': 8, 'povs': [pov]})
+        assert _pack(d, '--name-template', template).returncode == 0
+        names[kind] = {p.name for p in d.iterdir() if p.suffix in ('.dm_91', '.qlmatch')}
+    base = f'{MATCH_ID}_duel_bloodrun_Input.Frontier-T.club-bot'
+    assert names['multi'] == {f'{base}.dm_91'}
+    assert f'{base}.qlmatch' in names['per_client']

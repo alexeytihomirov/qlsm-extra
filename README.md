@@ -305,6 +305,13 @@ Ranks tab, and a new instance starts with every source off. On the first load
 after the update an instance that never saved its Ranks tab gets the sources
 it showed before, so nothing visible changes and there is nothing to do.
 
+**file-forwarder 1.3.1:** a published multi-POV `.dm_91` that file-forwarder
+1.2.x had already sent to `raw/` (the packer 1.4.0 ran before the forwarder
+1.3.0 was applied) now goes to `qlmatch/` too; 1.3.0 counted the old `raw/`
+delivery and sent only its `.meta.json`. Update the addon, then **Apply to
+host** (File Forwarder) on each host; the next run sends those `.dm_91` files
+to `qlmatch/` (pack files 1.3.0 already sent go once more, same bytes).
+
 **qlmatch-packer 1.4.0 + file-forwarder 1.3.0:** a match recorded as one
 multi-POV file (engine `sv_demoMultiPov 1`) is published as `<name>.dm_91` +
 `<name>.meta.json` (format `qlsm-demo-meta` version 2, players with steam ids

@@ -192,16 +192,18 @@ def iso_ago(seconds):
     return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() - seconds))
 
 
-def seed_ledger(host, files, remote_dir='raw', delivered_at=OLD_DELIVERY, remote=True):
+def seed_ledger(host, files, remote_dir='raw', delivered_at=OLD_DELIVERY, remote=True, pack=False):
     """Ledger the given files as delivered (current size and mtime) at
     `delivered_at` and, with `remote`, put a matching copy on the fake remote,
-    as if an earlier run had sent them."""
+    as if an earlier run had sent them. `pack` adds the 5th column (the remote
+    dir) the forwarder writes on the lines of published multi-POV files."""
     host.state.mkdir(exist_ok=True)
     (host.remote / remote_dir).mkdir(parents=True, exist_ok=True)
     with open(host.state / 'delivered.tsv', 'a', encoding='utf-8', newline='\n') as f:
         for p in files:
             st = p.stat()
-            f.write(f'{p.name}\t{st.st_size}\t{int(st.st_mtime)}\t{delivered_at}\n')
+            extra = f'\t{remote_dir}' if pack else ''
+            f.write(f'{p.name}\t{st.st_size}\t{int(st.st_mtime)}\t{delivered_at}{extra}\n')
             if remote:
                 (host.remote / remote_dir / p.name).write_bytes(p.read_bytes())
 
@@ -540,7 +542,26 @@ def test_pack_goes_to_qlmatch_and_raw_stays_for_per_client_demos(host):
     assert host.remote_names('raw') == ['20261120T025005Z_bloodrun_p0_alex_1000_1.dm_91']
     names = [row[0] for row in host.ledger()]
     assert names.index('20261120T025005Z_bloodrun.dm_91') < names.index('20261120T025005Z_bloodrun.meta.json')
+    dirs = {row[0]: row[4:] for row in host.ledger()}
+    assert dirs['20261120T025005Z_bloodrun.dm_91'] == ['qlmatch']
+    assert dirs['20261120T025005Z_bloodrun.meta.json'] == ['qlmatch']
+    assert dirs['20261120T025005Z_bloodrun_p0_alex_1000_1.dm_91'] == []
     assert host.last_run()['uploaded'] == '3'
+    assert host.run().returncode == 0           # nothing is sent twice
+    assert host.last_run()['uploaded'] == '0'
+
+
+def test_pack_demo_sent_to_raw_by_an_older_forwarder_goes_to_qlmatch(host):
+    # file-forwarder 1.2.x had no pack rule: it sent the published .dm_91 to raw/ and ledgered
+    # it without a remote dir. 1.3.x must still deliver it to qlmatch/, the demo before the meta.
+    dm, meta = put_pack(host, '20261123T203710Z_duel_monsoon_a3-Steemorol.Frontier')
+    seed_ledger(host, [dm], remote_dir='raw')
+    r = host.run()
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert host.remote_names('qlmatch') == [dm.name, meta.name]
+    names = [row[0] for row in host.ledger()]
+    assert names.index(dm.name, 1) < names.index(meta.name)
+    assert host.last_run()['uploaded'] == '2'
 
 
 def test_meta_waits_for_its_demo(host):
@@ -571,7 +592,7 @@ def test_failed_demo_upload_keeps_the_meta_back(host):
 
 def test_run_never_deletes_an_old_pack_but_purge_does_once_confirmed(host):
     dm, meta = put_pack(host, 'm', age=VERY_OLD)
-    seed_ledger(host, [dm, meta], remote_dir='qlmatch')
+    seed_ledger(host, [dm, meta], remote_dir='qlmatch', pack=True)
     r = host.run()
     assert r.returncode == 0, r.stdout + r.stderr
     assert dm.exists() and meta.exists()
@@ -583,8 +604,8 @@ def test_run_never_deletes_an_old_pack_but_purge_does_once_confirmed(host):
 
 def test_purge_keeps_the_meta_while_its_demo_stays(host):
     dm, meta = put_pack(host, 'm', age=VERY_OLD)
-    seed_ledger(host, [meta], remote_dir='qlmatch')
-    seed_ledger(host, [dm], remote_dir='qlmatch', remote=False)   # demo not on the remote
+    seed_ledger(host, [meta], remote_dir='qlmatch', pack=True)
+    seed_ledger(host, [dm], remote_dir='qlmatch', remote=False, pack=True)   # demo not on the remote
     r = host.run('purge')
     assert r.returncode == 0, r.stdout + r.stderr
     assert dm.exists() and meta.exists()

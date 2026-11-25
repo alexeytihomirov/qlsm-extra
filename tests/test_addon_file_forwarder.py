@@ -172,7 +172,7 @@ def test_playbook_vars_use_stored_keys(render):
                               'ff_version', 'ff_interval_minutes'}
     assert variables['ff_private_key'] == FAKE_PRIVATE + '\n'
     assert variables['ff_conf_text'] == render.render_conf(VALID)
-    assert variables['ff_version'] == '1.3.0'
+    assert variables['ff_version'] == '1.3.1'
     assert variables['ff_interval_minutes'] == 10
     assert variables['ff_vps_host'] == VPS
     assert variables['ff_sftp_user'] == 'qldemos-in'
@@ -374,7 +374,7 @@ def test_manifest_validates(app):
     manifest, errors = read_manifest(str(ADDON_DIR))
     assert errors == []
     assert manifest['id'] == 'file-forwarder'
-    assert manifest['version'] == '1.3.0'
+    assert manifest['version'] == '1.3.1'
     assert manifest['scopes'] == ['global', 'host']
     assert manifest['depends'] == []
     raw = json.loads((ADDON_DIR / 'qlsm-addon.json').read_text(encoding='utf-8'))
@@ -717,7 +717,7 @@ STATUS_STDOUT = '''
 TASK [report] ******
 ok: [game-1] => {
     "msg": [
-        "FF_VERSION=1.3.0",
+        "FF_VERSION=1.3.1",
         "FF_TIMER=active",
         "FF_LAST_RUN=time=2026-10-11T10:00:00Z mode=run uploaded=3 failed=0 deleted=1 kept_unconfirmed=0 exit=0"
     ]
@@ -801,7 +801,7 @@ def test_payload_sync_deploys_an_enabled_host_with_the_key_in_a_file(app, monkey
     _assert_no_private(json.dumps(extravars), private)
     assert fake.key_file_contents == [private + '\n']
     assert not os.path.exists(extravars['ff_private_key_file'])
-    assert extravars['ff_version'] == '1.3.0'
+    assert extravars['ff_version'] == '1.3.1'
     assert extravars['ff_known_hosts'] == KNOWN_HOSTS
     assert extravars['ff_vps_host'] == VPS
     assert "RETENTION_DAYS='14'" in extravars['ff_conf_text']

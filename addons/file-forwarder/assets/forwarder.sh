@@ -47,7 +47,9 @@
 #
 # Ledger $STATE_DIR/delivered.tsv: name<TAB>size<TAB>mtime<TAB>delivered_at (ISO UTC,
 # 2026-10-11T10:00:00Z), one line per delivered file. A file counts as delivered only when
-# name, size and mtime all match a line. A file is NEVER deleted without such a line. A line
+# name, size and mtime all match a line. A pack file's line has a 5th column, the PACK_DIR it
+# was sent to, and only such a line counts as its delivery there: a published .dm_91 that an
+# older forwarder (1.2.x) ledgered as sent to raw/ is sent to PACK_DIR once more. A file is NEVER deleted without such a line. A line
 # whose delivered_at cannot be read never makes its file old enough to delete.
 # The remote directory is flat, so a name present in more than one source directory (same
 # pattern row) would overwrite itself there. Every file of such a name is treated as failed:
@@ -205,6 +207,13 @@ LEDGER="$STATE_DIR/delivered.tsv"
 KEYS="$TMP/keys"
 : > "$KEYS"
 if [ -f "$LEDGER" ]; then cut -f 1-3 "$LEDGER" > "$KEYS" || true; fi
+# Keys of the lines that record a delivery to PACK_DIR (5th column, see the ledger above).
+PACK_KEYS="$TMP/pack-keys"
+: > "$PACK_KEYS"
+if [ -f "$LEDGER" ] && [ -n "$PACK_DIR" ]; then
+    awk -F '\t' -v d="$PACK_DIR" 'NF >= 5 && $5 == d { print $1 "\t" $2 "\t" $3 }' "$LEDGER" \
+        > "$PACK_KEYS" || : > "$PACK_KEYS"
+fi
 
 retention_min=$((RETENTION_DAYS * 1440))
 cap_bytes=$((MAX_RAW_MB_PER_RUN * 1048576))
@@ -415,10 +424,12 @@ send_pack_file() {
     name="${1##*/}"
     mt="${mt%%.*}"
     key="$name$TAB$sz$TAB$mt"
-    if is_ledgered "$key"; then return 0; fi
+    if grep -Fxq -- "$key" "$PACK_KEYS"; then return 0; fi
     if "$RCLONE" copyto "$1" "$REMOTE:$PACK_DIR/$name" </dev/null; then
-        printf '%s\t%s\t%s\t%s\n' "$name" "$sz" "$mt" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$LEDGER"
+        printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$sz" "$mt" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PACK_DIR" \
+            >> "$LEDGER"
         echo "$key" >> "$KEYS"
+        echo "$key" >> "$PACK_KEYS"
         uploaded=$((uploaded + 1))
         log "uploaded $name -> $PACK_DIR/"
         return 0

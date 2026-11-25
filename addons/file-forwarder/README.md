@@ -79,6 +79,14 @@ captures, `sv_demoMultiPov 0`) still follows its pattern row (`raw/`). The
 sent (its `pack` is not its own stem). A `.dm_91` whose meta was deleted on the
 host is a plain `.dm_91` again and follows the `raw/` row.
 
+1.3.1: a pack file's ledger line carries a 5th column, the remote dir
+(`qlmatch`), and only such a line counts as its delivery to `qlmatch/`. A
+published `.dm_91` that 1.2.x had already sent to `raw/` (a host where
+qlmatch-packer 1.4.0 ran before file-forwarder 1.3.x) is sent to `qlmatch/`
+on the next run; 1.3.0 took the old `raw/` line for a delivery and sent only
+the meta. Pack files 1.3.0 ledgered are sent once more, harmlessly (same
+name, same bytes).
+
 File names are shared flat across hosts: each remote dir on the VPS is one
 directory for all hosts, so the same file name from two hosts would overwrite
 there (match names make that improbable).
