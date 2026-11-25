@@ -46,7 +46,7 @@ related: [qlsm-extra-0033, ql-tournament-0217]
 - [x] тест на совпадение имён (`tests/test_packer_multipov.py`)
 - [x] forwarder.sh: 5-я колонка ledger `PACK_DIR` у pack-файлов, доставкой в `qlmatch/` считается только она
 - [x] тесты forwarder (`tests/test_forwarder_sh.py`), версия 1.3.1, пакет, README
-- [ ] PR, проверки зелёные
+- [x] PR #5 (проверок CI в репозитории нет, тесты прогнаны локально)
 - [ ] оператор: обновить file-forwarder 1.3.1 в qlsm, Apply to host на germany
 
 ## Журнал
@@ -54,10 +54,12 @@ related: [qlsm-extra-0033, ql-tournament-0217]
 - 2026-11-25 - created
 - 2026-11-25 - pack.mjs: имя multi-POV = база .qlmatch уже с 1.4.0; подтверждено ql-tournament-0217 на VPS (41 файл)
 - 2026-11-25 - найдено: forwarder 1.3.0 пропускает .dm_91, ledgered 1.2.0 как raw; исправлено в 1.3.1 (5-я колонка ledger)
+- 2026-11-25 - PR #5 открыт; ждёт мержа и Apply to host оператором
 
 ## Результат
 
-Ветка `alexeytihomirov/houndshark`, PR в main (не смержен). qlmatch-packer без
+Ветка `alexeytihomirov/qlmatch-packer-demo-naming` (`f839b8b`),
+PR https://github.com/alexeytihomirov/qlsm-extra/pull/5 (не смержен, CI в репозитории нет). qlmatch-packer без
 изменений (1.4.0). file-forwarder 1.3.1: `addons/file-forwarder/assets/forwarder.sh`.
 
 ## Как проверить
