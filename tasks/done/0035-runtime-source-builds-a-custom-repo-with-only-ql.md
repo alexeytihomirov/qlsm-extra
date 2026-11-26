@@ -1,12 +1,12 @@
 ---
 id: qlsm-extra-0035
 title: runtime-source builds a custom repo with only qlsm-python-deps.patch
-status: in-progress
+status: done-unverified
 created: 2026-11-26
 updated: 2026-11-26
 verified:
 depends_on: []
-related: []
+related: [https://github.com/alexeytihomirov/qlsm-extra/pull/6]
 ---
 
 # runtime-source builds a custom repo with only qlsm-python-deps.patch
@@ -25,15 +25,18 @@ qlsm upstream 1.65 (`dngrtech/qlsm` 231b1e63) в `ansible/playbooks/tasks/build_
 - [x] Проверка в upstream 231b1e63: ключ не в `_RESERVED_SETUP_VARS`, extra vars идут JSON `-e`; в 1.50.4 (dfe63a27) переменная нигде не используется
 - [x] Тесты (`tests/test_addon_runtime_source.py`), прогон против 231b1e63 и dfe63a27 (Linux, WSL `qlsm`)
 - [x] Версия 1.1.0, README, `packages/runtime-source.zip`, `qlsm-repository.json`
-- [ ] PR, merge в main, `git ls-remote`
+- [x] PR #6, merge в main, `git ls-remote`
 
 ## Журнал
 
 - 2026-11-26 - created
 - 2026-11-26 - 231b1e63: `_RESERVED_SETUP_VARS` = host_timezone, game_udp_ports, rcon_tcp_ports, runtime; `addon_setup_extravar_args` делает `-e json.dumps(...)` на каждый вклад; standalone core_keys не содержат minqlxtended_patches. dfe63a27 (1.50.4): в playbooks нет `minqlxtended_patches`, лишняя extra-var игнорируется.
 - 2026-11-26 - upstream 231b1e63 не импортируется на Windows (`fcntl`, `os.O_NOFOLLOW` в `ui/addons/runtime_protection.py`); тесты гонял в WSL distro `qlsm` с venv `--system-site-packages` + pytest: 32 passed на 231b1e63 и на dfe63a27.
+- 2026-11-26 - PR #6 открыт; CI в репо нет, зеленый = локальные тесты выше.
 
 ## Результат
+
+runtime-source 1.1.0, PR https://github.com/alexeytihomirov/qlsm-extra/pull/6 (commit 67230d0), смержен в main. На прод не ставился.
 
 ## Как проверить
 
