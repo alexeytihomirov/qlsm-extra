@@ -246,8 +246,8 @@
     {
       "id": "runtime-source",
       "zip": "packages/runtime-source.zip",
-      "sha256": "919aa3b52d1a9243206669bafebe5a7f9fe9e687e806a876dff4d27a430e4e6b",
-      "version": "1.0.1",
+      "sha256": "90a924250819f847de72adc9c40f52b1aaee1379783a40270f377ad82e21ca22",
+      "version": "1.1.0",
       "label": "Runtime Source",
       "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins, for example the fork native demo capture needs. Set the repository and commit in the host's Runtime Source entry, then Re-run Host Setup; needs a QLSM with the host.setup hook."
     },
