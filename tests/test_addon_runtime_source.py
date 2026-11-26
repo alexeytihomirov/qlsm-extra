@@ -6,6 +6,7 @@ validate must contribute nothing at all, because whatever this addon returns
 is handed to `git clone` on the host.
 """
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -71,9 +72,20 @@ def test_blank_means_the_pinned_build(resolve_source):
 
 
 @pytest.mark.parametrize('version', [SHA, 'v1.2.3', 'main', 'feature/demo-cut'])
-def test_a_valid_pair_becomes_the_two_playbook_vars(resolve_source, version):
+def test_a_valid_pair_becomes_the_playbook_vars(resolve_source, version):
     assert resolve_source({'git_repo': f' {REPO} ', 'git_version': f' {version} '}) == (
-        {'minqlxtended_git_repo': REPO, 'minqlxtended_git_version': version}, None)
+        {'minqlxtended_git_repo': REPO, 'minqlxtended_git_version': version,
+         'minqlxtended_patches': ['qlsm-python-deps.patch']}, None)
+
+
+def test_a_custom_source_drops_the_demo_capture_patch(resolve_source):
+    # The fork carries demo capture; qlsm's default list would re-apply it and
+    # `patch --forward` would fail the setup run.
+    patches = resolve_source({'git_repo': REPO, 'git_version': SHA})[0]['minqlxtended_patches']
+    assert patches == ['qlsm-python-deps.patch']
+    patches.append('mutated')
+    assert resolve_source({'git_repo': REPO, 'git_version': SHA})[0][
+        'minqlxtended_patches'] == ['qlsm-python-deps.patch']
 
 
 @pytest.mark.parametrize('settings', [
@@ -104,7 +116,19 @@ def test_an_enabled_minqlxtended_host_gets_its_source(app):
     host_id = _host(app, 'fork-host', 'minqlxtended')
     _configure(app, host_id, git_repo=REPO, git_version=SHA)
     assert _contributions(app, host_id) == [
-        {'minqlxtended_git_repo': REPO, 'minqlxtended_git_version': SHA}]
+        {'minqlxtended_git_repo': REPO, 'minqlxtended_git_version': SHA,
+         'minqlxtended_patches': ['qlsm-python-deps.patch']}]
+
+
+def test_the_patch_list_reaches_ansible_as_a_json_list(app):
+    from ui.task_logic.ansible_host_setup import addon_setup_extravar_args
+
+    host_id = _host(app, 'json-host', 'minqlxtended')
+    _configure(app, host_id, git_repo=REPO, git_version=SHA)
+    with app.app_context():
+        args = addon_setup_extravar_args(db.session.get(Host, host_id))
+    assert args[0] == '-e'
+    assert json.loads(args[1])['minqlxtended_patches'] == ['qlsm-python-deps.patch']
 
 
 def test_a_host_the_addon_is_off_for_gets_nothing(app):

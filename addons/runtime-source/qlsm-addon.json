@@ -1,6 +1,6 @@
 {
   "id": "runtime-source",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "name": "Runtime Source",
   "description": "Builds a host's minqlxtended from a repository you choose instead of the commit QLSM pins, for example the fork native demo capture needs. Set the repository and commit in the host's Runtime Source entry, then Re-run Host Setup; needs a QLSM with the host.setup hook.",
   "scopes": ["global", "host"],

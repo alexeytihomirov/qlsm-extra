@@ -6,6 +6,12 @@ repository and a version per host and returns them from the `host.setup` hook,
 which qlsm passes to the playbook as extra-vars -- so the choice applies on the
 next host setup run, and on every one after it.
 
+A custom source also narrows `minqlxtended_patches` to qlsm-python-deps.patch.
+qlsm (1.65 and later) applies its own list with `patch --forward`, by default
+python-deps plus qlsm-demo-capture.patch; a fork that already carries demo
+capture makes the second one fail ("previously applied") and with it the whole
+setup run. An older qlsm that has no such var simply ignores it.
+
 Nothing else about the host changes: it is still a minqlxtended host, with the
 minqlxtended plugin pool, paths and presets.
 """
@@ -21,6 +27,10 @@ RUNTIME = 'minqlxtended'
 # https only, no credentials, no query string: the URL is stored in the
 # database, shown in the UI and handed to `git clone` on the host.
 _REPO = re.compile(r'^https://[A-Za-z0-9.-]+(:\d+)?(/[A-Za-z0-9._~-]+)+/?$')
+# What a custom source still gets from qlsm's patch list: the fork is expected
+# to carry demo capture itself, but not the QLSM_PYTHON_DEPS venv hook.
+PATCHES = ['qlsm-python-deps.patch']
+
 # A commit hash, tag or branch. The first character may not be '-', so the
 # value can never be read as an option by git.
 _VERSION = re.compile(r'^[A-Za-z0-9_][A-Za-z0-9._/-]*$')
@@ -47,6 +57,7 @@ def resolve_source(settings):
     return {
         f'{RUNTIME}_git_repo': repo,
         f'{RUNTIME}_git_version': version,
+        f'{RUNTIME}_patches': list(PATCHES),
     }, None
 
 

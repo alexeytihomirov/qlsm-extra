@@ -156,7 +156,7 @@ Source lives under `addons/<id>/`. Published packages are `packages/<id>.zip`
 | `demo-stream` | Live POV demo stream through a central relay; per-host stunnel TLS tunnel to stats-hub. No menu entries of its own since 1.9.0: it is switched on and configured in the **Stats Hub** entries of `telemetry-relay` (1.9.0 or newer); its API routes, tasks and launch args are unchanged. A delay change applies on stats-hub without a restart |
 | `qlmatch-packer` | Installs the `.qlmatch` packer on hosts; shows and rebuilds packs on the Demos screen. The `qlmatch_packer.py` plugin runs it when the engine finishes a match's demos. A multi-POV capture is published as `<name>.dm_91` + `<name>.meta.json` instead of a `.qlmatch` |
 | `file-forwarder` | Ships demo files (.qlmatch packs, published multi-POV matches, replay sidecars, raw demos) from game hosts to the VPS over SFTP with rclone, keeps a delivery ledger, cleans up delivered raw demos, and offers manual sync from the host menu. The VPS address is a setting; saving it scans the VPS host keys and shows their fingerprints. The host menu entry **File Forwarder** has the host switch, the status and **Apply to host**, **Sync now** and **Sync now and delete delivered** |
-| `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enter repository + commit in **Runtime Source**, then **Re-run Host Setup**. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
+| `runtime-source` | Builds a host's minqlxtended from a repository you choose (a fork) instead of the commit qlsm pins. Per host: enter repository + commit in **Runtime Source**, then **Re-run Host Setup**. A custom source gets only `qlsm-python-deps.patch` from qlsm's patch list: the fork is expected to carry demo capture itself. Needs a QLSM whose host setup supports a custom minqlxtended repository on every provider (`host.setup` hook). |
 | `player-ranks` | Shows external ratings (qlstats, Slipgate, x76) stacked in one Rank column in Live Status. Sources are chosen per instance on its Ranks tab; qlstats/Slipgate connection details are set once for the installation. Needs qlsm `ui_api` 4 or newer. |
 | `host-metrics` | Per-host and per-instance resource metrics: a low-priority collector on every game host keeps 30 days of CPU (incl. steal), memory, disk, players and frame timing in SQLite; the Host Metrics page is a health board (status, findings in plain English, hardware, charts) with a capacity verdict per host. Collector changes reach a host with **Apply to host** |
 | `live-settings` | A **Live Settings** tab in each instance's Edit Configuration window: the cvars of its plugins (from their `.ql-plugin.json`) and any server cvars you pin, with the live value from the running server next to the `server.cfg` value. Changes go to the server over RCON at once, no restart; by default they are also written to `server.cfg` and synced to the host without a restart (the instance then shows UPDATED, as after any save without restart). The tab keeps the last applies with the engine's answers and the `server.cfg` diff |
@@ -298,6 +298,14 @@ stored settings, nothing is migrated:
   the entries show and save telemetry only; switching the stream or the tunnel
   on is refused with the reason, and the status line says why.
 Update both addons together; after the update use the Stats Hub entries.
+
+**runtime-source 1.1.0:** a host with a custom repository is built with only
+`qlsm-python-deps.patch` from qlsm's patch list (`minqlxtended_patches`).
+qlsm 1.65 also applies `qlsm-demo-capture.patch` by default, which our fork
+already contains, so **Re-run Host Setup** failed on `patch --forward`
+("previously applied"). An older qlsm has no such var and ignores it. Update
+the addon before or together with qlsm 1.65; nothing to change per host, the
+next **Re-run Host Setup** uses it.
 
 **player-ranks 0.4.0:** the installation-wide "on by default" switches for
 qlstats and Slipgate are gone; each instance picks its sources on its own
